@@ -1,31 +1,41 @@
-import { Text, type TextProps, StyleSheet } from 'react-native';
+import { Text, type TextProps, StyleSheet } from "react-native";
 
-import { useThemeColor } from '@/hooks/useThemeColor';
+import { useThemeColor } from "@/hooks/useThemeColor";
+import { fonts } from "@/constants/Fonts";
+import { Colors } from "@/constants/Colors";
 
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
+  type?:
+    | "regularMedium"
+    | "welcomeText"
+    | "linkSmall"
+    | "title"
+    | "screenHeader";
 };
 
 export function ThemedText({
   style,
   lightColor,
   darkColor,
-  type = 'default',
+  type = "regularMedium",
   ...rest
 }: ThemedTextProps) {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  const color = useThemeColor(
+    { light: lightColor, dark: darkColor },
+    getTextType(type)
+  );
 
   return (
     <Text
       style={[
         { color },
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
+        type === "regularMedium" ? styles.regularMedium : undefined,
+        type === "welcomeText" ? styles.welcomeText : undefined,
+        type === "linkSmall" ? styles.linkSmall : undefined,
+        type === "title" ? styles.title : undefined,
+        type === "screenHeader" ? styles.screenHeader : undefined,
         style,
       ]}
       {...rest}
@@ -33,28 +43,37 @@ export function ThemedText({
   );
 }
 
+const getTextType = (
+  type: "regularMedium" | "welcomeText" | "linkSmall" | "title" | "screenHeader"
+) => {
+  if (type === "regularMedium") {
+    return "defaultText";
+  } else if (type === "linkSmall") {
+    return "linkText";
+  } else if (type === "title") {
+    return "title";
+  }
+  return "defaultText";
+};
+
 const styles = StyleSheet.create({
-  default: {
-    fontSize: 16,
-    lineHeight: 24,
+  regularMedium: {
+    ...(fonts.defaultMedium as any),
   },
-  defaultSemiBold: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
+  welcomeText: {
+    ...(fonts.defaultMedium as any),
+    fontSize: 12,
+  },
+  linkSmall: {
+    fontFamily: "Raleway",
+    fontSize: 12,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    lineHeight: 32,
+    ...(fonts.defaultBold as any),
   },
-  subtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  link: {
-    lineHeight: 30,
-    fontSize: 16,
-    color: '#0a7ea4',
+  screenHeader: {
+    fontFamily: "Montserrat_400Regular",
+    fontSize: 12,
+    color: Colors.light.darkGrey,
   },
 });
