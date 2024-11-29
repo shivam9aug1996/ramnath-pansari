@@ -7,6 +7,7 @@ const SubCategorySelectorPlaceholder = () => {
   const renderLoader = (index: number) => {
     return (
       <ContentLoader
+        key={index}
         speed={2}
         width={index == 0 ? 50 : 84}
         height={36.7}

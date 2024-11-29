@@ -9,6 +9,7 @@ const HomeNavigator = () => {
     <>
       <Stack>
         <Stack.Screen name="home" options={{ headerShown: false }} />
+
         {/* <Stack.Screen
           name="category/[category]"
           options={{ headerShown: true }}

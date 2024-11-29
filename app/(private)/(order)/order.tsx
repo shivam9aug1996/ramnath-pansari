@@ -21,6 +21,7 @@ import { mockOrders } from "./mock";
 import { getOrderStatusTitle } from "./utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import OrderListPlaceHolder from "./OrderListPlaceHolder";
 
 const Order = () => {
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
@@ -107,10 +108,10 @@ const Order = () => {
         ? "#FAD4D4" // Lighter red for outer circle
         : "#C8E6C9";
 
-    console.log("kjgfghjkl", status);
+    console.log("kjgfghjkl", item);
     return (
       <TouchableOpacity
-        key={index}
+        key={item?._id || index}
         onPress={() => {
           router.navigate(`/(orderDetail)/${item?._id}`);
         }}
@@ -167,7 +168,7 @@ const Order = () => {
       <View style={{ flex: 1 }}>
         {isOrderLoading ? (
           <View>
-            <ProductListPlaceholder />
+            <OrderListPlaceHolder />
           </View>
         ) : orderError ? (
           <Text>Error loading data</Text>

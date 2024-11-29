@@ -39,6 +39,13 @@ export const searchApi = createApi({
         return currentArg !== previousArg;
       },
     }),
+    fetchProductsBySearchQueryData: builder.query({
+      query: (data) => ({
+        url: "/search",
+        method: "GET",
+        params: data,
+      }),
+    }),
   }),
 });
 
@@ -59,6 +66,9 @@ const searchSlice = createSlice({
 
 export const { setSelectedSubCategoryId } = searchSlice.actions;
 
-export const { useFetchProductsBySearchQuery } = searchApi;
+export const {
+  useFetchProductsBySearchQuery,
+  useFetchProductsBySearchQueryDataQuery,
+} = searchApi;
 
 export default searchSlice.reducer;

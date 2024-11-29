@@ -12,14 +12,17 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ramnath.pansari",
       "config": {
-        "googleMapsApiKey": "AIzaSyCY7OexW8I25uKjtJwqU1hAQZAZ4d8bnqQ"
+        "googleMapsApiKey": "AIzaSyCY7OexW8I25uKjtJwqU1hAQZAZ4d8bnqQ",
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
+      "googleServicesFile": "./android/app/google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -58,7 +61,8 @@
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, ViewStyle } from "react-native";
-import React from "react";
+import React, { memo } from "react";
 import { Image } from "expo-image";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
@@ -69,6 +69,6 @@ const NotFound = ({
   );
 };
 
-export default NotFound;
+export default memo(NotFound);
 
 const styles = StyleSheet.create({});

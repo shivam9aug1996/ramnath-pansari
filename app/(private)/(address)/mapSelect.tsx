@@ -5,6 +5,7 @@ import {
   Platform,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import MapView, {
@@ -21,6 +22,8 @@ import Button from "@/components/Button";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import { setCurrentAddressData } from "@/redux/features/addressSlice";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { debounce } from "lodash";
 
 interface LocationData {
   city: string;
@@ -76,6 +79,7 @@ const MapSelect: React.FC = () => {
       if (animate) {
         mapRef.current?.animateToRegion(newRegion, 1000);
       }
+      firstMount.current = false;
     },
     []
   );
@@ -107,10 +111,19 @@ const MapSelect: React.FC = () => {
     }
   }, [fetchingLocationData, updateMapRegion]);
 
+  const debouncedFetchLocation = useCallback(
+    debounce(
+      (latitude, longitude) => fetchLocationData(latitude, longitude),
+      500
+    ),
+    []
+  );
+
   const handleRegionChangeComplete = useCallback(
     (region: Region) => {
       if (!firstMount.current) {
-        fetchLocationData(region.latitude, region.longitude);
+        console.log("hiiu567890");
+        debouncedFetchLocation(region.latitude, region.longitude);
       }
       firstMount.current = false;
     },
@@ -143,6 +156,7 @@ const MapSelect: React.FC = () => {
               <Text style={styles.loadingText}>Loading...</Text>
             </View>
           )}
+
           <MapView
             loadingEnabled
             ref={mapRef}
@@ -168,6 +182,30 @@ const MapSelect: React.FC = () => {
           </MapView>
         </View>
       </View>
+      <TouchableOpacity
+        onPress={() => {
+          fetchLocationData();
+        }}
+        style={{
+          zIndex: 200,
+          position: "absolute",
+          bottom: 130,
+          right: 20,
+        }}
+      >
+        <MaterialIcons
+          name="my-location"
+          size={24}
+          color={"white"}
+          style={
+            {
+              //right: 15,
+              //position: "absolute",
+              //bottom: 15,
+            }
+          }
+        />
+      </TouchableOpacity>
       <Button
         isLoading={fetchingLocationLoading}
         wrapperStyle={styles.buttonWrapper}

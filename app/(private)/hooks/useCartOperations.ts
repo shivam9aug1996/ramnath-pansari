@@ -29,14 +29,15 @@ export const useCartOperations = (item: Product, initialValue: number) => {
 
   const handlePress = useCallback(
     async (quantity: number, value: number, item: Product) => {
+      console.log("hiiiiuyfghjklghjkl");
       if (value == quantity) {
         return;
       }
       let attempts = 0;
       console.log("o8765redfghjkl", quantity, initialValue);
+      dispatch(setCartButtonProductId(item._id));
       while (attempts < 3) {
         try {
-          dispatch(setCartButtonProductId(item._id));
           await updateCart({
             body: {
               quantity: quantity,
@@ -78,15 +79,17 @@ export const useCartOperations = (item: Product, initialValue: number) => {
 
   const handleAdd = () => {
     buttonClicked.current = true;
-    setQuantity((prev) => prev + 1);
-    debouncePress(quantity + 1, initialValue, item);
+    const newQuantity = quantity + 1;
+    setQuantity(newQuantity);
+    debouncePress(newQuantity, initialValue, item);
   };
 
   const handleRemove = () => {
     buttonClicked.current = true;
     if (quantity > 0) {
-      setQuantity((prev) => prev - 1);
-      debouncePress(quantity - 1, initialValue, item);
+      const newQuantity = quantity - 1;
+      setQuantity(newQuantity);
+      debouncePress(newQuantity, initialValue, item);
     }
   };
 

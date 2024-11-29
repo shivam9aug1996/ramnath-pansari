@@ -11,10 +11,30 @@ import { Image } from "expo-image";
 import { staticImage } from "../(category)/CategoryList/utils";
 import { useFetchCartQuery } from "@/redux/features/cartSlice";
 import CartButton from "./CartButton";
+import ContentLoader, { Rect } from "react-content-loader/native";
+
+const renderText = () => {
+  return (
+    <ContentLoader
+      speed={1}
+      width={"100%"}
+      height={100}
+      backgroundColor="#f3f3f3"
+      foregroundColor="#e3e3e3"
+    >
+      <Rect width="90%" y={0} rx={5} ry={5} height="25" />
+      <Rect width="60%" y={35} rx={5} ry={5} height="25" />
+      <Rect width="40%" y={70} rx={5} ry={5} height="25" />
+    </ContentLoader>
+  );
+};
 
 const Product = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data } = useFetchProductDetailQuery({ productId: id }, { skip: !id });
+  const { data, isFetching } = useFetchProductDetailQuery(
+    { productId: id },
+    { skip: !id }
+  );
 
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   const { data: cartData } = useFetchCartQuery(
@@ -28,7 +48,7 @@ const Product = () => {
   const cartButtonProductId = useSelector(
     (state: RootState) => state.cart.cartButtonProductId || []
   );
-  const isLoading = cartButtonProductId.includes(id);
+  // const isLoading = cartButtonProductId.includes(id);
   const image = data?.product?.image;
   const discountedPrice = data?.product?.discountedPrice;
   const name = data?.product?.name;
@@ -54,18 +74,24 @@ const Product = () => {
         <View style={{ flex: 1 }}>
           {/* Product Details */}
           <View style={styles.textContainer}>
-            <ThemedText style={styles.productName} type="title">
-              {name}
-            </ThemedText>
-            <ThemedText
-              style={[styles.productPrice, styles.originalPrice]}
-              type="title"
-            >
-              {`MRP ₹ ${price}`}
-            </ThemedText>
-            <ThemedText style={styles.productPrice} type="title">
-              {`₹ ${discountedPrice}`}
-            </ThemedText>
+            {isFetching ? (
+              renderText()
+            ) : (
+              <>
+                <ThemedText style={styles.productName} type="title">
+                  {name}
+                </ThemedText>
+                <ThemedText
+                  style={[styles.productPrice, styles.originalPrice]}
+                  type="title"
+                >
+                  {`MRP ₹ ${price}`}
+                </ThemedText>
+                <ThemedText style={styles.productPrice} type="title">
+                  {`₹ ${discountedPrice}`}
+                </ThemedText>
+              </>
+            )}
           </View>
         </View>
         <CartButton value={cartItem?.quantity || 0} item={data?.product} />
@@ -109,6 +135,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 20,
     width: "100%",
+    minHeight: 300,
   },
   addToCartButton: {
     marginTop: 25,

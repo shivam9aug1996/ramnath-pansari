@@ -44,7 +44,7 @@ const useFetchLocation = () => {
             latitude,
             longitude,
           },
-          true
+          false
         )?.unwrap();
         setData(locData?.data);
       }

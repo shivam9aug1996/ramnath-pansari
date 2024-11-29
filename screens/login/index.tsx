@@ -1,5 +1,10 @@
 import React from "react";
-import { Keyboard, TouchableWithoutFeedback, StyleSheet } from "react-native";
+import {
+  Keyboard,
+  TouchableWithoutFeedback,
+  StyleSheet,
+  TextInput,
+} from "react-native";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";

@@ -7,6 +7,7 @@ import { convertDate, getOrderStatusTitle1 } from "../(order)/utils";
 
 const StepOrderTracking = ({ trackingData }) => {
   const renderItem = ({ item, index }) => {
+    console.log("ytrfgfghjklhjk", item);
     const status = item?.status?.toLowerCase();
     const backgroundColor =
       status === "out_for_delivery"
@@ -26,6 +27,7 @@ const StepOrderTracking = ({ trackingData }) => {
         : "#4CAF50"; // Green for delivered
     return (
       <View
+        key={item?.timestamp || index}
         style={[
           styles.stepContainer,
           {

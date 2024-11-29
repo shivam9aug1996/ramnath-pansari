@@ -40,7 +40,10 @@ const CategorySelectorPlaceholder = () => {
   const renderCategory = ({ item, index }: { item: any; index: number }) => {
     const borderStyle = imageBorderStyle(arrayColor, false, index);
     return (
-      <TouchableOpacity style={styles.categoryContainer}>
+      <TouchableOpacity
+        key={item?._id || index}
+        style={styles.categoryContainer}
+      >
         <View style={[styles.imageContainer, borderStyle]}>
           {renderImageLoader()}
         </View>

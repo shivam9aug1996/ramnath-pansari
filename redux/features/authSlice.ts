@@ -4,6 +4,7 @@ import { baseUrl } from "../constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthData, SaveAuthDataPayload } from "@/types/global";
 import { Toast } from "react-native-toast-notifications";
+import * as SecureStore from "expo-secure-store";
 
 // const saveAuthDataToAsyncStorage = async (token: any, userData: any) => {
 //   try {
@@ -19,7 +20,8 @@ export const saveAuthData = createAsyncThunk(
   async (data: SaveAuthDataPayload, { rejectWithValue }) => {
     const { token, userData } = data;
     try {
-      await AsyncStorage.setItem("token", token);
+      await SecureStore.setItemAsync("token", token);
+      // await AsyncStorage.setItem("token", token);
       await AsyncStorage.setItem("userData", JSON.stringify(userData));
       return { token, userData };
     } catch (error) {
@@ -32,14 +34,16 @@ export const loadAuthData = createAsyncThunk(
   "auth/loadAuthData",
   async (_, { rejectWithValue }) => {
     try {
-      await new Promise((res) => {
-        setTimeout(() => {
-          res("hi");
-        }, 1000);
-      });
+      // await new Promise((res) => {
+      //   setTimeout(() => {
+      //     res("hi");
+      //   }, 1000);
+      // });
       // 9887765432
       //await AsyncStorage.clear();
-      const token = await AsyncStorage?.getItem("token");
+      // const token = await AsyncStorage?.getItem("token");
+      const token = await SecureStore.getItemAsync("token");
+
       let userData = await AsyncStorage?.getItem("userData");
       userData = userData ? JSON.parse(userData) : null;
       return { token, userData };
@@ -53,13 +57,14 @@ export const clearAuthData = createAsyncThunk(
   "auth/clearAuthData",
   async (_, { rejectWithValue }) => {
     try {
-      await new Promise((res) => {
-        setTimeout(() => {
-          res("hi");
-        }, 1000);
-      });
-
+      // await new Promise((res) => {
+      //   setTimeout(() => {
+      //     res("hi");
+      //   }, 1000);
+      // });
+      await SecureStore.deleteItemAsync("token");
       await AsyncStorage?.clear();
+
       const token = null;
       let userData = null;
       return { token, userData };

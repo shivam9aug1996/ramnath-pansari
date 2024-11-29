@@ -1,10 +1,17 @@
 import { StyleSheet } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
 import { Stack } from "expo-router";
 import GoToCart from "./(category)/ProductList/GoToCart";
+import { Alert } from "react-native";
+import LottieMenWalking from "./(address)/LottieMenWalking";
 export { ErrorBoundary } from "expo-router";
 
 const MainNavigator = () => {
+  // useEffect(() => {
+  //   setTimeout(() => {
+  //     Alert.alert("hi");
+  //   }, 5000);
+  // }, []);
   return (
     <>
       <Stack>

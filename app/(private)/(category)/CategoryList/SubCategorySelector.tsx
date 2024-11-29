@@ -13,37 +13,41 @@ const SubCategorySelector = ({
   console.log("sub category selector----->");
   const renderSubCategory = ({
     item,
+    index,
   }: {
     item: SubCategory;
     index: number;
-  }) => (
-    <TouchableOpacity
-      style={[
-        styles.subCategoryContainer,
-        {
-          backgroundColor:
-            item._id === selectedSubCategory?._id
-              ? Colors.light.mediumGreen
-              : Colors.light.lightGrey,
-        },
-      ]}
-      onPress={() => onSelectSubCategory(item)}
-    >
-      <ThemedText
+  }) => {
+    return (
+      <TouchableOpacity
+        key={item?._id || index}
         style={[
-          styles.subCategoryText,
+          styles.subCategoryContainer,
           {
-            color:
+            backgroundColor:
               item._id === selectedSubCategory?._id
-                ? Colors.light.white
-                : Colors.light.darkGrey,
+                ? Colors.light.mediumGreen
+                : Colors.light.lightGrey,
           },
         ]}
+        onPress={() => onSelectSubCategory(item)}
       >
-        {item.name}
-      </ThemedText>
-    </TouchableOpacity>
-  );
+        <ThemedText
+          style={[
+            styles.subCategoryText,
+            {
+              color:
+                item._id === selectedSubCategory?._id
+                  ? Colors.light.white
+                  : Colors.light.darkGrey,
+            },
+          ]}
+        >
+          {item.name}
+        </ThemedText>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <FlatList

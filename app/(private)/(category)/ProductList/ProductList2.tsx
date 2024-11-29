@@ -45,7 +45,14 @@ const ProductList2 = ({
       (it: CartItem) => it.productId === item._id
     );
 
-    return <ProductItem cartItem={cartItem} item={item} index={index} />;
+    return (
+      <ProductItem
+        key={item?._id || index}
+        cartItem={cartItem}
+        item={item}
+        index={index}
+      />
+    );
   };
 
   const renderEmptyComponent = () => {

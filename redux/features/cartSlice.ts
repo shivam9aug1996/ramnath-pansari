@@ -18,6 +18,7 @@ export const cartApi = createApi({
     credentials: "include",
   }),
   tagTypes: ["cartList"],
+
   endpoints: (builder) => ({
     fetchCart: builder.query({
       query: (data) => ({
@@ -25,6 +26,17 @@ export const cartApi = createApi({
         method: "GET",
         params: data,
       }),
+      transformResponse: (response) => {
+        if (response && Array.isArray(response?.cart?.items)) {
+          console.log("Reversed Response:", JSON.stringify(response));
+          return {
+            ...response,
+            items: response?.cart?.items?.reverse(),
+          };
+        }
+        console.error("Invalid response format:", response);
+        return response; // Return as is if items is not an array or response is invalid
+      },
       providesTags: ["cartList"],
     }),
     updateCart: builder.mutation({

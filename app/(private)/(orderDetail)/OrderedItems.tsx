@@ -7,9 +7,13 @@ import CartItem from "@/components/cart/CartItem";
 
 const OrderedItems = ({ itemsOrdered = [] }) => {
   console.log("gfbnm,", itemsOrdered);
-  const renderItem = ({ item }: CartItemProps) => {
+  const renderItem = ({ item, index }: CartItemProps) => {
     return (
-      <CartItem order={true} key={item?.productDetails?._id} item={item} />
+      <CartItem
+        order={true}
+        key={item?.productDetails?._id || index}
+        item={item}
+      />
     );
   };
   return (

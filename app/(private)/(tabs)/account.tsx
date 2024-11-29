@@ -6,6 +6,7 @@ import {
   ViewStyle,
   TextStyle,
   TouchableOpacity,
+  ScrollView,
 } from "react-native";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import { Image } from "expo-image";
@@ -66,62 +67,64 @@ const Account: React.FC = () => {
         >{`+91 ${userInfo?.mobileNumber}`}</Text>
       </View>
 
-      <View style={styles.optionsContainer}>
-        <AccountOption
-          onPress={() => {
-            router.push("/profile");
-          }}
-          icon={
-            <MaterialCommunityIcons
-              name="account"
-              size={20}
-              color={Colors.light.gradientGreen_2}
-            />
-          }
-          label="My Profile"
-        />
-        <AccountOption
-          onPress={() => {
-            dispatch(setCheckoutFlow(false));
-            router.push("/(order)/order");
-          }}
-          icon={
-            <Feather
-              name="package"
-              size={20}
-              color={Colors.light.gradientGreen_2}
-            />
-          }
-          label="Orders"
-        />
-        <AccountOption
-          onPress={() => {
-            dispatch(setCheckoutFlow(false));
-            router.push("/(address)/addressList");
-          }}
-          icon={
-            <Ionicons
-              name="location-sharp"
-              size={20}
-              color={Colors.light.gradientGreen_2}
-            />
-          }
-          label="Saved Addresses"
-        />
-        <AccountOption
-          onPress={async () => {
-            await logout({})?.unwrap();
-          }}
-          icon={
-            <MaterialIcons
-              name="logout"
-              size={20}
-              color={Colors.light.gradientRed_1}
-            />
-          }
-          label="Logout"
-        />
-      </View>
+      <ScrollView style={{ flex: 1, marginTop: 25 }}>
+        <View style={styles.optionsContainer}>
+          <AccountOption
+            onPress={() => {
+              router.push("/profile");
+            }}
+            icon={
+              <MaterialCommunityIcons
+                name="account"
+                size={20}
+                color={Colors.light.gradientGreen_2}
+              />
+            }
+            label="My Profile"
+          />
+          <AccountOption
+            onPress={() => {
+              dispatch(setCheckoutFlow(false));
+              router.push("/(order)/order");
+            }}
+            icon={
+              <Feather
+                name="package"
+                size={20}
+                color={Colors.light.gradientGreen_2}
+              />
+            }
+            label="Orders"
+          />
+          <AccountOption
+            onPress={() => {
+              dispatch(setCheckoutFlow(false));
+              router.push("/(address)/addressList");
+            }}
+            icon={
+              <Ionicons
+                name="location-sharp"
+                size={20}
+                color={Colors.light.gradientGreen_2}
+              />
+            }
+            label="Saved Addresses"
+          />
+          <AccountOption
+            onPress={async () => {
+              await logout({})?.unwrap();
+            }}
+            icon={
+              <MaterialIcons
+                name="logout"
+                size={20}
+                color={Colors.light.gradientRed_1}
+              />
+            }
+            label="Logout"
+          />
+        </View>
+      </ScrollView>
     </ScreenSafeWrapper>
   );
 };

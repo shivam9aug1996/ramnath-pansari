@@ -10,11 +10,12 @@ import StepOrderTracking from "./StepOrderTracking";
 import { convertDate, getOrderStatusTitle1 } from "../(order)/utils";
 import { OrderStatus } from "../(order)/mock";
 import OrderedItems from "./OrderedItems";
+import OrderDetailPlaceholder from "./OrderDetailPlaceholder";
 
 const OrderDetail = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
-  const { data } = useFetchOrderDetailQuery(
+  const { data, isFetching } = useFetchOrderDetailQuery(
     { orderId: id, userId },
     { skip: !id }
   );
@@ -24,20 +25,7 @@ const OrderDetail = () => {
 
   // Example tracking data (replace with actual data from API if available)
   const trackingData = data?.orderData?.orderHistory;
-  // const trackingData = [
-  //   {
-  //     status: OrderStatus.CANCELED,
-  //     timestamp: "2024-11-19T14:42:40.263Z",
-  //   },
-  //   {
-  //     status: OrderStatus.OUT_FOR_DELIVERY,
-  //     timestamp: "2024-11-19T14:42:40.263Z",
-  //   },
-  //   {
-  //     status: OrderStatus.CONFIRMED,
-  //     timestamp: "2024-11-19T14:42:40.263Z",
-  //   },
-  // ];
+
   console.log("uytrfghjkl", trackingData);
 
   const amountPaid = `₹ ${data?.orderData?.amountPaid}`;
@@ -63,59 +51,67 @@ const OrderDetail = () => {
   return (
     <ScreenSafeWrapper showCartIcon>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={{ flexDirection: "column" }}>
-          <Text style={styles.heading}>Order Detail</Text>
-          <View style={styles.detailsContainer}>
-            <DetailItem
-              label="Status"
-              value={orderStatus}
-              // backgroundColor={backgroundColor}
-              backgroundColor={backgroundColor}
-              textColor={Colors.light.darkGrey}
-            />
-            <DetailItem
-              label="Purchase Date"
-              value={convertDate(orderStatusData?.timestamp)}
-              backgroundColor="#F4F4F4"
-              textColor={Colors.light.mediumGrey}
-              fontFamily="Montserrat_500Medium"
-            />
-          </View>
-          <View style={[styles.detailsContainer, { marginTop: 10 }]}>
-            <DetailItem
-              label="Order ID"
-              value="7897-443200-5135"
-              backgroundColor="#F4F4F4"
-              textColor={Colors.light.mediumGrey}
-              fontFamily="Montserrat_500Medium"
-            />
-            <View style={{ flex: 1 }}></View>
-          </View>
-        </View>
-        <View style={{ flexDirection: "column" }}>
-          <Text style={[styles.heading, { marginTop: 35 }]}>
-            Payment Detail
-          </Text>
-          <View style={styles.detailsContainer}>
-            <DetailItem
-              label="Amount"
-              value={amountPaid}
-              backgroundColor="#F4F4F4"
-              textColor={Colors.light.mediumGrey}
-              fontFamily="Montserrat_500Medium"
-            />
-            <DetailItem
-              label="Payment Mode"
-              value={tData?.method}
-              backgroundColor="#F4F4F4"
-              textColor={Colors.light.mediumGrey}
-            />
-          </View>
-        </View>
+        {isFetching ? (
+          <OrderDetailPlaceholder />
+        ) : (
+          <>
+            <View style={{ flexDirection: "column" }}>
+              <Text style={styles.heading}>Order Detail</Text>
+              <View style={styles.detailsContainer}>
+                <DetailItem
+                  label="Status"
+                  value={orderStatus}
+                  // backgroundColor={backgroundColor}
+                  backgroundColor={backgroundColor}
+                  textColor={Colors.light.darkGrey}
+                />
+                <DetailItem
+                  label="Purchase Date"
+                  value={convertDate(orderStatusData?.timestamp)}
+                  backgroundColor="#F4F4F4"
+                  textColor={Colors.light.mediumGrey}
+                  fontFamily="Montserrat_500Medium"
+                />
+              </View>
+              <View style={[styles.detailsContainer, { marginTop: 10 }]}>
+                <DetailItem
+                  label="Order ID"
+                  value={data?.orderData?.orderId}
+                  backgroundColor="#F4F4F4"
+                  textColor={Colors.light.mediumGrey}
+                  fontFamily="Montserrat_500Medium"
+                />
+                <View style={{ flex: 1 }}></View>
+              </View>
+            </View>
+            <View style={{ flexDirection: "column" }}>
+              <Text style={[styles.heading, { marginTop: 35 }]}>
+                Payment Detail
+              </Text>
+              <View style={styles.detailsContainer}>
+                <DetailItem
+                  label="Amount"
+                  value={amountPaid}
+                  backgroundColor="#F4F4F4"
+                  textColor={Colors.light.mediumGrey}
+                  fontFamily="Montserrat_500Medium"
+                />
+                <DetailItem
+                  label="Payment Mode"
+                  value={tData?.method}
+                  backgroundColor="#F4F4F4"
+                  textColor={Colors.light.mediumGrey}
+                />
+              </View>
+            </View>
 
-        <Text style={[styles.heading, { marginTop: 35 }]}>Tracking Detail</Text>
-        <StepOrderTracking trackingData={trackingData} />
-        <OrderedItems itemsOrdered={itemsOrdered} />
+            <Text style={[styles.heading, { marginTop: 35 }]}>
+              Tracking Detail
+            </Text>
+            <StepOrderTracking trackingData={trackingData} />
+            <OrderedItems itemsOrdered={itemsOrdered} />
+          </>
+        )}
       </ScrollView>
     </ScreenSafeWrapper>
   );

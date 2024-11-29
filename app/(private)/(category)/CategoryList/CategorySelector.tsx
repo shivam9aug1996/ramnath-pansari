@@ -32,6 +32,7 @@ const CategorySelector = ({
         onPress={() => {
           onSelectCategory?.(item);
         }}
+        key={item?._id || index}
       >
         <View style={[styles.imageContainer, borderStyle]}>
           <Image

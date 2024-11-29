@@ -16,7 +16,12 @@ import Entypo from "@expo/vector-icons/Entypo";
 const CartItem = ({ item, order = false }: CartItemProps) => {
   const [itemHeight, setItemHeight] = useState(0);
 
-  console.log("jhgfdfghjkl cart item", item);
+  console.log("jhgfdfghjkl cart item", JSON.stringify(item));
+  const nDiscountP =
+    ((item?.productDetails?.price - item?.productDetails?.discountedPrice) /
+      item?.productDetails?.price) *
+    100;
+  const discountP = nDiscountP?.toFixed(2);
 
   return (
     <>
@@ -27,6 +32,32 @@ const CartItem = ({ item, order = false }: CartItemProps) => {
         }}
         style={[styles.container]}
       >
+        {nDiscountP ? (
+          <View
+            style={{
+              position: "absolute",
+              backgroundColor: Colors.light.lightGreen,
+
+              zIndex: 1,
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              // borderTopLeftRadius: 28,
+              // borderBottomRightRadius: 28,
+              left: 10,
+              top: 10,
+            }}
+          >
+            <Text
+              style={{
+                color: Colors.light.white,
+                fontSize: 12,
+                fontFamily: "Montserrat_700Bold",
+              }}
+            >
+              {`${discountP} %`}
+            </Text>
+          </View>
+        ) : null}
         <View style={styles.imageContainer}>
           <Image
             source={{ uri: item?.productDetails?.image || staticImage }}
@@ -39,9 +70,24 @@ const CartItem = ({ item, order = false }: CartItemProps) => {
           <ThemedText style={styles.productName}>
             {item?.productDetails?.name}
           </ThemedText>
+          <ThemedText
+            style={[
+              styles.unitPrice,
+              {
+                textDecorationLine: "line-through",
+                textDecorationColor: Colors.light.darkGrey,
+                fontSize: 12,
+                // color: Colors.light.darkGrey,
+              },
+            ]}
+            type="title"
+          >
+            {`MRP ₹ ${item?.productDetails?.price}`}
+          </ThemedText>
           <ThemedText style={styles.unitPrice}>
             {`Unit price ₹${item?.productDetails?.discountedPrice}`}
           </ThemedText>
+
           <ThemedText style={styles.totalPrice}>
             {`₹ ${(
               item?.productDetails?.discountedPrice * item?.quantity

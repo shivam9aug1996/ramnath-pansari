@@ -1,6 +1,8 @@
 PODS:
   - boost (1.84.0)
   - DoubleConversion (1.1.6)
+  - EXApplication (6.0.1):
+    - ExpoModulesCore
   - EXConstants (17.0.3):
     - ExpoModulesCore
   - EXImageLoader (5.0.0):
@@ -8,6 +10,8 @@ PODS:
     - React-Core
   - EXJSONUtils (0.14.0)
   - EXManifests (0.15.4):
+    - ExpoModulesCore
+  - EXNotifications (0.29.8):
     - ExpoModulesCore
   - Expo (52.0.9):
     - ExpoModulesCore
@@ -222,6 +226,8 @@ PODS:
     - ExpoModulesCore
   - ExpoBlur (14.0.1):
     - ExpoModulesCore
+  - ExpoDevice (7.0.1):
+    - ExpoModulesCore
   - ExpoFileSystem (18.0.4):
     - ExpoModulesCore
   - ExpoFont (13.0.1):
@@ -267,12 +273,19 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - ExpoNetwork (7.0.2):
+    - ExpoModulesCore
+  - ExpoSecureStore (14.0.0):
+    - ExpoModulesCore
   - ExpoSplashScreen (0.29.12):
     - ExpoModulesCore
   - ExpoSystemUI (4.0.3):
     - ExpoModulesCore
   - ExpoWebBrowser (14.0.1):
     - ExpoModulesCore
+  - EXTaskManager (12.0.3):
+    - ExpoModulesCore
+    - UMAppLoader
   - EXUpdatesInterface (1.0.0):
     - ExpoModulesCore
   - FBLazyVector (0.76.2)
@@ -1559,6 +1572,8 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - react-native-get-random-values (1.11.0):
+    - React-Core
   - react-native-google-maps (1.20.0):
     - Google-Maps-iOS-Utils (= 5.0.0)
     - GoogleMaps (= 8.4.0)
@@ -2023,15 +2038,18 @@ PODS:
     - SDWebImage/Core (~> 5.6)
   - SocketRocket (0.7.1)
   - TweetNacl (1.0.2)
+  - UMAppLoader (5.0.0)
   - Yoga (0.0.0)
 
 DEPENDENCIES:
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
+  - EXApplication (from `../node_modules/expo-application/ios`)
   - EXConstants (from `../node_modules/expo-constants/ios`)
   - EXImageLoader (from `../node_modules/expo-image-loader/ios`)
   - EXJSONUtils (from `../node_modules/expo-json-utils/ios`)
   - EXManifests (from `../node_modules/expo-manifests/ios`)
+  - EXNotifications (from `../node_modules/expo-notifications/ios`)
   - Expo (from `../node_modules/expo`)
   - expo-dev-client (from `../node_modules/expo-dev-client/ios`)
   - expo-dev-launcher (from `../node_modules/expo-dev-launcher`)
@@ -2039,6 +2057,7 @@ DEPENDENCIES:
   - expo-dev-menu-interface (from `../node_modules/expo-dev-menu-interface/ios`)
   - ExpoAsset (from `../node_modules/expo-asset/ios`)
   - ExpoBlur (from `../node_modules/expo-blur/ios`)
+  - ExpoDevice (from `../node_modules/expo-device/ios`)
   - ExpoFileSystem (from `../node_modules/expo-file-system/ios`)
   - ExpoFont (from `../node_modules/expo-font/ios`)
   - ExpoHead (from `../node_modules/expo-router/ios`)
@@ -2049,9 +2068,12 @@ DEPENDENCIES:
   - ExpoLinking (from `../node_modules/expo-linking/ios`)
   - ExpoLocation (from `../node_modules/expo-location/ios`)
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
+  - ExpoNetwork (from `../node_modules/expo-network/ios`)
+  - ExpoSecureStore (from `../node_modules/expo-secure-store/ios`)
   - ExpoSplashScreen (from `../node_modules/expo-splash-screen/ios`)
   - ExpoSystemUI (from `../node_modules/expo-system-ui/ios`)
   - ExpoWebBrowser (from `../node_modules/expo-web-browser/ios`)
+  - EXTaskManager (from `../node_modules/expo-task-manager/ios`)
   - EXUpdatesInterface (from `../node_modules/expo-updates-interface/ios`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - fmt (from `../node_modules/react-native/third-party-podspecs/fmt.podspec`)
@@ -2090,6 +2112,7 @@ DEPENDENCIES:
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
+  - react-native-get-random-values (from `../node_modules/react-native-get-random-values`)
   - react-native-google-maps (from `/Users/shivam/Desktop/bahikhata/ramnath-pansari/node_modules/react-native-maps`)
   - react-native-maps (from `../node_modules/react-native-maps`)
   - react-native-razorpay (from `../node_modules/react-native-razorpay`)
@@ -2128,6 +2151,7 @@ DEPENDENCIES:
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
+  - UMAppLoader (from `../node_modules/unimodules-app-loader/ios`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -2151,6 +2175,8 @@ EXTERNAL SOURCES:
     :podspec: "../node_modules/react-native/third-party-podspecs/boost.podspec"
   DoubleConversion:
     :podspec: "../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec"
+  EXApplication:
+    :path: "../node_modules/expo-application/ios"
   EXConstants:
     :path: "../node_modules/expo-constants/ios"
   EXImageLoader:
@@ -2159,6 +2185,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-json-utils/ios"
   EXManifests:
     :path: "../node_modules/expo-manifests/ios"
+  EXNotifications:
+    :path: "../node_modules/expo-notifications/ios"
   Expo:
     :path: "../node_modules/expo"
   expo-dev-client:
@@ -2173,6 +2201,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-asset/ios"
   ExpoBlur:
     :path: "../node_modules/expo-blur/ios"
+  ExpoDevice:
+    :path: "../node_modules/expo-device/ios"
   ExpoFileSystem:
     :path: "../node_modules/expo-file-system/ios"
   ExpoFont:
@@ -2193,12 +2223,18 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-location/ios"
   ExpoModulesCore:
     :path: "../node_modules/expo-modules-core"
+  ExpoNetwork:
+    :path: "../node_modules/expo-network/ios"
+  ExpoSecureStore:
+    :path: "../node_modules/expo-secure-store/ios"
   ExpoSplashScreen:
     :path: "../node_modules/expo-splash-screen/ios"
   ExpoSystemUI:
     :path: "../node_modules/expo-system-ui/ios"
   ExpoWebBrowser:
     :path: "../node_modules/expo-web-browser/ios"
+  EXTaskManager:
+    :path: "../node_modules/expo-task-manager/ios"
   EXUpdatesInterface:
     :path: "../node_modules/expo-updates-interface/ios"
   FBLazyVector:
@@ -2272,6 +2308,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   React-microtasksnativemodule:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
+  react-native-get-random-values:
+    :path: "../node_modules/react-native-get-random-values"
   react-native-google-maps:
     :path: "/Users/shivam/Desktop/bahikhata/ramnath-pansari/node_modules/react-native-maps"
   react-native-maps:
@@ -2348,16 +2386,20 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-svg"
   RNVectorIcons:
     :path: "../node_modules/react-native-vector-icons"
+  UMAppLoader:
+    :path: "../node_modules/unimodules-app-loader/ios"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
   boost: 1dca942403ed9342f98334bf4c3621f011aa7946
   DoubleConversion: f16ae600a246532c4020132d54af21d0ddb2a385
+  EXApplication: e1ad9c950c98b2b134578092c948b10b403f3ea7
   EXConstants: dd2fe64c6cdb1383b694c309a63028a8e9f2be6d
   EXImageLoader: 759063a65ab016b836f73972d3bb25404888713d
   EXJSONUtils: 01fc7492b66c234e395dcffdd5f53439c5c29c93
   EXManifests: f30a0c5d3d6cad8db9c01bab579e0aa0df5d3cb2
+  EXNotifications: c5b96ad5fffef5515c9cfc7887ae10f8720c70a5
   Expo: 332ffb9c3dccfc1a228791227efb8b2a7c6b3a4c
   expo-dev-client: 84a7f4a302387b57388d053900b56611b28b65ee
   expo-dev-launcher: a94e0934c1c8e607af7596ac659928b8a3d8d2b0
@@ -2365,6 +2407,7 @@ SPEC CHECKSUMS:
   expo-dev-menu-interface: 1495ca112a4961f9fbaf586ae952faaafdbd967b
   ExpoAsset: 8138f2a9ec55ae1ad7c3871448379f7d97692d15
   ExpoBlur: 562b3da84d3cd79016c411671eaf71a404266415
+  ExpoDevice: e24dd19a43065182eb246bc0e7f84186862f1e83
   ExpoFileSystem: dc2679a2b5d4c465ca881129074da95faee943d5
   ExpoFont: 7522d869d84ee2ee8093ee997fef5b86f85d856b
   ExpoHead: 43187036da62330d381a79a34fc37aeaca9530f8
@@ -2375,9 +2418,12 @@ SPEC CHECKSUMS:
   ExpoLinking: a8332a219379ba80f8e612d5a5de4a3da446886e
   ExpoLocation: e0c5b5212381b0b800a2c1f715be823d17c51b05
   ExpoModulesCore: 371193c6b17285837f56807f7cac568f07dc4060
+  ExpoNetwork: f07b371f7e143812980075fda6768702c154a0a0
+  ExpoSecureStore: 06c3192d58ed167f619af3d53797c055f5ada785
   ExpoSplashScreen: 30c1ab96eafb0175d3436dc8fec14208bbf8d241
   ExpoSystemUI: d8fb1abd91c7283d8ead3df77ed0575b85f1bb42
   ExpoWebBrowser: f08aaf1c8a02af8a768d83793186cb6d2c69f529
+  EXTaskManager: afcec33a6643f24fed4a89062757037b185c8a88
   EXUpdatesInterface: 1dcebac98ac5dad4289e6ff2bd5616822e894397
   FBLazyVector: bc70dcb22ad30ce734a7cce7210791dc737e230f
   fmt: 10c6e61f4be25dc963c36bd73fc7b1705fe975be
@@ -2422,6 +2468,7 @@ SPEC CHECKSUMS:
   React-logger: 81d58ca6f1d93fca9a770bda6cc1c4fbfcc99c9c
   React-Mapbuffer: 726951e68f4bb1c2513d322f2548798b2a3d628d
   React-microtasksnativemodule: bc55596cbf40957f5099bc495f1a06f459d0be88
+  react-native-get-random-values: 21325b2244dfa6b58878f51f9aa42821e7ba3d06
   react-native-google-maps: 7e82d047dbdba9d4dbc8fc7df2eaba08f274cafd
   react-native-maps: cb754208646ef20406b41af816a88fd5318a4403
   react-native-razorpay: 0272dd684bc9148828c54a72e05059e3e2e8b813
@@ -2465,6 +2512,7 @@ SPEC CHECKSUMS:
   SDWebImageSVGCoder: 15a300a97ec1c8ac958f009c02220ac0402e936c
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   TweetNacl: 3abf4d1d2082b0114e7a67410e300892448951e6
+  UMAppLoader: bda51f73f8599e336a778b23e0956130d1e244d5
   Yoga: 96872ee462cfc43866ad013c8160d4ff6b85709b
 
 PODFILE CHECKSUM: d2327e9d527e22546e59b5b8515467e2b8e5f6a9

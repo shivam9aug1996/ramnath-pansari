@@ -37,7 +37,12 @@ const ProductList = ({
     );
 
     return (
-      <ProductItem key={index} cartItem={cartItem} item={item} index={index} />
+      <ProductItem
+        key={item?._id || index}
+        cartItem={cartItem}
+        item={item}
+        index={index}
+      />
     );
   };
 

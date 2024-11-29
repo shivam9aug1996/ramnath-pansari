@@ -39,7 +39,7 @@ const renderText = () => {
 
 const AddressPlaceholder = () => {
   const renderAddressItem = ({ item, index }: { item: any; index: number }) => (
-    <View style={styles.card}>
+    <View style={styles.card} key={item?._id || index}>
       <View style={styles.imageContainer}>{renderImageLoader()}</View>
       <View style={styles.textContainer}>
         {renderText()}

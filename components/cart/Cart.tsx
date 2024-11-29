@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { View, StyleSheet, Platform, Text } from "react-native";
 import ScreenSafeWrapper from "../ScreenSafeWrapper";
 
@@ -41,15 +41,20 @@ const Cart = ({ tabBarHeight = 0 }: CartProps) => {
   const totalAmount = useMemo(() => {
     return calculateTotalAmount(cartData?.cart?.items)?.toFixed(2);
   }, [cartData?.cart?.items]);
-  const renderItem = ({ item }: CartItemProps) => {
-    return <CartItem key={item?.productDetails?._id} item={item} />;
+
+  const cartItemIndex = cartData?.cart?.items?.findIndex((item, index) => {
+    return cartButtonProductId?.includes(item?.productDetails?._id);
+  });
+  const isCartProcessing = cartButtonProductId.length !== 0;
+
+  const renderItem = ({ item, index }: CartItemProps) => {
+    return <CartItem key={item?.productDetails?._id || index} item={item} />;
   };
-  console.log(cartData?.cart?.items);
   const cRefetch = () => {
     refetch();
     dispatch(cartApi.util.resetApiState());
   };
-  const isCartProcessing = cartButtonProductId.length !== 0;
+
   return (
     <ScreenSafeWrapper>
       <ThemedView style={styles.headerContainer}>
@@ -73,7 +78,16 @@ const Cart = ({ tabBarHeight = 0 }: CartProps) => {
       ) : (
         <>
           <View style={{ marginTop: 12 }} />
+
           <FlashList
+            ListHeaderComponent={
+              cartItemIndex == -1 && isCartProcessing ? (
+                <CartPlaceholder
+                  wrapperStyle={{ paddingHorizontal: 0, paddingTop: 0 }}
+                  count={1}
+                />
+              ) : null
+            }
             extraData={cartData?.cart?.items}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContainer}
@@ -175,4 +189,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Cart;
+export default memo(Cart);

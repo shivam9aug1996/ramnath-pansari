@@ -45,6 +45,7 @@ const ProductsPlaceholder = () => {
   }) => {
     return (
       <View
+        key={index}
         style={[
           styles.container,
           {

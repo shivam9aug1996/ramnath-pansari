@@ -17,7 +17,7 @@ export const categoryApi = createApi({
     credentials: "include",
   }),
   // keepUnusedDataFor: 0,
-
+  refetchOnReconnect: true,
   endpoints: (builder) => ({
     fetchCategories: builder.query({
       query: (data) => ({

@@ -22,9 +22,12 @@ interface CustomTextInputProps {
   editable?: boolean;
   onPress?: any;
   variant?: number;
-  wrapperStyle?: ViewStyle;
+  wrapperStyle?: any;
   multiline?: boolean;
   textInputStyle?: TextStyle;
+  onClear?: any;
+  onBlur?: any;
+  onFocus?: any;
 }
 
 const CustomTextInput: React.FC<CustomTextInputProps> = ({
@@ -40,6 +43,9 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
   wrapperStyle = {},
   multiline = false,
   textInputStyle = {},
+  onClear = () => {},
+  onBlur = () => {},
+  onFocus = () => {},
 }) => {
   const focusTextInput = () => {
     if (textInputRef?.current) {
@@ -162,6 +168,59 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             }}
             multiline={multiline}
           />
+        </>
+      )}
+      {type == "search" && variant == 3 && (
+        <>
+          <Ionicons
+            onPress={onPress}
+            style={[
+              styles.prefix,
+              styles.iconStyle,
+              { color: Colors.light.lightGreen },
+            ]}
+            name={"search"}
+            size={20}
+          />
+          <TextInput
+            onFocus={onFocus}
+            onBlur={onBlur}
+            enterKeyHint={"search"}
+            // autoFocus={true}
+            value={value}
+            ref={textInputRef}
+            onChangeText={onChangeText}
+            style={[
+              styles.textInput,
+              {
+                fontFamily: "Raleway_600SemiBold",
+                fontSize: 14,
+                color: Colors.light.darkGreen,
+                paddingRight: 20,
+
+                // backgroundColor: "red",
+              },
+              textInputStyle,
+            ]}
+            maxLength={50}
+            placeholder={"Search"}
+            placeholderTextColor={Colors.light.mediumLightGrey}
+            onSubmitEditing={onSubmitEditing}
+            autoCorrect={false}
+            autoCapitalize={"none"}
+          />
+          {value && (
+            <Ionicons
+              onPress={onClear}
+              style={[
+                styles.postfix,
+                styles.iconStyle,
+                { color: Colors.light.mediumGrey },
+              ]}
+              name={"close"}
+              size={20}
+            />
+          )}
         </>
       )}
     </Pressable>

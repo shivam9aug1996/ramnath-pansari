@@ -11,7 +11,7 @@ const withPrivateRoute = (Component: React.ComponentType) => {
     console.log("nnnnnnnnnnnnn", token);
     if (saveAuthData?.isSuccess) {
       if (!token) {
-        router.replace("/(onboarding)/onboarding");
+        router?.replace?.("/(onboarding)/onboarding");
         return null;
       }
     }

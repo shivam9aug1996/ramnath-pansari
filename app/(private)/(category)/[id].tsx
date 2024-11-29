@@ -5,9 +5,11 @@ import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 
 import TryAgain from "./CategoryList/TryAgain";
-import Products from "./ProductList/Products";
+// import Products from "./ProductList/Products";
 import CategoryList from "./CategoryList/CategoryList";
 import GoToCart from "./ProductList/GoToCart";
+import useLazyComponent from "@/hooks/useLazyComponent";
+const Products = React.lazy(() => import("./ProductList/Products"));
 
 // const Products = lazy(() => import("./ProductList/Products"));
 // const CategoryList = lazy(() => import("./CategoryList/CategoryList"));
@@ -17,6 +19,9 @@ const product = () => {
     id: string;
     name?: string;
   }>();
+  // const [VeryExpensive, needsExpensive] = useLazyComponent(
+  //   require("./ProductList/Products").default
+  // );
 
   const {
     data: getCategories,
@@ -44,9 +49,11 @@ const product = () => {
               selectedCategoryIdIndex={selectedCategoryIdIndex}
             />
             {/* </Suspense> */}
-
             {/* <Suspense> */}
-            <Products isCategoryFetching={isCategoryFetching} />
+
+            <Suspense fallback={<Text>hi</Text>}>
+              <Products isCategoryFetching={isCategoryFetching} />
+            </Suspense>
 
             {/* </Suspense> */}
           </>

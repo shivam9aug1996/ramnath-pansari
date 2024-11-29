@@ -16,7 +16,6 @@ export const orderApi = createApi({
     },
     credentials: "include",
   }),
-  // keepUnusedDataFor: 0,
 
   endpoints: (builder) => ({
     createPreOrder: builder.mutation({

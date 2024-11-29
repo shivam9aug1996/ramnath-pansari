@@ -43,7 +43,9 @@ export const useSendOtp = (): UseSendOtpProps => {
       if (errorState) {
         setErrorState("");
       }
-      setMobileNumber(value);
+      if (value.length <= 10) {
+        setMobileNumber(value);
+      }
     },
     [errorState]
   );

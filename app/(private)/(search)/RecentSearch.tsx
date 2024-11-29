@@ -1,11 +1,12 @@
+import React, { memo, useCallback } from "react";
 import {
   StyleSheet,
   Text,
   View,
   FlatList,
   TouchableOpacity,
+  Keyboard,
 } from "react-native";
-import React, { memo } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import {
@@ -14,84 +15,116 @@ import {
 } from "@/redux/features/recentSearchSlice";
 import { Entypo } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
-import { router } from "expo-router";
 import RecentSearchPlaceholder from "./RecentSearchPlaceholder";
 
-const RecentSearch = ({ onPress }) => {
+interface RecentSearchProps {
+  onPress: (query: string) => void;
+}
+
+const RecentSearch: React.FC<RecentSearchProps> = ({ onPress }) => {
   const userId = useSelector((state: RootState) => state.auth.userData?._id);
   const { data, isFetching, error, isLoading } = useFetchRecentSearchQuery({
     userId,
   });
   const [deleteRecentSearch] = useDeleteRecentSearchMutation();
 
-  if (error) {
+  // Sort recent searches by timestamp
+  const sortedData = data
+    ? [...data].sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      )
+    : [];
+
+  // Handlers
+  const handlePress = useCallback(
+    (query: string) => {
+      if (query) onPress(query);
+    },
+    [onPress]
+  );
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      await deleteRecentSearch({ userId, id })?.unwrap();
+    },
+    [deleteRecentSearch, userId]
+  );
+
+  // Components
+  const renderItem = useCallback(
+    ({ item, index }: { item: any; index: number }) => (
+      <TouchableOpacity
+        key={item?._id || index}
+        style={styles.item}
+        onPress={() => handlePress(item.query)}
+      >
+        <View style={styles.itemContent}>
+          <Entypo
+            name="back-in-time"
+            size={20}
+            color={Colors.light.mediumGrey}
+          />
+          <Text style={styles.itemText}>{item.query}</Text>
+        </View>
+        <Entypo
+          name="cross"
+          size={20}
+          color={Colors.light.mediumGrey}
+          style={styles.deleteIcon}
+          onPress={() => handleDelete(item._id)}
+        />
+      </TouchableOpacity>
+    ),
+    [handlePress, handleDelete]
+  );
+
+  const renderListHeader = useCallback(() => {
+    return <Text style={styles.title}>Recent Searches</Text>;
+  }, []);
+
+  const renderEmptyComponent = useCallback(() => {
+    return (
+      <View style={styles.empty}>
+        <Text>No recent searches.</Text>
+      </View>
+    );
+  }, []);
+
+  const renderErrorComponent = useCallback(() => {
     return (
       <View style={styles.error}>
         <Text>Error fetching recent searches.</Text>
       </View>
     );
+  }, []);
+
+  // Conditional rendering
+  if (error) {
+    return renderErrorComponent();
   }
-
-  // Sort the data by timestamp (latest first)
-  const sortedData =
-    data &&
-    [...data].sort(
-      (a, b) =>
-        new Date(b?.timestamp).getTime() - new Date(a?.timestamp).getTime()
-    );
-
-  const handlePress = (query: string) => {
-    if (query) {
-      onPress?.(query);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    await deleteRecentSearch({ userId, id })?.unwrap();
-  };
-  console.log("juio");
-
-  const renderItem = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={styles.item}
-      onPress={() => handlePress(item.query)}
-    >
-      <View style={styles.itemContent}>
-        <Entypo name="back-in-time" size={20} color={Colors.light.mediumGrey} />
-        <Text style={styles.itemText}>{item.query}</Text>
-      </View>
-      <Entypo
-        name="cross"
-        size={20}
-        color={Colors.light.mediumGrey}
-        style={styles.deleteIcon}
-        onPress={() => handleDelete(item._id)}
-      />
-    </TouchableOpacity>
-  );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Recent Searches</Text>
       {isLoading ? (
         <RecentSearchPlaceholder />
       ) : (
         <FlatList
-          keyboardShouldPersistTaps="always"
-          showsVerticalScrollIndicator={false}
           data={sortedData}
-          keyExtractor={(item) => item?._id}
+          keyExtractor={(item) => item._id}
           renderItem={renderItem}
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text>No recent searches.</Text>
-            </View>
-          }
+          ListHeaderComponent={renderListHeader}
+          ListEmptyComponent={renderEmptyComponent}
+          keyboardShouldPersistTaps="always"
+          onScrollBeginDrag={Keyboard.dismiss}
+          showsVerticalScrollIndicator={false}
         />
       )}
     </View>
   );
 };
+
+export default memo(RecentSearch);
 
 const styles = StyleSheet.create({
   container: {
@@ -123,11 +156,6 @@ const styles = StyleSheet.create({
   deleteIcon: {
     paddingLeft: 15,
   },
-  loader: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   error: {
     flex: 1,
     justifyContent: "center",
@@ -139,5 +167,3 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
-
-export default memo(RecentSearch);

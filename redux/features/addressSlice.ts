@@ -18,7 +18,7 @@ export const addressApi = createApi({
   }),
   tagTypes: ["addressList"],
   //keepUnusedDataFor: 0,
-  keepUnusedDataFor: 50,
+  // keepUnusedDataFor: 50,
   endpoints: (builder) => ({
     fetchGeocoding: builder.query({
       query: (data) => ({
@@ -43,7 +43,7 @@ export const addressApi = createApi({
         method: "GET",
         params: data,
       }),
-      keepUnusedDataFor: 0,
+      //keepUnusedDataFor: 0,
       transformResponse: (response: any[]) => {
         // Sort the addresses by timestamp, latest first
         return response?.sort(

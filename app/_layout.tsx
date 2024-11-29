@@ -27,9 +27,27 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Toast from "@/components/Toast";
 import { StatusBar } from "expo-status-bar";
+import NetworkStatusComponent from "@/components/NetworkStatusComponent";
+import LottieMenWalking from "./(private)/(address)/LottieMenWalking";
 // const Toast = lazy(() => import("../components/Toast"));
+// import * as TaskManager from "expo-task-manager";
+// import * as Notifications from "expo-notifications";
 
-SplashScreen.preventAutoHideAsync();
+// const BACKGROUND_NOTIFICATION_TASK = "BACKGROUND_NOTIFICATION_TASK";
+
+// // Define background task
+// TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, ({ data, error }) => {
+//   if (error) {
+//     console.error("Error in background task", error);
+//     return;
+//   }
+//   console.log("Background Notification Data:", data);
+//   // Perform actions based on the notification data
+// });
+
+// Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
+
+SplashScreen.hideAsync();
 const queryClient = new QueryClient();
 
 const useMockFonts = (data) => {
@@ -52,6 +70,7 @@ export function InitialLayout() {
   const loadAuthDataState = useSelector(
     (state: RootState) => state?.auth?.loadAuthData
   );
+
   const clearAuthData = useSelector(
     (state: RootState) => state?.auth?.clearAuthData
   );
@@ -133,7 +152,9 @@ const RootLayout = () => {
           <StatusBar style="inverted" />
           {/* <Suspense> */}
           <Toast />
+          {/* <NetworkStatusComponent /> */}
           {/* </Suspense> */}
+          <LottieMenWalking />
           <InitialLayout />
         </QueryClientProvider>
       </Provider>

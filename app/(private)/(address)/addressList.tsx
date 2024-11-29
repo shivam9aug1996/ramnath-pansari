@@ -85,6 +85,7 @@ const addressList = () => {
 
   const renderAddressItem = ({ item, index }: { item: any; index: number }) => (
     <AddressItem
+      key={item?._id || index}
       item={item}
       userId={userId}
       selected={item?._id === selectedAddressId}

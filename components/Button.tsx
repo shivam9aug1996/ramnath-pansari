@@ -44,7 +44,10 @@ const Button: React.FC<ButtonProps> = ({
         style={styles.button}
       >
         {isLoading ? (
-          <ActivityIndicator color={Colors.light.white} />
+          <ActivityIndicator
+            style={{ paddingVertical: 1.5 }}
+            color={Colors.light.white}
+          />
         ) : (
           <ThemedText
             lightColor={Colors.light.white}

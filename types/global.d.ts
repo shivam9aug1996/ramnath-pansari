@@ -38,6 +38,7 @@ interface UserData {
   mobileNumber: string | null;
   _id: string;
   name: string | null;
+  profileImage?: null;
 }
 
 interface AsyncState<T> {
