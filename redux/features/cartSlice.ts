@@ -27,6 +27,7 @@ export const cartApi = createApi({
         params: data,
       }),
       transformResponse: (response) => {
+        console.log("gfghjkl", response);
         if (response && Array.isArray(response?.cart?.items)) {
           console.log("Reversed Response:", JSON.stringify(response));
           return {
@@ -68,6 +69,8 @@ const cartSlice = createSlice({
     cartFetching: false,
     totalAmount: "0",
     totalAmountInNumber: 0,
+    orderSuccessView: false,
+    localCart: [],
   },
   reducers: {
     setCartButtonProductId: (state, action) => {
@@ -75,12 +78,18 @@ const cartSlice = createSlice({
         state.cartButtonProductId.push(action?.payload);
       }
     },
+    setOrderSuccessView: (state, action) => {
+      state.orderSuccessView = action?.payload;
+    },
     removeCartButtonProductId: (state, action) => {
       if (action?.payload) {
         state.cartButtonProductId = state.cartButtonProductId.filter(
           (id) => id !== action.payload
         );
       }
+    },
+    updateLocalCart: (state, action) => {
+      state.localCart.unshift(action?.payload);
     },
   },
   extraReducers: (builder) => {
@@ -164,8 +173,11 @@ const cartSlice = createSlice({
   },
 });
 
-export const { setCartButtonProductId, removeCartButtonProductId } =
-  cartSlice.actions;
+export const {
+  setCartButtonProductId,
+  removeCartButtonProductId,
+  setOrderSuccessView,
+} = cartSlice.actions;
 
 export const {
   useFetchCartQuery,

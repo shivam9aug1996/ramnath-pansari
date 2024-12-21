@@ -7,6 +7,7 @@ import { Image } from "expo-image";
 import { router, useRouter } from "expo-router";
 import React, { memo, ReactNode } from "react";
 import {
+  Dimensions,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -37,6 +38,8 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
   useKeyboardAvoidingView = false,
   showCartIcon = false,
   showSearchIcon = false,
+  wrapperStyle = {},
+  headerStyle = {},
 }) => {
   console.log("uytrfghjk", showCartIcon);
   const WrapperComponent = useKeyboardAvoidingView
@@ -47,7 +50,7 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
 
   return (
     <>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, wrapperStyle]}>
         <WrapperComponent
           style={{ flex: 1 }}
           behavior={
@@ -57,27 +60,30 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
           }
         >
           <ThemedView
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              position: "relative",
-              minHeight: showBackButton || title ? 42 : 0,
-            }}
+            style={[
+              {
+                flexDirection: "row",
+                alignItems: "center",
+                position: "relative",
+                minHeight: showBackButton || title ? 42 : 0,
+              },
+              headerStyle,
+            ]}
           >
             {showBackButton && <HeaderBackButton />}
             {title && (
-              <ThemedView
+              <View
                 style={{
                   position: "absolute",
-                  left: 0,
-                  right: 0,
                   alignItems: "center",
-                  zIndex: -1,
-                  backgroundColor: "transparent",
+                  alignSelf: "center",
+                  paddingHorizontal: 10,
+                  left: "25%",
+                  right: "25%",
                 }}
               >
                 <ThemedText type="screenHeader">{title}</ThemedText>
-              </ThemedView>
+              </View>
             )}
             {showSearchIcon && (
               <TouchableOpacity
@@ -110,6 +116,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.background,
     paddingHorizontal: 30,
     paddingTop: Platform.OS == "android" ? 20 : 10,
+  },
+  background: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    height: "400%",
   },
 });
 

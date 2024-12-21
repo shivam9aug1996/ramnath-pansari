@@ -14,7 +14,7 @@ import MapView, {
   PROVIDER_GOOGLE,
   Region,
 } from "react-native-maps";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import useFetchLocation from "./useFetchLocation";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import CustomTextInput from "@/components/CustomTextInput";
@@ -24,6 +24,8 @@ import { RootState } from "@/types/global";
 import { setCurrentAddressData } from "@/redux/features/addressSlice";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { debounce } from "lodash";
+import CustomSuspense from "@/components/CustomSuspense";
+import GoogleMapWebView from "@/components/MapWebView/GoogleMapWebView";
 
 interface LocationData {
   city: string;
@@ -43,6 +45,7 @@ const initialRegion: Region = {
 
 const MapSelect: React.FC = () => {
   const dispatch = useDispatch();
+
   const mapRef = useRef<MapView | null>(null);
   const [region, setRegion] = useState<Region>(initialRegion);
   const [data, setData] = useState<LocationData>({
@@ -54,17 +57,26 @@ const MapSelect: React.FC = () => {
     longitude: "",
   });
   const firstMount = useRef<boolean>(true);
+  const [firstMountLoading, setFirstMountLoading] = useState(true);
+  const firstEditMount = useRef<boolean>(true);
   const params = useLocalSearchParams();
   const {
     loading: fetchingLocationLoading,
     data: fetchingLocationData,
     fetchLocationData,
+    reset,
   } = useFetchLocation();
   //const searchData = params;
 
   const currentAddressData = useSelector(
     (state: RootState) => state?.address?.currentAddressData
   );
+
+  const itemId =
+    currentAddressData?.action == "edit"
+      ? currentAddressData?.form?._id
+      : undefined;
+
   const searchData = currentAddressData?.form;
   //console.log("searchData1", searchData1);
   const updateMapRegion = useCallback(
@@ -79,13 +91,24 @@ const MapSelect: React.FC = () => {
       if (animate) {
         mapRef.current?.animateToRegion(newRegion, 1000);
       }
-      firstMount.current = false;
+      // setTimeout(() => {
+      //   firstMount.current = false;
+      //   setFirstMountLoading(false);
+      // }, 1000);
     },
     []
   );
-  console.log("i765redfghjk", data);
+  console.log(
+    "i765redfghjk",
+    fetchingLocationData,
+    firstEditMount,
+    firstMount,
+    fetchingLocationLoading
+  );
   // Fetch location data or update map when searchData changes
+
   useEffect(() => {
+    console.log("uytfdfghjkl");
     if (!searchData?.latitude) {
       fetchLocationData();
     } else if (searchData?.latitude && searchData?.longitude) {
@@ -100,130 +123,187 @@ const MapSelect: React.FC = () => {
 
   // Update map when fetching new location data
   useEffect(() => {
-    if (fetchingLocationData?.latitude && fetchingLocationData?.longitude) {
-      const { latitude, longitude, city, state, area, pincode } =
-        fetchingLocationData;
-      setData({ latitude, longitude, city, state, area, pincode });
-
-      if (firstMount.current) {
+    if (fetchingLocationLoading === false && fetchingLocationData?.latitude) {
+      if (
+        fetchingLocationData?.latitude &&
+        fetchingLocationData?.longitude &&
+        fetchingLocationData?.hasLat == false
+      ) {
+        const { latitude, longitude, city, state, area, pincode } =
+          fetchingLocationData;
+        setData({ latitude, longitude, city, state, area, pincode });
         updateMapRegion(parseFloat(latitude), parseFloat(longitude));
+      } else if (
+        fetchingLocationData?.latitude &&
+        fetchingLocationData?.longitude &&
+        fetchingLocationData?.hasLat == true
+      ) {
+        const { latitude, longitude, city, state, area, pincode } =
+          fetchingLocationData;
+        setData({ latitude, longitude, city, state, area, pincode });
       }
     }
-  }, [fetchingLocationData, updateMapRegion]);
+  }, [fetchingLocationLoading]);
+
+  useEffect(() => {
+    if (data?.latitude) {
+      setTimeout(() => {
+        firstMount.current = false;
+        setFirstMountLoading(false);
+      }, 1000);
+    }
+  }, [data?.latitude]);
+
+  // const debouncedFetchLocation = useCallback(
+  //   debounce(
+  //     (latitude, longitude) => fetchLocationData(latitude, longitude),
+  //     500
+  //   ),
+  //   []
+  // );
+
+  // const handleRegionChangeComplete = useCallback((region: Region) => {
+  //   if (!firstMount.current) {
+  //     console.log("hiiu567890");
+  //     fetchLocationData(region.latitude, region.longitude);
+  //   }
+  // }, []);
+  console.log("8765redfghjk", currentAddressData);
+
+  // useEffect(() => {
+  //   fetchLocationData();
+  // }, []);
 
   const debouncedFetchLocation = useCallback(
-    debounce(
-      (latitude, longitude) => fetchLocationData(latitude, longitude),
-      500
-    ),
+    debounce((latitude: number, longitude: number) => {
+      fetchLocationData(latitude, longitude);
+    }, 500),
     []
   );
 
-  const handleRegionChangeComplete = useCallback(
-    (region: Region) => {
-      if (!firstMount.current) {
-        console.log("hiiu567890");
-        debouncedFetchLocation(region.latitude, region.longitude);
-      }
-      firstMount.current = false;
-    },
-    [fetchLocationData]
-  );
-  console.log("8765redfghjk", currentAddressData);
+  const handleRegionChangeComplete = useCallback(() => {
+    if (firstMount?.current === false) {
+      console.log("hiiuy456789");
+      debouncedFetchLocation(region.latitude, region.longitude);
+      setFirstMountLoading(true);
+      firstMount.current = true;
+    }
+  }, [region]);
+
+  //return <GoogleMapWebView />;
 
   return (
-    <ScreenSafeWrapper useKeyboardAvoidingView>
-      <View style={styles.container}>
-        <CustomTextInput
-          onChangeText={() => {}}
-          value={
-            `${data.area} ${data.city} ${data.state} ${data.pincode}`.trim() ||
-            ""
-          }
-          type="search"
-          variant={2}
+    <ScreenSafeWrapper
+      useKeyboardAvoidingView
+      title={`${itemId ? "Edit" : "Add"} delivery address`}
+    >
+      <CustomSuspense>
+        <View style={styles.container}>
+          <CustomTextInput
+            onChangeText={() => {}}
+            value={
+              `${data.area} ${data.city} ${data.state} ${data.pincode}`.trim() ||
+              ""
+            }
+            type="search"
+            variant={2}
+            onPress={() => {
+              if (!fetchingLocationLoading) {
+                router.navigate("/(address)/locationSearchScreen");
+              }
+            }}
+            wrapperStyle={styles.textInputWrapper}
+            multiline
+          />
+          <View style={styles.mapContainer}>
+            {fetchingLocationLoading || firstMountLoading ? (
+              <View style={styles.loadingOverlay}>
+                <Text style={styles.loadingText}>Loading...</Text>
+              </View>
+            ) : null}
+
+            <MapView
+              // onTouchStart={() => {
+              //   firstMount.current = false;
+              // }}
+              loadingEnabled
+              ref={mapRef}
+              zoomControlEnabled
+              //provider={PROVIDER_GOOGLE}
+              provider={
+                Platform.OS === "android" ? PROVIDER_GOOGLE : PROVIDER_DEFAULT
+              }
+              style={styles.map}
+              initialRegion={region}
+              scrollEnabled={!fetchingLocationLoading}
+              showsUserLocation
+              showsMyLocationButton
+              onRegionChange={(val) => {
+                setRegion(val);
+              }}
+              onRegionChangeComplete={handleRegionChangeComplete}
+            >
+              <Marker
+                coordinate={{
+                  latitude: region.latitude,
+                  longitude: region.longitude,
+                }}
+              />
+            </MapView>
+          </View>
+        </View>
+        {fetchingLocationLoading || firstMountLoading ? null : (
+          <TouchableOpacity
+            onPress={() => {
+              fetchLocationData();
+            }}
+            style={{
+              zIndex: 200,
+              position: "absolute",
+              bottom: 130,
+              right: 10,
+            }}
+          >
+            <MaterialIcons
+              name="my-location"
+              size={24}
+              color={"white"}
+              style={
+                {
+                  //right: 15,
+                  //position: "absolute",
+                  //bottom: 15,
+                }
+              }
+            />
+          </TouchableOpacity>
+        )}
+        <Button
+          isLoading={fetchingLocationLoading}
+          disabled={fetchingLocationLoading || firstMountLoading}
+          wrapperStyle={styles.buttonWrapper}
+          title="Select Location"
           onPress={() => {
-            if (!fetchingLocationLoading) {
-              router.navigate("/(address)/locationSearchScreen");
+            if (fetchingLocationLoading || firstMountLoading) {
+            } else {
+              // setFirstMountLoading(false);
+              // firstMount.current = false;
+
+              dispatch(
+                setCurrentAddressData({
+                  ...currentAddressData,
+                  form: {
+                    ...currentAddressData?.form,
+                    ...data,
+                    colonyArea: data.area,
+                  },
+                })
+              );
+              router.replace("/(address)/addAddress");
             }
           }}
-          wrapperStyle={styles.textInputWrapper}
-          multiline
         />
-        <View style={styles.mapContainer}>
-          {fetchingLocationLoading && firstMount.current && (
-            <View style={styles.loadingOverlay}>
-              <Text style={styles.loadingText}>Loading...</Text>
-            </View>
-          )}
-
-          <MapView
-            loadingEnabled
-            ref={mapRef}
-            zoomControlEnabled
-            //provider={PROVIDER_GOOGLE}
-            provider={
-              Platform.OS === "android" ? PROVIDER_GOOGLE : PROVIDER_DEFAULT
-            }
-            style={styles.map}
-            initialRegion={region}
-            scrollEnabled={!fetchingLocationLoading}
-            showsUserLocation
-            showsMyLocationButton
-            onRegionChange={setRegion}
-            onRegionChangeComplete={handleRegionChangeComplete}
-          >
-            <Marker
-              coordinate={{
-                latitude: region.latitude,
-                longitude: region.longitude,
-              }}
-            />
-          </MapView>
-        </View>
-      </View>
-      <TouchableOpacity
-        onPress={() => {
-          fetchLocationData();
-        }}
-        style={{
-          zIndex: 200,
-          position: "absolute",
-          bottom: 130,
-          right: 20,
-        }}
-      >
-        <MaterialIcons
-          name="my-location"
-          size={24}
-          color={"white"}
-          style={
-            {
-              //right: 15,
-              //position: "absolute",
-              //bottom: 15,
-            }
-          }
-        />
-      </TouchableOpacity>
-      <Button
-        isLoading={fetchingLocationLoading}
-        wrapperStyle={styles.buttonWrapper}
-        title="Select Location"
-        onPress={() => {
-          dispatch(
-            setCurrentAddressData({
-              ...currentAddressData,
-              form: {
-                ...currentAddressData?.form,
-                ...data,
-                colonyArea: data.area,
-              },
-            })
-          );
-          router.navigate("/(address)/addAddress");
-        }}
-      />
+      </CustomSuspense>
     </ScreenSafeWrapper>
   );
 };
@@ -249,11 +329,11 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: "100%",
     height: "100%",
-    pointerEvents: "none",
-    zIndex: 9999,
+    zIndex: 9999999,
     backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     alignItems: "center",
+    pointerEvents: "none",
   },
   loadingText: {
     fontSize: 30,
@@ -265,5 +345,6 @@ const styles = StyleSheet.create({
   },
   buttonWrapper: {
     marginBottom: 20,
+    paddingTop: 20,
   },
 });

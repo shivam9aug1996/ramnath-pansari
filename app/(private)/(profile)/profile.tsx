@@ -23,6 +23,7 @@ import {
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import Feather from "@expo/vector-icons/Feather";
+import CustomSuspense from "@/components/CustomSuspense";
 const fields: any = [
   { key: "name", label: "Name", iconName: "person-outline", maxLength: 30 },
   {
@@ -144,14 +145,13 @@ const profile = () => {
   const pickImage = async () => {
     // No permissions request is necessary for launching the image library
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: true,
       //aspect: [1, 1],
       quality: 0.1,
       base64: true,
     });
     let g = await ImagePicker.getPendingResultAsync();
-    console.log("uytrdfghj", g);
     // console.log(result);
 
     if (!result.canceled) {
@@ -166,83 +166,85 @@ const profile = () => {
   // console.log(form?.image && Object.keys(form?.image));
   return (
     <ScreenSafeWrapper useKeyboardAvoidingView={true}>
-      <ScrollView
-        ref={scrollViewRef}
-        style={{ flex: 1, paddingTop: 10, marginTop: 20 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <ThemedView style={styles.container}>
-          <View>
-            <TouchableOpacity
-              style={{
-                // backgroundColor: "red",
-                alignSelf: "center",
-                position: "relative",
-              }}
-              onPress={pickImage}
-            >
-              <Image
-                source={{
-                  uri:
-                    form?.image?.uri ||
-                    userInfo?.profileImage ||
-                    "https://static.vecteezy.com/system/resources/previews/036/594/092/non_2x/man-empty-avatar-photo-placeholder-for-social-networks-resumes-forums-and-dating-sites-male-and-female-no-photo-images-for-unfilled-user-profile-free-vector.jpg",
-                }}
-                style={styles.profileImage}
-              />
-              <View
+      <CustomSuspense>
+        <ScrollView
+          ref={scrollViewRef}
+          style={{ flex: 1, paddingTop: 10, marginTop: 20 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <ThemedView style={styles.container}>
+            <View>
+              <TouchableOpacity
                 style={{
-                  position: "absolute",
-                  bottom: 0,
-                  //  backgroundColor: "green",
-                  //width: "50%",
-                  height: "30%",
-                  alignContent: "center",
-                  right: -10,
+                  // backgroundColor: "red",
+                  alignSelf: "center",
+                  position: "relative",
                 }}
+                onPress={pickImage}
               >
-                <Feather
-                  name="edit"
-                  size={20}
-                  color={Colors.light.mediumGrey}
-                  style={{}}
+                <Image
+                  source={{
+                    uri:
+                      form?.image?.uri ||
+                      userInfo?.profileImage ||
+                      "https://static.vecteezy.com/system/resources/previews/036/594/092/non_2x/man-empty-avatar-photo-placeholder-for-social-networks-resumes-forums-and-dating-sites-male-and-female-no-photo-images-for-unfilled-user-profile-free-vector.jpg",
+                  }}
+                  style={styles.profileImage}
                 />
-              </View>
-            </TouchableOpacity>
+                <View
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    //  backgroundColor: "green",
+                    //width: "50%",
+                    height: "30%",
+                    alignContent: "center",
+                    right: -10,
+                  }}
+                >
+                  <Feather
+                    name="edit"
+                    size={20}
+                    color={Colors.light.mediumGrey}
+                    style={{}}
+                  />
+                </View>
+              </TouchableOpacity>
 
-            <InputField
-              label={fields[0].label}
-              value={form[fields[0].key]}
-              onChange={handleChange(fields[0].key)}
-              error={errors[fields[0].key]}
-              iconName={fields[0].iconName}
-              prefix={fields[0].prefix}
-              keyboardType={fields[0].keyboardType}
-              maxLength={fields[0].maxLength}
-              customRef={inputRefs.current[fields[0].key]}
-            />
-            <InputField
-              readOnly={true}
-              label={fields[1].label}
-              value={form[fields[1].key]}
-              onChange={handleChange(fields[1].key)}
-              error={errors[fields[1].key]}
-              iconName={fields[1].iconName}
-              prefix={fields[1].prefix}
-              keyboardType={fields[1].keyboardType}
-              maxLength={fields[1].maxLength}
-              customRef={inputRefs.current[fields[1].key]}
-            />
-          </View>
-        </ThemedView>
-      </ScrollView>
-      <Button
-        isLoading={updateProfileLoading || fetchProfileLoading}
-        wrapperStyle={{ marginTop: 10, marginBottom: 10 }}
-        onPress={handleSave}
-        title="Save Profile"
-      />
+              <InputField
+                label={fields[0].label}
+                value={form[fields[0].key]}
+                onChange={handleChange(fields[0].key)}
+                error={errors[fields[0].key]}
+                iconName={fields[0].iconName}
+                prefix={fields[0].prefix}
+                keyboardType={fields[0].keyboardType}
+                maxLength={fields[0].maxLength}
+                customRef={inputRefs.current[fields[0].key]}
+              />
+              <InputField
+                readOnly={true}
+                label={fields[1].label}
+                value={form[fields[1].key]}
+                onChange={handleChange(fields[1].key)}
+                error={errors[fields[1].key]}
+                iconName={fields[1].iconName}
+                prefix={fields[1].prefix}
+                keyboardType={fields[1].keyboardType}
+                maxLength={fields[1].maxLength}
+                customRef={inputRefs.current[fields[1].key]}
+              />
+            </View>
+          </ThemedView>
+        </ScrollView>
+        <Button
+          isLoading={updateProfileLoading || fetchProfileLoading}
+          wrapperStyle={{ marginTop: 10, marginBottom: 10 }}
+          onPress={handleSave}
+          title="Save Profile"
+        />
+      </CustomSuspense>
     </ScreenSafeWrapper>
   );
 };

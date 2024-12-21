@@ -4,6 +4,10 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { useNotificationObserver } from "@/hooks/useNotificationObserver";
+import { useDispatch, useSelector } from "react-redux";
+import { orderApi } from "@/redux/features/orderSlice";
+import { RootState } from "@/types/global";
+import { router } from "expo-router";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -34,7 +38,7 @@ async function sendPushNotification(expoPushToken: string) {
 }
 
 function handleRegistrationError(errorMessage: string) {
-  alert(errorMessage);
+  // alert(errorMessage);
   throw new Error(errorMessage);
 }
 
@@ -48,7 +52,7 @@ async function registerForPushNotificationsAsync() {
     });
   }
 
-  if (Device.isDevice) {
+  if (true) {
     const { status: existingStatus } =
       await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -85,8 +89,9 @@ async function registerForPushNotificationsAsync() {
   }
 }
 
-export default function App() {
-  useNotificationObserver();
+export default function Push1() {
+  const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
+  const dispatch = useDispatch();
   const [expoPushToken, setExpoPushToken] = useState("");
   const [notification, setNotification] = useState<
     Notifications.Notification | undefined
@@ -101,14 +106,47 @@ export default function App() {
 
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {
-        console.log("kjhgertyjkl;", notification);
+        console.log("kjhgertyjkl;", JSON.stringify(notification));
+        let notData = notification?.request?.content?.data?.body;
+        if (notData) {
+          notData = JSON.parse(notification?.request?.content?.data?.body);
+          if (notData?.updateOrderStatus) {
+            console.log("jhgfdcvbnm567890,./", notData);
+
+            dispatch(
+              orderApi.util.invalidateTags([
+                {
+                  type: "detailOrder",
+                  id: `${notData?.orderId}-${notData?.userId}`,
+                },
+              ])
+            );
+
+            dispatch(
+              orderApi.util.invalidateTags([
+                { type: "orderList", id: `${notData?.userId}` },
+              ])
+            );
+          }
+        }
+
         setNotification(notification);
       });
 
     responseListener.current =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        console.log("kjhgert567890-yjkl;", response);
-        console.log(response);
+        let notData = response?.notification?.request?.content?.data;
+        let title = response?.notification?.request?.content?.title;
+        console.log("kjhgert567890-yjkl;", JSON.stringify(response));
+        if (!title) {
+          return;
+        }
+        if (notData?.body) {
+          notData = JSON.parse(notData?.body);
+        }
+        if (notData?.updateOrderStatus) {
+          router.navigate(`/(orderDetail)/${notData?.orderId}`);
+        }
       });
 
     return () => {
@@ -121,35 +159,34 @@ export default function App() {
     };
   }, []);
 
-  return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "space-around",
-        zIndex: 100,
-        backgroundColor: "red",
-      }}
-    >
-      <TextInput style={{ padding: 10 }} multiline>
-        Your Expo push token: {expoPushToken}
-      </TextInput>
-      <View style={{ alignItems: "center", justifyContent: "center" }}>
-        <Text>
-          Title: {notification && notification.request.content.title}{" "}
-        </Text>
-        <Text>Body: {notification && notification.request.content.body}</Text>
-        <Text>
-          Data:{" "}
-          {notification && JSON.stringify(notification.request.content.data)}
-        </Text>
-      </View>
-      <Button
-        title="Press to Send Notification"
-        onPress={async () => {
-          await sendPushNotification(expoPushToken);
-        }}
-      />
-    </View>
-  );
+  return null;
+  // <View
+  //   style={{
+  //     flex: 1,
+  //     alignItems: "center",
+  //     justifyContent: "space-around",
+  //     zIndex: 100,
+  //     backgroundColor: "red",
+  //   }}
+  // >
+  //   <TextInput style={{ padding: 10 }} multiline>
+  //     Your Expo push token: {expoPushToken}
+  //   </TextInput>
+  //   <View style={{ alignItems: "center", justifyContent: "center" }}>
+  //     <Text>
+  //       Title: {notification && notification.request.content.title}{" "}
+  //     </Text>
+  //     <Text>Body: {notification && notification.request.content.body}</Text>
+  //     <Text>
+  //       Data:{" "}
+  //       {notification && JSON.stringify(notification.request.content.data)}
+  //     </Text>
+  //   </View>
+  //   <Button
+  //     title="Press to Send Notification"
+  //     onPress={async () => {
+  //       await sendPushNotification(expoPushToken);
+  //     }}
+  //   />
+  // </View>
 }

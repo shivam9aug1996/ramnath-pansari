@@ -37,7 +37,7 @@ const Product = () => {
   );
 
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
-  const { data: cartData } = useFetchCartQuery(
+  const { data: cartData, isLoading: isCartLoading } = useFetchCartQuery(
     {
       userId,
     },
@@ -52,6 +52,7 @@ const Product = () => {
   const image = data?.product?.image;
   const discountedPrice = data?.product?.discountedPrice;
   const name = data?.product?.name;
+  const size = data?.product?.size;
   const price = data?.product?.price;
   const cartItem = cartData?.cart?.items?.find(
     (it: CartItem) => it?.productId === id
@@ -81,6 +82,7 @@ const Product = () => {
                 <ThemedText style={styles.productName} type="title">
                   {name}
                 </ThemedText>
+                <Text style={styles.size}>{size}</Text>
                 <ThemedText
                   style={[styles.productPrice, styles.originalPrice]}
                   type="title"
@@ -94,7 +96,9 @@ const Product = () => {
             )}
           </View>
         </View>
-        <CartButton value={cartItem?.quantity || 0} item={data?.product} />
+        {isCartLoading ? null : (
+          <CartButton value={cartItem?.quantity || 0} item={data?.product} />
+        )}
       </View>
     </ScreenSafeWrapper>
   );
@@ -154,5 +158,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     fontFamily: "Montserrat_600SemiBold",
+  },
+  size: {
+    fontSize: 14,
+    fontFamily: "Montserrat_600SemiBold",
+    color: Colors.light.darkGrey,
+    letterSpacing: 0.8,
+    // position: "absolute",
+    // bottom: 0,
+    // right: 0,
   },
 });

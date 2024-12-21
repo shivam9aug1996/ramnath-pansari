@@ -1,15 +1,18 @@
 import { debounce } from "@/utils/utils";
 import { useRouter } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState, useTransition } from "react";
 
 import AppIntroSlider from "react-native-app-intro-slider";
 import { onboardingSlides } from "./utils";
 import OnboardingItem from "@/components/onboarding/OnboardingItem";
+import CustomSuspense from "@/components/CustomSuspense";
+import { View } from "react-native";
 
 const Onboarding = () => {
   const [activeSlide, setActiveSlide] = useState(0);
   const route = useRouter();
   const sliderRef = useRef<any>(null);
+  const [isPending, startTransition] = useTransition();
 
   const renderItem = useCallback(
     ({ item }: any) => {
@@ -26,7 +29,9 @@ const Onboarding = () => {
   );
 
   const onSlideChange = (index: number) => {
-    setActiveSlide(index);
+    startTransition(() => {
+      setActiveSlide(index);
+    });
   };
 
   const handlePress = useCallback(() => {
@@ -40,15 +45,13 @@ const Onboarding = () => {
   }, [activeSlide]);
 
   return (
-    <>
-      <AppIntroSlider
-        renderItem={renderItem}
-        data={onboardingSlides}
-        onSlideChange={onSlideChange}
-        ref={sliderRef}
-        renderPagination={() => null}
-      />
-    </>
+    <AppIntroSlider
+      renderItem={renderItem}
+      data={onboardingSlides}
+      onSlideChange={onSlideChange}
+      ref={sliderRef}
+      renderPagination={() => null}
+    />
   );
 };
 

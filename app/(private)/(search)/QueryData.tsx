@@ -1,6 +1,7 @@
 import React, { Fragment, memo, useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   Keyboard,
   StyleSheet,
   Text,
@@ -73,10 +74,12 @@ const QueryData: React.FC<QueryDataProps> = ({ query, onPress }) => {
     <View style={[styles.container, isFetching && styles.disabledContainer]}>
       {isFetching && (
         <View style={styles.loader}>
-          <ActivityIndicator size="small" />
+          <ActivityIndicator size="large" color={Colors.light.lightGreen} />
         </View>
       )}
-      <FlashList
+      <FlatList
+        //  disableAutoLayout
+        //estimatedItemSize={197}
         data={data?.results || []}
         renderItem={renderProductItem}
         keyExtractor={(item, index) => `${item?._id || index}`}
@@ -102,8 +105,9 @@ const styles = StyleSheet.create({
   },
   loader: {
     position: "absolute",
-    right: 0,
-    padding: 5,
+    alignSelf: "center",
+    top: "30%",
+    zIndex: 12,
   },
   listContainer: {
     paddingTop: 15,

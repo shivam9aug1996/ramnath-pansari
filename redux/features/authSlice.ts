@@ -123,6 +123,9 @@ export const authApi = createApi({
         url: "/profile",
         method: "PUT",
         body: data,
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {

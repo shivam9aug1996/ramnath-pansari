@@ -23,7 +23,7 @@ export function ThemedText({
   ...rest
 }: ThemedTextProps) {
   const color = useThemeColor(
-    { light: lightColor, dark: darkColor },
+    { light: lightColor, dark: lightColor },
     getTextType(type)
   );
 

@@ -4,6 +4,7 @@ import addressSlice, { addressApi } from "./features/addressSlice";
 import authSlice, { authApi } from "./features/authSlice";
 import cartSlice, { cartApi } from "./features/cartSlice";
 import categorySlice, { categoryApi } from "./features/categorySlice";
+import khataSlice, { khataApi } from "./features/khataSlice";
 import orderSlice, { orderApi } from "./features/orderSlice";
 import productSlice, { productApi } from "./features/productSlice";
 import recentSearchSlice, {
@@ -31,6 +32,8 @@ const store = configureStore({
     [addressApi.reducerPath]: addressApi.reducer,
     order: orderSlice,
     [orderApi.reducerPath]: orderApi.reducer,
+    khata: khataSlice,
+    [khataApi.reducerPath]: khataApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -42,6 +45,7 @@ const store = configureStore({
       .concat(recentSearchApi.middleware)
       .concat(addressApi.middleware)
       .concat(orderApi.middleware)
+      .concat(khataApi.middleware)
       .concat(handle401Middleware)
       .concat(handleLogoutMiddleware),
 });

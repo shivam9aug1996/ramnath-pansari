@@ -15,7 +15,7 @@ const StaticContent = () => {
   const debouncedPress = usePreventDoubleTap();
   const onPress = () => {
     debouncedPress(() => {
-      router.push("/(private)/(tabs)/(home)/home");
+      router.push("/(private)/(tabs)/home");
     });
   };
   return (

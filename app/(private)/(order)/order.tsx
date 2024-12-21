@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -22,6 +23,8 @@ import { getOrderStatusTitle } from "./utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import OrderListPlaceHolder from "./OrderListPlaceHolder";
+import CustomSuspense from "@/components/CustomSuspense";
+import { formatNumber } from "@/utils/utils";
 
 const Order = () => {
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
@@ -39,7 +42,6 @@ const Order = () => {
   const hasNextPage = orderData?.currentPage < orderData?.totalPages;
 
   const renderLoader = () => {
-    //if (!hasNextPage) return null;
     return isOrderFetching ? (
       <ActivityIndicator size="large" color={Colors.light.lightGreen} />
     ) : null;
@@ -109,6 +111,8 @@ const Order = () => {
         : "#C8E6C9";
 
     console.log("kjgfghjkl", item);
+    const imgCount = item?.imgArr?.length >= 3 ? 3 : item?.imgArr?.length || 0;
+    const countToShow = item?.totalProductCount - imgCount;
     return (
       <TouchableOpacity
         key={item?._id || index}
@@ -123,10 +127,7 @@ const Order = () => {
         ]}
       >
         {/* Image Section */}
-        <ImageDisplay
-          count={item?.totalProductCount - item?.imgArr?.length}
-          images={item?.imgArr || []}
-        />
+        <ImageDisplay count={countToShow} images={item?.imgArr || []} />
 
         {/* Text Section */}
         <View style={styles.itemContent}>
@@ -148,7 +149,9 @@ const Order = () => {
             <Text style={styles.productCountText}>
               {`Items: ${item?.totalProductCount}`}
             </Text>
-            <Text style={styles.amountText}>{`₹${item?.amountPaid}`}</Text>
+            <Text style={styles.amountText}>{`₹${formatNumber(
+              item?.amountPaid
+            )}`}</Text>
           </View>
         </View>
         <MaterialIcons
@@ -164,41 +167,49 @@ const Order = () => {
   console.log("8765redfghjk", JSON.stringify(orderData));
   return (
     <ScreenSafeWrapper title="My Orders">
-      <View style={{ height: 10 }}></View>
-      <View style={{ flex: 1 }}>
-        {isOrderLoading ? (
-          <View>
-            <OrderListPlaceHolder />
-          </View>
-        ) : orderError ? (
-          <Text>Error loading data</Text>
-        ) : (
-          <FlashList
-            ItemSeparatorComponent={() => <View style={{ height: 15 }}></View>}
-            estimatedItemSize={277}
-            showsVerticalScrollIndicator={false}
-            data={orderData?.orders}
-            // data={mockOrders}
-            renderItem={renderProductItem}
-            keyExtractor={(item, index) => item?._id || index.toString()}
-            onEndReached={() => {
-              if (isOrderFetching) return;
-              if (hasNextPage) fetchNextPage();
-            }}
-            onEndReachedThreshold={0.1}
-            ListFooterComponent={renderLoader}
-            contentContainerStyle={styles.flatList}
-            ListEmptyComponent={
-              isOrderFetching ? null : (
-                <NotFound
-                  title={"Order not Found"}
-                  subtitle={"You haven't placed any order yet."}
-                />
-              )
-            }
-          />
-        )}
-      </View>
+      <CustomSuspense>
+        <View style={{ height: 10 }}></View>
+        <View style={{ flex: 1 }}>
+          {isOrderLoading ? (
+            <View>
+              <OrderListPlaceHolder />
+            </View>
+          ) : orderError ? (
+            <Text>Error loading data</Text>
+          ) : (
+            <FlatList
+              // disableAutoLayout
+              ItemSeparatorComponent={() => (
+                <View style={{ height: 15 }}></View>
+              )}
+              // estimatedItemSize={277}
+              showsVerticalScrollIndicator={false}
+              data={orderData?.orders}
+              // data={mockOrders}
+              renderItem={renderProductItem}
+              keyExtractor={(item, index) =>
+                item?._id + index || index.toString()
+              }
+              onEndReached={() => {
+                if (isOrderFetching) return;
+                if (hasNextPage) fetchNextPage();
+              }}
+              onEndReachedThreshold={0.1}
+              ListFooterComponent={renderLoader}
+              contentContainerStyle={styles.flatList}
+              ListFooterComponentStyle={{ paddingTop: 15 }}
+              ListEmptyComponent={
+                isOrderFetching ? null : (
+                  <NotFound
+                    title={"Order not Found"}
+                    subtitle={"You haven't placed any order yet."}
+                  />
+                )
+              }
+            />
+          )}
+        </View>
+      </CustomSuspense>
     </ScreenSafeWrapper>
   );
 };
@@ -241,6 +252,7 @@ const styles = StyleSheet.create({
   },
   flatList: {
     paddingTop: 10,
+    //  paddingBottom: 50,
   },
   statusWrapper: {
     flexDirection: "row",

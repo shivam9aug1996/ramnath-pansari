@@ -18,10 +18,13 @@ const locationSearchScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      setTimeout(() => {
+      let timeoutId = setTimeout(() => {
         boxRef?.current?.focus();
       }, 200);
-      return () => {};
+
+      return () => {
+        clearTimeout(timeoutId); // Clear the timeout on cleanup
+      };
     }, [])
   );
   return (
@@ -63,7 +66,8 @@ const locationSearchScreen = () => {
               },
             })
           );
-          router.navigate("/(address)/mapSelect");
+
+          router.back();
         }}
         query={{
           key: "AIzaSyCY7OexW8I25uKjtJwqU1hAQZAZ4d8bnqQ",

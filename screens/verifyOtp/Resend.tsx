@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity } from "react-native";
+import { Pressable, StyleSheet, TouchableOpacity } from "react-native";
 import React, { memo } from "react";
 import { ThemedText } from "../../components/ThemedText";
 import { Colors } from "@/constants/Colors";
@@ -34,10 +34,18 @@ const Resend = ({ resetInput, mobileNum }: ResendProps) => {
         onPress={handleResend}
         disabled={!canResend || isLoading}
       >
-        {isLoading ? (
-          <ThemedText>{"Sending..."}</ThemedText>
-        ) : canResend ? (
-          <ThemedText style={styles.resendLink}>{"Resend Code"}</ThemedText>
+        {canResend ? (
+          <ThemedText
+            style={[
+              styles.resendLink,
+              {
+                opacity: isLoading ? 0.5 : 1,
+                pointerEvents: isLoading ? "none" : "auto",
+              },
+            ]}
+          >
+            {"Resend Code"}
+          </ThemedText>
         ) : (
           <ThemedText style={styles.disabledLink}>
             {countdown > 0 && `00 : ${countdown <= 9 ? "0" : ""}${countdown}`}

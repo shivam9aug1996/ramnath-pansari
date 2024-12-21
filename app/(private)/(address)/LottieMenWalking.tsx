@@ -51,9 +51,12 @@ export default function LottieMenWalking() {
   const opacity = useSharedValue(1);
 
   useEffect(() => {
-    setTimeout(() => {
+    // Dismiss the keyboard after 100ms
+    const keyboardDismissTimer = setTimeout(() => {
       Keyboard.dismiss();
     }, 100);
+
+    return () => clearTimeout(keyboardDismissTimer);
   }, []);
 
   useEffect(() => {

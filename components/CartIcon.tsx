@@ -32,8 +32,11 @@ const CartIcon = () => {
       }}
       style={{
         position: "absolute",
-        right: 10,
+        right: 0,
         alignItems: "center",
+        padding: 10,
+        //paddingRight: 10,
+        // backgroundColor: "red",
         // zIndex: -1,
       }}
     >
@@ -53,8 +56,8 @@ const CartIcon = () => {
             backgroundColor: "#EC534A",
             borderRadius: 3,
             position: "absolute",
-            right: -4,
-            top: -1.5,
+            right: 5,
+            top: 10,
           }}
         />
       )}

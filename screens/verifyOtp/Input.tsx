@@ -31,7 +31,7 @@ const Input = forwardRef<
     const timer = setTimeout(() => {
       focusTextInput(0);
       setCurrentInputIndex(0);
-    }, 300);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, []);
@@ -113,7 +113,7 @@ const Input = forwardRef<
         >
           <TextInput
             caretHidden
-            autoComplete="one-time-code"
+            // autoComplete="one-time-code"
             textContentType="oneTimeCode"
             onTouchEnd={() => setCurrentInputIndex(index)}
             ref={(el) => (inputRefs.current[index] = el)}

@@ -1,4 +1,4 @@
-package com.ramnath.pansari
+package com.ramnath.pansari.shop
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

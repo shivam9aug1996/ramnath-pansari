@@ -1,4 +1,4 @@
-import React, { memo, useRef } from "react";
+import React, { memo, useRef, useTransition } from "react";
 import { FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
@@ -11,6 +11,8 @@ const SubCategorySelector = ({
   subCatFlatListRef,
 }: SubCategorySelectorProps) => {
   console.log("sub category selector----->");
+  const [isPending, startTransition] = useTransition();
+
   const renderSubCategory = ({
     item,
     index,
@@ -30,7 +32,12 @@ const SubCategorySelector = ({
                 : Colors.light.lightGrey,
           },
         ]}
-        onPress={() => onSelectSubCategory(item)}
+        onPress={() => {
+          // startTransition(() => {
+          //   onSelectSubCategory(item);
+          // });
+          onSelectSubCategory(item);
+        }}
       >
         <ThemedText
           style={[

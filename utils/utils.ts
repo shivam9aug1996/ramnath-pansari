@@ -1,5 +1,6 @@
 import { Image } from "react-native";
 import * as FileSystem from "expo-file-system";
+import * as Haptics from "expo-haptics";
 
 type Callback = (...args: any[]) => void;
 
@@ -59,3 +60,21 @@ export const downloadAsset = async (url, fileName) => {
 };
 
 // Usage
+
+export function formatNumber(input) {
+  const num = parseFloat(input); // Convert input to a number
+
+  if (isNaN(num)) {
+    return input; // If it's not a valid number, return the input as is
+  }
+
+  return num % 1 === 0 ? num.toString() : num.toFixed(2); // Format based on whether it's an integer
+}
+
+export const hapticFeedback = (style = Haptics.ImpactFeedbackStyle.Soft) => {
+  try {
+    Haptics.impactAsync(style);
+  } catch (error) {
+    console.error("Haptics error:", error);
+  }
+};

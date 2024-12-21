@@ -3,71 +3,32 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
 const ImageDisplay = ({ images, count }) => {
-  // const imagesToDisplay = images.slice(0, 3);
-  // const remainingImagesCount = images.length > 3 ? images.length - 3 : 0;
-  console.log(images);
-  let im1 = images[0] && (
+  const renderImage = (uri, key) => (
     <Image
-      contentFit={"contain"}
-      source={{ uri: images[0] }}
-      style={{
-        width: 30,
-        padding: 2,
-        margin: 2,
-        height: 30,
-      }}
-    />
-  );
-  let im2 = images[1] && (
-    <Image
-      contentFit={"contain"}
-      source={{ uri: images[1] }}
-      style={{
-        width: 30,
-        padding: 2,
-        margin: 2,
-        height: 30,
-      }}
-    />
-  );
-  let im3 = images[2] && (
-    <Image
-      contentFit={"contain"}
-      source={{ uri: images[2] }}
-      style={{
-        width: 30,
-        padding: 2,
-        margin: 2,
-        height: 30,
-      }}
+      key={key}
+      contentFit="contain"
+      source={{ uri }}
+      style={styles.image}
     />
   );
 
   return (
     <View style={styles.container}>
-      <View style={{ flexDirection: "row" }}>
-        {im1}
-        {im2}
+      {/* First Row */}
+      <View style={styles.row}>
+        {images.slice(0, 2).map((uri, index) => renderImage(uri, index))}
       </View>
-      <View
-        style={{ flexDirection: "row", marginTop: 4, alignItems: "center" }}
-      >
-        {im3}
+
+      {/* Second Row */}
+      <View style={[styles.row, styles.secondRow]}>
+        {images[2] && renderImage(images[2], 2)}
         {count >= 1 && (
-          <View
-            style={{
-              borderWidth: 1,
-              borderRadius: 18,
-              width: 30,
-              height: 30,
-              justifyContent: "center",
-              alignItems: "center",
-              padding: 2,
-              margin: 2,
-              marginLeft: 6,
-            }}
-          >
-            <Text style={{ fontSize: count > 99 ? 10 : 11 }}>+{count}</Text>
+          <View style={styles.countContainer}>
+            <Text
+              style={[styles.countText, { fontSize: count > 99 ? 10 : 11 }]}
+            >
+              +{count}
+            </Text>
           </View>
         )}
       </View>
@@ -80,8 +41,32 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     flex: 0.3,
     marginRight: 10,
-    // alignItems: "center",
-    // justifyContent: "center",
+  },
+  row: {
+    flexDirection: "row",
+  },
+  secondRow: {
+    marginTop: 4,
+    alignItems: "center",
+  },
+  image: {
+    width: 30,
+    height: 30,
+    margin: 2,
+    borderRadius: 5,
+  },
+  countContainer: {
+    borderWidth: 1,
+    borderRadius: 18,
+    width: 30,
+    height: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    margin: 2,
+    marginLeft: 6,
+  },
+  countText: {
+    textAlign: "center",
   },
 });
 

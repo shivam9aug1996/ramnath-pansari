@@ -3,16 +3,18 @@ import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 
 import { Colors } from "@/constants/Colors";
 
-import { CartButtonProps } from "@/types/global";
+import { CartButtonProps, RootState } from "@/types/global";
 
 import { useCartOperations } from "../../hooks/useCartOperations";
 import Animation from "./Animation";
+import { useSelector } from "react-redux";
 
 const CartButton = ({ value, item }: CartButtonProps) => {
   const { quantity, handleAdd, handleRemove } = useCartOperations(item, value);
 
+  console.log("cart button------>");
   return (
-    <View style={styles.container}>
+    <View style={[styles.container]}>
       <View
         style={{
           flexDirection: "row",
@@ -31,6 +33,7 @@ const CartButton = ({ value, item }: CartButtonProps) => {
             />
           </TouchableOpacity>
         )}
+
         {quantity > 0 && (
           <View style={styles.quantityContainer}>
             <Text style={styles.quantityText}>{quantity}</Text>

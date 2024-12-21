@@ -5,6 +5,7 @@ import {
   View,
   FlatList,
   Alert,
+  Pressable,
 } from "react-native";
 import React, {
   lazy,
@@ -13,6 +14,7 @@ import React, {
   useEffect,
   useRef,
   useState,
+  useTransition,
 } from "react";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -27,15 +29,25 @@ import { Colors } from "@/constants/Colors";
 import { scrollToTop } from "../(category)/ProductList/utils";
 import AddressItem from "./AddressItem";
 import { ThemedText } from "@/components/ThemedText";
-import NotFound from "../(result)/NotFound";
+// import NotFound from "../(result)/NotFound";
 import AddressPlaceholder from "./AddressPlaceholder";
-import TryAgain from "../(category)/CategoryList/TryAgain";
+// import TryAgain from "../(category)/CategoryList/TryAgain";
 
 import * as Linking from "expo-linking";
 import usePayment from "./usePayment";
-import Button from "@/components/Button";
+// import Button from "@/components/Button";
 import LottieSuccess from "./LottieSuccess";
 import { usePreloadAssets } from "@/hooks/usePreloadAssets";
+import CustomSuspense from "@/components/CustomSuspense";
+import Modal from "@/components/Modal";
+import BottomSheet from "@/components/BottomSheet";
+import CodOnline from "./CodOnline";
+import { formatNumber } from "@/utils/utils";
+// import PayBottomSheet from "./PayBottomSheet";
+const PayBottomSheet = lazy(() => import("./PayBottomSheet"));
+const TryAgain = lazy(() => import("../(category)/CategoryList/TryAgain"));
+const NotFound = lazy(() => import("../(result)/NotFound"));
+const Button = lazy(() => import("@/components/Button"));
 
 const addressList = () => {
   const params = useLocalSearchParams();
@@ -43,7 +55,7 @@ const addressList = () => {
     (state: RootState) => state.cart.cartButtonProductId
   );
   const totalAmount = useSelector((state: RootState) => state.cart.totalAmount);
-  const totalAmountInNumber = useSelector(
+  let totalAmountInNumber = useSelector(
     (state: RootState) => state.cart.totalAmountInNumber
   );
 
@@ -56,17 +68,22 @@ const addressList = () => {
   );
   const dispatch = useDispatch();
   const url = Linking.useURL();
+  const [isPayModal, setIsPayModal] = useState(false);
 
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   const { isLoading, data, error, isFetching, isSuccess, refetch } =
     useFetchAddressQuery({ userId }, { skip: !userId });
   const listRef = useRef<FlatList>(null);
-  const { handleOnClick, isPaymentProcessing, isRazorpayOpened } = usePayment();
+  const { handleOnClick, isPaymentProcessing, isRazorpayOpened, handleCod } =
+    usePayment();
   useEffect(() => {
     if (isFetching) {
       scrollToTop(listRef);
     }
   }, [isFetching]);
+
+  const isButtonLoading =
+    cartButtonProductId?.length != 0 || isPaymentProcessing;
 
   const handleIncomingURL = (event) => {
     console.log("Received URL:", event);
@@ -91,6 +108,7 @@ const addressList = () => {
       selected={item?._id === selectedAddressId}
       onSelect={handleSelect}
       checkoutFlow={checkoutFlow}
+      disabled={isButtonLoading}
     />
   );
 
@@ -104,105 +122,132 @@ const addressList = () => {
     dispatch(addressApi.util.resetApiState());
   };
 
-  if (isRazorpayOpened) {
-    return <LottieSuccess />;
-  }
-
   return (
-    <ScreenSafeWrapper>
-      <View
-        style={{
-          flexDirection: "row",
-          marginTop: 37,
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <View style={{ flexDirection: "row" }}>
-          <ThemedText
-            style={[styles.headerTitle, { fontSize: checkoutFlow ? 18 : 20 }]}
-          >{`${
-            checkoutFlow
-              ? data?.length == 0
-                ? "Add Delivery Address"
-                : "Choose Delivery Address"
-              : "Saved Addresses"
-          }`}</ThemedText>
-        </View>
-        <TouchableOpacity
-          onPress={() => {
-            dispatch(
-              setCurrentAddressData({
-                action: "add",
-                form: undefined,
-                initialForm: undefined,
-              })
-            );
-            router.push({
-              // pathname: "/(address)/addAddress",
-              pathname: "/(address)/mapSelect",
-            });
-          }}
-        >
-          <Text
+    <>
+      <ScreenSafeWrapper>
+        <CustomSuspense>
+          <View
             style={{
-              color: Colors.light.mediumGreen,
-              fontFamily: "Raleway_400Regular",
-              fontSize: 14,
+              flexDirection: "row",
+              marginTop: 37,
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            add new
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <View style={{ flexDirection: "row", paddingRight: 20 }}>
+              <ThemedText
+                style={[
+                  styles.headerTitle,
+                  { fontSize: checkoutFlow ? 18 : 20 },
+                ]}
+              >{`${
+                checkoutFlow
+                  ? data?.length == 0
+                    ? "Add Delivery Address"
+                    : "Choose Delivery Address"
+                  : "Saved Addresses"
+              }`}</ThemedText>
+            </View>
+            <TouchableOpacity
+              disabled={isButtonLoading}
+              onPress={() => {
+                dispatch(
+                  setCurrentAddressData({
+                    action: "add",
+                    form: undefined,
+                    initialForm: undefined,
+                  })
+                );
+                router.push({
+                  // pathname: "/(address)/addAddress",
+                  pathname: "/(address)/mapSelect",
+                });
+              }}
+            >
+              <Text
+                style={{
+                  color: Colors.light.mediumGreen,
+                  fontFamily: "Raleway_400Regular",
+                  fontSize: 14,
+                }}
+              >
+                add new
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-      {isLoading ? (
-        <AddressPlaceholder />
-      ) : error ? (
-        <TryAgain refetch={refetchMe} />
-      ) : data?.length ? (
-        <FlatList
-          extraData={checkoutFlow || selectedAddressId}
-          ref={listRef}
-          data={data}
-          keyExtractor={(item) => item._id}
-          renderItem={renderAddressItem}
-          contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
-          style={{ marginTop: 20 }}
-        />
-      ) : checkoutFlow ? (
-        <NotFound
-          title={"Where Should We Deliver?"}
-          subtitle={"Add an address to get started with your orders."}
-          style={{ flex: 0.4, marginHorizontal: 50 }}
-        />
-      ) : (
-        <NotFound
-          title={"No Saved Addresses"}
-          subtitle={
-            "Add an address to quickly fill in your details at checkout."
-          }
-          style={{ flex: 0.4, marginHorizontal: 50 }}
-        />
+          {isLoading ? (
+            <AddressPlaceholder />
+          ) : error ? (
+            <Suspense fallback={null}>
+              <TryAgain refetch={refetchMe} />
+            </Suspense>
+          ) : data?.length ? (
+            <FlatList
+              extraData={checkoutFlow || selectedAddressId}
+              ref={listRef}
+              data={data}
+              keyExtractor={(item) => item._id}
+              renderItem={renderAddressItem}
+              contentContainerStyle={styles.listContainer}
+              showsVerticalScrollIndicator={false}
+              style={{ marginTop: 20 }}
+            />
+          ) : checkoutFlow ? (
+            <Suspense fallback={null}>
+              <NotFound
+                title={"Where Should We Deliver?"}
+                subtitle={"Add an address to get started with your orders."}
+                style={{ flex: 0.4, marginHorizontal: 50 }}
+              />
+            </Suspense>
+          ) : (
+            <Suspense fallback={null}>
+              <NotFound
+                title={"No Saved Addresses"}
+                subtitle={
+                  "Add an address to quickly fill in your details at checkout."
+                }
+                style={{ flex: 0.4, marginHorizontal: 50 }}
+              />
+            </Suspense>
+          )}
+          {/* <Modal /> */}
+
+          {checkoutFlow && data?.length ? (
+            <Suspense fallback={null}>
+              <Button
+                isLoading={isButtonLoading}
+                title={`Pay ₹${formatNumber(totalAmountInNumber)}`}
+                onPress={() => {
+                  const addressData = data?.find((item) => {
+                    return item?._id == selectedAddressId;
+                  });
+                  console.log("kjhyt567890-", addressData, totalAmountInNumber);
+                  setIsPayModal(true);
+
+                  //handleOnClick(totalAmountInNumber, addressData);
+                }}
+                textStyle={{ fontFamily: "Montserrat_600SemiBold" }}
+              />
+            </Suspense>
+          ) : null}
+        </CustomSuspense>
+      </ScreenSafeWrapper>
+      {isPayModal && (
+        <Suspense fallback={null}>
+          <PayBottomSheet
+            setIsPayModal={setIsPayModal}
+            data={data}
+            isButtonLoading={isButtonLoading}
+            totalAmountInNumber={totalAmountInNumber}
+            selectedAddressId={selectedAddressId}
+            handleOnClick={handleOnClick}
+            handleCod={handleCod}
+          />
+        </Suspense>
       )}
-
-      {checkoutFlow && data?.length ? (
-        <Button
-          isLoading={cartButtonProductId?.length != 0 || isPaymentProcessing}
-          title={`Pay ${totalAmount}`}
-          onPress={() => {
-            const addressData = data?.find((item) => {
-              return item?._id == selectedAddressId;
-            });
-            console.log("kjhyt567890-", addressData, totalAmountInNumber);
-
-            handleOnClick(totalAmountInNumber, addressData);
-          }}
-          textStyle={{ fontFamily: "Montserrat_600SemiBold" }}
-        />
-      ) : null}
-    </ScreenSafeWrapper>
+    </>
   );
 };
 
@@ -262,5 +307,19 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontFamily: "Raleway_700Bold",
+  },
+  loadingOverlay: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    pointerEvents: "none",
+    zIndex: 9999,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText1: {
+    fontSize: 30,
+    color: "white",
   },
 });

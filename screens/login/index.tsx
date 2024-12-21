@@ -31,7 +31,7 @@ const Login: React.FC = () => {
     <ScreenSafeWrapper useKeyboardAvoidingView={false}>
       <TouchableWithoutFeedback onPress={dismissKeyboard}>
         <ThemedView style={styles.container}>
-          <ThemedText type="title">{"Welcome to\nGrofast!"}</ThemedText>
+          <ThemedText type="title">{"Welcome to\nRamnath Pansari!"}</ThemedText>
           <ThemedText style={styles.label}>{"Phone Number"}</ThemedText>
           <CustomTextInput
             value={mobileNumber}

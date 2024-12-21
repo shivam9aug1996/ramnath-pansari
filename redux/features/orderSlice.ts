@@ -16,6 +16,7 @@ export const orderApi = createApi({
     },
     credentials: "include",
   }),
+  tagTypes: ["detailOrder", "orderList"],
 
   endpoints: (builder) => ({
     createPreOrder: builder.mutation({
@@ -32,12 +33,41 @@ export const orderApi = createApi({
         body: data,
       }),
     }),
+    placeCodOrder: builder.mutation({
+      query: (data) => ({
+        url: "/order/pre/cod",
+        method: "POST",
+        body: data,
+      }),
+    }),
     fetchOrders: builder.query({
       query: (data) => ({
         url: "/order/post",
         method: "GET",
         params: data,
       }),
+      keepUnusedDataFor: 0,
+      serializeQueryArgs: ({ endpointName, queryArgs }) => {
+        console.log("jhgfhjkl3456890", endpointName, queryArgs);
+        return `${endpointName}`;
+      },
+      merge: (currentCache, newItems, { arg: { page } }) => {
+        console.log("jhgfdsdfghjk", currentCache, page);
+        if (page === 1) {
+          currentCache.orders = [];
+          currentCache.currentPage = 1;
+        }
+        console.log("jhgfdsdfghjk after", currentCache);
+        currentCache?.orders?.push(...newItems?.orders);
+        currentCache.currentPage = newItems?.currentPage;
+      },
+      forceRefetch: ({ currentArg, previousArg }) => {
+        console.log("lkuytr4567890-", currentArg, previousArg);
+        return currentArg?.page !== previousArg?.page;
+      },
+      providesTags: (result, error, { userId, page }) => [
+        { type: "orderList", id: `${userId}` }, // Provide a tag specific to the userId and page
+      ],
     }),
     fetchOrderDetail: builder.query({
       query: (data) => ({
@@ -45,6 +75,10 @@ export const orderApi = createApi({
         method: "GET",
         params: data,
       }),
+      keepUnusedDataFor: 0,
+      providesTags: (result, error, { orderId, userId }) => [
+        { type: "detailOrder", id: `${orderId}-${userId}` },
+      ],
     }),
   }),
 });
@@ -67,6 +101,8 @@ export const {
   useVerifyPreOrderMutation,
   useFetchOrdersQuery,
   useFetchOrderDetailQuery,
+  useLazyFetchOrdersQuery,
+  usePlaceCodOrderMutation,
 } = orderApi;
 export const { setCheckoutFlow } = orderSlice.actions;
 

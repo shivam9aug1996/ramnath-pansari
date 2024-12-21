@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Dimensions, StyleSheet, View } from "react-native";
+import { Dimensions, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedGestureHandler,
   useSharedValue,
@@ -22,6 +22,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
   children,
   onClose,
   staticContent,
+  animation = true,
 }) => {
   const translateY = useSharedValue(SCREEN_HEIGHT);
 
@@ -33,12 +34,15 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
       translateY.value = ctx.startY + event.translationY;
     },
     onEnd: (event) => {
-      if (event.translationY > SCREEN_HEIGHT / 6) {
-        translateY.value = withSpring(onClose ? SCREEN_HEIGHT : 0, {}, () => {
-          if (onClose) {
-            runOnJS(onClose)?.();
-          }
-        });
+      if (event.translationY > SCREEN_HEIGHT / 5) {
+        if (onClose) {
+          runOnJS(onClose)?.();
+        }
+        translateY.value = withSpring(
+          onClose ? SCREEN_HEIGHT : 0,
+          {},
+          () => {}
+        );
       } else {
         translateY.value = withSpring(0);
       }
@@ -47,7 +51,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ translateY: translateY.value }],
+      transform: [{ translateY: !animation ? 0 : translateY.value }],
     };
   });
 
@@ -65,7 +69,14 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
       ></BlurView>
       <PanGestureHandler onGestureEvent={gestureHandler}>
         <Animated.View style={[styles.container, animatedStyle]}>
-          <View style={{ flex: 1.2 }}></View>
+          <Pressable
+            onPress={() => {
+              if (onClose) {
+                runOnJS(onClose)?.();
+              }
+            }}
+            style={{ flex: 1.2 }}
+          ></Pressable>
           <ThemedView style={styles.ellipseContainer}>
             <ThemedView style={styles.ellipse} />
           </ThemedView>

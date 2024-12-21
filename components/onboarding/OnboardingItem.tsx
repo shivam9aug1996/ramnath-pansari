@@ -1,14 +1,15 @@
-import { Dimensions, Image, StyleSheet, TouchableOpacity } from "react-native";
-import React, { memo } from "react";
+import { Dimensions, Image, StyleSheet, View } from "react-native";
+import React, { lazy, memo, Suspense } from "react";
 import { ThemedView } from "../ThemedView";
-import ProgressBar from "./ProgressBar";
 import { ThemedText } from "../ThemedText";
 import { Colors } from "@/constants/Colors";
-import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { OnboardingItemProps } from "@/types/global";
-
+import CustomSuspense from "../CustomSuspense";
+const ProgressBar = lazy(() => import("./ProgressBar"));
+const Button = lazy(() => import("./Button"));
 const width = Dimensions.get("screen").width;
+
 const OnboardingItem = ({
   handlePress,
   item,
@@ -26,35 +27,23 @@ const OnboardingItem = ({
         <ThemedView style={styles.ellipse} />
       </ThemedView>
       <ThemedView style={styles.textContainer}>
-        <ProgressBar activeIndex={activeSlide} />
+        <Suspense fallback={<View></View>}>
+          <CustomSuspense fallback={<View></View>}>
+            <ProgressBar activeIndex={activeSlide} />
+          </CustomSuspense>
+        </Suspense>
         <ThemedView style={styles.content}>
           <ThemedText style={styles.title} type="title">
             {item.title}
           </ThemedText>
           <ThemedText style={styles.text}>{item.text}</ThemedText>
         </ThemedView>
-        <ThemedView style={{ flex: 1, justifyContent: "center" }}>
-          <ThemedView style={styles.outerButtonBorder}>
-            <TouchableOpacity onPress={handlePress}>
-              <LinearGradient
-                colors={[
-                  Colors.light.gradientGreen_2,
-                  Colors.light.gradientGreen_1,
-                ]}
-                style={[styles.button]}
-              >
-                <Image
-                  tintColor={
-                    colorScheme == "dark"
-                      ? Colors.dark.darkGreen_3
-                      : Colors.light.white
-                  }
-                  source={require("../../assets/images/bi_arrow-right.png")}
-                  style={{ width: 30, height: 30 }}
-                />
-              </LinearGradient>
-            </TouchableOpacity>
-          </ThemedView>
+        <ThemedView style={{ flex: 0.5 }}>
+          <Suspense fallback={<View></View>}>
+            <CustomSuspense fallback={<View></View>}>
+              <Button handlePress={handlePress} />
+            </CustomSuspense>
+          </Suspense>
         </ThemedView>
       </ThemedView>
     </ThemedView>
@@ -68,7 +57,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   imageContainer: {
-    flex: 1.2,
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -79,7 +68,7 @@ const styles = StyleSheet.create({
   },
   ellipseContainer: {
     position: "absolute",
-    top: "50%",
+    top: "45%",
     left: 0,
     right: 0,
     alignItems: "center",
@@ -111,20 +100,5 @@ const styles = StyleSheet.create({
     marginHorizontal: 52,
     justifyContent: "flex-start",
     marginTop: 35,
-  },
-  button: {
-    borderRadius: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 61,
-    paddingVertical: 25,
-  },
-  outerButtonBorder: {
-    backgroundColor: "transparent",
-    paddingHorizontal: 10,
-    paddingVertical: 9,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: "rgba(43, 175, 111, 0.3)",
   },
 });

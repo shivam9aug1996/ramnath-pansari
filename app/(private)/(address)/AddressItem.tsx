@@ -47,6 +47,7 @@ const AddressItem: FC<AddressItemProps> = ({
   onSelect,
   selected,
   checkoutFlow,
+  disabled,
 }) => {
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -97,10 +98,11 @@ const AddressItem: FC<AddressItemProps> = ({
   return (
     <TouchableOpacity
       onPress={() => onSelect(item._id)}
-      disabled={!checkoutFlow}
+      disabled={!checkoutFlow || disabled}
       style={cardStyle}
     >
       <Feather
+        disabled={disabled}
         onPress={handleEditPress}
         name="edit"
         size={16}
@@ -108,6 +110,7 @@ const AddressItem: FC<AddressItemProps> = ({
         style={[styles.iconStyle, { top: 5 }]}
       />
       <MaterialIcons
+        disabled={disabled}
         onPress={handleDeletePress}
         name="delete-outline"
         size={18}

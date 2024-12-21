@@ -17,6 +17,15 @@ const SlowPost = ({ index }) => {
 const PostsTab = memo(() => {
   const data = Array.from({ length: 10000 }, (_, i) => i);
 
+  // return (
+  //   <FlatList
+  //     data={data}
+  //     renderItem={({ item }) => {
+  //       return <Text key={item}>{item}</Text>;
+  //     }}
+  //   />
+  // );
+
   return data?.map((item, index) => {
     return <Text key={item}>{item}</Text>;
   });

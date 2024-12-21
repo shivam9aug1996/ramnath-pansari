@@ -6,16 +6,14 @@ import {
   useLazyFetchCartQuery,
   useUpdateCartMutation,
 } from "@/redux/features/cartSlice";
-import { debounce } from "@/utils/utils";
+import { debounce, hapticFeedback } from "@/utils/utils";
 import { RootState, Product } from "@/types/global";
 
 export const useCartOperations = (item: Product, initialValue: number) => {
   const dispatch = useDispatch();
   const buttonClicked = useRef(false);
   const userId = useSelector((state: RootState) => state.auth.userData?._id);
-  // const cartButtonProductId = useSelector(
-  //   (state: RootState) => state.cart.cartButtonProductId || []
-  // );
+
   const [updateCart, { isError: isUpdateCartError }] = useUpdateCartMutation();
   const [fetchCartData] = useLazyFetchCartQuery();
 
@@ -63,21 +61,18 @@ export const useCartOperations = (item: Product, initialValue: number) => {
             dispatch(removeCartButtonProductId(item._id));
             console.error(`Failed after ${3} attempts`, error);
           }
-
-          // setQuantity(value);
-
-          // dispatch(removeCartButtonProductId(item._id));
         }
       }
     },
     [dispatch, updateCart, fetchCartData, userId]
   );
 
-  const debouncePress = useCallback(debounce(handlePress, 500, false), [
+  const debouncePress = useCallback(debounce(handlePress, 1000, false), [
     handlePress,
   ]);
 
   const handleAdd = () => {
+    hapticFeedback();
     buttonClicked.current = true;
     const newQuantity = quantity + 1;
     setQuantity(newQuantity);
@@ -85,6 +80,8 @@ export const useCartOperations = (item: Product, initialValue: number) => {
   };
 
   const handleRemove = () => {
+    hapticFeedback();
+
     buttonClicked.current = true;
     if (quantity > 0) {
       const newQuantity = quantity - 1;
@@ -94,6 +91,8 @@ export const useCartOperations = (item: Product, initialValue: number) => {
   };
 
   const handleClearAll = () => {
+    hapticFeedback();
+
     buttonClicked.current = true;
     if (quantity > 0) {
       setQuantity(0);

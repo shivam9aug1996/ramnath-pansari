@@ -58,7 +58,7 @@ const useVerifyOtp = (): VerifyOtpHook => {
     if (saveAuthDataState?.isSuccess) {
       if (data) {
         if (data?.userData?.name) {
-          router.replace("/(private)/(tabs)/(home)/home");
+          router.replace("/(private)/(tabs)/home");
         } else {
           router.replace("/name");
         }

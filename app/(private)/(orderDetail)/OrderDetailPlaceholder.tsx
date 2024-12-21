@@ -1,10 +1,11 @@
 import { StyleSheet, Text, View } from "react-native";
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Colors } from "@/constants/Colors";
 import ContentLoader, { Rect } from "react-content-loader/native";
 import StepOrderTracking from "./StepOrderTracking";
 import OrderedItems from "./OrderedItems";
 import CartPlaceholder from "@/components/cart/CartPlaceholder";
+import AddressItem from "./AddressItem";
 
 const renderText = () => {
   return (
@@ -61,7 +62,7 @@ const OrderDetailPlaceholder = () => {
   return (
     <View>
       <View style={{ flexDirection: "column" }}>
-        <Text style={styles.heading}>Order Detail</Text>
+        <Text style={[styles.heading, { marginTop: 0 }]}>Order Detail</Text>
         <View style={styles.detailsContainer}>
           <DetailItem
             label="Status"
@@ -106,6 +107,9 @@ const OrderDetailPlaceholder = () => {
           />
         </View>
       </View>
+      <Text style={[styles.heading, { marginTop: 35 }]}>Address Detail</Text>
+
+      <AddressItem loading={true} />
 
       <Text style={[styles.heading, { marginTop: 35 }]}>Tracking Detail</Text>
       <View

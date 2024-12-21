@@ -1,5 +1,13 @@
-import React, { memo, useEffect, useRef, useState } from "react";
-import { View } from "react-native";
+import React, {
+  lazy,
+  memo,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import { ActivityIndicator, Text, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { useFetchProductsQuery } from "@/redux/features/productSlice";
 import { RootState } from "@/types/global";
@@ -7,11 +15,16 @@ import { scrollToTop } from "./utils";
 import TryAgain from "../CategoryList/TryAgain";
 import ProductsPlaceholder from "./ProductListPlaceholder";
 import ProductList3 from "./ProductList3";
+import CustomSuspense from "@/components/CustomSuspense";
+import { Colors } from "@/constants/Colors";
+// const ProductList3 = lazy(() => import("./ProductList3"));
 
 const Products = ({ isCategoryFetching }: { isCategoryFetching: boolean }) => {
   const selectedSubCategory = useSelector(
     (state: RootState) => state.product.selectedSubCategoryId
   );
+  const [isPending, startTransition] = useTransition();
+
   const dispatch = useDispatch();
 
   const [paginationState, setPaginationState] = useState({
@@ -23,6 +36,7 @@ const Products = ({ isCategoryFetching }: { isCategoryFetching: boolean }) => {
     data,
     isFetching: isProductsFetching,
     isError: isProductError,
+    isLoading: isProductsLoading,
     refetch,
   } = useFetchProductsQuery(
     {
@@ -37,11 +51,15 @@ const Products = ({ isCategoryFetching }: { isCategoryFetching: boolean }) => {
 
   useEffect(() => {
     if (selectedSubCategory) {
-      scrollToTop(flatListRef);
-      setPaginationState({
-        categoryId: selectedSubCategory?._id,
-        page: 1,
+      startTransition(() => {
+        scrollToTop(flatListRef);
+        setPaginationState({
+          categoryId: selectedSubCategory?._id,
+          page: 1,
+        });
       });
+
+      console.log("iuytredsdfghjkl");
     }
   }, [selectedSubCategory]);
 
@@ -58,15 +76,42 @@ const Products = ({ isCategoryFetching }: { isCategoryFetching: boolean }) => {
     >
       {isCategoryFetching ||
       !paginationState.categoryId ||
-      (isProductsFetching && paginationState.page == 1) ? (
+      isProductsLoading ? (
+        // ||
+        // (isProductsFetching && paginationState.page == 1)
         <ProductsPlaceholder />
       ) : (
-        <ProductList3
-          flatListRef={flatListRef}
-          data={data}
-          setPaginationState={setPaginationState}
-          isProductsFetching={isProductsFetching}
-        />
+        <CustomSuspense fallback={<ProductsPlaceholder />}>
+          {isProductsFetching && paginationState.page == 1 && (
+            <View
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 0,
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 10,
+              }}
+            >
+              <ActivityIndicator size="large" color={Colors.light.lightGreen} />
+            </View>
+          )}
+
+          {isPending ? (
+            <View />
+          ) : (
+            <ProductList3
+              flatListRef={flatListRef}
+              data={data}
+              setPaginationState={setPaginationState}
+              isProductsFetching={isProductsFetching}
+              isProductsLoading={isProductsLoading}
+              paginationState={paginationState}
+            />
+          )}
+        </CustomSuspense>
       )}
     </View>
   );

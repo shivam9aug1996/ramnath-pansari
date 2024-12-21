@@ -405,10 +405,12 @@ const AddAddress: React.FC = () => {
             false
           )?.unwrap();
         }
+        router.dismissTo("/(address)/addressList");
 
-        router.navigate({
-          pathname: "/(address)/addressList",
-        });
+        //router.dismissTo("/(address)/addressList");
+        // router.navigate({
+        //   pathname: "/(address)/addressList",
+        // });
       }
     } catch (error) {}
     console.log("kjht567890-", form);

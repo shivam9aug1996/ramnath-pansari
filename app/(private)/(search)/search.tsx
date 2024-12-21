@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { lazy, Suspense, useCallback, useRef, useState } from "react";
 import {
   Keyboard,
   Pressable,
@@ -10,9 +10,12 @@ import {
 import { router, useFocusEffect } from "expo-router";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import CustomTextInput from "@/components/CustomTextInput";
-import RecentSearch from "./RecentSearch";
-import QueryData from "./QueryData";
+// import RecentSearch from "./RecentSearch";
+// import QueryData from "./QueryData";
 import { Colors } from "@/constants/Colors";
+import CustomSuspense from "@/components/CustomSuspense";
+const QueryData = lazy(() => import("./QueryData"));
+const RecentSearch = lazy(() => import("./RecentSearch"));
 
 const Search = () => {
   const [query, setQuery] = useState("");
@@ -20,7 +23,14 @@ const Search = () => {
   const textInputRef = useRef<TextInput>(null);
   useFocusEffect(
     useCallback(() => {
-      textInputRef.current?.focus();
+      setInputBoxFocused(true);
+      let timeoutId = setTimeout(() => {
+        textInputRef.current?.focus();
+      }, 500);
+
+      return () => {
+        clearTimeout(timeoutId); // Clear the timeout on cleanup
+      };
     }, [])
   );
 
@@ -40,45 +50,55 @@ const Search = () => {
   };
 
   const onPress = useCallback((query: string) => {
-    setTimeout(() => {
+    let timeoutId = setTimeout(() => {
       setQuery(query);
     }, 500);
-    router.push(`/(result)/${query}`);
-  }, []);
+    console.log("ytdfghjkjhgfd", query);
+    router.push(`/(result)/${encodeURIComponent(query)}`);
 
+    return () => {
+      clearTimeout(timeoutId); // Clear the timeout if the component unmounts or the function is re-triggered
+    };
+  }, []);
   return (
     <ScreenSafeWrapper
       useKeyboardAvoidingView
       title="Search for products"
       showCartIcon
     >
-      <View style={styles.searchContainer}>
-        <CustomTextInput
-          value={query}
-          onChangeText={handleInputChange}
-          textInputRef={textInputRef}
-          type="search"
-          onSubmitEditing={onSubmitEditing}
-          variant={3}
-          wrapperStyle={[
-            styles.inputWrapper,
-            isInputBoxFocused && styles.inputWrapperFocused,
-          ]}
-          onClear={handleClear}
-          onFocus={() => setInputBoxFocused(true)}
-          onBlur={() => setInputBoxFocused(false)}
-        />
-        {isInputBoxFocused && (
-          <Pressable style={styles.cancelButton} onPress={handleCancel}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </Pressable>
+      <CustomSuspense>
+        <View style={styles.searchContainer}>
+          <CustomTextInput
+            value={query}
+            onChangeText={handleInputChange}
+            textInputRef={textInputRef}
+            type="search"
+            onSubmitEditing={onSubmitEditing}
+            variant={3}
+            wrapperStyle={[
+              styles.inputWrapper,
+              isInputBoxFocused && styles.inputWrapperFocused,
+            ]}
+            onClear={handleClear}
+            onFocus={() => setInputBoxFocused(true)}
+            onBlur={() => setInputBoxFocused(false)}
+          />
+          {isInputBoxFocused && (
+            <Pressable style={styles.cancelButton} onPress={handleCancel}>
+              <Text style={styles.cancelText}>Cancel</Text>
+            </Pressable>
+          )}
+        </View>
+        {query ? (
+          <Suspense fallback={null}>
+            <QueryData onPress={onPress} query={query} />
+          </Suspense>
+        ) : (
+          <Suspense fallback={null}>
+            <RecentSearch onPress={onPress} />
+          </Suspense>
         )}
-      </View>
-      {query ? (
-        <QueryData onPress={onPress} query={query} />
-      ) : (
-        <RecentSearch onPress={onPress} />
-      )}
+      </CustomSuspense>
     </ScreenSafeWrapper>
   );
 };

@@ -1,159 +1,49 @@
 import { Colors } from "@/constants/Colors";
 import { AntDesign, FontAwesome5 } from "@expo/vector-icons";
-import React from "react";
-import { View, Text, FlatList, StyleSheet, Image } from "react-native";
+import React, { memo } from "react";
+import { View, Text, StyleSheet, Image, ScrollView } from "react-native";
+import { FlatList } from "react-native-gesture-handler";
 import { OrderStatus } from "../(order)/mock";
 import { convertDate, getOrderStatusTitle1 } from "../(order)/utils";
+import StepItem from "./StepItem";
 
 const StepOrderTracking = ({ trackingData }) => {
   const renderItem = ({ item, index }) => {
-    console.log("ytrfgfghjklhjk", item);
-    const status = item?.status?.toLowerCase();
-    const backgroundColor =
-      status === "out_for_delivery"
-        ? "#FFF7CD"
-        : status === "confirmed"
-        ? "#E0F7FA"
-        : status === "canceled"
-        ? "#F8ECEC"
-        : "#EBF4F1";
-    const textColor =
-      status === "out_for_delivery"
-        ? "#b5a35d" // Yellow for out for delivery
-        : status === "confirmed"
-        ? "#00B0FF" // Blue for confirmed
-        : status === "canceled"
-        ? "#FF6B6B" // Red for canceled
-        : "#4CAF50"; // Green for delivered
+    const trackingDataLength = trackingData?.length || 0;
     return (
-      <View
-        key={item?.timestamp || index}
-        style={[
-          styles.stepContainer,
-          {
-            backgroundColor: index == 0 ? backgroundColor : "transparent",
-            padding: 10,
-            borderRadius: 23,
-            marginBottom: index == 0 ? 9 : 0,
-            paddingVertical: index == 0 ? 20 : 10,
-          },
-        ]}
-      >
-        {index == 0 && (
-          <View
-            style={{
-              position: "absolute",
-              //backgroundColor: "red",
-              // height: "100%",
-              top: 0,
-              left: 27,
-              backgroundColor: backgroundColor,
-              zIndex: 2,
-              paddingVertical: 22,
-              // paddingHorizontal: 5,
-            }}
-          >
-            <Image
-              source={
-                status !== "canceled"
-                  ? require("../../../assets/images/circle-check.png")
-                  : require("../../../assets/images/circle-x.png")
-              }
-              style={{ width: 24, height: 24 }}
-              tintColor={textColor}
-            />
-          </View>
-        )}
-        <View style={styles.stepIndicatorContainer}>
-          {/* Circle Indicator */}
-          <View
-            style={
-              index === 0
-                ? styles.currentStep
-                : [
-                    styles.completedStep,
-                    {
-                      backgroundColor: Colors.light.lightGrey,
-                      width: 13,
-                      height: 13,
-                    },
-                    {
-                      justifyContent: "center",
-                      alignItems: "center",
-                    },
-                  ]
-            }
-          >
-            <View
-              style={
-                index === 0
-                  ? styles.currentStep
-                  : [
-                      styles.completedStep,
-                      {
-                        backgroundColor: Colors.light.darkGrey,
-                      },
-                    ]
-              }
-            />
-          </View>
-          {/* Line connecting dots */}
-          {index < trackingData.length - 1 && (
-            <View
-              style={[
-                styles.stepLine,
-                {
-                  backgroundColor: Colors.light.darkGrey,
-                  height: index == 0 ? 60 : 45,
-                  opacity: 0.2,
-                },
-              ]}
-            />
-          )}
-        </View>
-        <View style={styles.stepContent}>
-          <Text
-            style={
-              index == 0
-                ? [
-                    styles.stepStatus,
-                    {
-                      color: textColor,
-                    },
-                  ]
-                : styles.stepStatus
-            }
-          >
-            {getOrderStatusTitle1(item.status)}
-          </Text>
-          <Text
-            style={
-              index == 0
-                ? [
-                    styles.stepDate,
-                    {
-                      color: textColor,
-                    },
-                  ]
-                : styles.stepDate
-            }
-          >
-            {convertDate(item.timestamp)}
-          </Text>
-        </View>
-      </View>
+      <StepItem
+        timestamp={item?.timestamp}
+        status1={item?.status}
+        index={index}
+        trackingDataLength={trackingDataLength}
+      />
     );
   };
 
   return (
     <View style={styles.container}>
-      <FlatList
-        scrollEnabled={false}
-        data={trackingData}
-        renderItem={renderItem}
-        keyExtractor={(item, index) => index.toString()}
-        contentContainerStyle={{ marginTop: 20 }}
-      />
+      {trackingData?.map((item, index) => {
+        const trackingDataLength = trackingData?.length || 0;
+
+        return (
+          <StepItem
+            key={item?.timestamp + index}
+            timestamp={item?.timestamp}
+            status1={item?.status}
+            index={index}
+            trackingDataLength={trackingDataLength}
+          />
+        );
+      })}
+      {/* <ScrollView horizontal style={{ flex: 1 }}>
+        <FlatList
+          nestedScrollEnabled
+          data={trackingData}
+          renderItem={renderItem}
+          keyExtractor={(item, index) => index.toString()}
+          contentContainerStyle={{ marginTop: 20 }}
+        />
+      </ScrollView> */}
     </View>
   );
 };
@@ -215,4 +105,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default StepOrderTracking;
+export default memo(StepOrderTracking);

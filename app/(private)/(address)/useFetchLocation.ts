@@ -8,6 +8,7 @@ const initialState = {
   area: "",
   latitude: "",
   longitude: "",
+  hasLat: false,
 };
 
 const useFetchLocation = () => {
@@ -20,10 +21,16 @@ const useFetchLocation = () => {
     area: string;
     latitude: string;
     longitude: string;
+    hasLat: boolean;
   }>(initialState);
   const [error, setError] = useState<string>("");
 
+  const reset = () => {
+    setData(initialState);
+  };
+
   const fetchLocationData = async (lat = null, long = null) => {
+    console.log("trdfgbnm,./");
     setLoading(true);
     setError("");
     setData(initialState);
@@ -31,6 +38,7 @@ const useFetchLocation = () => {
     try {
       let latitude = lat;
       let longitude = long;
+      console.log("jhgfdsdfghjkl;'", latitude, longitude);
       if (!latitude) {
         let loc = await fetchLocation();
         latitude = loc?.latitude;
@@ -46,7 +54,8 @@ const useFetchLocation = () => {
           },
           false
         )?.unwrap();
-        setData(locData?.data);
+        console.log("ytredfghjkl;/", locData);
+        setData({ ...locData?.data, hasLat: lat ? true : false });
       }
     } catch (e: any) {
       setError(e?.message || "An unexpected error occurred");
@@ -56,7 +65,7 @@ const useFetchLocation = () => {
     }
   };
 
-  return { loading, data, error, fetchLocationData };
+  return { loading, data, error, fetchLocationData, reset };
 };
 
 export default useFetchLocation;

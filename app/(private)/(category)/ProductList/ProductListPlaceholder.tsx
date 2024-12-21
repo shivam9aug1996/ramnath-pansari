@@ -35,7 +35,7 @@ const renderText = () => {
   );
 };
 
-const ProductsPlaceholder = () => {
+const ProductsPlaceholder = ({ wrapperStyle = {} }) => {
   const renderProductItem = ({
     item,
     index,
@@ -70,7 +70,7 @@ const ProductsPlaceholder = () => {
       data={productPlaceholderData}
       keyExtractor={(item) => item._id}
       renderItem={renderProductItem}
-      style={styles.flatList}
+      style={[styles.flatList, wrapperStyle]}
     />
   );
 };

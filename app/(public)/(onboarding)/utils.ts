@@ -1,24 +1,24 @@
 import { OnboardingSlide } from "@/types/global";
-
+console.log("hi7654567890-");
 export const onboardingSlides: OnboardingSlide[] = [
   {
     key: 1,
-    title: "Fresh groceries to your doorstep!",
-    text: "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore.",
+    title: "Fresh Essentials, Faster!",
+    text: "Get top-quality groceries delivered to your doorstep, fresh and hassle-free.",
     image: require("../../../assets/images/Image-Header1.png"),
     backgroundColor: "#ffffff",
   },
   {
     key: 2,
-    title: "Shop your daily necessary!",
-    text: "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore.",
+    title: "Shop Anywhere, Anytime",
+    text: "Convenience at your fingertips—order your groceries directly from your phone.",
     image: require("../../../assets/images/Image-Header2.png"),
     backgroundColor: "#ffffff",
   },
   {
     key: 3,
-    title: "Fast Shipment to your home!",
-    text: "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore.",
+    title: "Delivered in Under 30 Minutes",
+    text: "Your favorite grocery items, delivered lightning fast—always on time.",
     image: require("../../../assets/images/Image-Header3.png"),
     backgroundColor: "#ffffff",
   },

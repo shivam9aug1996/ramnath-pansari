@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View, Alert } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  View,
+  Alert,
+  FlatList,
+} from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSelector } from "react-redux";
 import { useFetchProductsBySearchQuery } from "@/redux/features/searchSlice";
@@ -110,12 +117,13 @@ const Result = () => {
           <Text style={styles.errorText}>Error loading data</Text>
         ) : (
           <View style={styles.container}>
-            <FlashList
+            <FlatList
+              //disableAutoLayout
               data={data?.results}
               extraData={cartData}
               renderItem={renderProductItem}
               keyExtractor={(item, index) => item?._id || index.toString()}
-              estimatedItemSize={277}
+              // estimatedItemSize={277}
               numColumns={2}
               showsVerticalScrollIndicator={false}
               onEndReached={handleEndReached}
@@ -124,6 +132,8 @@ const Result = () => {
               contentContainerStyle={styles.listContent}
               ListHeaderComponent={header}
               ListEmptyComponent={listEmptyComponent}
+              ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
+              ListFooterComponentStyle={{ paddingTop: 15 }}
             />
           </View>
         )}
@@ -155,6 +165,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingTop: 15,
-    paddingBottom: 50,
+    // paddingBottom: 50,
   },
 });

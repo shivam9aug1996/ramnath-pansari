@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { useLocalSearchParams } from "expo-router";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import { useFetchOrderDetailQuery } from "@/redux/features/orderSlice";
@@ -11,7 +11,27 @@ import { convertDate, getOrderStatusTitle1 } from "../(order)/utils";
 import { OrderStatus } from "../(order)/mock";
 import OrderedItems from "./OrderedItems";
 import OrderDetailPlaceholder from "./OrderDetailPlaceholder";
+import CustomSuspense from "@/components/CustomSuspense";
+import AddressItem from "./AddressItem";
+// const AddressItem = lazy(() => import("./AddressItem"));
+// const OrderedItems = lazy(() => import("./OrderedItems"));
+// const StepOrderTracking = lazy(() => import("./StepOrderTracking"));
+import ContentLoader, { Rect } from "react-content-loader/native";
+import { formatNumber } from "@/utils/utils";
 
+const renderText = () => {
+  return (
+    <ContentLoader
+      speed={1}
+      width={"100%"}
+      height={13}
+      backgroundColor="#f3f3f3"
+      foregroundColor="#e3e3e3"
+    >
+      <Rect width="100%" y={0} rx={5} ry={5} height="13" />
+    </ContentLoader>
+  );
+};
 const OrderDetail = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
@@ -28,7 +48,7 @@ const OrderDetail = () => {
 
   console.log("uytrfghjkl", trackingData);
 
-  const amountPaid = `₹ ${data?.orderData?.amountPaid}`;
+  const amountPaid = `₹ ${formatNumber(data?.orderData?.amountPaid)}`;
   const orderStatus = data?.orderData?.orderStatus;
   const tData = data?.orderData?.transactionData;
   let orderHistory = data?.orderData?.orderHistory;
@@ -50,69 +70,88 @@ const OrderDetail = () => {
       : "#EBF4F1";
   return (
     <ScreenSafeWrapper showCartIcon>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {isFetching ? (
-          <OrderDetailPlaceholder />
-        ) : (
-          <>
-            <View style={{ flexDirection: "column" }}>
-              <Text style={styles.heading}>Order Detail</Text>
-              <View style={styles.detailsContainer}>
-                <DetailItem
-                  label="Status"
-                  value={orderStatus}
-                  // backgroundColor={backgroundColor}
-                  backgroundColor={backgroundColor}
-                  textColor={Colors.light.darkGrey}
-                />
-                <DetailItem
-                  label="Purchase Date"
-                  value={convertDate(orderStatusData?.timestamp)}
-                  backgroundColor="#F4F4F4"
-                  textColor={Colors.light.mediumGrey}
-                  fontFamily="Montserrat_500Medium"
-                />
+      <CustomSuspense>
+        <View style={{ marginBottom: 20 }}></View>
+        <ScrollView
+          //nestedScrollEnabled={false}
+          showsVerticalScrollIndicator={false}
+        >
+          {isFetching ? (
+            <OrderDetailPlaceholder />
+          ) : (
+            <>
+              <View style={{ flexDirection: "column" }}>
+                <Text style={[styles.heading, { marginTop: 0 }]}>
+                  Order Detail
+                </Text>
+                <View style={styles.detailsContainer}>
+                  <DetailItem
+                    label="Status"
+                    value={orderStatus}
+                    // backgroundColor={backgroundColor}
+                    backgroundColor={backgroundColor}
+                    textColor={Colors.light.darkGrey}
+                  />
+                  <DetailItem
+                    label="Purchase Date"
+                    value={convertDate(orderStatusData?.timestamp)}
+                    backgroundColor="#F4F4F4"
+                    textColor={Colors.light.mediumGrey}
+                    fontFamily="Montserrat_500Medium"
+                  />
+                </View>
+                <View style={[styles.detailsContainer, { marginTop: 10 }]}>
+                  <DetailItem
+                    label="Order ID"
+                    value={data?.orderData?.orderId}
+                    backgroundColor="#F4F4F4"
+                    textColor={Colors.light.mediumGrey}
+                    fontFamily="Montserrat_500Medium"
+                  />
+                  <View style={{ flex: 1 }}></View>
+                </View>
               </View>
-              <View style={[styles.detailsContainer, { marginTop: 10 }]}>
-                <DetailItem
-                  label="Order ID"
-                  value={data?.orderData?.orderId}
-                  backgroundColor="#F4F4F4"
-                  textColor={Colors.light.mediumGrey}
-                  fontFamily="Montserrat_500Medium"
-                />
-                <View style={{ flex: 1 }}></View>
+              <View style={{ flexDirection: "column" }}>
+                <Text style={[styles.heading, { marginTop: 35 }]}>
+                  Payment Detail
+                </Text>
+                <View style={styles.detailsContainer}>
+                  <DetailItem
+                    label="Amount"
+                    value={amountPaid}
+                    backgroundColor="#F4F4F4"
+                    textColor={Colors.light.mediumGrey}
+                    fontFamily="Montserrat_500Medium"
+                  />
+                  <DetailItem
+                    label="Payment Mode"
+                    value={tData?.method}
+                    backgroundColor="#F4F4F4"
+                    textColor={Colors.light.mediumGrey}
+                  />
+                </View>
               </View>
-            </View>
-            <View style={{ flexDirection: "column" }}>
               <Text style={[styles.heading, { marginTop: 35 }]}>
-                Payment Detail
+                Address Detail
               </Text>
-              <View style={styles.detailsContainer}>
-                <DetailItem
-                  label="Amount"
-                  value={amountPaid}
-                  backgroundColor="#F4F4F4"
-                  textColor={Colors.light.mediumGrey}
-                  fontFamily="Montserrat_500Medium"
-                />
-                <DetailItem
-                  label="Payment Mode"
-                  value={tData?.method}
-                  backgroundColor="#F4F4F4"
-                  textColor={Colors.light.mediumGrey}
-                />
-              </View>
-            </View>
 
-            <Text style={[styles.heading, { marginTop: 35 }]}>
-              Tracking Detail
-            </Text>
-            <StepOrderTracking trackingData={trackingData} />
-            <OrderedItems itemsOrdered={itemsOrdered} />
-          </>
-        )}
-      </ScrollView>
+              <AddressItem addressData={data?.orderData?.addressData} />
+
+              <Text
+                style={[styles.heading, { marginTop: 35, marginBottom: 20 }]}
+              >
+                Tracking Detail
+              </Text>
+              <CustomSuspense fallback={null}>
+                <StepOrderTracking trackingData={trackingData} />
+              </CustomSuspense>
+              <CustomSuspense fallback={null}>
+                <OrderedItems itemsOrdered={itemsOrdered} />
+              </CustomSuspense>
+            </>
+          )}
+        </ScrollView>
+      </CustomSuspense>
     </ScreenSafeWrapper>
   );
 };

@@ -16,6 +16,7 @@ import {
 import { Entypo } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
 import RecentSearchPlaceholder from "./RecentSearchPlaceholder";
+import { truncateText } from "@/utils/utils";
 
 interface RecentSearchProps {
   onPress: (query: string) => void;
@@ -27,7 +28,6 @@ const RecentSearch: React.FC<RecentSearchProps> = ({ onPress }) => {
     userId,
   });
   const [deleteRecentSearch] = useDeleteRecentSearchMutation();
-
   // Sort recent searches by timestamp
   const sortedData = data
     ? [...data].sort(
@@ -54,19 +54,18 @@ const RecentSearch: React.FC<RecentSearchProps> = ({ onPress }) => {
   // Components
   const renderItem = useCallback(
     ({ item, index }: { item: any; index: number }) => (
-      <TouchableOpacity
-        key={item?._id || index}
-        style={styles.item}
-        onPress={() => handlePress(item.query)}
-      >
-        <View style={styles.itemContent}>
+      <View key={item?._id || index} style={styles.item}>
+        <TouchableOpacity
+          onPress={() => handlePress(item.query)}
+          style={styles.itemContent}
+        >
           <Entypo
             name="back-in-time"
             size={20}
             color={Colors.light.mediumGrey}
           />
-          <Text style={styles.itemText}>{item.query}</Text>
-        </View>
+          <Text style={styles.itemText}>{truncateText(item.query, 35)}</Text>
+        </TouchableOpacity>
         <Entypo
           name="cross"
           size={20}
@@ -74,7 +73,7 @@ const RecentSearch: React.FC<RecentSearchProps> = ({ onPress }) => {
           style={styles.deleteIcon}
           onPress={() => handleDelete(item._id)}
         />
-      </TouchableOpacity>
+      </View>
     ),
     [handlePress, handleDelete]
   );
@@ -145,10 +144,12 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderRadius: 18,
     paddingVertical: 15,
+    flex: 1,
   },
   itemContent: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
   },
   itemText: {
     marginHorizontal: 16,

@@ -43,7 +43,7 @@ export const addressApi = createApi({
         method: "GET",
         params: data,
       }),
-      //keepUnusedDataFor: 0,
+      keepUnusedDataFor: 3600,
       transformResponse: (response: any[]) => {
         // Sort the addresses by timestamp, latest first
         return response?.sort(

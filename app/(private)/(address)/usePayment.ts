@@ -2,16 +2,19 @@ import { StyleSheet } from "react-native";
 import { useState } from "react";
 import {
   useCreatePreOrderMutation,
+  usePlaceCodOrderMutation,
   useVerifyPreOrderMutation,
 } from "@/redux/features/orderSlice";
 import { RootState } from "@/types/global";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Colors } from "@/constants/Colors";
 import {
+  setOrderSuccessView,
   useClearCartMutation,
   useLazyFetchCartQuery,
 } from "@/redux/features/cartSlice";
 import { router } from "expo-router";
+import { Toast } from "toastify-react-native";
 
 interface PreOrderResponse {
   data: {
@@ -37,7 +40,10 @@ interface RazorpayOptions {
   };
 }
 
-const isLive = false;
+const isLive =
+  !process.env.NODE_ENV || process.env.NODE_ENV === "development"
+    ? false
+    : true;
 
 // Separate function to create Razorpay options
 const getRazorpayOptions = (
@@ -51,7 +57,7 @@ const getRazorpayOptions = (
     key: isLive
       ? process.env.EXPO_PUBLIC_RAZORPAY_KEY_LIVE!
       : process.env.EXPO_PUBLIC_RAZORPAY_KEY!,
-    amount: amount,
+    amount: isLive ? 2 : amount,
     name: "Ramnath Kirana",
     order_id: orderId,
     prefill: {
@@ -64,6 +70,7 @@ const getRazorpayOptions = (
 };
 
 const usePayment = () => {
+  const dispatch = useDispatch();
   console.log("iuytrdfgh", isLive);
   const userInfo = useSelector((state: RootState) => state.auth?.userData);
   const userId = userInfo?._id;
@@ -83,6 +90,10 @@ const usePayment = () => {
     { isLoading: isCreatingOrder, error: createOrderError },
   ] = useCreatePreOrderMutation();
   const [
+    placeCodOrder,
+    { isLoading: isCreatingCodOrder, error: createCodOrderError },
+  ] = usePlaceCodOrderMutation();
+  const [
     verifyPreOrder,
     { isLoading: isVerifyingOrder, error: verifyOrderError },
   ] = useVerifyPreOrderMutation();
@@ -94,7 +105,7 @@ const usePayment = () => {
       setIsPaymentProcessing(true);
 
       // console.log("gfhjkl;", data);
-
+      amount = isLive ? 2 : amount;
       const res: PreOrderResponse = await createPreOrder({
         isLive,
         amount,
@@ -111,7 +122,7 @@ const usePayment = () => {
 
       RazorpayCheckout.open(options)
         .then(async (data) => {
-          setIsRazorpayOpened(true);
+          dispatch(setOrderSuccessView(true));
           const cartData = await fetchCartData({ userId }, true)?.unwrap();
           const verifyResponse = await verifyPreOrder({
             ...data,
@@ -128,37 +139,76 @@ const usePayment = () => {
               params: { userId },
             }).unwrap();
             console.log("payment verified");
-            router.dismissAll();
-            //router.navigate("/(home)/home");
             if (verifyResponse?.orderId) {
-              router.navigate(`/(orderDetail)/${verifyResponse?.orderId}`);
+              router.dismissAll();
+              setTimeout(() => {
+                router.push(`/(orderDetail)/${verifyResponse?.orderId}`);
+              }, 700);
+              //router.navigate("/home");
+              //router.dismissTo("/(address)/addressList");
+              //router.push(`/(orderDetail)/${verifyResponse?.orderId}`);
             } else {
-              router.navigate("/(home)/home");
+              router.dismissAll();
             }
 
             // create order flow
           } else {
             console.log("payment not  verified");
+            Toast.error("payment not  verified");
             // create order with hold status
           }
         })
         .catch((error) => {
           console.log("Payment failed:", error);
+          Toast.error(error?.description || "Payment failed");
         })
         .finally(() => {
           setIsPaymentProcessing(false);
           setIsRazorpayOpened(false);
         });
     } catch (error) {
-      // console.error("Order creation failed:", error);
+      console.error("Order creation failed:", error);
       setIsPaymentProcessing(false);
+    }
+  };
+
+  const handleCod = async (amount: number, addressData: any) => {
+    try {
+      setIsPaymentProcessing(true);
+      //setIsRazorpayOpened(true);
+
+      const cartData = await fetchCartData({ userId }, true)?.unwrap();
+      const verifyResponse = await placeCodOrder({
+        isLive,
+        cartData,
+        addressData,
+        userId,
+        amount,
+      }).unwrap();
+
+      await clearCart({
+        body: {},
+        params: { userId },
+      }).unwrap();
+      dispatch(setOrderSuccessView(true));
+      router.dismissAll();
+      setTimeout(() => {
+        router.push(`/(orderDetail)/${verifyResponse?.orderId}`);
+      }, 700);
+    } catch (error) {
+    } finally {
+      setIsPaymentProcessing(false);
+      // setTimeout(() => {
+      //   dispatch(setOrderSuccessView(false));
+      // }, 2500);
     }
   };
 
   return {
     handleOnClick,
-    isCreatingOrder,
-    createOrderError,
+    handleCod,
+    isCreatingOrder: isCreatingOrder || isCreatingCodOrder,
+    createOrderError: createOrderError || createCodOrderError,
     isVerifyingOrder,
     verifyOrderError,
     isPaymentProcessing,

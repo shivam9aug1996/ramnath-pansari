@@ -1,22 +1,31 @@
-import React, { memo } from "react";
+import React, { lazy, memo, Suspense } from "react";
 import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
-import { truncateText } from "@/utils/utils";
-import CartButton from "./CartButton";
+import { formatNumber, truncateText } from "@/utils/utils";
+// import CartButton from "./CartButton";
 import { ProductItemProps } from "@/types/global";
 
 import { staticImage } from "../CategoryList/utils";
 
 import { Image } from "expo-image";
 import { router } from "expo-router";
+const CartButton = lazy(() => import("./CartButton"));
 
-const ProductItem = ({ item, index, cartItem }: ProductItemProps) => {
+const ProductItem = ({
+  item,
+  index,
+  cartItem,
+  isCartLoading,
+  isProductsFetching,
+  paginationState,
+}: ProductItemProps) => {
   const nDiscountP = ((item.price - item.discountedPrice) / item.price) * 100;
-  const discountP = nDiscountP?.toFixed(2);
+  const discountP = Math.round(nDiscountP);
   if (cartItem) {
-    console.log("redfghjk", cartItem);
+    console.log("product item------>");
   }
+  console.log("iuyfghjkjhgfghjkl", cartItem);
 
   return (
     <View
@@ -25,6 +34,9 @@ const ProductItem = ({ item, index, cartItem }: ProductItemProps) => {
         {
           marginRight: index % 2 === 0 ? 8.5 : 0,
           marginLeft: index % 2 === 0 ? 0 : 8.5,
+          opacity: isProductsFetching && paginationState?.page == 1 ? 0.6 : 1,
+          pointerEvents:
+            isProductsFetching && paginationState?.page == 1 ? "none" : "auto",
         },
       ]}
     >
@@ -50,7 +62,7 @@ const ProductItem = ({ item, index, cartItem }: ProductItemProps) => {
               fontFamily: "Montserrat_700Bold",
             }}
           >
-            {`${discountP} %`}
+            {`${discountP}%`}
           </Text>
         </View>
       ) : null}
@@ -62,41 +74,56 @@ const ProductItem = ({ item, index, cartItem }: ProductItemProps) => {
         }}
         style={{ padding: 17 }}
       >
-        <View>
-          <Image
-            source={{
-              uri: item?.image || staticImage,
+        <Image
+          source={{
+            uri: item?.image || staticImage,
+          }}
+          style={styles.image}
+          contentFit={"contain"}
+          cachePolicy={"disk"}
+        />
+        <>
+          <ThemedText style={styles.productName} type="title">
+            {item.name}
+          </ThemedText>
+
+          <ThemedText
+            style={[
+              styles.productPrice,
+              {
+                textDecorationLine: "line-through",
+                textDecorationColor: Colors.light.darkGrey,
+                fontSize: 12,
+                color: Colors.light.darkGrey,
+              },
+            ]}
+            type="title"
+          >
+            {`MRP ₹ ${formatNumber(item.price)}`}
+          </ThemedText>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: 8,
             }}
-            style={styles.image}
-            contentFit={"contain"}
-            cachePolicy={"disk"}
-          />
-          <>
-            <ThemedText style={styles.productName} type="title">
-              {truncateText(item.name, 20)}
-            </ThemedText>
-            <ThemedText
-              style={[
-                styles.productPrice,
-                {
-                  textDecorationLine: "line-through",
-                  textDecorationColor: Colors.light.darkGrey,
-                  fontSize: 12,
-                  color: Colors.light.darkGrey,
-                },
-              ]}
-              type="title"
-            >
-              {`MRP ₹ ${item.price}`}
-            </ThemedText>
+          >
             <ThemedText style={styles.productPrice} type="title">
-              {`₹ ${item.discountedPrice}`}
+              {`₹ ${formatNumber(item.discountedPrice)}`}
             </ThemedText>
-          </>
-        </View>
-        <View style={{ marginTop: 35 }}></View>
+            <Text style={styles.size}>{item?.size}</Text>
+          </View>
+        </>
       </TouchableOpacity>
-      <CartButton value={cartItem?.quantity || 0} item={item} />
+
+      <View style={{ marginTop: 35 }}></View>
+
+      {isCartLoading ? null : (
+        <Suspense fallback={null}>
+          <CartButton value={cartItem?.quantity || 0} item={item} />
+        </Suspense>
+      )}
     </View>
   );
 };
@@ -108,8 +135,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F4F3",
     borderRadius: 28,
     flex: 1,
-    marginBottom: 20,
+    // marginBottom: 20,
     position: "relative",
+    maxWidth: "50%",
+    //marginBottom: 5,
 
     // minWidth: "100%",
   },
@@ -119,8 +148,8 @@ const styles = StyleSheet.create({
     minHeight: 100,
   },
   productName: {
-    fontSize: 14,
-    maxWidth: "80%",
+    fontSize: 11,
+    maxWidth: "100%",
     minHeight: 40,
     maxHeight: 40,
   },
@@ -128,6 +157,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Montserrat_600SemiBold",
     color: Colors.light.lightGreen,
-    marginTop: 8,
+  },
+  size: {
+    fontSize: 10,
+    fontFamily: "Montserrat_600SemiBold",
+    color: Colors.light.darkGrey,
+    letterSpacing: 0.8,
+    // position: "absolute",
+    // bottom: 0,
+    // right: 0,
   },
 });

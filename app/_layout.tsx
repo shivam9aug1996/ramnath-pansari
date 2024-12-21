@@ -1,4 +1,4 @@
-import { router, Slot, useRouter } from "expo-router";
+import { router, Slot } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { lazy, Suspense, useEffect, useState } from "react";
 import "react-native-reanimated";
@@ -24,31 +24,63 @@ import store from "@/redux/store";
 import { loadAuthData } from "@/redux/features/authSlice";
 import { RootState } from "@/types/global";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Toast from "@/components/Toast";
-import { StatusBar } from "expo-status-bar";
-import NetworkStatusComponent from "@/components/NetworkStatusComponent";
-import LottieMenWalking from "./(private)/(address)/LottieMenWalking";
+import { setStatusBarBackgroundColor, StatusBar } from "expo-status-bar";
+// import NetworkStatusComponent from "@/components/NetworkStatusComponent";
+import Push1 from "@/components/Push1";
+
 // const Toast = lazy(() => import("../components/Toast"));
-// import * as TaskManager from "expo-task-manager";
-// import * as Notifications from "expo-notifications";
+import * as TaskManager from "expo-task-manager";
+import * as Notifications from "expo-notifications";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import AppStateExample from "@/components/AppStateExample";
+import { useNotificationObserver } from "@/hooks/useNotificationObserver";
+// import OrderSuccess from "@/components/OrderSuccess";
+// import LottieMenWalking from "./(private)/(address)/LottieMenWalking";
+const OrderSuccess = lazy(() => import("@/components/OrderSuccess"));
+const LottieMenWalking = lazy(
+  () => import("./(private)/(address)/LottieMenWalking")
+);
 
-// const BACKGROUND_NOTIFICATION_TASK = "BACKGROUND_NOTIFICATION_TASK";
+const BACKGROUND_NOTIFICATION_TASK = "BACKGROUND_NOTIFICATION_TASK";
 
-// // Define background task
-// TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, ({ data, error }) => {
-//   if (error) {
-//     console.error("Error in background task", error);
-//     return;
-//   }
-//   console.log("Background Notification Data:", data);
-//   // Perform actions based on the notification data
-// });
+// Define background task
+TaskManager.defineTask(
+  BACKGROUND_NOTIFICATION_TASK,
+  async ({ data, error }) => {
+    if (error) {
+      console.error("Error in background task", error);
+      return;
+    }
+    // let data = data?.data?.body ? JSON.parse(data?.data?.body) : null;
+    // if (data) {
+    //   console.log("ready to add in local storage", data);
+    // }
+    let notData = null;
+    console.log("before background parse", data);
+    if (!data?.data?.title) {
+      if (data?.data?.body) {
+        notData = JSON.parse(data?.data?.body);
 
-// Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
+        console.log("Background Notification Data:", notData);
+        const existingData = JSON.parse(
+          (await AsyncStorage.getItem("notificationData")) || "[]"
+        );
+        const updatedData = [...existingData, notData];
+        await AsyncStorage.setItem(
+          "notificationData",
+          JSON.stringify(updatedData)
+        );
+      }
+    }
 
-SplashScreen.hideAsync();
-const queryClient = new QueryClient();
+    // Perform actions based on the notification data
+  }
+);
+
+Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
+
+SplashScreen.preventAutoHideAsync();
 
 const useMockFonts = (data) => {
   const [loaded, setLoaded] = useState(false);
@@ -67,6 +99,8 @@ const useMockFonts = (data) => {
 };
 
 export function InitialLayout() {
+  useNotificationObserver();
+
   const loadAuthDataState = useSelector(
     (state: RootState) => state?.auth?.loadAuthData
   );
@@ -126,37 +160,57 @@ export function InitialLayout() {
       } else if (isLoggedIn == 2) {
         router.replace("/(auth)/name");
       } else if (isLoggedIn == 3) {
-        router.replace("/(private)/(tabs)/(home)/home");
+        router.replace("/(private)/(tabs)/home");
       }
     }
   }, [loaded, isLoggedIn, error]);
 
   useEffect(() => {
+    let timeoutId; // Declare a variable to store the timeout ID
+
     if (clearAuthData?.isSuccess || clearAuthData?.isError) {
       if (!token) {
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           router.navigate("/(onboarding)/onboarding");
         }, 500);
       }
     }
+
+    // Cleanup function to clear the timeout
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [clearAuthData, token]);
 
   return <Slot />;
 }
 
 const RootLayout = () => {
+  // useEffect(() => {
+  //   setStatusBarBackgroundColor("red", true);
+  // }, []);
+  console.log("hgffvgbhj");
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Provider store={store}>
-        <QueryClientProvider client={queryClient}>
-          <StatusBar style="inverted" />
-          {/* <Suspense> */}
-          <Toast />
-          {/* <NetworkStatusComponent /> */}
-          {/* </Suspense> */}
+        <Push1 />
+        {/* <QueryClientProvider client={queryClient}> */}
+        <StatusBar style="inverted" />
+        {/* <Suspense> */}
+        <Toast />
+        <AppStateExample />
+        {/* <NetworkStatusComponent /> */}
+        {/* </Suspense> */}
+        <Suspense fallback={null}>
           <LottieMenWalking />
-          <InitialLayout />
-        </QueryClientProvider>
+        </Suspense>
+        <Suspense fallback={null}>
+          <OrderSuccess />
+        </Suspense>
+        <InitialLayout />
+        {/* </QueryClientProvider> */}
       </Provider>
     </GestureHandlerRootView>
   );

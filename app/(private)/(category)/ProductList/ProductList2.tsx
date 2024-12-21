@@ -98,6 +98,7 @@ const ProductList2 = ({
 
   return (
     <FlashList
+      disableAutoLayout
       extraData={cartData}
       ref={flatListRef}
       showsVerticalScrollIndicator={false}

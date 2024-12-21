@@ -1,4 +1,11 @@
-import React, { memo, useEffect, useRef, useState } from "react";
+import React, {
+  lazy,
+  memo,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { View } from "react-native";
 import { useDispatch } from "react-redux";
 import { setSelectedSubCategoryId } from "@/redux/features/productSlice";
@@ -9,7 +16,9 @@ import SubCategorySelectorPlaceholder from "./SubCategorySelectorPlaceholder";
 import CategorySelectorPlaceholder from "./CategorySelectorPlaceholder";
 import { scrollToIndex, scrollToTop } from "../ProductList/utils";
 import { getSubCategoryIndex } from "./utils";
-
+import CustomSuspense from "@/components/CustomSuspense";
+// const CategorySelector = lazy(() => import("./CategorySelector"));
+// const SubCategorySelector = lazy(() => import("./SubCategorySelector"));
 const CategoryList = ({
   categories,
   isCategoryFetching,
@@ -32,7 +41,7 @@ const CategoryList = ({
       // clearTimeout(subCatTimerRef.current);
     };
   });
-
+  for (let i = 0; i < 10000; i++) {}
   useEffect(() => {
     if (categories?.length > 0) {
       setSelectedCategory(categories[0]);
@@ -80,21 +89,25 @@ const CategoryList = ({
       {isCategoryFetching ? (
         <CategorySelectorPlaceholder />
       ) : (
-        <CategorySelector
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
-        />
+        <CustomSuspense fallback={<CategorySelectorPlaceholder />}>
+          <CategorySelector
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+          />
+        </CustomSuspense>
       )}
       {isCategoryFetching ? (
         <SubCategorySelectorPlaceholder />
       ) : (
-        <SubCategorySelector
-          subCategories={subCategories}
-          selectedSubCategory={selectedSubCategory}
-          onSelectSubCategory={setSelectedSubCategory}
-          subCatFlatListRef={subCatFlatListRef}
-        />
+        <CustomSuspense fallback={<SubCategorySelectorPlaceholder />}>
+          <SubCategorySelector
+            subCategories={subCategories}
+            selectedSubCategory={selectedSubCategory}
+            onSelectSubCategory={setSelectedSubCategory}
+            subCatFlatListRef={subCatFlatListRef}
+          />
+        </CustomSuspense>
       )}
     </View>
   );

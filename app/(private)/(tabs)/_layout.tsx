@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import { Colors } from "@/constants/Colors";
@@ -31,70 +31,56 @@ export default function TabLayout() {
   const cartItems = cartData?.cart?.items?.length || 0;
 
   return (
-    <>
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarStyle: { height: 80, paddingBottom: 25 },
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          height: 80,
+          paddingBottom: 25,
+        },
+        tabBarHideOnKeyboard: true,
+        tabBarButton: (props) => (
+          <TouchableOpacity {...props} activeOpacity={1} />
+        ),
+      }}
+      sceneContainerStyle={{ height: 70 }}
+    >
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: "Home",
+          tabBarIcon: ({ color, focused }) => {
+            return focused ? (
+              <ThemedView style={styles.outerCircle}>
+                <ThemedView style={styles.innerCircle}>
+                  <TabBarIcon name={"home"} color={Colors.light.white} />
+                </ThemedView>
+              </ThemedView>
+            ) : (
+              <TabBarIcon name={"home"} color={Colors.light.mediumGrey} />
+            );
+          },
+          tabBarLabel: ({ focused }) => {
+            return focused ? (
+              <ThemedText
+                lightColor="#777777"
+                style={{ ...fonts.defaultSemiBold, fontSize: 14 }}
+              >
+                {"Home"}
+              </ThemedText>
+            ) : null;
+          },
         }}
-        sceneContainerStyle={{ height: 70 }}
-      >
-        <Tabs.Screen
-          name="(home)"
-          options={{
-            title: "Home",
-            tabBarIcon: ({ color, focused }) => {
-              return focused ? (
-                <ThemedView style={styles.outerCircle}>
-                  <ThemedView style={styles.innerCircle}>
-                    <TabBarIcon name={"home"} color={Colors.light.white} />
-                  </ThemedView>
-                </ThemedView>
-              ) : (
-                <TabBarIcon name={"home"} color={Colors.light.mediumGrey} />
-              );
-            },
-            tabBarLabel: ({ focused }) => {
-              return focused ? (
-                <ThemedText
-                  lightColor="#777777"
-                  style={{ ...fonts.defaultSemiBold, fontSize: 14 }}
-                >
-                  {"Home"}
-                </ThemedText>
-              ) : null;
-            },
-          }}
-        />
-        <Tabs.Screen
-          name="cart"
-          options={{
-            title: "Cart",
-            tabBarIcon: ({ color, focused }) => {
-              return focused ? (
-                <ThemedView style={styles.outerCircle}>
-                  <ThemedView style={styles.innerCircle}>
-                    {cartItems > 0 && (
-                      <View
-                        style={{
-                          width: 6,
-                          height: 6,
-                          backgroundColor: "#EC534A",
-                          borderRadius: 3,
-                          position: "absolute",
-                          right: 18,
-                          top: 18,
-                        }}
-                      />
-                    )}
-                    <TabBarIcon
-                      name={"bag-handle"}
-                      color={Colors.light.white}
-                    />
-                  </ThemedView>
-                </ThemedView>
-              ) : (
-                <View>
+      />
+      <Tabs.Screen
+        name="cart"
+        options={{
+          title: "Cart",
+
+          tabBarIcon: ({ color, focused }) => {
+            return focused ? (
+              <ThemedView style={styles.outerCircle}>
+                <ThemedView style={styles.innerCircle}>
                   {cartItems > 0 && (
                     <View
                       style={{
@@ -103,59 +89,76 @@ export default function TabLayout() {
                         backgroundColor: "#EC534A",
                         borderRadius: 3,
                         position: "absolute",
-                        top: 0,
-                        right: 0,
+                        right: 18,
+                        top: 18,
                       }}
                     />
                   )}
-                  <TabBarIcon
-                    name={"bag-handle"}
-                    color={Colors.light.mediumGrey}
-                  />
-                </View>
-              );
-            },
-            tabBarLabel: ({ focused }) => {
-              return focused ? (
-                <ThemedText
-                  lightColor="#777777"
-                  style={{ ...fonts.defaultSemiBold, fontSize: 14 }}
-                >
-                  {"Bag"}
-                </ThemedText>
-              ) : null;
-            },
-          }}
-        />
-        <Tabs.Screen
-          name="account"
-          options={{
-            title: "Account",
-            tabBarIcon: ({ color, focused }) => {
-              return focused ? (
-                <ThemedView style={styles.outerCircle}>
-                  <ThemedView style={styles.innerCircle}>
-                    <TabBarIcon name={"person"} color={Colors.light.white} />
-                  </ThemedView>
+                  <TabBarIcon name={"bag-handle"} color={Colors.light.white} />
                 </ThemedView>
-              ) : (
-                <TabBarIcon name={"person"} color={Colors.light.mediumGrey} />
-              );
-            },
-            tabBarLabel: ({ focused }) => {
-              return focused ? (
-                <ThemedText
-                  lightColor="#777777"
-                  style={{ ...fonts.defaultSemiBold, fontSize: 14 }}
-                >
-                  {"Profile"}
-                </ThemedText>
-              ) : null;
-            },
-          }}
-        />
-      </Tabs>
-    </>
+              </ThemedView>
+            ) : (
+              <View>
+                {cartItems > 0 && (
+                  <View
+                    style={{
+                      width: 6,
+                      height: 6,
+                      backgroundColor: "#EC534A",
+                      borderRadius: 3,
+                      position: "absolute",
+                      top: 0,
+                      right: 0,
+                    }}
+                  />
+                )}
+                <TabBarIcon
+                  name={"bag-handle"}
+                  color={Colors.light.mediumGrey}
+                />
+              </View>
+            );
+          },
+          tabBarLabel: ({ focused }) => {
+            return focused ? (
+              <ThemedText
+                lightColor="#777777"
+                style={{ ...fonts.defaultSemiBold, fontSize: 14 }}
+              >
+                {"Bag"}
+              </ThemedText>
+            ) : null;
+          },
+        }}
+      />
+      <Tabs.Screen
+        name="account"
+        options={{
+          title: "Account",
+          tabBarIcon: ({ color, focused }) => {
+            return focused ? (
+              <ThemedView style={styles.outerCircle}>
+                <ThemedView style={styles.innerCircle}>
+                  <TabBarIcon name={"person"} color={Colors.light.white} />
+                </ThemedView>
+              </ThemedView>
+            ) : (
+              <TabBarIcon name={"person"} color={Colors.light.mediumGrey} />
+            );
+          },
+          tabBarLabel: ({ focused }) => {
+            return focused ? (
+              <ThemedText
+                lightColor="#777777"
+                style={{ ...fonts.defaultSemiBold, fontSize: 14 }}
+              >
+                {"Profile"}
+              </ThemedText>
+            ) : null;
+          },
+        }}
+      />
+    </Tabs>
   );
 }
 

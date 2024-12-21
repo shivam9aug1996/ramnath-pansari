@@ -5,6 +5,9 @@ import { Image } from "expo-image";
 import { ThemedText } from "../ThemedText";
 import { useCartOperations } from "@/app/(private)/hooks/useCartOperations";
 import Animation from "./Animation";
+import { Entypo } from "@expo/vector-icons";
+import { useSelector } from "react-redux";
+import { RootState } from "@/types/global";
 
 const CartButton = ({ item, value, itemHeight }: any) => {
   const { quantity, handleAdd, handleRemove, handleClearAll } =
@@ -18,7 +21,7 @@ const CartButton = ({ item, value, itemHeight }: any) => {
         handleClearAll={handleClearAll}
       />
 
-      <View style={styles.quantityContainer}>
+      <View style={[styles.quantityContainer]}>
         <TouchableOpacity onPress={handleRemove} style={styles.quantityButton}>
           <Image
             source={require("../../assets/images/entypo_minus.png")}

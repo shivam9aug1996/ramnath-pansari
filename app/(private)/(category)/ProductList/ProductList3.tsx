@@ -9,6 +9,7 @@ import {
   Text,
   Platform,
   ActivityIndicator,
+  FlatList,
 } from "react-native";
 import { useSelector } from "react-redux";
 import NotFound from "../../(result)/NotFound";
@@ -21,16 +22,19 @@ const ProductList3 = ({
   flatListRef,
   setPaginationState,
   isProductsFetching,
+  isProductsLoading,
+  paginationState,
 }: {
   data: Product[];
   flatListRef: any;
   setPaginationState: any;
   isProductsFetching: boolean;
+  isProductsLoading: boolean;
 }) => {
   const [page, setPage] = useState(1);
 
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
-  const { data: cartData } = useFetchCartQuery(
+  const { data: cartData, isLoading: isCartLoading } = useFetchCartQuery(
     {
       userId,
     },
@@ -38,14 +42,18 @@ const ProductList3 = ({
       skip: !userId,
     }
   );
-  console.log("product list------>", cartData);
+  console.log("product list------>");
 
   const hasNextPage = data?.currentPage < data?.totalPages;
   const totalCount = data?.totalResults;
-
   const renderLoader = () => {
     //if (!hasNextPage) return null;
-    return isProductsFetching ? (
+    if (
+      isProductsLoading ||
+      (isProductsFetching && data?.products?.length == 0)
+    )
+      return;
+    return hasNextPage ? (
       <ActivityIndicator size="large" color={Colors.light.lightGreen} />
     ) : null;
   };
@@ -67,16 +75,34 @@ const ProductList3 = ({
         cartItem={cartItem}
         item={item}
         index={index}
+        isCartLoading={isCartLoading}
+        isProductsFetching={isProductsFetching}
+        paginationState={paginationState}
       />
     );
   };
 
-  const renderEmptyComponent = () => (
-    <NotFound
-      title="No Items Available"
-      subtitle={`Browse different categories for more options.`}
-    />
-  );
+  const renderEmptyComponent = () => {
+    // if (
+    //   isProductsLoading ||
+    //   (isProductsFetching && data?.products?.length == 0)
+    // )
+    //   return null;
+    return (
+      <View
+        style={{
+          opacity: isProductsFetching && paginationState?.page == 1 ? 0.6 : 1,
+          pointerEvents:
+            isProductsFetching && paginationState?.page == 1 ? "none" : "auto",
+        }}
+      >
+        <NotFound
+          title="No Items Available"
+          subtitle={`Browse different categories for more options.`}
+        />
+      </View>
+    );
+  };
 
   const fetchNextPage = () => {
     setPaginationState((prevState) => ({
@@ -86,7 +112,10 @@ const ProductList3 = ({
   };
 
   return (
-    <FlashList
+    <FlatList
+      initialNumToRender={4}
+      ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
+      //disableAutoLayout
       extraData={cartData}
       ref={flatListRef}
       showsVerticalScrollIndicator={false}
@@ -96,13 +125,14 @@ const ProductList3 = ({
       renderItem={renderProductItem}
       ListEmptyComponent={renderEmptyComponent}
       contentContainerStyle={styles.flatList}
-      estimatedItemSize={277}
+      //  estimatedItemSize={277}
       onEndReached={() => {
         if (isProductsFetching) return;
         if (hasNextPage) fetchNextPage();
       }}
       onEndReachedThreshold={0.1}
       ListFooterComponent={renderLoader}
+      ListFooterComponentStyle={{ paddingTop: 15 }}
     />
   );
 };
@@ -122,5 +152,9 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: "grey",
+  },
+  productItemContainer: {
+    flex: 1,
+    margin: 5,
   },
 });

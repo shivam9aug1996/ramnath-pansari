@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useTransition } from "react";
 import { FlatList, TouchableOpacity, View, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { truncateText } from "@/utils/utils";
@@ -13,6 +13,7 @@ const CategorySelector = ({
   selectedCategory,
   onSelectCategory,
 }: CategorySelectorProps) => {
+  const [isPending, startTransition] = useTransition();
   const renderCategory = ({
     item,
     index,
@@ -30,6 +31,9 @@ const CategorySelector = ({
       <TouchableOpacity
         style={styles.categoryContainer}
         onPress={() => {
+          // startTransition(() => {
+          //   onSelectCategory?.(item);
+          // });
           onSelectCategory?.(item);
         }}
         key={item?._id || index}

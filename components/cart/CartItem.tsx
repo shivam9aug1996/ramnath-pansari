@@ -1,4 +1,4 @@
-import React, { memo, useRef, useState } from "react";
+import React, { lazy, memo, Suspense, useRef, useState } from "react";
 import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { Image } from "expo-image";
 
@@ -7,11 +7,13 @@ import { Colors } from "@/constants/Colors";
 import { ThemedView } from "../ThemedView";
 import { CartItemProps } from "@/types/global";
 import { ThemedText } from "../ThemedText";
-import CartButton from "./CartButton";
+// import CartButton from "./CartButton";
 import { Swipeable } from "react-native-gesture-handler";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { MaterialIcons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
+import { formatNumber } from "@/utils/utils";
+const CartButton = lazy(() => import("./CartButton"));
 
 const CartItem = ({ item, order = false }: CartItemProps) => {
   const [itemHeight, setItemHeight] = useState(0);
@@ -21,7 +23,7 @@ const CartItem = ({ item, order = false }: CartItemProps) => {
     ((item?.productDetails?.price - item?.productDetails?.discountedPrice) /
       item?.productDetails?.price) *
     100;
-  const discountP = nDiscountP?.toFixed(2);
+  const discountP = Math.round(nDiscountP);
 
   return (
     <>
@@ -54,7 +56,7 @@ const CartItem = ({ item, order = false }: CartItemProps) => {
                 fontFamily: "Montserrat_700Bold",
               }}
             >
-              {`${discountP} %`}
+              {`${discountP}%`}
             </Text>
           </View>
         ) : null}
@@ -70,6 +72,8 @@ const CartItem = ({ item, order = false }: CartItemProps) => {
           <ThemedText style={styles.productName}>
             {item?.productDetails?.name}
           </ThemedText>
+          <Text style={styles.size}>{item?.productDetails?.size}</Text>
+
           <ThemedText
             style={[
               styles.unitPrice,
@@ -89,9 +93,9 @@ const CartItem = ({ item, order = false }: CartItemProps) => {
           </ThemedText>
 
           <ThemedText style={styles.totalPrice}>
-            {`₹ ${(
+            {`₹ ${formatNumber(
               item?.productDetails?.discountedPrice * item?.quantity
-            )?.toFixed(2)}`}
+            )}`}
           </ThemedText>
         </View>
         {order ? (
@@ -101,11 +105,13 @@ const CartItem = ({ item, order = false }: CartItemProps) => {
             </ThemedText>
           </View>
         ) : (
-          <CartButton
-            item={item}
-            value={item?.quantity || 0}
-            itemHeight={itemHeight}
-          />
+          <Suspense fallback={null}>
+            <CartButton
+              item={item}
+              value={item?.quantity || 0}
+              itemHeight={itemHeight}
+            />
+          </Suspense>
         )}
       </ThemedView>
       {/* </Swipeable> */}
@@ -151,6 +157,16 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: "Montserrat_600SemiBold",
     color: Colors.light.lightGreen,
+  },
+  size: {
+    fontSize: 10,
+    fontFamily: "Montserrat_600SemiBold",
+    color: Colors.light.darkGrey,
+    letterSpacing: 0.8,
+    paddingVertical: 6,
+    // position: "absolute",
+    // bottom: 0,
+    // right: 0,
   },
 });
 
