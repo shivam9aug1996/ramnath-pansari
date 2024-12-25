@@ -16,6 +16,7 @@ export const productApi = createApi({
     },
     credentials: "include",
   }),
+  tagTypes: ["Products"],
   endpoints: (builder) => ({
     fetchProducts: builder.query({
       query: (data) => ({
@@ -29,37 +30,39 @@ export const productApi = createApi({
         // Serialize by categoryId (this could avoid conflicts if categoryId changes)
         return `${endpointName}-${queryArgs.categoryId}`;
       },
-      // onQueryStarted({ page }, { dispatch, getCacheEntry, updateCachedData }) {
-      //   console.log("u76543wertyui", page);
-      //   if (page == 1) {
-      //     console.log("u76543wertyui inside", page);
+      providesTags: (result, error, { categoryId }) => {
+        console.log("iuytredsxcvbnm", categoryId);
+        return [{ type: "Products", id: categoryId }];
+      },
 
-      //     updateCachedData((draft) => {
-      //       console.log("juytfghjk", draft);
-      //       if (draft?.products?.length > 10) {
-      //         // Retain only the first 10 items
-      //         draft.products.slice(0, 10);
-      //         draft.currentPage = 1;
-      //         (draft.totalPages = 1), (draft.totalProducts = 10);
-      //         return draft;
-      //       }
-      //     });
-      //   }
-      // },
-      merge: (currentCache, newItems, { arg: { page, categoryId } }) => {
+      merge: (
+        currentCache,
+        newItems,
+        { arg: { page, categoryId, reset = false } }
+      ) => {
         console.log("765redfghjkl page", page);
         console.log("765redfghjkl categoryId", categoryId);
         console.log("765redfghjkl newItems", JSON.stringify(newItems));
         console.log("765redfghjkl currentCache", JSON.stringify(currentCache));
-        if (page === 1) {
-          console.log(
-            "kjhgew45678987654345678985456789",
-            JSON.stringify(newItems)
-          );
-          //currentCache = newItems;
+        if (reset && page == 1) {
+          currentCache = newItems;
+          let h = newItems?.products?.slice(0, 10);
+          currentCache.products = h;
+          currentCache.currentPage = 1;
+          currentCache.totalProducts = h?.length;
+          console.log("87654ewsdfghjk", JSON.stringify(currentCache));
         } else {
-          currentCache?.products?.push(...newItems?.products);
-          currentCache.currentPage = newItems?.currentPage;
+          if (page === 1) {
+            console.log(
+              "kjhgew45678987654345678985456789",
+              JSON.stringify(newItems)
+            );
+            //currentCache = newItems;
+            // currentCache = newItems;
+          } else {
+            currentCache?.products?.push(...newItems?.products);
+            currentCache.currentPage = newItems?.currentPage;
+          }
         }
       },
       forceRefetch: ({ currentArg, previousArg, state, endpointState }) => {
@@ -72,7 +75,8 @@ export const productApi = createApi({
         );
         return (
           currentArg?.categoryId !== previousArg?.categoryId ||
-          currentArg?.page !== previousArg?.page
+          currentArg?.page !== previousArg?.page ||
+          currentArg?.reset == true
         );
       },
     }),
@@ -125,6 +129,7 @@ const productSlice = createSlice({
   initialState: {
     selectedSubCategoryId: null,
     productListPosition: 0,
+    resetPagination: false,
   },
   reducers: {
     setSelectedSubCategoryId: (state, action) => {
@@ -137,12 +142,18 @@ const productSlice = createSlice({
         state.productListPosition = action?.payload;
       }
     },
+    setResetPagination: (state, action) => {
+      state.resetPagination = action?.payload;
+    },
   },
   extraReducers: (builder) => {},
 });
 
-export const { setSelectedSubCategoryId, setProductListPosition } =
-  productSlice.actions;
+export const {
+  setSelectedSubCategoryId,
+  setProductListPosition,
+  setResetPagination,
+} = productSlice.actions;
 
 export const {
   useFetchProductsQuery,

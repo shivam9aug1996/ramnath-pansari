@@ -24,6 +24,7 @@ import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import Feather from "@expo/vector-icons/Feather";
 import CustomSuspense from "@/components/CustomSuspense";
+import { showToast } from "@/utils/utils";
 const fields: any = [
   { key: "name", label: "Name", iconName: "person-outline", maxLength: 30 },
   {
@@ -111,6 +112,10 @@ const profile = () => {
   const handleSave = async () => {
     const formRes = new FormData();
     let hasChanges = false; // Flag to track if any changes were made
+    if (form?.imageSize > 1) {
+      showToast({ type: "info", text2: `Sorry this image cannot be uploaded` });
+      return;
+    }
 
     if (validateForm()) {
       // Check and append only changed values
@@ -153,11 +158,18 @@ const profile = () => {
     });
     let g = await ImagePicker.getPendingResultAsync();
     // console.log(result);
+    console.log("98765rfghjkl", result?.assets[0]?.fileSize);
+    let fileSize = result?.assets[0]?.fileSize;
+    fileSize = (fileSize / 1024 / 1024)?.toFixed(2);
+    if (fileSize > 1) {
+      showToast({ type: "info", text2: `Sorry this image cannot be uploaded` });
+    }
 
     if (!result.canceled) {
       setForm({
         ...form,
         image: result.assets[0],
+        imageSize: fileSize,
       });
       //setImage(result.assets[0].uri);
     }

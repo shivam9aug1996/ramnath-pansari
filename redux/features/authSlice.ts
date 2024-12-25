@@ -3,7 +3,6 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { baseUrl } from "../constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthData, SaveAuthDataPayload } from "@/types/global";
-import { Toast } from "react-native-toast-notifications";
 import * as SecureStore from "expo-secure-store";
 
 // const saveAuthDataToAsyncStorage = async (token: any, userData: any) => {

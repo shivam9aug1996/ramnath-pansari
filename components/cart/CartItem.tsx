@@ -1,5 +1,5 @@
-import React, { lazy, memo, Suspense, useRef, useState } from "react";
-import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
+import React, { lazy, memo, Suspense, useState } from "react";
+import { View, StyleSheet, Text } from "react-native";
 import { Image } from "expo-image";
 
 import { staticImage } from "@/app/(private)/(category)/CategoryList/utils";
@@ -7,11 +7,6 @@ import { Colors } from "@/constants/Colors";
 import { ThemedView } from "../ThemedView";
 import { CartItemProps } from "@/types/global";
 import { ThemedText } from "../ThemedText";
-// import CartButton from "./CartButton";
-import { Swipeable } from "react-native-gesture-handler";
-import AntDesign from "@expo/vector-icons/AntDesign";
-import { MaterialIcons } from "@expo/vector-icons";
-import Entypo from "@expo/vector-icons/Entypo";
 import { formatNumber } from "@/utils/utils";
 const CartButton = lazy(() => import("./CartButton"));
 

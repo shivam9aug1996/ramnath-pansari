@@ -24,10 +24,13 @@ const MainNavigator = () => {
           //  animation: "none"
         }}
       />
-      <Stack.Screen name="(category)/[id]" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="(category)/[id]"
+        options={{ headerShown: false, animation: "ios_from_right" }}
+      />
       <Stack.Screen
         name="(cartScreen)/cartScreen"
-        options={{ headerShown: false }}
+        options={{ headerShown: false, animation: "ios_from_right" }}
       />
       <Stack.Screen
         name="(result)/[query]"

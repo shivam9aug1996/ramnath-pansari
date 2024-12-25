@@ -28,6 +28,7 @@ interface CustomTextInputProps {
   onClear?: any;
   onBlur?: any;
   onFocus?: any;
+  onLayout?: any;
 }
 
 const CustomTextInput: React.FC<CustomTextInputProps> = ({
@@ -46,6 +47,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
   onClear = () => {},
   onBlur = () => {},
   onFocus = () => {},
+  onLayout = () => {},
 }) => {
   const focusTextInput = () => {
     if (textInputRef?.current) {
@@ -183,6 +185,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             size={20}
           />
           <TextInput
+            onLayout={onLayout}
             onFocus={onFocus}
             onBlur={onBlur}
             enterKeyHint={"search"}

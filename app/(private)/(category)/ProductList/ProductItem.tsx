@@ -34,7 +34,11 @@ const ProductItem = ({
         {
           marginRight: index % 2 === 0 ? 8.5 : 0,
           marginLeft: index % 2 === 0 ? 0 : 8.5,
-          opacity: isProductsFetching && paginationState?.page == 1 ? 0.6 : 1,
+          opacity:
+            (isProductsFetching && paginationState?.page == 1) ||
+            item?.isOutOfStock
+              ? 0.6
+              : 1,
           pointerEvents:
             isProductsFetching && paginationState?.page == 1 ? "none" : "auto",
         },

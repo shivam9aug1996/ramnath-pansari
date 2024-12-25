@@ -12,7 +12,7 @@ import { useSelector } from "react-redux";
 const CartButton = ({ value, item }: CartButtonProps) => {
   const { quantity, handleAdd, handleRemove } = useCartOperations(item, value);
 
-  console.log("cart button------>");
+  console.log("cart button------>", item?.isOutOfStock);
   return (
     <View style={[styles.container]}>
       <View
@@ -23,6 +23,7 @@ const CartButton = ({ value, item }: CartButtonProps) => {
       >
         {quantity > 0 && (
           <TouchableOpacity
+            disabled={item?.isOutOfStock}
             onPress={handleRemove}
             style={[styles.removeButton]}
           >
@@ -39,7 +40,11 @@ const CartButton = ({ value, item }: CartButtonProps) => {
             <Text style={styles.quantityText}>{quantity}</Text>
           </View>
         )}
-        <TouchableOpacity onPress={handleAdd} style={[styles.addButton]}>
+        <TouchableOpacity
+          disabled={item?.isOutOfStock}
+          onPress={handleAdd}
+          style={[styles.addButton]}
+        >
           <Image
             source={require("../../../../assets/images/entypo_plus.png")}
             style={styles.icon}
@@ -47,7 +52,7 @@ const CartButton = ({ value, item }: CartButtonProps) => {
           />
         </TouchableOpacity>
       </View>
-      <Animation id={item?._id} />
+      <Animation id={item?._id} isOutOfStock={item?.isOutOfStock} />
     </View>
   );
 };

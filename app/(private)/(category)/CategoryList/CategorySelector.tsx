@@ -26,6 +26,7 @@ const CategorySelector = ({
       item?._id === selectedCategory?._id,
       index
     );
+    console.log("category seclector---->");
 
     return (
       <TouchableOpacity

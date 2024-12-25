@@ -8,7 +8,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSelector } from "react-redux";
 
-const Animation = ({ id }: any) => {
+const Animation = ({ id, isOutOfStock }: any) => {
   const cartButtonProductId = useSelector(
     (state: RootState) => state.cart.cartButtonProductId || []
   );
@@ -25,14 +25,23 @@ const Animation = ({ id }: any) => {
     };
   }, [isLoading]);
 
-  if (!isLoading) return null;
+  // if (!isLoading) return null;
+  if (!isOutOfStock) return null;
 
   return (
-    <Animated.View style={[animatedStyle, styles.updateContainer]}>
-      <View style={{ flexDirection: "row" }}>
-        <Text style={{ fontFamily: "Raleway_500Medium" }}>Updating...</Text>
-        <ActivityIndicator size={"small"} />
-      </View>
+    <Animated.View
+      style={[
+        {
+          transform: [
+            {
+              translateY: 0,
+            },
+          ],
+        },
+        styles.updateContainer,
+      ]}
+    >
+      <Text style={{ fontFamily: "Raleway_500Medium" }}>Out of stock</Text>
     </Animated.View>
   );
 };
@@ -41,16 +50,15 @@ export default Animation;
 
 const styles = StyleSheet.create({
   updateContainer: {
-    //backgroundColor: "#f0f0f019",
+    backgroundColor: Colors.light.lightGrey,
     position: "absolute",
     width: "100%",
-    // height: 60,
+    height: 60,
     bottom: 0,
     borderBottomRightRadius: 28,
     borderBottomLeftRadius: 28,
     justifyContent: "center",
-    alignItems: "flex-end",
+    alignItems: "center",
     zIndex: 700,
-    top: 0,
   },
 });

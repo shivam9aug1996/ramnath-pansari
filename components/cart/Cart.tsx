@@ -1,17 +1,29 @@
-import React, { lazy, memo, Suspense, useMemo } from "react";
+import React, {
+  lazy,
+  memo,
+  Suspense,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 import { View, StyleSheet, Platform, Text, FlatList } from "react-native";
 import ScreenSafeWrapper from "../ScreenSafeWrapper";
 
 import { useDispatch, useSelector } from "react-redux";
 import { CartItemProps, RootState } from "@/types/global";
-import { cartApi, useFetchCartQuery } from "@/redux/features/cartSlice";
+import {
+  cartApi,
+  useFetchCartQuery,
+  useLazyFetchCartQuery,
+  useSyncCartMutation,
+} from "@/redux/features/cartSlice";
 import { Colors } from "@/constants/Colors";
 // import Button from "../Button";
 import CartItem from "./CartItem";
 
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
-import { calculateTotalAmount } from "./utils";
+import { calculateTotalAmount, findCartChanges } from "./utils";
 // import NotFound from "@/app/(private)/(result)/NotFound";
 import { router } from "expo-router";
 import CartPlaceholder from "./CartPlaceholder";
@@ -20,7 +32,9 @@ import { setCheckoutFlow } from "@/redux/features/orderSlice";
 import { FlashList } from "@shopify/flash-list";
 import { useLazyFetchAddressQuery } from "@/redux/features/addressSlice";
 import CustomSuspense from "../CustomSuspense";
-import { formatNumber } from "@/utils/utils";
+import { formatNumber, showToast } from "@/utils/utils";
+import CartList from "./CartList";
+// import { Toast } from "toastify-react-native";
 
 const NotFound = lazy(() => import("@/app/(private)/(result)/NotFound"));
 const Button = lazy(() => import("../Button"));
@@ -48,12 +62,15 @@ const Cart = ({ tabBarHeight = 0, paddingBottomValue }: CartProps) => {
     error,
     refetch,
   } = useFetchCartQuery({ userId }, { skip: !userId });
+  const [syncCart, { isLoading: isSyncCartLoading }] = useSyncCartMutation();
+  const [fetchCartData, { isLoading: isCartLoading }] = useLazyFetchCartQuery();
   console.log("uytresdfghjkl", cartData, isLoading);
 
   const cartItems = cartData?.cart?.items?.length || 0;
   const [fetchAddress, { isFetching: fetchingAddressLoading }] =
     useLazyFetchAddressQuery();
   const dispatch = useDispatch();
+  const [isDisabled, setIsDisabled] = useState(false);
   const totalAmount = useMemo(() => {
     return calculateTotalAmount(cartData?.cart?.items)?.toFixed(2);
   }, [cartData?.cart?.items]);
@@ -71,9 +88,6 @@ const Cart = ({ tabBarHeight = 0, paddingBottomValue }: CartProps) => {
   });
   const isCartProcessing = cartButtonProductId.length !== 0;
 
-  const renderItem = ({ item, index }: CartItemProps) => {
-    return <CartItem key={item?.productDetails?._id || index} item={item} />;
-  };
   const cRefetch = () => {
     refetch();
     dispatch(cartApi.util.resetApiState());
@@ -112,27 +126,10 @@ const Cart = ({ tabBarHeight = 0, paddingBottomValue }: CartProps) => {
             <>
               <View style={{ marginTop: 12 }} />
 
-              <FlatList
-                initialNumToRender={3}
-                //disableAutoLayout
-                ListHeaderComponent={
-                  cartItemIndex == -1 && isCartProcessing ? (
-                    <CartPlaceholder
-                      wrapperStyle={{ paddingHorizontal: 0, paddingTop: 0 }}
-                      count={1}
-                    />
-                  ) : null
-                }
-                extraData={cartData?.cart?.items}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.listContainer}
-                data={cartData?.cart?.items}
-                renderItem={renderItem}
-                keyExtractor={(item, index) =>
-                  item?.productDetails?._id || index
-                }
-
-                // estimatedItemSize={101}
+              <CartList
+                cartData={cartData}
+                cartItemIndex={cartItemIndex}
+                isCartProcessing={isCartProcessing}
               />
               <>
                 {cartItems ? (
@@ -149,19 +146,56 @@ const Cart = ({ tabBarHeight = 0, paddingBottomValue }: CartProps) => {
 
                     <Suspense fallback={null}>
                       <Button
-                        isLoading={isCartProcessing || fetchingAddressLoading}
-                        disabled={isCartProcessing || fetchingAddressLoading}
+                        isLoading={
+                          isDisabled ||
+                          isSyncCartLoading ||
+                          isCartLoading ||
+                          fetchingAddressLoading ||
+                          isCartProcessing
+                        }
+                        disabled={
+                          isDisabled ||
+                          isSyncCartLoading ||
+                          isCartLoading ||
+                          fetchingAddressLoading ||
+                          isCartProcessing
+                        }
                         onPress={async () => {
                           dispatch(setCheckoutFlow(true));
-                          await fetchAddress(
-                            {
-                              userId: userId,
-                            },
-                            true
+                          setIsDisabled(true);
+                          await syncCart({
+                            body: {},
+                            params: { userId: userId },
+                          })?.unwrap();
+                          const newCartData = await fetchCartData(
+                            { userId },
+                            false
                           )?.unwrap();
-                          router.push({
-                            pathname: "/(address)/addressList",
-                          });
+
+                          let changes = findCartChanges(cartData, newCartData);
+
+                          if (
+                            changes?.priceChanges.length > 0 ||
+                            changes?.removedItems.length > 0
+                          ) {
+                            showToast({
+                              type: "info",
+                              text2:
+                                "Items in your cart have changed. Please review before checkout.",
+                            });
+                            setIsDisabled(false);
+                          } else {
+                            await fetchAddress(
+                              {
+                                userId: userId,
+                              },
+                              true
+                            )?.unwrap();
+                            setIsDisabled(false);
+                            router.push({
+                              pathname: "/(address)/addressList",
+                            });
+                          }
                         }}
                         title={
                           isCartProcessing
@@ -175,7 +209,14 @@ const Cart = ({ tabBarHeight = 0, paddingBottomValue }: CartProps) => {
 
                 <View
                   style={{
-                    paddingBottom: paddingBottomValue,
+                    paddingBottom:
+                      Platform.OS === "android"
+                        ? tabBarHeight === 0
+                          ? tabBarHeight + 45
+                          : tabBarHeight - 20
+                        : tabBarHeight === 0
+                        ? tabBarHeight + 10
+                        : tabBarHeight - 60,
                   }}
                 />
               </>

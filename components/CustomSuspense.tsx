@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, memo } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 
 const CustomSuspense = ({ delay = 100, fallback = null, children }) => {
@@ -13,4 +13,4 @@ const CustomSuspense = ({ delay = 100, fallback = null, children }) => {
   return isLoading ? fallback : children;
 };
 
-export default CustomSuspense;
+export default memo(CustomSuspense);

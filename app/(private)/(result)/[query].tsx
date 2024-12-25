@@ -8,8 +8,11 @@ import {
   FlatList,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { useSelector } from "react-redux";
-import { useFetchProductsBySearchQuery } from "@/redux/features/searchSlice";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  searchApi,
+  useFetchProductsBySearchQuery,
+} from "@/redux/features/searchSlice";
 import { useCreateRecentSearchMutation } from "@/redux/features/recentSearchSlice";
 import { useFetchCartQuery } from "@/redux/features/cartSlice";
 import { FlashList } from "@shopify/flash-list";
@@ -24,13 +27,16 @@ import GoToCart from "../(category)/ProductList/GoToCart";
 import { Colors } from "@/constants/Colors";
 import { ThemedText } from "@/components/ThemedText";
 import { RootState, CartItem, Product } from "@/types/global";
+import { setResetPagination } from "@/redux/features/productSlice";
 
 const Result = () => {
   const { query } = useLocalSearchParams<{ query: string }>();
   const userId = useSelector((state: RootState) => state.auth?.userData?._id);
-
+  const resetPagination = useSelector(
+    (state: RootState) => state.product?.resetPagination
+  );
   const [page, setPage] = useState(1);
-
+  const dispatch = useDispatch();
   const { data: cartData } = useFetchCartQuery({ userId }, { skip: !userId });
 
   const { data, isFetching, error, isSuccess, isLoading } =
@@ -47,6 +53,16 @@ const Result = () => {
       createRecentSearch({ body: { query, userId } });
     }
   }, [isSuccess, query, userId]);
+
+  useEffect(() => {
+    if (resetPagination) {
+      setPage(1);
+      setTimeout(() => {
+        dispatch(searchApi.util.resetApiState());
+      }, 500);
+      dispatch(setResetPagination(false));
+    }
+  }, [resetPagination]);
 
   // Handlers
   const fetchNextPage = () => setPage((prev) => prev + 1);

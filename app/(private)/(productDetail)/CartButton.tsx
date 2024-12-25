@@ -16,7 +16,6 @@ const CartButton = ({ value, item }: CartButtonProps) => {
   const isLoading = cartButtonProductId.includes(item?._id);
   return (
     <View style={styles.container}>
-      {/* <Animation id={item?._id} /> */}
       <View
         style={{
           flexDirection: "row",

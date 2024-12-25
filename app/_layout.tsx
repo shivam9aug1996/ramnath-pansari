@@ -24,7 +24,9 @@ import store from "@/redux/store";
 import { loadAuthData } from "@/redux/features/authSlice";
 import { RootState } from "@/types/global";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import Toast from "@/components/Toast";
+// import Toast from "@/components/Toast";
+import Toast, { BaseToast } from "react-native-toast-message";
+
 import { setStatusBarBackgroundColor, StatusBar } from "expo-status-bar";
 // import NetworkStatusComponent from "@/components/NetworkStatusComponent";
 import Push1 from "@/components/Push1";
@@ -35,12 +37,15 @@ import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AppStateExample from "@/components/AppStateExample";
 import { useNotificationObserver } from "@/hooks/useNotificationObserver";
+import { fonts } from "@/constants/Fonts";
+import { Colors } from "@/constants/Colors";
+import { Ionicons } from "@expo/vector-icons";
 // import OrderSuccess from "@/components/OrderSuccess";
-// import LottieMenWalking from "./(private)/(address)/LottieMenWalking";
+import LottieMenWalking from "./(private)/(address)/LottieMenWalking";
 const OrderSuccess = lazy(() => import("@/components/OrderSuccess"));
-const LottieMenWalking = lazy(
-  () => import("./(private)/(address)/LottieMenWalking")
-);
+// const LottieMenWalking = lazy(
+//   () => import("./(private)/(address)/LottieMenWalking")
+// );
 
 const BACKGROUND_NOTIFICATION_TASK = "BACKGROUND_NOTIFICATION_TASK";
 
@@ -192,6 +197,136 @@ const RootLayout = () => {
   //   setStatusBarBackgroundColor("red", true);
   // }, []);
   console.log("hgffvgbhj");
+  const toastConfig = {
+    success: (props) => (
+      <BaseToast
+        {...props}
+        style={{
+          backgroundColor: "#eafaf1", // Softer green shade for a modern look
+          borderLeftWidth: 4, // Thicker left border for emphasis
+          borderWidth: 1,
+          borderColor: "#a3d9b5", // Subtle border color matching the green theme
+          borderLeftColor: "#55c57a", // Vibrant green for left border
+          borderRadius: 10, // Rounded corners for a softer look
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
+          elevation: 3, // Subtle shadow for depth on Android
+        }}
+        contentContainerStyle={{
+          paddingHorizontal: 15,
+          paddingVertical: 10, // Balanced padding for better spacing
+        }}
+        text2Style={{
+          ...fonts.defaultRegular,
+          fontSize: 14, // Slightly larger text for better readability
+          color: "#333", // Neutral dark gray for text
+          marginRight: 50,
+        }}
+        renderLeadingIcon={() => (
+          <Ionicons
+            name="checkmark-circle"
+            size={28} // Slightly smaller icon for balance
+            style={{
+              color: "#55c57a", // Matching the left border for consistency
+              alignSelf: "center",
+              marginLeft: 10,
+            }}
+          />
+        )}
+      />
+    ),
+
+    error: (props) => (
+      <BaseToast
+        {...props}
+        style={{
+          backgroundColor: "#fdecea", // Light red background for error
+          borderLeftWidth: 4,
+          borderWidth: 1,
+          borderColor: "#f5c6cb", // Subtle red for border
+          borderLeftColor: "#e63946", // Vibrant red for left border
+          borderRadius: 10,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
+          elevation: 3,
+        }}
+        contentContainerStyle={{
+          paddingHorizontal: 15,
+          paddingVertical: 10,
+        }}
+        text2Style={{
+          ...fonts.defaultRegular,
+          fontSize: 14,
+          color: "#721c24", // Dark red for text
+          marginRight: 50,
+        }}
+        renderLeadingIcon={() => (
+          <Ionicons
+            name="close-circle"
+            size={28}
+            style={{
+              color: "#e63946",
+              alignSelf: "center",
+              marginLeft: 10,
+            }}
+          />
+        )}
+      />
+    ),
+
+    /*
+      Or create a completely new type - `tomatoToast`,
+      building the layout from scratch.
+  
+      I can consume any custom `props` I want.
+      They will be passed when calling the `show` method (see below)
+    */
+    info: (props) => (
+      <BaseToast
+        {...props}
+        style={{
+          backgroundColor: "#eaf4fc", // Light blue background for info
+          borderLeftWidth: 4,
+          borderWidth: 1,
+          borderColor: "#a3cfe3", // Subtle blue for border
+          borderLeftColor: "#3498db", // Vibrant blue for left border
+          borderRadius: 10,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
+          elevation: 3,
+        }}
+        contentContainerStyle={{
+          paddingHorizontal: 15,
+          paddingVertical: 10,
+        }}
+        text2Style={{
+          ...fonts.defaultRegular,
+          fontSize: 12,
+          color: "#2c3e50", // Dark gray-blue for text
+          marginRight: 50,
+        }}
+        text2NumberOfLines={2}
+        renderLeadingIcon={() => (
+          <Ionicons
+            name="information-circle"
+            size={28}
+            style={{
+              color: "#3498db",
+              alignSelf: "center",
+              marginLeft: 10,
+            }}
+          />
+        )}
+      />
+    ),
+  };
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Provider store={store}>
@@ -199,18 +334,19 @@ const RootLayout = () => {
         {/* <QueryClientProvider client={queryClient}> */}
         <StatusBar style="inverted" />
         {/* <Suspense> */}
-        <Toast />
+
         <AppStateExample />
         {/* <NetworkStatusComponent /> */}
         {/* </Suspense> */}
-        <Suspense fallback={null}>
-          <LottieMenWalking />
-        </Suspense>
+
+        <LottieMenWalking />
+
         <Suspense fallback={null}>
           <OrderSuccess />
         </Suspense>
         <InitialLayout />
         {/* </QueryClientProvider> */}
+        <Toast config={toastConfig} position="top" topOffset={60} />
       </Provider>
     </GestureHandlerRootView>
   );

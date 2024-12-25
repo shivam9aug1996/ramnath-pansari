@@ -6,8 +6,8 @@ import {
   getResendTime,
   setResendTime,
 } from "@/screens/verifyOtp/hooks/useResendHook";
-import { Toast } from "toastify-react-native";
 import { router } from "expo-router";
+import { showToast } from "@/utils/utils";
 
 interface UseSendOtpProps {
   mobileNumber: string;
@@ -57,8 +57,7 @@ export const useSendOtp = (): UseSendOtpProps => {
     } else {
       let timeLeft = await getResendTime(mobileNumber);
       if (timeLeft) {
-        Toast.hideAll();
-        Toast.error(`Try again in ${timeLeft} seconds`, "top");
+        showToast({ type: "error", text2: `Try again in ${timeLeft} seconds` });
       } else {
         sendOtp({ mobileNumber });
       }

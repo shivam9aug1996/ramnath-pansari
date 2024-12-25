@@ -43,6 +43,7 @@ import Modal from "@/components/Modal";
 import BottomSheet from "@/components/BottomSheet";
 import CodOnline from "./CodOnline";
 import { formatNumber } from "@/utils/utils";
+import { Platform } from "react-native";
 // import PayBottomSheet from "./PayBottomSheet";
 const PayBottomSheet = lazy(() => import("./PayBottomSheet"));
 const TryAgain = lazy(() => import("../(category)/CategoryList/TryAgain"));
@@ -229,6 +230,9 @@ const addressList = () => {
                   //handleOnClick(totalAmountInNumber, addressData);
                 }}
                 textStyle={{ fontFamily: "Montserrat_600SemiBold" }}
+                wrapperStyle={{
+                  paddingBottom: Platform.OS == "android" ? 20 : 0,
+                }}
               />
             </Suspense>
           ) : null}

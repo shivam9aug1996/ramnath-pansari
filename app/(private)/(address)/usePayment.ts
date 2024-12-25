@@ -14,7 +14,7 @@ import {
   useLazyFetchCartQuery,
 } from "@/redux/features/cartSlice";
 import { router } from "expo-router";
-import { Toast } from "toastify-react-native";
+import { showToast } from "@/utils/utils";
 
 interface PreOrderResponse {
   data: {
@@ -154,13 +154,16 @@ const usePayment = () => {
             // create order flow
           } else {
             console.log("payment not  verified");
-            Toast.error("payment not  verified");
+            showToast({ type: "error", text2: "Payment not  verified" });
             // create order with hold status
           }
         })
         .catch((error) => {
           console.log("Payment failed:", error);
-          Toast.error(error?.description || "Payment failed");
+          showToast({
+            type: "error",
+            text2: error?.description || "Payment failed",
+          });
         })
         .finally(() => {
           setIsPaymentProcessing(false);

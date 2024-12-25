@@ -12,6 +12,7 @@ import { staticImage } from "../(category)/CategoryList/utils";
 import { useFetchCartQuery } from "@/redux/features/cartSlice";
 import CartButton from "./CartButton";
 import ContentLoader, { Rect } from "react-content-loader/native";
+import Animation from "./Animation";
 
 const renderText = () => {
   return (
@@ -31,7 +32,7 @@ const renderText = () => {
 
 const Product = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, isFetching } = useFetchProductDetailQuery(
+  const { data, isFetching, isSuccess } = useFetchProductDetailQuery(
     { productId: id },
     { skip: !id }
   );
@@ -59,48 +60,60 @@ const Product = () => {
   );
 
   return (
-    <ScreenSafeWrapper showCartIcon>
-      <View style={{ flex: 1, marginTop: 37 }}>
-        <View style={{ flex: 1 }}>
-          {/* Product Image */}
-          <Image
-            source={{
-              uri: image || staticImage,
-            }}
-            style={styles.image}
-            contentFit={"contain"}
-            cachePolicy={"disk"}
-          />
-        </View>
-        <View style={{ flex: 1 }}>
-          {/* Product Details */}
-          <View style={styles.textContainer}>
-            {isFetching ? (
-              renderText()
-            ) : (
-              <>
-                <ThemedText style={styles.productName} type="title">
-                  {name}
-                </ThemedText>
-                <Text style={styles.size}>{size}</Text>
-                <ThemedText
-                  style={[styles.productPrice, styles.originalPrice]}
-                  type="title"
-                >
-                  {`MRP ₹ ${price}`}
-                </ThemedText>
-                <ThemedText style={styles.productPrice} type="title">
-                  {`₹ ${discountedPrice}`}
-                </ThemedText>
-              </>
-            )}
+    <>
+      <ScreenSafeWrapper showCartIcon>
+        <View
+          style={{
+            flex: 1,
+            marginTop: 37,
+            opacity: data?.product?.isOutOfStock ? 0.6 : 1,
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            {/* Product Image */}
+            <Image
+              source={{
+                uri: image || staticImage,
+              }}
+              style={styles.image}
+              contentFit={"contain"}
+              cachePolicy={"disk"}
+            />
           </View>
+          <View style={{ flex: 1 }}>
+            {/* Product Details */}
+            <View style={styles.textContainer}>
+              {isFetching ? (
+                renderText()
+              ) : (
+                <>
+                  <ThemedText style={styles.productName} type="title">
+                    {name}
+                  </ThemedText>
+                  <Text style={styles.size}>{size}</Text>
+                  <ThemedText
+                    style={[styles.productPrice, styles.originalPrice]}
+                    type="title"
+                  >
+                    {`MRP ₹ ${price}`}
+                  </ThemedText>
+                  <ThemedText style={styles.productPrice} type="title">
+                    {`₹ ${discountedPrice}`}
+                  </ThemedText>
+                </>
+              )}
+            </View>
+          </View>
+          {isCartLoading || data?.product?.isOutOfStock || !isSuccess ? null : (
+            <CartButton value={cartItem?.quantity || 0} item={data?.product} />
+          )}
         </View>
-        {isCartLoading ? null : (
-          <CartButton value={cartItem?.quantity || 0} item={data?.product} />
-        )}
-      </View>
-    </ScreenSafeWrapper>
+      </ScreenSafeWrapper>
+      <Animation
+        id={data?.product?._id}
+        isOutOfStock={data?.product?.isOutOfStock}
+      />
+    </>
   );
 };
 
@@ -136,7 +149,7 @@ const styles = StyleSheet.create({
   },
   image: {
     height: 300,
-    borderRadius: 12,
+    borderTopLeftRadius: 12,
     marginBottom: 20,
     width: "100%",
     minHeight: 300,

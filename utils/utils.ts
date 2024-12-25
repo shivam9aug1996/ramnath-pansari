@@ -1,6 +1,7 @@
 import { Image } from "react-native";
 import * as FileSystem from "expo-file-system";
 import * as Haptics from "expo-haptics";
+import Toast, { ToastShowParams } from "react-native-toast-message";
 
 type Callback = (...args: any[]) => void;
 
@@ -77,4 +78,18 @@ export const hapticFeedback = (style = Haptics.ImpactFeedbackStyle.Soft) => {
   } catch (error) {
     console.error("Haptics error:", error);
   }
+};
+
+export const showToast = ({ type, text2 }: ToastShowParams) => {
+  Toast.hideAll();
+  setTimeout(() => {
+    Toast.show({
+      type: type,
+      text2: text2,
+    });
+  }, 100);
+};
+
+export const hideAllToast = () => {
+  Toast.hideAll();
 };

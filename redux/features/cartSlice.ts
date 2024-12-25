@@ -27,14 +27,27 @@ export const cartApi = createApi({
         params: data,
       }),
       transformResponse: (response) => {
-        console.log("gfghjkl", response);
+        console.log("gfghjkl", JSON.stringify(response));
         if (response && Array.isArray(response?.cart?.items)) {
-          console.log("Reversed Response:", JSON.stringify(response));
+          // Filter out items that are out of stock
+          const filteredItems = response?.cart?.items?.filter(
+            (item) => !item.productDetails?.isOutOfStock
+          );
+
+          console.log(
+            "Filtered and Reversed Response:",
+            JSON.stringify(filteredItems)
+          );
+
           return {
             ...response,
-            items: response?.cart?.items?.reverse(),
+            cart: {
+              ...response.cart,
+              items: filteredItems.reverse(),
+            },
           };
         }
+
         console.error("Invalid response format:", response);
         return response; // Return as is if items is not an array or response is invalid
       },
@@ -57,6 +70,14 @@ export const cartApi = createApi({
         body: data?.body,
       }),
       invalidatesTags: ["cartList"],
+    }),
+    syncCart: builder.mutation({
+      query: (data) => ({
+        url: "/cart/sync",
+        method: "PATCH",
+        params: data?.params,
+      }),
+      // invalidatesTags: ["cartList"],
     }),
   }),
 });
@@ -184,6 +205,7 @@ export const {
   useUpdateCartMutation,
   useLazyFetchCartQuery,
   useClearCartMutation,
+  useSyncCartMutation,
 } = cartApi;
 
 export default cartSlice.reducer;

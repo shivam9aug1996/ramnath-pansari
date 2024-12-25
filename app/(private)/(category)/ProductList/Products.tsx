@@ -7,9 +7,13 @@ import React, {
   useState,
   useTransition,
 } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Button, Text, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { useFetchProductsQuery } from "@/redux/features/productSlice";
+import {
+  productApi,
+  setResetPagination,
+  useFetchProductsQuery,
+} from "@/redux/features/productSlice";
 import { RootState } from "@/types/global";
 import { scrollToTop } from "./utils";
 import TryAgain from "../CategoryList/TryAgain";
@@ -23,13 +27,17 @@ const Products = ({ isCategoryFetching }: { isCategoryFetching: boolean }) => {
   const selectedSubCategory = useSelector(
     (state: RootState) => state.product.selectedSubCategoryId
   );
+  const resetPagination = useSelector(
+    (state: RootState) => state.product?.resetPagination
+  );
   const [isPending, startTransition] = useTransition();
-
+  const [load, setLoad] = useState(false);
   const dispatch = useDispatch();
 
   const [paginationState, setPaginationState] = useState({
     categoryId: selectedSubCategory?._id || null,
     page: 1,
+    reset: false,
   });
   const flatListRef = useRef();
   const {
@@ -37,12 +45,14 @@ const Products = ({ isCategoryFetching }: { isCategoryFetching: boolean }) => {
     isFetching: isProductsFetching,
     isError: isProductError,
     isLoading: isProductsLoading,
+    isSuccess: isProductsSuccess,
     refetch,
   } = useFetchProductsQuery(
     {
       categoryId: paginationState.categoryId,
       page: paginationState.page,
       limit: 10,
+      reset: paginationState.reset,
     },
     {
       skip: !paginationState.categoryId,
@@ -54,6 +64,7 @@ const Products = ({ isCategoryFetching }: { isCategoryFetching: boolean }) => {
       startTransition(() => {
         scrollToTop(flatListRef);
         setPaginationState({
+          ...paginationState,
           categoryId: selectedSubCategory?._id,
           page: 1,
         });
@@ -62,6 +73,39 @@ const Products = ({ isCategoryFetching }: { isCategoryFetching: boolean }) => {
       console.log("iuytredsdfghjkl");
     }
   }, [selectedSubCategory]);
+
+  // useEffect(() => {
+  //   if (load) {
+  //     setPaginationState({
+  //       ...paginationState,
+  //       categoryId: selectedSubCategory?._id,
+  //       page: 1,
+  //     });
+  //     setTimeout(() => {
+  //       dispatch(productApi.util.resetApiState());
+  //     }, 100);
+  //     // dispatch(
+  //     //   productApi.util.invalidateTags([
+  //     //     { type: "Products", id: paginationState.categoryId },
+  //     //   ])
+  //     // );
+  //     setLoad(false);
+  //   }
+  // }, [load]);
+
+  useEffect(() => {
+    if (resetPagination) {
+      setPaginationState({
+        ...paginationState,
+        categoryId: selectedSubCategory?._id,
+        page: 1,
+      });
+      setTimeout(() => {
+        dispatch(productApi.util.resetApiState());
+      }, 500);
+      dispatch(setResetPagination(false));
+    }
+  }, [resetPagination]);
 
   if (isProductError) {
     return <TryAgain refetch={refetch} />;

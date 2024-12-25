@@ -8,7 +8,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSelector } from "react-redux";
 
-const Animation = ({ id }: any) => {
+const Animation = ({ id, isOutOfStock = false }: any) => {
   const cartButtonProductId = useSelector(
     (state: RootState) => state.cart.cartButtonProductId || []
   );
@@ -24,6 +24,25 @@ const Animation = ({ id }: any) => {
       ],
     };
   }, [isLoading]);
+
+  if (isOutOfStock) {
+    return (
+      <Animated.View
+        style={[
+          {
+            transform: [
+              {
+                translateY: 0,
+              },
+            ],
+          },
+          styles.updateContainer,
+        ]}
+      >
+        <Text style={{ fontFamily: "Raleway_500Medium" }}>Out of stock</Text>
+      </Animated.View>
+    );
+  }
 
   if (!isLoading) return null;
 

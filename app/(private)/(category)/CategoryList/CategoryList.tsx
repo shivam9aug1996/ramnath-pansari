@@ -1,11 +1,4 @@
-import React, {
-  lazy,
-  memo,
-  Suspense,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { memo, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { useDispatch } from "react-redux";
 import { setSelectedSubCategoryId } from "@/redux/features/productSlice";
@@ -17,14 +10,12 @@ import CategorySelectorPlaceholder from "./CategorySelectorPlaceholder";
 import { scrollToIndex, scrollToTop } from "../ProductList/utils";
 import { getSubCategoryIndex } from "./utils";
 import CustomSuspense from "@/components/CustomSuspense";
-// const CategorySelector = lazy(() => import("./CategorySelector"));
-// const SubCategorySelector = lazy(() => import("./SubCategorySelector"));
+
 const CategoryList = ({
   categories,
   isCategoryFetching,
   selectedCategoryIdIndex,
 }: CategoryListProps) => {
-  const subCatTimerRef = useRef<any>(null);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null
   );
@@ -35,20 +26,18 @@ const CategoryList = ({
   const subCatFlatListRef = useRef(null);
 
   const dispatch = useDispatch();
+  console.log("category list---->");
 
-  useEffect(() => {
-    return () => {
-      // clearTimeout(subCatTimerRef.current);
-    };
-  });
-  for (let i = 0; i < 10000; i++) {}
+  // useEffect(() => {
+  //   if (categories?.length > 0) {
+  //     setSelectedCategory(categories[0]);
+  //   }
+  // }, [categories]);
+
   useEffect(() => {
     if (categories?.length > 0) {
       setSelectedCategory(categories[0]);
     }
-  }, [categories]);
-
-  useEffect(() => {
     if (selectedCategoryIdIndex && categories) {
       setSelectedCategory(categories[selectedCategoryIdIndex]);
     }
@@ -73,14 +62,11 @@ const CategoryList = ({
         selectedSubCategory
       );
       scrollToIndex(subCatFlatListRef, subCategoryIndex);
-      //clearTimeout(subCatTimerRef.current);
-      //  subCatTimerRef.current = setTimeout(() => {
       const selectedId =
         selectedSubCategory?._id === "all"
           ? selectedCategory
           : selectedSubCategory;
       dispatch(setSelectedSubCategoryId(selectedId));
-      //  }, 100);
     }
   }, [selectedSubCategory]);
 
@@ -89,7 +75,7 @@ const CategoryList = ({
       {isCategoryFetching ? (
         <CategorySelectorPlaceholder />
       ) : (
-        <CustomSuspense fallback={<CategorySelectorPlaceholder />}>
+        <CustomSuspense delay={0} fallback={<CategorySelectorPlaceholder />}>
           <CategorySelector
             categories={categories}
             selectedCategory={selectedCategory}
@@ -100,7 +86,7 @@ const CategoryList = ({
       {isCategoryFetching ? (
         <SubCategorySelectorPlaceholder />
       ) : (
-        <CustomSuspense fallback={<SubCategorySelectorPlaceholder />}>
+        <CustomSuspense delay={0} fallback={<SubCategorySelectorPlaceholder />}>
           <SubCategorySelector
             subCategories={subCategories}
             selectedSubCategory={selectedSubCategory}
