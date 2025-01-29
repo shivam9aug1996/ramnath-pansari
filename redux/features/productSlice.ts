@@ -24,7 +24,7 @@ export const productApi = createApi({
         method: "GET",
         params: data,
       }),
-      keepUnusedDataFor: 60,
+      keepUnusedDataFor: 0,
 
       serializeQueryArgs: ({ endpointName, queryArgs }) => {
         // Serialize by categoryId (this could avoid conflicts if categoryId changes)
@@ -35,36 +35,107 @@ export const productApi = createApi({
         return [{ type: "Products", id: categoryId }];
       },
 
-      merge: (
-        currentCache,
-        newItems,
-        { arg: { page, categoryId, reset = false } }
-      ) => {
-        console.log("765redfghjkl page", page);
+      merge: (currentCache, newItems, { arg }) => {
+        console.log("jhgfg567890hjkl");
+        let page = arg?.page;
+        let categoryId = arg?.categoryId;
+
+        console.log("765redfghjkl page", page, arg);
         console.log("765redfghjkl categoryId", categoryId);
         console.log("765redfghjkl newItems", JSON.stringify(newItems));
         console.log("765redfghjkl currentCache", JSON.stringify(currentCache));
-        if (reset && page == 1) {
-          currentCache = newItems;
-          let h = newItems?.products?.slice(0, 10);
-          currentCache.products = h;
-          currentCache.currentPage = 1;
-          currentCache.totalProducts = h?.length;
-          console.log("87654ewsdfghjk", JSON.stringify(currentCache));
+
+        if (page === 1) {
+          console.log(
+            "kjhgew45678987654345678985456789",
+            JSON.stringify(newItems)
+          );
+          const startIndex = (page - 1) * 10;
+          // let updatedProducts = [...currentCache.products];
+          // for (let i = 0; i < newItems.products.length; i++) {
+          //   const index = startIndex + i;
+          //   if (index < updatedProducts.length) {
+          //     console.log(
+          //       "in567890dex",
+          //       index,
+          //       updatedProducts.length,
+          //       newItems.products.length,
+          //       newItems.products[i]
+          //     );
+          //     updatedProducts[index] = newItems.products[i];
+          //   }
+          // }
+          // console.log("updatedProducts67890", JSON.stringify(updatedProducts));
+          // currentCache.products = updatedProducts;
+          console.log("currentCache.currentPage > newItems?.currentPage");
+            let updatedProducts = [...currentCache.products];
+            
+            // Clear out all items from the start index
+            updatedProducts.splice(startIndex, 10);
+            
+            // Insert new items at the correct position
+            updatedProducts.splice(startIndex, 0, ...newItems.products);
+            
+            currentCache.products = updatedProducts;
         } else {
-          if (page === 1) {
-            console.log(
-              "kjhgew45678987654345678985456789",
-              JSON.stringify(newItems)
-            );
-            //currentCache = newItems;
-            // currentCache = newItems;
-          } else {
+          const startIndex = (page - 1) * 10; // Assuming limit is 10
+
+          if (currentCache.currentPage < newItems?.currentPage) {
             currentCache?.products?.push(...newItems?.products);
             currentCache.currentPage = newItems?.currentPage;
+          } 
+          else if (currentCache.currentPage >= newItems?.currentPage) {
+            // console.log("currentCache.currentPage > newItems?.currentPage");
+            // let updatedProducts = [...currentCache.products];
+            // for (let i = 0; i < newItems.products.length; i++) {
+            //   const index = startIndex + i;
+            //   if (index < updatedProducts.length) {
+            //     console.log(
+            //       "in567890dex",
+            //       index,
+            //       updatedProducts.length,
+            //       newItems.products.length,
+            //       newItems.products[i]
+            //     );
+            //     updatedProducts[index] = newItems.products[i];
+            //   }
+            // }
+            // console.log(
+            //   "updatedProducts67890",
+            //   JSON.stringify(updatedProducts)
+            // );
+            // currentCache.products = updatedProducts;
+            console.log("currentCache.currentPage > newItems?.currentPage");
+            let updatedProducts = [...currentCache.products];
+            
+            // Clear out all items from the start index
+            updatedProducts.splice(startIndex, 10);
+            
+            // Insert new items at the correct position
+            updatedProducts.splice(startIndex, 0, ...newItems.products);
+            
+            currentCache.products = updatedProducts;
+            // currentCache.currentPage = newItems?.currentPage;
           }
         }
       },
+      // merge: (currentCache, newItems, { arg }) => {
+      //   console.log("jhgfg567890hjkl");
+      //   let page = arg?.page;
+      //   let categoryId = arg?.categoryId;
+
+      //   console.log("765redfghjkl page", page, arg);
+      //   console.log("765redfghjkl categoryId", categoryId);
+      //   console.log("765redfghjkl newItems", JSON.stringify(newItems));
+      //   console.log("765redfghjkl currentCache", JSON.stringify(currentCache));
+      //   if (page == 1) {
+      //     currentCache.products = newItems?.products;
+      //     currentCache.currentPage = newItems?.currentPage;
+      //   } else {
+      //     currentCache?.products?.push(...newItems?.products);
+      //     currentCache.currentPage = newItems?.currentPage;
+      //   }
+      // },
       forceRefetch: ({ currentArg, previousArg, state, endpointState }) => {
         console.log(
           "lkuytr4567890-",
@@ -129,7 +200,7 @@ const productSlice = createSlice({
   initialState: {
     selectedSubCategoryId: null,
     productListPosition: 0,
-    resetPagination: false,
+    resetPagination: { item: null, status: false },
   },
   reducers: {
     setSelectedSubCategoryId: (state, action) => {
@@ -159,6 +230,7 @@ export const {
   useFetchProductsQuery,
   useLazyFetchProductsQuery,
   useFetchProductDetailQuery,
+  useLazyFetchProductDetailQuery,
 } = productApi;
 
 export default productSlice.reducer;

@@ -21,7 +21,7 @@ const CategoryCard = ({
       </View>
       <CategorySelector
         categories={category?.children}
-        onSelectCategory={(data) => onSelect(data, category)}
+        onSelectCategory={(data, index) => onSelect(data, category, index)}
       />
     </View>
   );

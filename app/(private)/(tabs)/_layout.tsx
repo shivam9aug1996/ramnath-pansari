@@ -32,17 +32,20 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
           height: 80,
           paddingBottom: 25,
+          display:
+            route.name === "cat" || route.name === "search" ? "none" : "flex",
         },
+
         tabBarHideOnKeyboard: true,
         tabBarButton: (props) => (
           <TouchableOpacity {...props} activeOpacity={1} />
         ),
-      }}
+      })}
       sceneContainerStyle={{ height: 70 }}
     >
       <Tabs.Screen
@@ -156,6 +159,18 @@ export default function TabLayout() {
               </ThemedText>
             ) : null;
           },
+        }}
+      />
+      <Tabs.Screen
+        name="cat"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

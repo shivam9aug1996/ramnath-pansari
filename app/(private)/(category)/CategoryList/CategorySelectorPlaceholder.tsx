@@ -36,7 +36,7 @@ const renderText = () => {
   );
 };
 
-const CategorySelectorPlaceholder = () => {
+const CategorySelectorPlaceholder = ({ contentContainerStyle = {} }) => {
   const renderCategory = ({ item, index }: { item: any; index: number }) => {
     const borderStyle = imageBorderStyle(arrayColor, false, index);
     return (
@@ -53,6 +53,7 @@ const CategorySelectorPlaceholder = () => {
   };
   return (
     <FlatList
+      contentContainerStyle={contentContainerStyle}
       data={categoryListPlaceholder}
       horizontal
       keyExtractor={(item) => item?._id}

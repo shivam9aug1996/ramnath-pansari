@@ -23,6 +23,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
   onClose,
   staticContent,
   animation = true,
+  wrapperStyle = {},
 }) => {
   const translateY = useSharedValue(SCREEN_HEIGHT);
 
@@ -68,7 +69,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
         tint={"dark"}
       ></BlurView>
       <PanGestureHandler onGestureEvent={gestureHandler}>
-        <Animated.View style={[styles.container, animatedStyle]}>
+        <View style={[styles.container, wrapperStyle, animatedStyle]}>
           <Pressable
             onPress={() => {
               if (onClose) {
@@ -84,7 +85,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             <ScrollView style={{ height: "30%" }}>{children}</ScrollView>
             {staticContent}
           </ThemedView>
-        </Animated.View>
+        </View>
       </PanGestureHandler>
     </>
   );

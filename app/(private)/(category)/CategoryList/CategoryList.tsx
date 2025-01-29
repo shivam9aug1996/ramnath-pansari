@@ -15,6 +15,7 @@ const CategoryList = ({
   categories,
   isCategoryFetching,
   selectedCategoryIdIndex,
+  contentContainerStyle,
 }: CategoryListProps) => {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null
@@ -69,29 +70,49 @@ const CategoryList = ({
       dispatch(setSelectedSubCategoryId(selectedId));
     }
   }, [selectedSubCategory]);
-
+  console.log("hio");
   return (
     <View>
       {isCategoryFetching ? (
-        <CategorySelectorPlaceholder />
+        <CategorySelectorPlaceholder
+          contentContainerStyle={{ paddingHorizontal: 30 }}
+        />
       ) : (
-        <CustomSuspense delay={0} fallback={<CategorySelectorPlaceholder />}>
+        <CustomSuspense
+          delay={0}
+          fallback={
+            <CategorySelectorPlaceholder
+              contentContainerStyle={{ paddingHorizontal: 30 }}
+            />
+          }
+        >
           <CategorySelector
             categories={categories}
             selectedCategory={selectedCategory}
             onSelectCategory={setSelectedCategory}
+            contentContainerStyle={contentContainerStyle}
           />
         </CustomSuspense>
       )}
       {isCategoryFetching ? (
-        <SubCategorySelectorPlaceholder />
+        <SubCategorySelectorPlaceholder
+          contentContainerStyle={{ paddingHorizontal: 30 }}
+        />
       ) : (
-        <CustomSuspense delay={0} fallback={<SubCategorySelectorPlaceholder />}>
+        <CustomSuspense
+          delay={0}
+          fallback={
+            <SubCategorySelectorPlaceholder
+              contentContainerStyle={{ paddingHorizontal: 30 }}
+            />
+          }
+        >
           <SubCategorySelector
             subCategories={subCategories}
             selectedSubCategory={selectedSubCategory}
             onSelectSubCategory={setSelectedSubCategory}
             subCatFlatListRef={subCatFlatListRef}
+            contentContainerStyle={contentContainerStyle}
           />
         </CustomSuspense>
       )}

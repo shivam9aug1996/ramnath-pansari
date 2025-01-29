@@ -75,6 +75,7 @@ const Search = () => {
             type="search"
             onSubmitEditing={onSubmitEditing}
             variant={3}
+            numberOfLines={1}
             wrapperStyle={[
               styles.inputWrapper,
               isInputBoxFocused && styles.inputWrapperFocused,

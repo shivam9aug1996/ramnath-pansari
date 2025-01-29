@@ -3,6 +3,7 @@ import React, {
   memo,
   Suspense,
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -34,6 +35,14 @@ import { useLazyFetchAddressQuery } from "@/redux/features/addressSlice";
 import CustomSuspense from "../CustomSuspense";
 import { formatNumber, showToast } from "@/utils/utils";
 import CartList from "./CartList";
+import GoToCart from "@/app/(private)/(category)/ProductList/GoToCart";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import Continue from "./Continue";
 // import { Toast } from "toastify-react-native";
 
 const NotFound = lazy(() => import("@/app/(private)/(result)/NotFound"));
@@ -62,18 +71,19 @@ const Cart = ({ tabBarHeight = 0, paddingBottomValue }: CartProps) => {
     error,
     refetch,
   } = useFetchCartQuery({ userId }, { skip: !userId });
-  const [syncCart, { isLoading: isSyncCartLoading }] = useSyncCartMutation();
-  const [fetchCartData, { isLoading: isCartLoading }] = useLazyFetchCartQuery();
+  // const [syncCart, { isLoading: isSyncCartLoading }] = useSyncCartMutation();
+  // const [fetchCartData, { isLoading: isCartLoading }] = useLazyFetchCartQuery();
   console.log("uytresdfghjkl", cartData, isLoading);
 
   const cartItems = cartData?.cart?.items?.length || 0;
-  const [fetchAddress, { isFetching: fetchingAddressLoading }] =
-    useLazyFetchAddressQuery();
+  // const [fetchAddress, { isFetching: fetchingAddressLoading }] =
+  //   useLazyFetchAddressQuery();
   const dispatch = useDispatch();
-  const [isDisabled, setIsDisabled] = useState(false);
-  const totalAmount = useMemo(() => {
-    return calculateTotalAmount(cartData?.cart?.items)?.toFixed(2);
-  }, [cartData?.cart?.items]);
+  // const [isDisabled, setIsDisabled] = useState(false);
+  const headerVisible = useSharedValue(1);
+  // const totalAmount = useMemo(() => {
+  //   return calculateTotalAmount(cartData?.cart?.items)?.toFixed(2);
+  // }, [cartData?.cart?.items]);
 
   // const paddingBottomValue = useMemo(() => {
   //   if (Platform.OS === "android") {
@@ -94,21 +104,58 @@ const Cart = ({ tabBarHeight = 0, paddingBottomValue }: CartProps) => {
   };
   console.log("uytrfghjkjhg", cartItemIndex, isCartProcessing);
 
+  const animatedHeaderStyle1 = useAnimatedStyle(() => {
+    const translateY = withTiming(headerVisible.value === 1 ? 0 : -350, {
+      duration: 700,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+    });
+
+    const height = withTiming(headerVisible.value === 1 ? 180 : 50, {
+      duration: 700,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+    });
+
+    return { transform: [{ translateY }], height };
+  });
+
   return (
     <>
-      <ScreenSafeWrapper>
-        <ThemedView style={styles.headerContainer}>
-          <ThemedText style={styles.headerTitle}>{"My Bag"}</ThemedText>
-          {isSuccess && (
-            <ThemedText style={styles.headerSubtitle}>
-              {`${cartItems} items`}
-            </ThemedText>
-          )}
-        </ThemedView>
+      <ScreenSafeWrapper
+        headerVisible={headerVisible}
+        title="My Bag"
+        cartItems={cartItems}
+      >
+        <Animated.View
+          style={[
+            {
+              position: "absolute",
+              top: 45,
+              left: 0,
+              right: 0,
+              backgroundColor: Colors.light.background,
+              zIndex: 999,
+              maxHeight: 90,
+            },
+            animatedHeaderStyle1,
+          ]}
+        >
+          <>
+            <ThemedView style={styles.headerContainer}>
+              <ThemedText style={styles.headerTitle}>{"My Bag"}</ThemedText>
+              {isSuccess && (
+                <ThemedText style={styles.headerSubtitle}>
+                  {`${cartItems} items`}
+                </ThemedText>
+              )}
+            </ThemedView>
+            <GoToCart isCart={true} />
+          </>
+        </Animated.View>
+
         <CustomSuspense>
           {isLoading ? (
             <CartPlaceholder
-              wrapperStyle={{ paddingHorizontal: 0, paddingTop: 0 }}
+              wrapperStyle={{ paddingHorizontal: 0, paddingTop: 185 }}
             />
           ) : error ? (
             <Suspense fallback={null}>
@@ -127,99 +174,19 @@ const Cart = ({ tabBarHeight = 0, paddingBottomValue }: CartProps) => {
               <View style={{ marginTop: 12 }} />
 
               <CartList
+                headerVisible={headerVisible}
                 cartData={cartData}
                 cartItemIndex={cartItemIndex}
                 isCartProcessing={isCartProcessing}
               />
-              <>
-                {cartItems ? (
-                  <>
-                    <View style={styles.divider} />
-                    <ThemedView style={styles.totalContainer}>
-                      <ThemedText style={styles.totalLabel}>
-                        {"Total"}
-                      </ThemedText>
-                      <ThemedText style={styles.totalAmount}>{`₹ ${formatNumber(
-                        totalAmount
-                      )}`}</ThemedText>
-                    </ThemedView>
 
-                    <Suspense fallback={null}>
-                      <Button
-                        isLoading={
-                          isDisabled ||
-                          isSyncCartLoading ||
-                          isCartLoading ||
-                          fetchingAddressLoading ||
-                          isCartProcessing
-                        }
-                        disabled={
-                          isDisabled ||
-                          isSyncCartLoading ||
-                          isCartLoading ||
-                          fetchingAddressLoading ||
-                          isCartProcessing
-                        }
-                        onPress={async () => {
-                          dispatch(setCheckoutFlow(true));
-                          setIsDisabled(true);
-                          await syncCart({
-                            body: {},
-                            params: { userId: userId },
-                          })?.unwrap();
-                          const newCartData = await fetchCartData(
-                            { userId },
-                            false
-                          )?.unwrap();
-
-                          let changes = findCartChanges(cartData, newCartData);
-
-                          if (
-                            changes?.priceChanges.length > 0 ||
-                            changes?.removedItems.length > 0
-                          ) {
-                            showToast({
-                              type: "info",
-                              text2:
-                                "Items in your cart have changed. Please review before checkout.",
-                            });
-                            setIsDisabled(false);
-                          } else {
-                            await fetchAddress(
-                              {
-                                userId: userId,
-                              },
-                              true
-                            )?.unwrap();
-                            setIsDisabled(false);
-                            router.push({
-                              pathname: "/(address)/addressList",
-                            });
-                          }
-                        }}
-                        title={
-                          isCartProcessing
-                            ? "Processing your cart..."
-                            : `Continue To Checkout`
-                        }
-                      />
-                    </Suspense>
-                  </>
-                ) : null}
-
-                <View
-                  style={{
-                    paddingBottom:
-                      Platform.OS === "android"
-                        ? tabBarHeight === 0
-                          ? tabBarHeight + 45
-                          : tabBarHeight - 20
-                        : tabBarHeight === 0
-                        ? tabBarHeight + 10
-                        : tabBarHeight - 60,
-                  }}
-                />
-              </>
+              <Continue
+                cartData={cartData}
+                headerVisible={headerVisible}
+                tabBarHeight={tabBarHeight}
+                isCartProcessing={isCartProcessing}
+                userId={userId}
+              />
             </>
           )}
         </CustomSuspense>
@@ -232,7 +199,7 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 37,
+    // marginTop: 37,
     alignItems: "center",
     paddingBottom: 17,
   },

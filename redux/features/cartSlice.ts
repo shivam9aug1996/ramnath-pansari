@@ -30,9 +30,13 @@ export const cartApi = createApi({
         console.log("gfghjkl", JSON.stringify(response));
         if (response && Array.isArray(response?.cart?.items)) {
           // Filter out items that are out of stock
-          const filteredItems = response?.cart?.items?.filter(
-            (item) => !item.productDetails?.isOutOfStock
-          );
+          const filteredItems = response?.cart?.items
+            ?.filter((item) => !item.productDetails?.isOutOfStock)
+            ?.sort((a, b) => {
+              if (a.productDetails?.discountedPrice === 0) return 1;
+              if (b.productDetails?.discountedPrice === 0) return -1;
+              return 0;
+            });
 
           console.log(
             "Filtered and Reversed Response:",
@@ -69,7 +73,7 @@ export const cartApi = createApi({
         params: data?.params,
         body: data?.body,
       }),
-      invalidatesTags: ["cartList"],
+      //invalidatesTags: ["cartList"],
     }),
     syncCart: builder.mutation({
       query: (data) => ({

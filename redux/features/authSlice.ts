@@ -164,6 +164,13 @@ export const authApi = createApi({
         }
       },
     }),
+    deleteAccount: builder.mutation({
+      query: (data) => ({
+        url: "/profile",
+        method: "DELETE",
+        params: data,
+      }),
+    }),
   }),
 });
 
@@ -342,6 +349,7 @@ export const {
   useLogoutMutation,
   useUpdateProfileMutation,
   useLazyFetchProfileQuery,
+  useDeleteAccountMutation,
 } = authApi;
 
 export const { setAuth } = authSlice.actions;

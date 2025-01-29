@@ -2,7 +2,7 @@ import { Colors } from "@/constants/Colors";
 import { useFetchCartQuery } from "@/redux/features/cartSlice";
 import { CartItem, Product, RootState } from "@/types/global";
 import { FlashList } from "@shopify/flash-list";
-import React, { memo, useState } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -16,6 +16,14 @@ import NotFound from "../../(result)/NotFound";
 import Pagination from "./Pagination";
 
 import ProductItem from "./ProductItem";
+import {
+  Easing,
+  useAnimatedScrollHandler,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
+import { debounce, throttle } from "lodash";
 
 const ProductList3 = ({
   data,
@@ -24,6 +32,7 @@ const ProductList3 = ({
   isProductsFetching,
   isProductsLoading,
   paginationState,
+  headerVisible,
 }: {
   data: Product[];
   flatListRef: any;
@@ -31,6 +40,9 @@ const ProductList3 = ({
   isProductsFetching: boolean;
   isProductsLoading: boolean;
 }) => {
+  const lastScrollY = useSharedValue(0);
+  const SCROLL_THRESHOLD = 15;
+
   const [page, setPage] = useState(1);
 
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
@@ -42,7 +54,7 @@ const ProductList3 = ({
       skip: !userId,
     }
   );
-  console.log("product list------>");
+  console.log("product list------>", data);
 
   const hasNextPage = data?.currentPage < data?.totalPages;
   const totalCount = data?.totalResults;
@@ -58,7 +70,33 @@ const ProductList3 = ({
     ) : null;
   };
 
-  const renderProductItem = ({
+  // const renderProductItem = ({
+  //   item,
+  //   index,
+  // }: {
+  //   item: Product;
+  //   index: number;
+  // }) => {
+  //   const cartItem = cartData?.cart?.items?.find(
+  //     (it: CartItem) => it.productId === item._id
+  //   );
+
+  //   return (
+  //     <ProductItem
+  //       key={item?._id || index}
+  //       cartItem={cartItem}
+  //       item={item}
+  //       index={index}
+  //       isCartLoading={isCartLoading}
+  //       isProductsFetching={isProductsFetching}
+  //       paginationState={paginationState}
+  //     />
+  //   );
+  // };
+
+  // ... existing code ...
+
+  const renderProductItem = useCallback(({
     item,
     index,
   }: {
@@ -80,7 +118,9 @@ const ProductList3 = ({
         paginationState={paginationState}
       />
     );
-  };
+  }, [cartData, isCartLoading, isProductsFetching, paginationState]);
+
+  // ... existing code ...
 
   const renderEmptyComponent = () => {
     // if (
@@ -111,12 +151,95 @@ const ProductList3 = ({
     }));
   };
 
+  let lastOffset = 0;
+
+  const debouncedScroll = useMemo(
+    () =>
+      throttle((event) => {
+        if (event.nativeEvent) {
+          const currentOffset = event.nativeEvent.contentOffset.y;
+          console.log("currentOffset", currentOffset);
+          const contentHeight = event.nativeEvent.contentSize.height;
+          const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
+
+          if (
+            scrollViewHeight + currentOffset >= contentHeight - 10 &&
+            hasNextPage
+          ) {
+            headerVisible.value = 0;
+            return;
+          }
+
+          // Show header when scrolling up or at top
+          if (currentOffset < 200 || currentOffset < lastOffset) {
+            headerVisible.value = 1;
+          }
+          // Hide header when scrolling down
+          else if (currentOffset > lastOffset && currentOffset > 10) {
+            headerVisible.value = 0;
+          }
+
+          lastOffset = currentOffset;
+        }
+      }, 200), // 200ms debounce time
+    [hasNextPage]
+  );
+
+  const handleScroll = useCallback(
+    (event) => {
+      event?.persist();
+      debouncedScroll(event);
+    },
+    [debouncedScroll]
+  );
+
+  // const handleScroll = useCallback((event) => {
+  //   debounce(
+  //     (event) => {
+  //       const currentOffset = event.nativeEvent.contentOffset.y;
+  //       console.log("currentOffset", currentOffset);
+  //       const contentHeight = event.nativeEvent.contentSize.height; // Total height of the content
+  //       const scrollViewHeight = event.nativeEvent.layoutMeasurement.height; // Height of the visible area
+
+  //       if (
+  //         scrollViewHeight + currentOffset >= contentHeight - 10 &&
+  //         hasNextPage
+  //       ) {
+  //         headerVisible.value = 0;
+  //         return;
+  //       }
+
+  //       // Show header when scrolling up or at top
+  //       if (currentOffset < 200 || currentOffset < lastOffset) {
+  //         headerVisible.value = 1;
+  //       }
+  //       // Hide header when scrolling down
+  //       else if (currentOffset > lastOffset && currentOffset > 10) {
+  //         headerVisible.value = 0;
+  //       }
+
+  //       lastOffset = currentOffset;
+  //     },
+  //     2000,
+  //     event
+  //   );
+  // }, []);
+
+
+
   return (
     <FlatList
+      //getItemLayout={getItemLayout}
+      // bounces={false}
+      //removeClippedSubviews={true}
+      onScroll={handleScroll}
+      scrollEventThrottle={32}
       initialNumToRender={4}
+      maxToRenderPerBatch={4}
+      windowSize={2}
       ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
       //disableAutoLayout
-      extraData={cartData}
+      // extraData={cartData}
       ref={flatListRef}
       showsVerticalScrollIndicator={false}
       numColumns={2}
@@ -132,7 +255,8 @@ const ProductList3 = ({
       }}
       onEndReachedThreshold={0.1}
       ListFooterComponent={renderLoader}
-      ListFooterComponentStyle={{ paddingTop: 15 }}
+      ListFooterComponentStyle={{ paddingTop: 15, marginVertical: 15 }}
+      style={{ marginTop: 20 }}
     />
   );
 };
@@ -142,7 +266,7 @@ export default memo(ProductList3);
 const styles = StyleSheet.create({
   flatList: {
     // paddingBottom: Platform.OS === "android" ? 80 : 70,
-    paddingTop: 10,
+    paddingTop: 170,
   },
   emptyContainer: {
     justifyContent: "center",

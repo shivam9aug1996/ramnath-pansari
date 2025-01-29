@@ -1,49 +1,122 @@
 import { Colors } from "@/constants/Colors";
-import { AntDesign, FontAwesome5 } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { memo } from "react";
-import { View, Text, StyleSheet, Image, ScrollView } from "react-native";
-import { FlatList } from "react-native-gesture-handler";
-import { OrderStatus } from "../(order)/mock";
+import { View, Text, StyleSheet } from "react-native";
 import { convertDate, getOrderStatusTitle1 } from "../(order)/utils";
-import StepItem from "./StepItem";
+
+const getStatusStyle = (status: string) => {
+  const statusLower = status?.toLowerCase();
+  switch (statusLower) {
+    case 'confirmed':
+      return {
+        backgroundColor: '#E0F7FA',
+        iconColor: '#00ACC1',
+        textColor: '#00838F',
+        icon: 'checkbox-marked-circle-outline'
+      };
+    case 'out_for_delivery':
+      return {
+        backgroundColor: '#FFF7CD',
+        iconColor: '#FFB300',
+        textColor: '#F57F17',
+        icon: 'truck-delivery'
+      };
+    case 'delivered':
+      return {
+        backgroundColor: '#EBF4F1',
+        iconColor: '#2E7D32',
+        textColor: '#1B5E20',
+        icon: 'package-variant-closed'
+      };
+    case 'canceled':
+      return {
+        backgroundColor: '#F8ECEC',
+        iconColor: '#D32F2F',
+        textColor: '#B71C1C',
+        icon: 'close-circle'
+      };
+    default:
+      return {
+        backgroundColor: '#F5F5F5',
+        iconColor: '#757575',
+        textColor: '#616161',
+        icon: 'information'
+      };
+  }
+};
+
+const StepItem = ({
+  timestamp,
+  status,
+  index,
+  isLast
+}: {
+  timestamp: string;
+  status: string;
+  index: number;
+  isLast: boolean;
+}) => {
+  const statusStyle = getStatusStyle(status);
+
+  return (
+    <View style={styles.stepContainer}>
+      <View style={styles.timelineLeft}>
+        <View style={[
+          styles.iconContainer,
+          { backgroundColor: statusStyle.backgroundColor }
+        ]}>
+          <MaterialCommunityIcons
+            name={statusStyle.icon}
+            size={16}
+            color={statusStyle.iconColor}
+          />
+        </View>
+        {!isLast && <View style={[
+          styles.timelineLine,
+          { backgroundColor: statusStyle.backgroundColor }
+        ]} />}
+      </View>
+
+      <View style={styles.stepContent}>
+        <Text style={[
+          styles.stepStatus,
+          { color: statusStyle.textColor }
+        ]}>
+          {getOrderStatusTitle1(status)}
+        </Text>
+        <Text style={styles.stepDate}>
+          {convertDate(timestamp)}
+        </Text>
+      </View>
+    </View>
+  );
+};
 
 const StepOrderTracking = ({ trackingData }) => {
-  const renderItem = ({ item, index }) => {
-    const trackingDataLength = trackingData?.length || 0;
-    return (
-      <StepItem
-        timestamp={item?.timestamp}
-        status1={item?.status}
-        index={index}
-        trackingDataLength={trackingDataLength}
-      />
-    );
-  };
+  if (!trackingData?.length) return null;
 
   return (
     <View style={styles.container}>
-      {trackingData?.map((item, index) => {
-        const trackingDataLength = trackingData?.length || 0;
+      <View style={styles.header}>
+        <MaterialCommunityIcons
+          name="timeline-clock"
+          size={24}
+          color="#00ACC1"
+        />
+        <Text style={styles.heading}>Order Timeline</Text>
+      </View>
 
-        return (
+      <View style={styles.timelineContainer}>
+        {trackingData.map((item, index) => (
           <StepItem
             key={item?.timestamp + index}
             timestamp={item?.timestamp}
-            status1={item?.status}
+            status={item?.status}
             index={index}
-            trackingDataLength={trackingDataLength}
+            isLast={index === trackingData.length - 1}
           />
-        );
-      })}
-      {/* <ScrollView horizontal style={{ flex: 1 }}>
-        <FlatList
-          nestedScrollEnabled
-          data={trackingData}
-          renderItem={renderItem}
-          keyExtractor={(item, index) => index.toString()}
-          contentContainerStyle={{ marginTop: 20 }}
-        />
-      </ScrollView> */}
+        ))}
+      </View>
     </View>
   );
 };
@@ -51,57 +124,69 @@ const StepOrderTracking = ({ trackingData }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 0,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 24,
+  },
+  heading: {
+    fontFamily: "Raleway_700Bold",
+    fontSize: 20,
+    color: Colors.light.darkGrey,
+  },
+  timelineContainer: {
+    paddingLeft: 8,
   },
   stepContainer: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 0,
+    flexDirection: 'row',
+    marginBottom: 24,
   },
-  stepIndicatorContainer: {
-    width: 20,
-    alignItems: "center",
-    top: 3,
-    left: 20,
+  timelineLeft: {
+    alignItems: 'center',
+    width: 40,
   },
-  completedStep: {
-    width: 5,
-    height: 5,
-    borderRadius: 6,
-    backgroundColor: "#4CAF50", // Green for completed
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
   },
-  currentStep: {
-    width: 5,
-    height: 5,
-    borderRadius: 6,
-    // backgroundColor: "#FF9800", // Orange for current
-  },
-  stepLine: {
-    width: 1,
-    height: 45,
-    backgroundColor: "#4CAF50",
-    position: "absolute",
-    top: 12,
-    left: 9, // Center the line with the dot
-    opacity: 0.5,
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    position: 'absolute',
+    top: 32,
+    bottom: -24,
+    left: 15,
+    opacity: 0.3,
   },
   stepContent: {
-    marginLeft: 40,
-    // left: 30,
+    flex: 1,
+    paddingLeft: 12,
+    paddingTop: 4,
   },
   stepStatus: {
-    fontSize: 12,
-    color: Colors.light.darkGrey,
-    fontFamily: "Raleway_700Bold",
-    paddingBottom: 3,
-    textTransform: "capitalize",
+    fontFamily: "Raleway_600SemiBold",
+    fontSize: 15,
+    marginBottom: 4,
   },
   stepDate: {
-    fontSize: 10,
-    color: Colors.light.mediumLightGrey,
     fontFamily: "Montserrat_500Medium",
-    letterSpacing: 1,
+    fontSize: 13,
+    color: Colors.light.mediumGrey,
+    letterSpacing: 0.3,
   },
 });
 

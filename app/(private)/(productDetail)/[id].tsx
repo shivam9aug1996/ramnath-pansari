@@ -1,10 +1,13 @@
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
-import React from "react";
+import React, { Suspense, useCallback } from "react";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
-import { useLocalSearchParams } from "expo-router";
-import { useSelector } from "react-redux";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useDispatch, useSelector } from "react-redux";
 import { CartItem, RootState } from "@/types/global";
-import { useFetchProductDetailQuery } from "@/redux/features/productSlice";
+import {
+  setResetPagination,
+  useFetchProductDetailQuery,
+} from "@/redux/features/productSlice";
 import { Colors } from "@/constants/Colors";
 import { ThemedText } from "@/components/ThemedText";
 import { Image } from "expo-image";
@@ -13,6 +16,8 @@ import { useFetchCartQuery } from "@/redux/features/cartSlice";
 import CartButton from "./CartButton";
 import ContentLoader, { Rect } from "react-content-loader/native";
 import Animation from "./Animation";
+import CustomSuspense from "@/components/CustomSuspense";
+import GoToCart from "../(category)/ProductList/GoToCart";
 
 const renderText = () => {
   return (
@@ -36,6 +41,7 @@ const Product = () => {
     { productId: id },
     { skip: !id }
   );
+  const dispatch = useDispatch();
 
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   const { data: cartData, isLoading: isCartLoading } = useFetchCartQuery(
@@ -58,6 +64,25 @@ const Product = () => {
   const cartItem = cartData?.cart?.items?.find(
     (it: CartItem) => it?.productId === id
   );
+  console.log("hgnm,.", data);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (data?.product == null && router.canGoBack() && isSuccess) {
+        dispatch(
+          setResetPagination({
+            item: {
+              _id: id,
+            },
+            status: true,
+          })
+        );
+        router.back();
+      }
+
+      return () => {};
+    }, [data?.product, id])
+  );
 
   return (
     <>
@@ -69,7 +94,7 @@ const Product = () => {
             opacity: data?.product?.isOutOfStock ? 0.6 : 1,
           }}
         >
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 0.8 }}>
             {/* Product Image */}
             <Image
               source={{
@@ -80,7 +105,7 @@ const Product = () => {
               cachePolicy={"disk"}
             />
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 0.7, marginTop: 20 }}>
             {/* Product Details */}
             <View style={styles.textContainer}>
               {isFetching ? (
@@ -104,15 +129,27 @@ const Product = () => {
               )}
             </View>
           </View>
-          {isCartLoading || data?.product?.isOutOfStock || !isSuccess ? null : (
+          {isCartLoading ||
+          data?.product?.isOutOfStock ||
+          !isSuccess ||
+          data?.product == null ? null : (
             <CartButton value={cartItem?.quantity || 0} item={data?.product} />
           )}
         </View>
       </ScreenSafeWrapper>
-      <Animation
-        id={data?.product?._id}
-        isOutOfStock={data?.product?.isOutOfStock}
-      />
+
+      {data?.product?.isOutOfStock ? (
+        <Animation
+          id={data?.product?._id}
+          isOutOfStock={data?.product?.isOutOfStock}
+        />
+      ) : data?.product !== null ? (
+        // <CustomSuspense>
+        <Suspense fallback={null}>
+          <GoToCart />
+        </Suspense>
+      ) : // </CustomSuspense>
+      null}
     </>
   );
 };
@@ -152,7 +189,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 12,
     marginBottom: 20,
     width: "100%",
-    minHeight: 300,
+    minHeight: 200,
   },
   addToCartButton: {
     marginTop: 25,

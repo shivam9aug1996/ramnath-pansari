@@ -1,4 +1,4 @@
-import { CartItem } from "@/types/global";
+import { CartItem, Product, ProductDetails } from "@/types/global";
 
 export const calculateTotalAmount = (products: CartItem[] = []): number => {
   return products?.reduce((total, product) => {
@@ -61,6 +61,6 @@ export const findCartChanges = (prevCart, nextCart) => {
   return { priceChanges, removedItems };
 };
 
-export const findProductChanges = (prevCart, nextCart) => {
-  return prevCart?.discountedPrice !== nextCart?.discountedPrice;
+export const findProductChanges = (prevCart: Product, nextCart: Product) => {
+  return prevCart?.price !== nextCart?.price || prevCart?.image!== nextCart?.image || prevCart?.name!== nextCart?.name || prevCart?.discountedPrice!== nextCart?.discountedPrice
 };

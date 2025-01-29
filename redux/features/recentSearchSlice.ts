@@ -63,6 +63,7 @@ export const {
   useFetchRecentSearchQuery,
   useCreateRecentSearchMutation,
   useDeleteRecentSearchMutation,
+  useLazyFetchRecentSearchQuery,
 } = recentSearchApi;
 
 export default cartSlice.reducer;

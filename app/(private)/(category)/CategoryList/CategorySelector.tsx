@@ -12,6 +12,7 @@ const CategorySelector = ({
   categories,
   selectedCategory,
   onSelectCategory,
+  contentContainerStyle
 }: CategorySelectorProps) => {
   const [isPending, startTransition] = useTransition();
   const renderCategory = ({
@@ -35,7 +36,7 @@ const CategorySelector = ({
           // startTransition(() => {
           //   onSelectCategory?.(item);
           // });
-          onSelectCategory?.(item);
+          onSelectCategory?.(item, index);
         }}
         key={item?._id || index}
       >
@@ -57,6 +58,7 @@ const CategorySelector = ({
 
   return (
     <FlatList
+      contentContainerStyle={contentContainerStyle}
       data={categories}
       horizontal
       keyExtractor={(item) => item?._id}

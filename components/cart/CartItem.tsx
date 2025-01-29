@@ -13,7 +13,7 @@ const CartButton = lazy(() => import("./CartButton"));
 const CartItem = ({ item, order = false }: CartItemProps) => {
   const [itemHeight, setItemHeight] = useState(0);
 
-  console.log("jhgfdfghjkl cart item", JSON.stringify(item));
+  console.log("jhgfdfghjkl cart item", item?.productDetails?._id);
   const nDiscountP =
     ((item?.productDetails?.price - item?.productDetails?.discountedPrice) /
       item?.productDetails?.price) *
@@ -27,13 +27,24 @@ const CartItem = ({ item, order = false }: CartItemProps) => {
           const { height } = event.nativeEvent.layout;
           setItemHeight(height);
         }}
-        style={[styles.container]}
+        style={[
+          styles.container,
+          item?.productDetails?.discountedPrice == 0
+            ? {
+                borderWidth: 2,
+                borderColor: "#2cc3aa",
+              }
+            : {},
+        ]}
       >
         {nDiscountP ? (
           <View
             style={{
               position: "absolute",
-              backgroundColor: Colors.light.lightGreen,
+              backgroundColor:
+                item?.productDetails?.discountedPrice == 0
+                  ? "#967c8e"
+                  : Colors.light.lightGreen,
 
               zIndex: 1,
               paddingHorizontal: 8,
@@ -51,7 +62,9 @@ const CartItem = ({ item, order = false }: CartItemProps) => {
                 fontFamily: "Montserrat_700Bold",
               }}
             >
-              {`${discountP}%`}
+              {item?.productDetails?.discountedPrice == 0
+                ? "Free"
+                : `${discountP}%`}
             </Text>
           </View>
         ) : null}
@@ -101,11 +114,14 @@ const CartItem = ({ item, order = false }: CartItemProps) => {
           </View>
         ) : (
           <Suspense fallback={null}>
-            <CartButton
-              item={item}
-              value={item?.quantity || 0}
-              itemHeight={itemHeight}
-            />
+            {item?.productDetails?.discountedPrice == 0 ? null : (
+              <CartButton
+                key={item?.productDetails?._id}
+                item={item}
+                value={item?.quantity || 0}
+                itemHeight={itemHeight}
+              />
+            )}
           </Suspense>
         )}
       </ThemedView>
@@ -162,6 +178,20 @@ const styles = StyleSheet.create({
     // position: "absolute",
     // bottom: 0,
     // right: 0,
+  },
+  offerMessage: {
+    //backgroundColor: "#967c8e",
+    // marginBottom: 5,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 23,
+  },
+  offerText: {
+    color: "black",
+    fontSize: 14,
+    fontFamily: "Raleway_700Bold",
+    textAlign: "center",
+    letterSpacing: 0.5,
   },
 });
 

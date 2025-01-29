@@ -21,6 +21,11 @@ import CartIcon from "./CartIcon";
 import HeaderBackButton from "./HeaderBackButton";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  withTiming,
+} from "react-native-reanimated";
 
 interface ScreenSafeWrapperProps {
   children: ReactNode;
@@ -40,6 +45,8 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
   showSearchIcon = false,
   wrapperStyle = {},
   headerStyle = {},
+  headerVisible,
+  cartItems = undefined,
 }) => {
   console.log("uytrfghjk", showCartIcon);
   const WrapperComponent = useKeyboardAvoidingView
@@ -48,6 +55,21 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
   //const router = useRouter();
   const userId = useSelector((state: RootState) => state.auth?.userData?._id);
 
+  const animatedHeaderStyle = useAnimatedStyle(() => {
+    if (!headerVisible) return {};
+
+    return {
+      transform: [
+        {
+          translateY: withTiming(headerVisible.value === 0 ? 0 : 50, {
+            duration: 700,
+            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+          }),
+        },
+      ],
+    };
+  });
+  console.log("9876trdfghj", cartItems);
   return (
     <>
       <SafeAreaView style={[styles.container, wrapperStyle]}>
@@ -72,23 +94,27 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
           >
             {showBackButton && <HeaderBackButton />}
             {title && (
-              <View
-                style={{
-                  position: "absolute",
-                  alignItems: "center",
-                  alignSelf: "center",
-                  paddingHorizontal: 10,
-                  left: "25%",
-                  right: "25%",
-                }}
+              <Animated.View
+                style={[
+                  {
+                    position: "absolute",
+                    alignItems: "center",
+                    alignSelf: "center",
+                    paddingHorizontal: 10,
+                    left: "25%",
+                    right: "25%",
+                  },
+                  animatedHeaderStyle,
+                ]}
               >
                 <ThemedText type="screenHeader">{title}</ThemedText>
-              </View>
+              </Animated.View>
             )}
             {showSearchIcon && (
               <TouchableOpacity
                 onPress={() => {
                   router.push("/(search)/search");
+                  // router.push("/(private)/(tabs)/search");
                 }}
                 style={{
                   position: "absolute",
@@ -100,6 +126,21 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
                 <Ionicons name={"search"} size={25} color={"#777777"} />
               </TouchableOpacity>
             )}
+            {cartItems !== undefined && cartItems !== 0 ? (
+              <Animated.View
+                style={[
+                  {
+                    position: "absolute",
+                    right: 0,
+                    alignItems: "center",
+                    padding: 10,
+                  },
+                  animatedHeaderStyle,
+                ]}
+              >
+                <ThemedText type="screenHeader">{`${cartItems} items`}</ThemedText>
+              </Animated.View>
+            ) : null}
             {showCartIcon && <CartIcon />}
           </ThemedView>
           {children}

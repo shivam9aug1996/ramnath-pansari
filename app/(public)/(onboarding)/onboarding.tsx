@@ -5,13 +5,11 @@ import React, { useCallback, useRef, useState, useTransition } from "react";
 import AppIntroSlider from "react-native-app-intro-slider";
 import { onboardingSlides } from "./utils";
 import OnboardingItem from "@/components/onboarding/OnboardingItem";
-import CustomSuspense from "@/components/CustomSuspense";
-import { View } from "react-native";
 
 const Onboarding = () => {
   const [activeSlide, setActiveSlide] = useState(0);
   const route = useRouter();
-  const sliderRef = useRef<any>(null);
+  const sliderRef = useRef<AppIntroSlider>(null);
   const [isPending, startTransition] = useTransition();
 
   const renderItem = useCallback(
@@ -39,7 +37,7 @@ const Onboarding = () => {
     if (activeSlide === totalSlides - 1) {
       route.push("/login");
     } else {
-      sliderRef.current.goToSlide(activeSlide + 1);
+      sliderRef?.current?.goToSlide(activeSlide + 1);
       onSlideChange(activeSlide + 1);
     }
   }, [activeSlide]);

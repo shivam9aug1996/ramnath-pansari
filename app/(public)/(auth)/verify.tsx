@@ -8,5 +8,3 @@ const verify = () => {
 };
 
 export default verify;
-
-const styles = StyleSheet.create({});

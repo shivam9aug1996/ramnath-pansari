@@ -1,31 +1,32 @@
-import React from "react";
 import { Stack } from "expo-router";
 import { Colors } from "@/constants/Colors";
-export { ErrorBoundary } from "expo-router";
+import { Platform } from "react-native";
+
+const stackScreenOptions = {
+  headerShown: false,
+  headerShadowVisible: false,
+  headerStyle: {
+    backgroundColor: Colors.light.background,
+  },
+  headerTintColor: Colors.light.background,
+  animation: Platform?.OS === "ios" ? "simple_push" : "default",
+  animationDuration: 0,
+} as const;
+
+const nameScreenOptions = {
+  gestureEnabled: false,
+} as const;
 
 const AuthLayout = () => {
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        headerShadowVisible: false,
-        headerStyle: {
-          backgroundColor: Colors.light.background,
-        },
-        headerTintColor: Colors.light.background,
-      }}
-    >
+    <Stack screenOptions={stackScreenOptions}>
       <Stack.Screen name="login" />
       <Stack.Screen name="verify" />
-      <Stack.Screen
-        name="name"
-        options={{
-          gestureEnabled: false,
-        }}
-      />
+      <Stack.Screen name="name" options={nameScreenOptions} />
       <Stack.Screen name="terms" />
     </Stack>
   );
 };
 
+export { ErrorBoundary } from "expo-router";
 export default AuthLayout;

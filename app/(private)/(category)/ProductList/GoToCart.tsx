@@ -1,44 +1,94 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Colors } from "@/constants/Colors";
-import { PaginationProps, RootState } from "@/types/global";
-import { Platform } from "react-native";
 import { useSelector } from "react-redux";
 import { useFetchCartQuery } from "@/redux/features/cartSlice";
 import { router } from "expo-router";
-const GoToCart = ({}: any) => {
-  console.log("pagination------>");
-  const userId = useSelector((state: RootState) => state.auth?.userData?._id);
+import { calculateTotalAmount } from "@/components/cart/utils";
+import { formatNumber } from "@/utils/utils";
+import { Ionicons } from "@expo/vector-icons";
 
-  const cartButtonProductId = useSelector(
-    (state: RootState) => state.cart.cartButtonProductId
-  );
-  const {
-    data: cartData,
-    isLoading,
-    isSuccess,
-    error,
-    refetch,
-  } = useFetchCartQuery({ userId }, { skip: !userId });
+const GoToCart = ({ isCart }) => {
+  const userId = useSelector((state) => state.auth?.userData?._id);
+  const { data: cartData } = useFetchCartQuery({ userId }, { skip: !userId });
   const cartItems = cartData?.cart?.items?.length || 0;
+  const totalAmount = useMemo(
+    () => calculateTotalAmount(cartData?.cart?.items)?.toFixed(2),
+    [cartData?.cart?.items]
+  );
 
-  if (cartItems == 0) return null;
+  if (!cartItems) return null;
+
+  const remainingAmount = Math.max(1000 - (totalAmount || 0), 0);
+
+  if (isCart) {
+    return remainingAmount > 0 ? (
+      <View
+        style={[
+          styles.offerMessage,
+          {
+            borderRadius: 10,
+            marginBottom: 0,
+          },
+        ]}
+      >
+        <Text style={styles.offerText}>
+          {`Add items worth `}
+          <Text style={styles.remainingAmount}>{`₹${formatNumber(
+            remainingAmount
+          )}`}</Text>
+          {` to get 
+1 kg sugar free`}
+        </Text>
+      </View>
+    ) : (
+      <View
+        style={[
+          styles.offerMessage,
+          {
+            borderRadius: 10,
+            marginBottom: 0,
+          },
+        ]}
+      >
+        <Text style={styles.offerText}>
+          {"Congratulations! You are eligible for 1 kg sugar free! 🎉 "}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <TouchableOpacity
-      onPress={() => {
-        router.navigate("/(cartScreen)/cartScreen");
-      }}
-      style={{
-        backgroundColor: Colors.light.gradientGreen_2,
-        alignItems: "center",
-        paddingVertical: 20,
-      }}
+      onPress={() => router.navigate("/(cartScreen)/cartScreen")}
+      style={styles.cartButtonContainer}
     >
-      <Text
-        style={{ color: Colors.light.white, fontSize: 16, fontWeight: "bold" }}
-      >
-        {"Go to cart"}
-      </Text>
+      {remainingAmount > 0 ? (
+        <View style={styles.offerMessage}>
+          <Text style={styles.offerText}>
+            {`Add items worth `}
+            <Text style={styles.remainingAmount}>{`₹${formatNumber(
+              remainingAmount
+            )}`}</Text>
+            {` to get 1 kg sugar free`}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.offerMessage}>
+          <Text style={styles.offerText}>
+            {`Congratulations! You are eligible for 1 kg sugar free! 🎉 `}
+          </Text>
+        </View>
+      )}
+      <View style={styles.cartButton}>
+        <Text style={styles.cartText}>
+          {`${cartItems} Items | ₹${formatNumber(totalAmount)}`}
+        </Text>
+        <View style={styles.cartAction}>
+          <Ionicons name="bag-outline" size={18} color={Colors.light.white} />
+          <Text style={styles.cartActionText}>View Cart</Text>
+        </View>
+      </View>
     </TouchableOpacity>
   );
 };
@@ -46,65 +96,52 @@ const GoToCart = ({}: any) => {
 export default memo(GoToCart);
 
 const styles = StyleSheet.create({
-  paginationWrapper: {
-    //position: "absolute",
-    // bottom: -50,
-    // alignSelf: "center",
-    width: "100%",
-    //paddingHorizontal: 10,
-    // zIndex: 8,
-    //paddingVertical: 10,
-    // backgroundColor: "red",
-    // padding: 20,
+  cartButtonContainer: {
+    backgroundColor: Colors.light.white,
+    paddingVertical: 15,
+    paddingTop: 0,
   },
-  paginationContainer: {
-    flexDirection: "row",
-    // justifyContent: "space-between",
-    // alignItems: "center",
-    padding: 15,
-    backgroundColor: Colors.light.background,
-    borderRadius: 8,
-    shadowColor: Colors.light.darkGrey,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  button: {
-    backgroundColor: Colors.light.gradientGreen_2,
-    // paddingVertical: 10,
+  offerMessage: {
+    backgroundColor: "#967c8e",
+    marginBottom: 5,
     paddingHorizontal: 20,
-    borderRadius: 8,
-    marginBottom: 30,
-
-    // minWidth: 100,
+    paddingVertical: 8,
+  },
+  offerText: {
+    color: "white",
+    fontSize: 14,
+    fontFamily: "Raleway_700Bold",
+    textAlign: "center",
+    //letterSpacing: 0.3,
+  },
+  cartButton: {
+    backgroundColor: Colors.light.gradientGreen_1,
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    borderRadius: 20,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    marginHorizontal: 10,
   },
-  disabledButton: {
-    backgroundColor: Colors.light.lightGrey,
-  },
-  buttonText: {
+  cartText: {
     color: Colors.light.white,
     fontSize: 16,
     fontWeight: "bold",
   },
-  pageInfo: {
-    alignItems: "center",
-  },
-  pageText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: Colors.light.darkGrey,
-  },
-  loaderContainer: {
+  cartAction: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
   },
-  loadingText: {
-    marginLeft: 10,
+  cartActionText: {
+    color: Colors.light.white,
+    fontSize: 16,
+    marginLeft: 5,
+    fontFamily: "Raleway_700Bold",
+  },
+  remainingAmount: {
+    color: "#e2ea91",
     fontSize: 14,
-    color: Colors.light.darkGrey,
+    fontFamily: "Montserrat_700Bold",
   },
 });

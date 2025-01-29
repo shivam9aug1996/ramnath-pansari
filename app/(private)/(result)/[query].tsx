@@ -12,8 +12,12 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   searchApi,
   useFetchProductsBySearchQuery,
+  useLazyFetchProductsBySearchQuery,
 } from "@/redux/features/searchSlice";
-import { useCreateRecentSearchMutation } from "@/redux/features/recentSearchSlice";
+import {
+  useCreateRecentSearchMutation,
+  useLazyFetchRecentSearchQuery,
+} from "@/redux/features/recentSearchSlice";
 import { useFetchCartQuery } from "@/redux/features/cartSlice";
 import { FlashList } from "@shopify/flash-list";
 
@@ -27,7 +31,10 @@ import GoToCart from "../(category)/ProductList/GoToCart";
 import { Colors } from "@/constants/Colors";
 import { ThemedText } from "@/components/ThemedText";
 import { RootState, CartItem, Product } from "@/types/global";
-import { setResetPagination } from "@/redux/features/productSlice";
+import {
+  setResetPagination,
+  useLazyFetchProductsQuery,
+} from "@/redux/features/productSlice";
 
 const Result = () => {
   const { query } = useLocalSearchParams<{ query: string }>();
@@ -35,9 +42,12 @@ const Result = () => {
   const resetPagination = useSelector(
     (state: RootState) => state.product?.resetPagination
   );
+  const [fetchRecentSearch] = useLazyFetchRecentSearchQuery();
+
   const [page, setPage] = useState(1);
   const dispatch = useDispatch();
   const { data: cartData } = useFetchCartQuery({ userId }, { skip: !userId });
+  const [fetchProductsBySearch] = useLazyFetchProductsBySearchQuery();
 
   const { data, isFetching, error, isSuccess, isLoading } =
     useFetchProductsBySearchQuery(
@@ -50,19 +60,46 @@ const Result = () => {
   // Effects
   useEffect(() => {
     if (isSuccess && query) {
-      createRecentSearch({ body: { query, userId } });
+      createAndFetchRecentSearch();
     }
   }, [isSuccess, query, userId]);
 
+  const createAndFetchRecentSearch = async () => {
+    await createRecentSearch({ body: { query, userId } })?.unwrap();
+    await fetchRecentSearch({ userId }, false)?.unwrap();
+  };
+
   useEffect(() => {
-    if (resetPagination) {
-      setPage(1);
-      setTimeout(() => {
-        dispatch(searchApi.util.resetApiState());
-      }, 500);
-      dispatch(setResetPagination(false));
+    if (resetPagination?.status) {
+      let id = resetPagination?.item?._id;
+      let index = data?.results?.findIndex((item: any) => {
+        return item._id === id;
+      });
+      let limit = 10;
+      let page = Math.ceil((index + 1) / limit);
+      let mLimit = page * limit;
+      console.log("jhgee4567890", page, index);
+      fetchProductsBySearch(
+        {
+          query,
+          type: "autocomplete",
+          page: page,
+          limit: 10,
+          reset: true,
+        },
+        false
+      )
+        ?.unwrap()
+        ?.finally(() => {
+          dispatch(setResetPagination({ item: null, status: false }));
+        });
+
+      // setTimeout(() => {
+      //   dispatch(searchApi.util.resetApiState());
+      // }, 500);
+      //dispatch(setResetPagination(false));
     }
-  }, [resetPagination]);
+  }, [resetPagination?.status, query]);
 
   // Handlers
   const fetchNextPage = () => setPage((prev) => prev + 1);
@@ -126,6 +163,7 @@ const Result = () => {
           variant={2}
           onPress={() => router.back()}
           wrapperStyle={styles.textInputWrapper}
+          numberOfLines={1}
         />
         {isLoading ? (
           <ProductListPlaceholder />
@@ -135,6 +173,9 @@ const Result = () => {
           <View style={styles.container}>
             <FlatList
               //disableAutoLayout
+              initialNumToRender={4}
+              maxToRenderPerBatch={4}
+              windowSize={2}
               data={data?.results}
               extraData={cartData}
               renderItem={renderProductItem}

@@ -29,6 +29,7 @@ interface CustomTextInputProps {
   onBlur?: any;
   onFocus?: any;
   onLayout?: any;
+  numberOfLines?: any;
 }
 
 const CustomTextInput: React.FC<CustomTextInputProps> = ({
@@ -48,6 +49,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
   onBlur = () => {},
   onFocus = () => {},
   onLayout = () => {},
+  numberOfLines = 2,
 }) => {
   const focusTextInput = () => {
     if (textInputRef?.current) {
@@ -148,6 +150,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             size={20}
           />
           <TextInput
+            numberOfLines={numberOfLines}
             readOnly={true}
             selection={{ start: 0 }}
             editable={false}
@@ -185,6 +188,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             size={20}
           />
           <TextInput
+            numberOfLines={numberOfLines}
             onLayout={onLayout}
             onFocus={onFocus}
             onBlur={onBlur}
@@ -245,7 +249,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     fontSize: 16,
     paddingHorizontal: 20,
-    top: Platform.OS === "android" ? 23 : 19,
+    top: 19,
   },
   textInput: {
     ...(fonts.defaultNumber as any),

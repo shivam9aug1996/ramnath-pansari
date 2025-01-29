@@ -35,9 +35,9 @@ const DashboardHeader = ({ userName, profileImage, onProfilePress }) => {
       <View style={{ flex: 2 }}>
         <Text style={styles.greetingText}>
           {`Hey ${userName} `}
-          <Animated.View style={[animatedStyle]}>
+          {/* <Animated.View style={[animatedStyle, { backgroundColor: "red" }]}>
             <Text style={{ fontSize: 18 }}>👋</Text>
-          </Animated.View>
+          </Animated.View> */}
         </Text>
       </View>
       <TouchableOpacity

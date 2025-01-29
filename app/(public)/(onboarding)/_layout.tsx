@@ -11,5 +11,3 @@ const OnboardingLayout = () => {
 };
 
 export default OnboardingLayout;
-
-const styles = StyleSheet.create({});

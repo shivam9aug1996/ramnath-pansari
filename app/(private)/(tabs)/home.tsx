@@ -6,10 +6,7 @@ import ScrollHideHeader from "@/components/ScrollHideHeader";
 
 const home = () => {
   return (
-    <CustomSuspense fallback={null}>
-      <PrivateHome />
-      {/* <ScrollHideHeader /> */}
-    </CustomSuspense>
+    <PrivateHome />
   );
 };
 

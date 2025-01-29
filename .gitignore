@@ -11,6 +11,7 @@ npm-debug.*
 web-build/
 .env
 .ramnath-pansari-6aea0-firebase-adminsdk-5919t-26bc9e3ca4
+.ramnath-pansari-6aea0-firebase-adminsdk-5919t-9e66c5bdbb
 
 # macOS
 .DS_Store
@@ -20,4 +21,4 @@ web-build/
 
 expo-env.d.ts
 # @end expo-cli
-android/app/google-services.json
+# android/app/google-services.json

@@ -1,10 +1,10 @@
 import { showToast } from "@/utils/utils";
-import { Toast } from "toastify-react-native";
 import { clearAuthData } from "./features/authSlice";
 
 const handle401Middleware = (store: any) => (next: any) => (action: any) => {
   const status = action?.payload?.status;
   const errorMessage = action?.payload?.data?.error;
+  console.log("o987654rfghj",next);
   console.log(JSON.stringify(action));
   if (status === 401) {
     store.dispatch(clearAuthData());

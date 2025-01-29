@@ -19,6 +19,7 @@ const Animation: React.FC<AnimationProps> = ({
   itemHeight,
   id,
   handleClearAll,
+  buttonClicked,
 }) => {
   const cartButtonProductId = useSelector(
     (state: RootState) => state.cart.cartButtonProductId
@@ -42,8 +43,16 @@ const Animation: React.FC<AnimationProps> = ({
   if (!isLoading)
     return (
       <TouchableOpacity
-        style={{ position: "absolute", right: 0, top: -5 }}
+        style={{
+          position: "absolute",
+          right: 0,
+          top: -5,
+          // backgroundColor: "red",
+          paddingLeft: 10,
+          paddingBottom: 10,
+        }}
         onPress={handleClearAll}
+        disabled={buttonClicked?.current}
       >
         <Entypo
           name="circle-with-cross"

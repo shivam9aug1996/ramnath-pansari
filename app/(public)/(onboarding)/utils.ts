@@ -1,5 +1,4 @@
 import { OnboardingSlide } from "@/types/global";
-console.log("hi7654567890-");
 export const onboardingSlides: OnboardingSlide[] = [
   {
     key: 1,

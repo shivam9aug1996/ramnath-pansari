@@ -10,7 +10,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 
 const CartButton = ({ item, value, itemHeight }: any) => {
-  const { quantity, handleAdd, handleRemove, handleClearAll } =
+  const { quantity, handleAdd, handleRemove, handleClearAll, buttonClicked } =
     useCartOperations(item?.productDetails, value);
 
   return (
@@ -19,6 +19,7 @@ const CartButton = ({ item, value, itemHeight }: any) => {
         itemHeight={itemHeight}
         id={item?.productDetails?._id}
         handleClearAll={handleClearAll}
+        buttonClicked={buttonClicked}
       />
 
       <View style={[styles.quantityContainer]}>

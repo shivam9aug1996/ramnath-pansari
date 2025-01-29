@@ -138,6 +138,7 @@ const usePayment = () => {
               body: {},
               params: { userId },
             }).unwrap();
+            await fetchCartData({ userId }, false)?.unwrap();
             console.log("payment verified");
             if (verifyResponse?.orderId) {
               router.dismissAll();
@@ -193,6 +194,7 @@ const usePayment = () => {
         body: {},
         params: { userId },
       }).unwrap();
+      await fetchCartData({ userId }, false)?.unwrap();
       dispatch(setOrderSuccessView(true));
       router.dismissAll();
       setTimeout(() => {

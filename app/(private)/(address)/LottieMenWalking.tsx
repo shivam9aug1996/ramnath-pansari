@@ -9,9 +9,11 @@ import Animated, {
 } from "react-native-reanimated";
 import { Colors } from "@/constants/Colors";
 import { Keyboard, View } from "react-native";
+let lot = require("../../../assets/lottie/delivery.json");
 
 export default function LottieMenWalking() {
   const [isVisible, setIsVisible] = useState(true);
+  const [start, setStart] = useState(false);
   const opacity = useSharedValue(1);
 
   useEffect(() => {
@@ -19,13 +21,17 @@ export default function LottieMenWalking() {
     const keyboardDismissTimer = setTimeout(() => {
       Keyboard.dismiss();
     }, 100);
+    const keyboardDismissTimer3 = setTimeout(() => {
+      setStart(true);
+    }, 500);
     const keyboardDismissTimer2 = setTimeout(() => {
       setIsVisible(false);
-    }, 1500);
+    }, 2000);
 
     return () => {
       clearTimeout(keyboardDismissTimer);
       clearTimeout(keyboardDismissTimer2);
+      clearTimeout(keyboardDismissTimer3);
     };
   }, []);
 
@@ -59,7 +65,7 @@ export default function LottieMenWalking() {
       ]}
     >
       <LottieView
-        autoPlay
+        autoPlay={start}
         style={{
           width: "100%",
           height: "100%",
@@ -68,7 +74,7 @@ export default function LottieMenWalking() {
         // source={{
         //   uri: "https://res.cloudinary.com/dc2z2c3u8/raw/upload/v1732823539/delivery-guy_ljwyy3.json",
         // }}
-        source={require("../../../assets/lottie/delivery.json")}
+        source={lot}
       />
     </View>
   );

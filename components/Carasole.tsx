@@ -7,13 +7,15 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Carousel from "react-native-reanimated-carousel";
+// import Carousel from "react-native-reanimated-carousel";
 import Animated, { useSharedValue } from "react-native-reanimated";
 import Pagi from "./Pagi";
 import { router } from "expo-router";
 import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
 import { useSelector } from "react-redux";
 import { RootState } from "@/types/global";
+import { staticImage } from "@/app/(private)/(category)/CategoryList/utils";
+import Carousel from "pinar";
 
 const carouselData = [
   {
@@ -48,6 +50,8 @@ function Carasole() {
     { skip: !token }
   );
 
+
+
   return (
     <View style={{ flex: 1 }}>
       <View
@@ -60,22 +64,36 @@ function Carasole() {
         }}
       >
         <Carousel
-          panGestureHandlerProps={{
-            activeOffsetX: [-10, 10],
+
+          onIndexChanged={(index) => {
+            console.log("index", index);
+            currentIndex.value = index.index;
           }}
+          mergeStyles
+          horizontal
+
+          showsDots={false}
+          showsControls={false}
+          // panGestureHandlerProps={{
+          //   activeOffsetX: [-10, 10],
+          // }}
+          autoplay={true}
           loop
           width={width}
           height={width / 2}
-          autoPlay={true}
-          data={carouselData}
-          scrollAnimationDuration={1000}
-          onSnapToItem={(index) => {
-            currentIndex.value = index; // Update shared value
-          }}
-          renderItem={({ item, index }) => (
-            <Pressable
+        // autoPlay={true}
+        // data={carouselData}
+        // scrollAnimationDuration={1500}
+        // onSnapToItem={(index) => {
+        //   currentIndex.value = index; // Update shared value
+        // }}
+
+        >
+          {carouselData?.map((item, index) => {
+            return <Pressable
               key={item?.id}
               onPress={() => {
+                console.log("carsole_pressed", item);
                 const selectedCategory = item?.category;
                 let selectedIndex = 0;
                 let parentCategory = null;
@@ -96,6 +114,7 @@ function Carasole() {
                     selectedCategoryIdIndex: selectedIndex,
                   },
                 });
+
               }}
               style={{
                 flex: 1,
@@ -105,7 +124,7 @@ function Carasole() {
             >
               <Image
                 source={{
-                  uri: item?.image,
+                  uri: item?.image || staticImage,
                 }}
                 style={{
                   height: width / 2,
@@ -115,8 +134,8 @@ function Carasole() {
                 contentFit={"cover"}
               />
             </Pressable>
-          )}
-        />
+          })}
+        </Carousel>
       </View>
       <Pagi data={carouselData} currentIndex={currentIndex} />
     </View>

@@ -9,6 +9,7 @@ const SubCategorySelector = ({
   selectedSubCategory,
   onSelectSubCategory,
   subCatFlatListRef,
+  contentContainerStyle
 }: SubCategorySelectorProps) => {
   console.log("sub category selector----->");
   const [isPending, startTransition] = useTransition();
@@ -58,6 +59,7 @@ const SubCategorySelector = ({
 
   return (
     <FlatList
+      contentContainerStyle={contentContainerStyle}
       ref={subCatFlatListRef}
       data={subCategories}
       horizontal

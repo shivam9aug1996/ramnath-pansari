@@ -2,6 +2,7 @@ import React, {
   lazy,
   memo,
   Suspense,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -13,6 +14,7 @@ import {
   productApi,
   setResetPagination,
   useFetchProductsQuery,
+  useLazyFetchProductsQuery,
 } from "@/redux/features/productSlice";
 import { RootState } from "@/types/global";
 import { scrollToTop } from "./utils";
@@ -21,9 +23,16 @@ import ProductsPlaceholder from "./ProductListPlaceholder";
 import ProductList3 from "./ProductList3";
 import CustomSuspense from "@/components/CustomSuspense";
 import { Colors } from "@/constants/Colors";
+import { useFocusEffect, usePathname } from "expo-router";
 // const ProductList3 = lazy(() => import("./ProductList3"));
 
-const Products = ({ isCategoryFetching }: { isCategoryFetching: boolean }) => {
+const Products = ({
+  isCategoryFetching,
+  headerVisible,
+}: {
+  isCategoryFetching: boolean;
+}) => {
+  const pathname = usePathname();
   const selectedSubCategory = useSelector(
     (state: RootState) => state.product.selectedSubCategoryId
   );
@@ -53,11 +62,14 @@ const Products = ({ isCategoryFetching }: { isCategoryFetching: boolean }) => {
       page: paginationState.page,
       limit: 10,
       reset: paginationState.reset,
+      //counter: 1,
     },
     {
       skip: !paginationState.categoryId,
     }
   );
+
+  const [fetchProducts] = useLazyFetchProductsQuery();
 
   useEffect(() => {
     if (selectedSubCategory) {
@@ -92,25 +104,58 @@ const Products = ({ isCategoryFetching }: { isCategoryFetching: boolean }) => {
   //     setLoad(false);
   //   }
   // }, [load]);
+  console.log("98765redfghjk", pathname, selectedSubCategory, pathname);
 
-  useEffect(() => {
-    if (resetPagination) {
-      setPaginationState({
-        ...paginationState,
-        categoryId: selectedSubCategory?._id,
-        page: 1,
-      });
-      setTimeout(() => {
-        dispatch(productApi.util.resetApiState());
-      }, 500);
-      dispatch(setResetPagination(false));
-    }
-  }, [resetPagination]);
+  useFocusEffect(
+    useCallback(() => {
+      if (resetPagination?.status) {
+        // refetch();
+        console.log("876trdfghjk", resetPagination);
+        let id = resetPagination?.item?._id;
+        let index = data?.products?.findIndex((item: any) => {
+          return item._id === id;
+        });
+        let limit = 10;
+        let page = Math.ceil((index + 1) / limit);
+        let mLimit = page * limit;
+        console.log("index", index, page);
+        fetchProducts(
+          {
+            categoryId: selectedSubCategory?._id,
+            page: page,
+            limit: 10,
+            //limit: mLimit + 6,
+          },
+          false
+        )
+          ?.unwrap()
+          ?.finally(() => {
+            dispatch(setResetPagination({ item: null, status: false }));
+          });
+        // setPaginationState({
+        //   ...paginationState,
+        //   categoryId: selectedSubCategory?._id,
+        //   page: page,
+        //   reset: true,
+        //   counter: paginationState.counter + 1,
+        // });
+        // setTimeout(() => {
+        //   dispatch(productApi.util.resetApiState());
+        // }, 500);
+        //dispatch(setResetPagination(false));
+      }
+      return () => {};
+    }, [resetPagination?.status, data])
+  );
+
+  // useEffect(() => {
+
+  // }, [resetPagination?.status, data, pathname, selectedSubCategory?._id]);
 
   if (isProductError) {
     return <TryAgain refetch={refetch} />;
   }
-  console.log("products------>");
+  console.log("products------>", headerVisible);
 
   return (
     <View
@@ -123,9 +168,11 @@ const Products = ({ isCategoryFetching }: { isCategoryFetching: boolean }) => {
       isProductsLoading ? (
         // ||
         // (isProductsFetching && paginationState.page == 1)
-        <ProductsPlaceholder />
+        <ProductsPlaceholder wrapperStyle={{ paddingTop: 180 }} />
       ) : (
-        <CustomSuspense fallback={<ProductsPlaceholder />}>
+        <CustomSuspense
+          fallback={<ProductsPlaceholder wrapperStyle={{ paddingTop: 180 }} />}
+        >
           {isProductsFetching && paginationState.page == 1 && (
             <View
               style={{
@@ -153,6 +200,7 @@ const Products = ({ isCategoryFetching }: { isCategoryFetching: boolean }) => {
               isProductsFetching={isProductsFetching}
               isProductsLoading={isProductsLoading}
               paginationState={paginationState}
+              headerVisible={headerVisible}
             />
           )}
         </CustomSuspense>

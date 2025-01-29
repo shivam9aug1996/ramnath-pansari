@@ -3,7 +3,7 @@ import React, { memo } from "react";
 import ContentLoader, { Rect } from "react-content-loader/native";
 import { categoryListPlaceholder } from "./utils";
 
-const SubCategorySelectorPlaceholder = () => {
+const SubCategorySelectorPlaceholder = ({ contentContainerStyle }) => {
   const renderLoader = (index: number) => {
     return (
       <ContentLoader
@@ -28,6 +28,7 @@ const SubCategorySelectorPlaceholder = () => {
 
   return (
     <FlatList
+      contentContainerStyle={contentContainerStyle}
       data={categoryListPlaceholder[0].children}
       horizontal
       keyExtractor={(item) => item._id}

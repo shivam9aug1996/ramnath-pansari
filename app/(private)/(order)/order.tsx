@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import OrderComp from "./OrderComp";
 import Push from "./Push";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
@@ -25,6 +25,7 @@ import { router } from "expo-router";
 import OrderListPlaceHolder from "./OrderListPlaceHolder";
 import CustomSuspense from "@/components/CustomSuspense";
 import { formatNumber } from "@/utils/utils";
+import OrderItem from "./OrderItem";
 
 const Order = () => {
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
@@ -51,119 +52,90 @@ const Order = () => {
     setPage((prev) => prev + 1);
   };
 
+
   // const renderProductItem = ({ item, index }: { item: any; index: number }) => {
-  //   console.log(
-  //     "765redfghjkl",
-  //     item?.productCount,
-  //     item?.imgArr?.length,
-  //     item?.productCount - item?.imgArr?.length
-  //   );
+  //   let status = item?.orderHistory[0]?.status;
+  //   const backgroundColor =
+  //     status === "out_for_delivery"
+  //       ? "#FFF7CD"
+  //       : status === "confirmed"
+  //         ? "#E0F7FA"
+  //         : status === "canceled"
+  //           ? "#F8ECEC"
+  //           : "#EBF4F1";
+  //   const statusCircleColor =
+  //     status === "out_for_delivery"
+  //       ? "#FFCC00" // Yellow for out for delivery
+  //       : status === "confirmed"
+  //         ? "#00B0FF" // Blue for confirmed
+  //         : status === "canceled"
+  //           ? "#FF6B6B" // Red for canceled
+  //           : "#4CAF50"; // Green for delivered
+  //   const statusOuterCircleColor =
+  //     status === "out_for_delivery"
+  //       ? "#FFF0BA" // Lighter yellow for outer circle
+  //       : status === "confirmed"
+  //         ? "#B3E5FC" // Lighter blue for outer circle
+  //         : status === "canceled"
+  //           ? "#FAD4D4" // Lighter red for outer circle
+  //           : "#C8E6C9";
+
+  //   console.log("kjgfghjkl", item);
+  //   const imgCount = item?.imgArr?.length >= 3 ? 3 : item?.imgArr?.length || 0;
+  //   const countToShow = item?.totalProductCount - imgCount;
   //   return (
-  //     <View
-  //       style={{
-  //         flexDirection: "row",
-  //         // borderWidth: 1,
-  //         padding: 10,
-  //         backgroundColor: Colors.light.softGrey_1,
-  //         borderRadius: 23,
-  //         flex: 1,
-  //         justifyContent: "space-between",
+  //     <TouchableOpacity
+  //       key={item?._id || index}
+  //       onPress={() => {
+  //         router.navigate(`/(orderDetail)/${item?._id}?prevStatus=${status}`);
   //       }}
+  //       style={[
+  //         styles.itemContainer,
+  //         {
+  //           backgroundColor: backgroundColor,
+  //         },
+  //       ]}
   //     >
-  //       <ImageDisplay
-  //         count={item?.totalProductCount - item?.imgArr?.length}
-  //         images={item?.imgArr || []}
-  //       />
-  //       <View style={{ flex: 1 }}>
-  //         <Text style={styles.title}>{getOrderStatusTitle(item)}</Text>
-  //         <Text>{item?.totalProductCount}</Text>
-  //         <Text style={styles.totalAmount}>{`₹ ${item?.amountPaid}`}</Text>
+  //       {/* Image Section */}
+  //       <ImageDisplay count={countToShow} images={item?.imgArr || []} />
+
+  //       {/* Text Section */}
+  //       <View style={styles.itemContent}>
+  //         <View style={styles.statusWrapper}>
+  //           {/* Status Circle */}
+  //           <View
+  //             style={[
+  //               styles.statusCircle,
+  //               {
+  //                 backgroundColor: statusCircleColor,
+  //                 borderColor: statusOuterCircleColor,
+  //               },
+  //             ]}
+  //           />
+  //           <Text style={styles.orderStatus}>{getOrderStatusTitle(item)}</Text>
+  //         </View>
+
+  //         <View style={styles.detailsWrapper}>
+  //           <Text style={styles.productCountText}>
+  //             {`Items: ${item?.totalProductCount}`}
+  //           </Text>
+  //           <Text style={styles.amountText}>{`₹${formatNumber(
+  //             item?.amountPaid
+  //           )}`}</Text>
+  //         </View>
   //       </View>
-  //     </View>
+  //       <MaterialIcons
+  //         style={{ paddingLeft: 10 }}
+  //         name="navigate-next"
+  //         size={18}
+  //         color={Colors.light.mediumGrey}
+  //       />
+  //     </TouchableOpacity>
   //   );
   // };
-
-  const renderProductItem = ({ item, index }: { item: any; index: number }) => {
-    let status = item?.orderHistory[0]?.status;
-    const backgroundColor =
-      status === "out_for_delivery"
-        ? "#FFF7CD"
-        : status === "confirmed"
-        ? "#E0F7FA"
-        : status === "canceled"
-        ? "#F8ECEC"
-        : "#EBF4F1";
-    const statusCircleColor =
-      status === "out_for_delivery"
-        ? "#FFCC00" // Yellow for out for delivery
-        : status === "confirmed"
-        ? "#00B0FF" // Blue for confirmed
-        : status === "canceled"
-        ? "#FF6B6B" // Red for canceled
-        : "#4CAF50"; // Green for delivered
-    const statusOuterCircleColor =
-      status === "out_for_delivery"
-        ? "#FFF0BA" // Lighter yellow for outer circle
-        : status === "confirmed"
-        ? "#B3E5FC" // Lighter blue for outer circle
-        : status === "canceled"
-        ? "#FAD4D4" // Lighter red for outer circle
-        : "#C8E6C9";
-
-    console.log("kjgfghjkl", item);
-    const imgCount = item?.imgArr?.length >= 3 ? 3 : item?.imgArr?.length || 0;
-    const countToShow = item?.totalProductCount - imgCount;
-    return (
-      <TouchableOpacity
-        key={item?._id || index}
-        onPress={() => {
-          router.navigate(`/(orderDetail)/${item?._id}`);
-        }}
-        style={[
-          styles.itemContainer,
-          {
-            backgroundColor: backgroundColor,
-          },
-        ]}
-      >
-        {/* Image Section */}
-        <ImageDisplay count={countToShow} images={item?.imgArr || []} />
-
-        {/* Text Section */}
-        <View style={styles.itemContent}>
-          <View style={styles.statusWrapper}>
-            {/* Status Circle */}
-            <View
-              style={[
-                styles.statusCircle,
-                {
-                  backgroundColor: statusCircleColor,
-                  borderColor: statusOuterCircleColor,
-                },
-              ]}
-            />
-            <Text style={styles.orderStatus}>{getOrderStatusTitle(item)}</Text>
-          </View>
-
-          <View style={styles.detailsWrapper}>
-            <Text style={styles.productCountText}>
-              {`Items: ${item?.totalProductCount}`}
-            </Text>
-            <Text style={styles.amountText}>{`₹${formatNumber(
-              item?.amountPaid
-            )}`}</Text>
-          </View>
-        </View>
-        <MaterialIcons
-          style={{ paddingLeft: 10 }}
-          name="navigate-next"
-          size={18}
-          color={Colors.light.mediumGrey}
-        />
-      </TouchableOpacity>
-    );
-  };
-
+  const renderProductItem = useCallback(({ item, index }: { item: any; index: number }) => {
+    return <OrderItem key={item?._id || index} item={item} index={index} />;
+  }, []);
   console.log("8765redfghjk", JSON.stringify(orderData));
   return (
     <ScreenSafeWrapper title="My Orders">

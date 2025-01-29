@@ -1,9 +1,9 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import React, { lazy, Suspense } from "react";
-import { useLocalSearchParams } from "expo-router";
+import React, { lazy, Suspense, useEffect } from "react";
+import { router, useLocalSearchParams } from "expo-router";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
-import { useFetchOrderDetailQuery } from "@/redux/features/orderSlice";
-import { useSelector } from "react-redux";
+import { orderApi, useFetchOrderDetailQuery } from "@/redux/features/orderSlice";
+import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import { Colors } from "@/constants/Colors";
 import StepOrderTracking from "./StepOrderTracking";
@@ -18,6 +18,11 @@ import AddressItem from "./AddressItem";
 // const StepOrderTracking = lazy(() => import("./StepOrderTracking"));
 import ContentLoader, { Rect } from "react-content-loader/native";
 import { formatNumber } from "@/utils/utils";
+import { calculateSavingsAndFreebies } from "./utils";
+import SavingsAndFreebies from "./SavingsAndFreebies";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import PaymentDetailItem from "./PaymentDetailItem";
+import OrderDetailItem from "./OrderDetailItem";
 
 const renderText = () => {
   return (
@@ -33,12 +38,14 @@ const renderText = () => {
   );
 };
 const OrderDetail = () => {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, prevStatus } = useLocalSearchParams<{ id: string, prevStatus: string }>();
+  console.log("prevOrderStatus", prevStatus, id);
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
-  const { data, isFetching } = useFetchOrderDetailQuery(
+  const { data, isFetching, isSuccess } = useFetchOrderDetailQuery(
     { orderId: id, userId },
     { skip: !id }
   );
+  const dispatch = useDispatch();
   const itemsOrdered = data?.orderData?.cartData?.cart?.items || [];
 
   console.log("Order Data:", JSON.stringify(data));
@@ -64,10 +71,29 @@ const OrderDetail = () => {
     status === "out_for_delivery"
       ? "#FFF7CD"
       : status === "confirmed"
-      ? "#E0F7FA"
-      : status === "canceled"
-      ? "#F8ECEC"
-      : "#EBF4F1";
+        ? "#E0F7FA"
+        : status === "canceled"
+          ? "#F8ECEC"
+          : "#EBF4F1";
+  const cartItems = data?.orderData?.cartData?.cart?.items || [];
+
+
+
+  const { totalOriginalPrice, freebieValue, freebies } = calculateSavingsAndFreebies(cartItems);
+  console.log("totalOriginalPrice", totalOriginalPrice, "freebies", freebies);
+  const regularSavings = totalOriginalPrice - data?.orderData?.amountPaid;
+
+  useEffect(() => {
+    if (prevStatus !== orderStatus && isSuccess && data?.orderData?.cartData?.cart) {
+      dispatch(
+        orderApi.util.invalidateTags([
+          { type: "orderList", id: userId },
+        ])
+      );
+
+    }
+  }, [prevStatus, orderStatus, isSuccess, data, userId]);
+
   return (
     <ScreenSafeWrapper showCartIcon>
       <CustomSuspense>
@@ -80,7 +106,7 @@ const OrderDetail = () => {
             <OrderDetailPlaceholder />
           ) : (
             <>
-              <View style={{ flexDirection: "column" }}>
+              {/* <View style={{ flexDirection: "column" }}>
                 <Text style={[styles.heading, { marginTop: 0 }]}>
                   Order Detail
                 </Text>
@@ -110,8 +136,8 @@ const OrderDetail = () => {
                   />
                   <View style={{ flex: 1 }}></View>
                 </View>
-              </View>
-              <View style={{ flexDirection: "column" }}>
+              </View> */}
+              {/* <View style={{ flexDirection: "column" }}>
                 <Text style={[styles.heading, { marginTop: 35 }]}>
                   Payment Detail
                 </Text>
@@ -130,13 +156,73 @@ const OrderDetail = () => {
                     textColor={Colors.light.mediumGrey}
                   />
                 </View>
+              </View> */}
+
+              <View style={styles.orderDetailSection}>
+                <View style={styles.sectionHeader}>
+                  {/* <MaterialCommunityIcons
+                    name="package-variant-closed"
+                    size={24}
+                    color={Colors.light.darkGreen}
+                  /> */}
+                  <Text style={styles.heading}>Order Detail</Text>
+                </View>
+
+                <View style={styles.orderDetailsGrid}>
+                  <OrderDetailItem
+                    label="Status"
+                    value={orderStatus}
+                    icon="checkbox-marked-circle-outline"
+                    isStatus={true}
+                  />
+                  <OrderDetailItem
+                    label="Purchase Date"
+                    value={convertDate(orderStatusData?.timestamp)}
+                    icon="calendar"
+                  />
+                  <OrderDetailItem
+                    label="Order ID"
+                    value={data?.orderData?.orderId}
+                    icon="pound"
+                  />
+                </View>
               </View>
-              <Text style={[styles.heading, { marginTop: 35 }]}>
-                Address Detail
-              </Text>
+              <View style={styles.paymentSection}>
+                <View style={styles.sectionHeader}>
 
-              <AddressItem addressData={data?.orderData?.addressData} />
+                  <Text style={[styles.heading, { color: Colors.light.darkGrey }]}>
+                    Payment Detail
+                  </Text>
+                </View>
 
+                <View style={styles.paymentCard}>
+                  <PaymentDetailItem
+                    label="Amount Paid"
+                    value={amountPaid}
+                    icon="cash-multiple"
+                  />
+                  <View style={styles.divider} />
+                  <PaymentDetailItem
+                    label="Payment Mode"
+                    value={tData?.method}
+                    icon="credit-card-outline"
+                  />
+                </View>
+              </View>
+              {(regularSavings > 0 || freebies.length > 0) && (
+                <SavingsAndFreebies
+                  regularSavings={regularSavings}
+                  freebies={freebies}
+                />
+              )}
+              <View style={styles.addressSection}>
+                <View style={styles.sectionHeader}>
+
+                  <Text style={styles.heading}>Address Detail</Text>
+                </View>
+
+                <AddressItem addressData={data?.orderData?.addressData} />
+              </View>
               <Text
                 style={[styles.heading, { marginTop: 35, marginBottom: 20 }]}
               >
@@ -145,6 +231,7 @@ const OrderDetail = () => {
               <CustomSuspense fallback={null}>
                 <StepOrderTracking trackingData={trackingData} />
               </CustomSuspense>
+
               <CustomSuspense fallback={null}>
                 <OrderedItems itemsOrdered={itemsOrdered} />
               </CustomSuspense>
@@ -174,18 +261,18 @@ const DetailItem = ({
     status === "out_for_delivery"
       ? "#FFCC00" // Yellow for out for delivery
       : status === "confirmed"
-      ? "#00B0FF" // Blue for confirmed
-      : status === "canceled"
-      ? "#FF6B6B" // Red for canceled
-      : "#4CAF50"; // Green for delivered
+        ? "#00B0FF" // Blue for confirmed
+        : status === "canceled"
+          ? "#FF6B6B" // Red for canceled
+          : "#4CAF50"; // Green for delivered
   const statusOuterCircleColor =
     status === "out_for_delivery"
       ? "#FFF0BA" // Lighter yellow for outer circle
       : status === "confirmed"
-      ? "#B3E5FC" // Lighter blue for outer circle
-      : status === "canceled"
-      ? "#FAD4D4" // Lighter red for outer circle
-      : "#C8E6C9";
+        ? "#B3E5FC" // Lighter blue for outer circle
+        : status === "canceled"
+          ? "#FAD4D4" // Lighter red for outer circle
+          : "#C8E6C9";
   return (
     <View style={styles.detailItemContainer}>
       <Text style={styles.label}>{label}</Text>
@@ -212,12 +299,7 @@ const DetailItem = ({
 export default OrderDetail;
 
 const styles = StyleSheet.create({
-  heading: {
-    fontFamily: "Raleway_700Bold",
-    fontSize: 20,
-    color: Colors.light.darkGreen,
-    marginTop: 20,
-  },
+
   detailsContainer: {
     flexDirection: "row",
     gap: 15,
@@ -291,5 +373,51 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginRight: 8,
     borderWidth: 3,
+  },
+  paymentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  paymentCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginVertical: 16,
+  },
+  orderDetailSection: {
+    marginTop: 25,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  heading: {
+    fontFamily: "Raleway_700Bold",
+    fontSize: 20,
+    color: Colors.light.darkGrey,
+  },
+  orderDetailsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  paymentSection: {
+    marginTop: 35,
+  },
+  addressSection: {
+    marginTop: 35,
   },
 });

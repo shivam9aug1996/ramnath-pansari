@@ -26,6 +26,9 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { debounce } from "lodash";
 import CustomSuspense from "@/components/CustomSuspense";
 import GoogleMapWebView from "@/components/MapWebView/GoogleMapWebView";
+import isWithinDeliveryRadius from "./utils";
+import { showToast } from "@/utils/utils";
+import { Colors } from "@/constants/Colors";
 
 interface LocationData {
   city: string;
@@ -190,7 +193,28 @@ const MapSelect: React.FC = () => {
     }
   }, [region]);
 
+  const handleLocationSelection = () => {
+    const selectedLocation = {
+      latitude: region.latitude,
+      longitude: region.longitude,
+    };
+
+    if (isWithinDeliveryRadius(selectedLocation)) {
+      console.log("Location is eligible for delivery.");
+      // Proceed with the selection
+    } else {
+      console.log("Location is outside the delivery radius.");
+      // Show a message to the user
+      alert("Sorry, we only deliver within a 5 km radius.");
+    }
+  };
+
   //return <GoogleMapWebView />;
+  const selectedLocation = {
+    latitude: region.latitude,
+    longitude: region.longitude,
+  };
+  const loc = isWithinDeliveryRadius(selectedLocation);
 
   return (
     <ScreenSafeWrapper
@@ -250,59 +274,72 @@ const MapSelect: React.FC = () => {
                 }}
               />
             </MapView>
+            {fetchingLocationLoading || firstMountLoading ? null : (
+              <TouchableOpacity
+                onPress={() => {
+                  fetchLocationData();
+                }}
+                style={{
+                  zIndex: 200,
+                  position: "absolute",
+                  bottom: 10,
+                  right: 10,
+                }}
+              >
+                <MaterialIcons
+                  name="my-location"
+                  size={24}
+                  color={"white"}
+                  style={
+                    {
+                      //right: 15,
+                      //position: "absolute",
+                      //bottom: 15,
+                    }
+                  }
+                />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
-        {fetchingLocationLoading || firstMountLoading ? null : (
-          <TouchableOpacity
-            onPress={() => {
-              fetchLocationData();
-            }}
-            style={{
-              zIndex: 200,
-              position: "absolute",
-              bottom: 130,
-              right: 10,
-            }}
-          >
-            <MaterialIcons
-              name="my-location"
-              size={24}
-              color={"white"}
-              style={
-                {
-                  //right: 15,
-                  //position: "absolute",
-                  //bottom: 15,
-                }
-              }
-            />
-          </TouchableOpacity>
-        )}
+
         <Button
           isLoading={fetchingLocationLoading}
           disabled={fetchingLocationLoading || firstMountLoading}
           wrapperStyle={styles.buttonWrapper}
-          title="Select Location"
+          title={loc.isWithin ? "Select Location" : "Service is unavailable"}
           onPress={() => {
-            if (fetchingLocationLoading || firstMountLoading) {
-            } else {
-              // setFirstMountLoading(false);
-              // firstMount.current = false;
+            if (loc.isWithin) {
+              if (fetchingLocationLoading || firstMountLoading) {
+              } else {
+                // setFirstMountLoading(false);
+                // firstMount.current = false;
 
-              dispatch(
-                setCurrentAddressData({
-                  ...currentAddressData,
-                  form: {
-                    ...currentAddressData?.form,
-                    ...data,
-                    colonyArea: data.area,
-                  },
-                })
-              );
-              router.replace("/(address)/addAddress");
+                dispatch(
+                  setCurrentAddressData({
+                    ...currentAddressData,
+                    form: {
+                      ...currentAddressData?.form,
+                      ...data,
+                      colonyArea: data.area,
+                    },
+                  })
+                );
+                router.replace("/(address)/addAddress");
+              }
+            } else {
+              showToast({
+                type: "info",
+                text2: `Sorry, we only support deliveries within a 5 km radius of Pilkhuwa.`,
+              });
             }
           }}
         />
+        <View style={styles.disclaimerContainer}>
+          <Text style={styles.disclaimerText}>
+            We only support deliveries within a 5 km radius of Pilkhuwa.
+          </Text>
+        </View>
       </CustomSuspense>
     </ScreenSafeWrapper>
   );
@@ -346,5 +383,17 @@ const styles = StyleSheet.create({
   buttonWrapper: {
     marginBottom: 20,
     paddingTop: 20,
+  },
+  disclaimerContainer: {
+    marginBottom: 10, // Space between the disclaimer and the button
+    paddingHorizontal: 20, // Add padding to the sides
+    alignItems: "center", // Center-align the text
+  },
+  disclaimerText: {
+    fontSize: 14, // Set a small font size
+    // color: "#666", // Light gray color for subtlety
+    textAlign: "center", // Center-align text for readability
+    fontFamily: "Montserrat_500Medium",
+    color: Colors.light.mediumGrey,
   },
 });

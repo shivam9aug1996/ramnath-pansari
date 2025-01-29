@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
 import React, { lazy, Suspense } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
@@ -10,6 +10,15 @@ import SubCategorySelectorPlaceholder from "./CategoryList/SubCategorySelectorPl
 // import CategoryList from "./CategoryList/CategoryList";
 // import Products from "./ProductList/Products";
 // import GoToCart from "./ProductList/GoToCart";
+import Animated, {
+  useAnimatedStyle,
+  withTiming,
+  useSharedValue,
+  Easing,
+  withSpring,
+} from "react-native-reanimated";
+import { Colors } from "@/constants/Colors";
+import Offline from "@/components/Offline";
 const Products = lazy(() => import("./ProductList/Products"));
 const CategoryList = lazy(() => import("./CategoryList/CategoryList"));
 
@@ -21,6 +30,7 @@ const product = () => {
     id: string;
     name?: string;
   }>();
+  const headerVisible = useSharedValue(1);
 
   const {
     data: getCategories,
@@ -39,30 +49,78 @@ const product = () => {
   return (
     <>
       <ScreenSafeWrapper showCartIcon={true} title={name} showSearchIcon={true}>
-        <CustomSuspense>
+        <CustomSuspense delay={0}>
           {isCategoryFetchingError ? (
             <Suspense fallback={null}>
               <TryAgain refetch={refetch} />
             </Suspense>
           ) : (
             <>
-              <Suspense fallback={null}>
-                <CategoryList
-                  categories={getCategories?.children}
-                  isCategoryFetching={isCategoryFetching}
-                  selectedCategoryIdIndex={selectedCategoryIdIndex}
-                />
-              </Suspense>
+              <Animated.View
+                style={[
+                  {
+                    position: "absolute",
+                    top: 45,
+                    left: -30,
+                    right: -30,
+                    backgroundColor: Colors.light.background,
+                    zIndex: 999,
+                    //paddingHorizontal: 30,
+                    //width: Dimensions.get("window").width,
+                  },
+                  useAnimatedStyle(() => {
+                    const translateY = withTiming(
+                      headerVisible.value === 1 ? 0 : -350,
+                      {
+                        duration: 700,
+                        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+                      }
+                    );
+
+                    const height = withTiming(
+                      headerVisible.value === 1 ? 180 : 50,
+                      {
+                        duration: 700,
+                        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+                      }
+                    );
+
+                    return {
+                      transform: [{ translateY }],
+                      height,
+                    };
+                  }),
+                ]}
+              >
+                <Suspense
+                  fallback={
+                    <CategorySelectorPlaceholder
+                      contentContainerStyle={{ paddingHorizontal: 30 }}
+                    />
+                  }
+                >
+                  <CategoryList
+                    contentContainerStyle={{ paddingHorizontal: 30 }}
+                    categories={getCategories?.children}
+                    isCategoryFetching={isCategoryFetching}
+                    selectedCategoryIdIndex={selectedCategoryIdIndex}
+                  />
+                </Suspense>
+              </Animated.View>
 
               <CustomSuspense>
                 <Suspense fallback={null}>
-                  <Products isCategoryFetching={isCategoryFetching} />
+                  <Products
+                    headerVisible={headerVisible}
+                    isCategoryFetching={isCategoryFetching}
+                  />
                 </Suspense>
               </CustomSuspense>
             </>
           )}
         </CustomSuspense>
       </ScreenSafeWrapper>
+
       <CustomSuspense>
         <Suspense fallback={null}>
           <GoToCart />

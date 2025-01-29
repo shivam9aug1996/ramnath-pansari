@@ -7,11 +7,20 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Keyboard, Pressable, StyleSheet, TextInput, View } from "react-native";
+import {
+  Dimensions,
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 import { numberOfInputs } from "./util";
 import { Colors } from "@/constants/Colors";
 import { fonts } from "@/constants/Fonts";
+const { width: screenWidth } = Dimensions.get("window");
 
+const dynamicInputWidth = Math.min(screenWidth * 0.12, 60);
 type InputProps = {
   setInputValues: React.Dispatch<React.SetStateAction<string[]>>;
   inputValues: string[];
@@ -143,7 +152,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     borderRadius: 20,
     paddingVertical: 15,
-    width: 50,
+    width: dynamicInputWidth,
     borderWidth: 1,
     backgroundColor: "#f2f4f3",
   },

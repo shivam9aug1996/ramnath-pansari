@@ -1,73 +1,182 @@
-import { StyleSheet, Text, View } from "react-native";
-import React, { memo } from "react";
+import React, { memo } from 'react';
+import { View, Text, StyleSheet, Image } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from "@/constants/Colors";
-import ContentLoader, { Rect } from "react-content-loader/native";
 
-const renderText = () => {
-  return (
-    <ContentLoader
-      speed={1}
-      width={"100%"}
-      height={13}
-      backgroundColor="#f3f3f3"
-      foregroundColor="#e3e3e3"
-    >
-      <Rect width="100%" y={0} rx={5} ry={5} height="13" />
-    </ContentLoader>
-  );
-};
+interface AddressData {
+  name: string;
+  phone: string;
+  buildingName: string;
+  colonyArea: string;
+  city: string;
+  state: string;
+  pincode: string;
+  mapImage?: string;
+}
 
-const AddressItem = ({ addressData, loading }: any) => {
-  // Filter and join address parts
-  const formattedAddress = [
-    addressData?.buildingName,
-    addressData?.colonyArea,
-    addressData?.city,
-    addressData?.state,
-  ]
-    .filter((part) => part) // Remove falsy values (undefined, null, empty string)
-    .join(", "); // Join remaining values with commas
+interface AddressItemProps {
+  addressData?: AddressData;
+}
+
+const AddressItem = ({ addressData }: AddressItemProps) => {
+  if (!addressData) return null;
 
   return (
-    <View>
-      <View style={[styles.valueContainer]}>
-        {loading ? (
-          renderText()
-        ) : (
-          <Text style={[styles.valueText]}>{formattedAddress}</Text>
+    <View style={styles.addressCard}>
+      <View style={styles.addressHeader}>
+        <View style={styles.iconContainer}>
+          <MaterialCommunityIcons
+            name="map-marker"
+            size={24}
+            color={Colors.light.gradientGreen_1}
+          />
+        </View>
+        <View style={styles.headerInfo}>
+          <Text style={styles.deliveryLabel}>Delivery Address</Text>
+          <Text style={styles.name}>{addressData.name}</Text>
+        </View>
+      </View>
+
+      <View style={styles.divider} />
+
+      <View style={styles.addressContent}>
+        <View style={styles.contactInfo}>
+          <MaterialCommunityIcons
+            name="phone"
+            size={16}
+            color={Colors.light.mediumGrey}
+          />
+          <Text style={styles.phone}>{addressData.phone}</Text>
+        </View>
+
+        <View style={styles.locationInfo}>
+          <View style={styles.addressLine}>
+            <MaterialCommunityIcons
+              name="home-outline"
+              size={16}
+              color={Colors.light.mediumGrey}
+            />
+            <Text style={styles.addressText}>
+              {addressData.buildingName}, {addressData.colonyArea}
+            </Text>
+          </View>
+
+          <View style={styles.addressLine}>
+            <MaterialCommunityIcons
+              name="map-marker-outline"
+              size={16}
+              color={Colors.light.mediumGrey}
+            />
+            <Text style={styles.cityText}>
+              {addressData.city}, {addressData.state} - {addressData.pincode}
+            </Text>
+          </View>
+        </View>
+
+        {addressData.mapImage && (
+          <View style={styles.mapContainer}>
+            <Image
+              source={{ uri: addressData.mapImage }}
+              style={styles.mapImage}
+              resizeMode="cover"
+            />
+          </View>
         )}
       </View>
     </View>
   );
 };
 
-export default memo(AddressItem);
-
 const styles = StyleSheet.create({
-  heading: {
-    fontFamily: "Raleway_700Bold",
-    fontSize: 20,
-    color: Colors.light.darkGreen,
-    marginTop: 20,
+  addressCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+    overflow: 'hidden',
   },
-  label: {
-    fontFamily: "Raleway_600SemiBold",
-    fontSize: 12,
-    color: Colors.light.darkGrey,
-    marginLeft: 9,
+  addressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    padding: 20,
+    backgroundColor: Colors.light.lightGreen + '10',
   },
-  valueContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 13,
-    flexDirection: "row",
-    backgroundColor: "#F4F4F4",
-    marginTop: 20,
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#fff",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  valueText: {
-    fontFamily: "Raleway_600SemiBold",
-    fontSize: 10,
-    textTransform: "capitalize",
+  headerInfo: {
+    flex: 1,
+  },
+  deliveryLabel: {
+    fontFamily: "Raleway_500Medium",
+    fontSize: 13,
     color: Colors.light.mediumGrey,
   },
+  name: {
+    fontFamily: "Raleway_700Bold",
+    fontSize: 18,
+    color: Colors.light.darkGrey,
+    marginTop: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+  },
+  addressContent: {
+    padding: 20,
+  },
+  contactInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  phone: {
+    fontFamily: "Montserrat_500Medium",
+    fontSize: 14,
+    color: Colors.light.mediumGrey,
+  },
+  locationInfo: {
+    gap: 12,
+  },
+  addressLine: {
+    flexDirection: 'row',
+    alignItems: "baseline",
+    gap: 8,
+  },
+  addressText: {
+    fontFamily: "Montserrat_500Medium",
+    fontSize: 15,
+    color: Colors.light.darkGrey,
+    flex: 1,
+    lineHeight: 22,
+  },
+  cityText: {
+    fontFamily: "Montserrat_500Medium",
+    fontSize: 14,
+    color: Colors.light.mediumGrey,
+    flex: 1,
+    lineHeight: 20,
+  },
+  mapContainer: {
+    marginTop: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    height: 150,
+  },
+  mapImage: {
+    width: '100%',
+    height: '100%',
+  },
 });
+
+export default memo(AddressItem);
