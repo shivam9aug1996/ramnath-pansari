@@ -1,5 +1,5 @@
 import React, { memo, useTransition } from "react";
-import { FlatList, TouchableOpacity, View, StyleSheet } from "react-native";
+import { FlatList, TouchableOpacity, View, StyleSheet, Platform } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { truncateText } from "@/utils/utils";
 import { imageBorderStyle, staticImage } from "./utils";
@@ -58,6 +58,7 @@ const CategorySelector = ({
 
   return (
     <FlatList
+    bounces={Platform.OS === "android" ? false : true}
       contentContainerStyle={contentContainerStyle}
       data={categories}
       horizontal

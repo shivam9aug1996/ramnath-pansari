@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View, FlatList, Dimensions } from "react-native";
+import { StyleSheet, Text, View, FlatList, Dimensions, Platform } from "react-native";
 
 // Generate random grocery categories
 const generateRandomCategories = () => {
@@ -22,6 +22,7 @@ const Cat2 = () => {
   return (
     <View style={styles.container}>
       <FlatList
+      bounces={Platform.OS === "android" ? false : true}
         data={data}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}

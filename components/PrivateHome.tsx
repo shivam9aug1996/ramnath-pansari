@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from "react";
-import { StyleSheet, View, ScrollView, Text, Button } from "react-native";
+import { StyleSheet, View, ScrollView, Text, Button, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { useSelector } from "react-redux";
 import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
@@ -10,20 +10,24 @@ import { truncateText } from "@/utils/utils";
 import CustomSuspense from "./CustomSuspense";
 import CategoryCardPlaceholder from "./CategoryCardPlaceholder";
 import CategoryCard from "./CategoryCard";
+import { useIsFocused } from "@react-navigation/native";
+import DashboardHeader from "./DashboardHeader";
+import CustomTextInput from "./CustomTextInput";
+import Carasole from "./Carasole";
+import WebView from "react-native-webview";
 
-const DashboardHeader = lazy(() => import("./DashboardHeader"));
-const CustomTextInput = lazy(() => import("@/components/CustomTextInput"));
-const Carasole = lazy(() => import("./Carasole"));
+// const DashboardHeader = lazy(() => import("./DashboardHeader"));
+// const CustomTextInput = lazy(() => import("@/components/CustomTextInput"));
+// const Carasole = lazy(() => import("./Carasole"));
 // const CategoryCard = lazy(() => import("./CategoryCard"));
 
 const PrivateHome = () => {
   const token = useSelector((state: RootState) => state?.auth?.token);
   const userData = useSelector((state: RootState) => state?.auth?.userData);
-  const { data: categoriesData, isFetching: isCategoryFetching } = useFetchCategoriesQuery(
-    {},
-    { skip: !token }
-  );
+  const { data: categoriesData, isFetching: isCategoryFetching } =
+    useFetchCategoriesQuery({}, { skip: !token });
   const router = useRouter();
+  const isFocused = useIsFocused();
 
   const handleCategorySelect = (
     selectedCategory: Category,
@@ -58,10 +62,12 @@ const PrivateHome = () => {
 
   return (
     <>
-      <ScreenSafeWrapper showBackButton={false}>
+      <ScreenSafeWrapper showBackButton={false} >
+     
         {/* <CustomSuspense fallback={<View style={{ flex: 1 }} />}> */}
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView bounces={Platform.OS === "android" ? false : true} showsVerticalScrollIndicator={false}>
           <View style={styles.container}>
+         
             <DashboardHeader
               userName={truncateText(userData?.name?.split(" ")[0], 10)}
               profileImage={userData?.profileImage}
@@ -73,7 +79,7 @@ const PrivateHome = () => {
 
             <Suspense fallback={null}>
               <CustomTextInput
-                onChangeText={() => { }}
+                onChangeText={() => {}}
                 value="Search..."
                 type="search"
                 variant={2}
@@ -86,25 +92,25 @@ const PrivateHome = () => {
               />
             </Suspense>
             <Suspense fallback={null}>
-              <Carasole />
+              {isFocused && <Carasole />}
               {/* <CustomCarasole /> */}
             </Suspense>
 
             {/* <Suspense fallback={null}> */}
-            {isCategoryFetching ? <View>
-              <CategoryCardPlaceholder />
-              <CategoryCardPlaceholder />
-            </View> :
-              categoriesData?.categories?.map(
-                (category: Category, index) => (
-                  <CategoryCard
-                    key={category?._id?.toString()}
-                    category={category}
-                    onSelect={handleCategorySelect}
-                    index={index}
-                  />
-                )
-              )}
+            {isCategoryFetching ? (
+              <View>
+                <CategoryCardPlaceholder />
+                <CategoryCardPlaceholder />
+              </View>
+            ) : (
+              categoriesData?.categories?.map((category: Category, index) => (
+                <CategoryCard
+                  key={category?._id?.toString()}
+                  category={category}
+                  onSelect={handleCategorySelect}
+                />
+              ))
+            )}
             {/* </Suspense> */}
           </View>
         </ScrollView>
@@ -125,6 +131,7 @@ export default PrivateHome;
 const styles = StyleSheet.create({
   container: {
     paddingTop: 10,
+    paddingBottom:60
   },
 
   subtitleText: {
@@ -143,5 +150,16 @@ const styles = StyleSheet.create({
     color: Colors.light.darkGreen,
     top: 1,
     opacity: 0.6,
+  },
+  background1: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: "100%",
+    height: "100%",
+    zIndex: -1,
+    opacity: 1, 
   },
 });

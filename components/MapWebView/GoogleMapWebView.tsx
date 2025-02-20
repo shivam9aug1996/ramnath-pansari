@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Text, ScrollView } from "react-native";
+import { StyleSheet, View, Text, ScrollView, Platform } from "react-native";
 import { WebView } from "react-native-webview";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import Map from "./Map";
@@ -24,6 +24,7 @@ const GoogleMapWebView = () => {
       <View style={{ flex: 1 }}>
         {location && (
           <ScrollView
+          bounces={Platform.OS === "android" ? false : true}
             style={styles.locationInfo}
             contentContainerStyle={{ paddingBottom: 20 }}
           >

@@ -1,7 +1,7 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet } from "react-native";
 import React, { useEffect } from "react";
-import { RootState } from "@/types/global";
 import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/types/global";
 import LottieSuccess from "@/app/(private)/(address)/LottieSuccess";
 import { setOrderSuccessView } from "@/redux/features/cartSlice";
 
@@ -9,27 +9,23 @@ const OrderSuccess = () => {
   const orderSuccessView = useSelector(
     (state: RootState) => state.cart.orderSuccessView || false
   );
-  console.log("order sucess7654567890");
   const dispatch = useDispatch();
 
-  useEffect(() => {
-    let timeoutId;
-
-    if (orderSuccessView) {
-      timeoutId = setTimeout(() => {
+  useEffect(()=>{
+    if(orderSuccessView){
+    let timer = setTimeout(()=>{
         dispatch(setOrderSuccessView(false));
-      }, 2000);
+      },2000)
+      return ()=>clearTimeout(timer);
     }
 
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId); // Clear the timeout on cleanup
-      }
-    };
-  }, [orderSuccessView]);
+  },[orderSuccessView])
 
-  if (orderSuccessView) return <LottieSuccess />;
-  return null;
+  if (!orderSuccessView) return null;
+
+  return (
+    <LottieSuccess  />
+  );
 };
 
 export default OrderSuccess;

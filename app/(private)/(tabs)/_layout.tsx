@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import { Colors } from "@/constants/Colors";
@@ -87,15 +87,25 @@ export default function TabLayout() {
                   {cartItems > 0 && (
                     <View
                       style={{
-                        width: 6,
-                        height: 6,
+                        minWidth: 14,
+                        height: 14,
                         backgroundColor: "#EC534A",
-                        borderRadius: 3,
+                        borderRadius: 7,
                         position: "absolute",
-                        right: 18,
-                        top: 18,
+                        // right: 12,
+                        // top: 12,
+                        right:15,
+                        top:20,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        paddingHorizontal: 2,
+                        zIndex:1
                       }}
-                    />
+                    >
+                      <Text style={{ color: 'white', fontSize: Platform.OS === "android" ? 8 : 10 }}>
+                        {cartItems}
+                      </Text>
+                    </View>
                   )}
                   <TabBarIcon name={"bag-handle"} color={Colors.light.white} />
                 </ThemedView>
@@ -105,15 +115,23 @@ export default function TabLayout() {
                 {cartItems > 0 && (
                   <View
                     style={{
-                      width: 6,
-                      height: 6,
+                      minWidth: 14,
+                      height: 14,
                       backgroundColor: "#EC534A",
-                      borderRadius: 3,
+                      borderRadius: 7,
                       position: "absolute",
                       top: 0,
-                      right: 0,
+                      right: -2,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingHorizontal: 2,
+                      zIndex:1
                     }}
-                  />
+                  >
+                    <Text style={{ color: 'white', fontSize: Platform.OS === "android" ? 8 : 10 }}>
+                      {cartItems}
+                    </Text>
+                  </View>
                 )}
                 <TabBarIcon
                   name={"bag-handle"}

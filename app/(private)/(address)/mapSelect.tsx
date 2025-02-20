@@ -25,7 +25,6 @@ import { setCurrentAddressData } from "@/redux/features/addressSlice";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { debounce } from "lodash";
 import CustomSuspense from "@/components/CustomSuspense";
-import GoogleMapWebView from "@/components/MapWebView/GoogleMapWebView";
 import isWithinDeliveryRadius from "./utils";
 import { showToast } from "@/utils/utils";
 import { Colors } from "@/constants/Colors";

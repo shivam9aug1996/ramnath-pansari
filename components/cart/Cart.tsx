@@ -121,11 +121,11 @@ const Cart = ({ tabBarHeight = 0, paddingBottomValue }: CartProps) => {
   return (
     <>
       <ScreenSafeWrapper
-        headerVisible={headerVisible}
+        // headerVisible={headerVisible}
         title="My Bag"
         cartItems={cartItems}
       >
-        <Animated.View
+        {/* <Animated.View
           style={[
             {
               position: "absolute",
@@ -136,23 +136,15 @@ const Cart = ({ tabBarHeight = 0, paddingBottomValue }: CartProps) => {
               zIndex: 999,
               maxHeight: 90,
             },
-            animatedHeaderStyle1,
           ]}
         >
           <>
-            <ThemedView style={styles.headerContainer}>
-              <ThemedText style={styles.headerTitle}>{"My Bag"}</ThemedText>
-              {isSuccess && (
-                <ThemedText style={styles.headerSubtitle}>
-                  {`${cartItems} items`}
-                </ThemedText>
-              )}
-            </ThemedView>
-            <GoToCart isCart={true} />
+           
+            
           </>
-        </Animated.View>
+        </Animated.View> */}
 
-        <CustomSuspense>
+        <CustomSuspense delay={0}>
           {isLoading ? (
             <CartPlaceholder
               wrapperStyle={{ paddingHorizontal: 0, paddingTop: 185 }}
@@ -172,7 +164,7 @@ const Cart = ({ tabBarHeight = 0, paddingBottomValue }: CartProps) => {
           ) : (
             <>
               <View style={{ marginTop: 12 }} />
-
+              <GoToCart isCart={true} />
               <CartList
                 headerVisible={headerVisible}
                 cartData={cartData}
@@ -180,17 +172,21 @@ const Cart = ({ tabBarHeight = 0, paddingBottomValue }: CartProps) => {
                 isCartProcessing={isCartProcessing}
               />
 
-              <Continue
-                cartData={cartData}
-                headerVisible={headerVisible}
-                tabBarHeight={tabBarHeight}
-                isCartProcessing={isCartProcessing}
-                userId={userId}
-              />
+              {/* <Button onPress={()=>{}} title="Continue"/> */}
             </>
           )}
         </CustomSuspense>
       </ScreenSafeWrapper>
+
+      <CustomSuspense delay={0}>
+        <Continue
+          cartData={cartData}
+          headerVisible={headerVisible}
+          tabBarHeight={tabBarHeight}
+          isCartProcessing={isCartProcessing}
+          userId={userId}
+        />
+      </CustomSuspense>
     </>
   );
 };
@@ -199,7 +195,7 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    // marginTop: 37,
+    paddingTop: 10,
     alignItems: "center",
     paddingBottom: 17,
   },

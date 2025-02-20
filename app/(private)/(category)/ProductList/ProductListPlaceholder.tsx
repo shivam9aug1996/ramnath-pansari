@@ -1,4 +1,4 @@
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, Platform, StyleSheet, Text, View } from "react-native";
 import React, { memo, useRef } from "react";
 import { productPlaceholderData } from "./utils";
 import { Product } from "@/types/global";
@@ -65,6 +65,7 @@ const ProductsPlaceholder = ({ wrapperStyle = {} }) => {
 
   return (
     <FlatList
+    bounces={Platform.OS === "android" ? false : true}
       showsVerticalScrollIndicator={false}
       numColumns={2}
       data={productPlaceholderData}

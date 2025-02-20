@@ -1,4 +1,4 @@
-import { FlatList, StyleSheet } from "react-native";
+import { FlatList, Platform, StyleSheet } from "react-native";
 import React, { memo } from "react";
 import ContentLoader, { Rect } from "react-content-loader/native";
 import { categoryListPlaceholder } from "./utils";
@@ -28,6 +28,7 @@ const SubCategorySelectorPlaceholder = ({ contentContainerStyle }) => {
 
   return (
     <FlatList
+    bounces={Platform.OS === "android" ? false : true}
       contentContainerStyle={contentContainerStyle}
       data={categoryListPlaceholder[0].children}
       horizontal

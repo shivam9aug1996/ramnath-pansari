@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   quantityContainer: {
     flexDirection: "row",
     alignSelf: "flex-end",
-    flex: 0.7,
+    //flex: 0.7,
     justifyContent: "space-between",
     alignItems: "center",
   },

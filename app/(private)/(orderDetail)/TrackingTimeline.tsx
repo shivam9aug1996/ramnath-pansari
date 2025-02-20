@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, FlatList } from "react-native";
+import { View, Text, StyleSheet, FlatList, Platform } from "react-native";
 
 const TrackingTimeline = ({ trackingData }) => {
   const renderItem = ({ item, index }) => (
@@ -27,6 +27,7 @@ const TrackingTimeline = ({ trackingData }) => {
 
   return (
     <FlatList
+    bounces={Platform.OS === "android" ? false : true}
       data={trackingData}
       renderItem={renderItem}
       keyExtractor={(item, index) => index.toString()}

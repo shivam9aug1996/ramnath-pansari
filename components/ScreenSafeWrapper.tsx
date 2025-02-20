@@ -26,6 +26,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
+import WebView from "react-native-webview";
 
 interface ScreenSafeWrapperProps {
   children: ReactNode;
@@ -73,6 +74,7 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
   return (
     <>
       <SafeAreaView style={[styles.container, wrapperStyle]}>
+       
         <WrapperComponent
           style={{ flex: 1 }}
           behavior={
@@ -143,6 +145,7 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
             ) : null}
             {showCartIcon && <CartIcon />}
           </ThemedView>
+          
           {children}
         </WrapperComponent>
       </SafeAreaView>
@@ -155,8 +158,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,
-    paddingHorizontal: 30,
+    paddingHorizontal: 20,
     paddingTop: Platform.OS == "android" ? 20 : 10,
+    position: "relative",
   },
   background: {
     position: "absolute",
@@ -165,6 +169,7 @@ const styles = StyleSheet.create({
     top: 0,
     height: "400%",
   },
+ 
 });
 
 export default memo(ScreenSafeWrapper);

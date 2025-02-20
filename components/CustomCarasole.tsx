@@ -3,6 +3,7 @@ import React, { memo, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
+  Platform,
   TouchableOpacity,
   View,
   ViewToken,
@@ -120,6 +121,7 @@ function CustomCarasole() {
   return (
     <View style={{ marginBottom: 15 }}>
       <FlatList
+      bounces={Platform.OS === "android" ? false : true}
         ref={flatListRef}
         data={carouselData}
         renderItem={renderItem}

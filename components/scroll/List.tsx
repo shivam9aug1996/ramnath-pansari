@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View, FlatList } from "react-native";
+import { StyleSheet, Text, View, FlatList, Platform } from "react-native";
 
 // Helper function to generate random names
 const generateRandomNames = (count) => {
@@ -50,6 +50,7 @@ const List = () => {
 
   return (
     <FlatList
+    bounces={Platform.OS === "android" ? false : true}
       data={data}
       renderItem={renderItem}
       keyExtractor={(item) => item.id}

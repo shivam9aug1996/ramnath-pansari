@@ -1,4 +1,4 @@
-import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
+import { FlatList, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import React, { memo } from "react";
 import { categoryListPlaceholder, imageBorderStyle } from "./utils";
 import { arrayColor } from "./constants";
@@ -53,6 +53,7 @@ const CategorySelectorPlaceholder = ({ contentContainerStyle = {} }) => {
   };
   return (
     <FlatList
+    bounces={Platform.OS === "android" ? false : true}
       contentContainerStyle={contentContainerStyle}
       data={categoryListPlaceholder}
       horizontal

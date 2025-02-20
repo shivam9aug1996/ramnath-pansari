@@ -1,5 +1,5 @@
 import React, { memo, useRef, useTransition } from "react";
-import { FlatList, TouchableOpacity, StyleSheet } from "react-native";
+import { FlatList, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
 import { SubCategory, SubCategorySelectorProps } from "@/types/global";
@@ -59,6 +59,7 @@ const SubCategorySelector = ({
 
   return (
     <FlatList
+    bounces={Platform.OS === "android" ? false : true}
       contentContainerStyle={contentContainerStyle}
       ref={subCatFlatListRef}
       data={subCategories}

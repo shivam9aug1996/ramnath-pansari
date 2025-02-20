@@ -1,25 +1,107 @@
-import React, { memo, useMemo } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import React, { memo, useEffect, useMemo, useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Colors } from "@/constants/Colors";
 import { useSelector } from "react-redux";
-import { useFetchCartQuery } from "@/redux/features/cartSlice";
+import { setShowConfetti, useFetchCartQuery } from "@/redux/features/cartSlice";
 import { router } from "expo-router";
 import { calculateTotalAmount } from "@/components/cart/utils";
 import { formatNumber } from "@/utils/utils";
 import { Ionicons } from "@expo/vector-icons";
+import LottieConfetti from "@/components/LottieConfetti";
+import { Animated, Easing } from "react-native";
+import { useDispatch } from "react-redux";
+
+
+const AnimatedBorder = ({isCart=false}) => {
+  const animatedValue = React.useRef(new Animated.Value(0)).current;
+  const scaleValue = React.useRef(new Animated.Value(1)).current;
+  React.useEffect(() => {
+    // Color animation
+    Animated.loop(
+      Animated.timing(animatedValue, {
+        toValue: 1,
+        duration: 2000,
+        easing: Easing.linear,
+        useNativeDriver: false,
+      })
+    ).start();
+
+   
+  }, []);
+
+  return (
+    <Animated.View
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        borderWidth: 5,
+        borderRadius: isCart?10:0,
+        borderLeftWidth: isCart?5:0,
+        borderRightWidth: isCart?5:0,
+       // transform: [{ scale: scaleValue }],
+        borderColor: animatedValue.interpolate({
+          inputRange: [0, 0.33, 0.66, 1],
+          outputRange: ['#FFD700', '#FFA500', '#FF69B4', '#FFD700'], // Gold -> Orange -> Pink -> Gold
+        }),
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        opacity: animatedValue.interpolate({
+          inputRange: [0, 0.5, 1],
+          outputRange: [0.6, 1, 0.6],
+        }),
+      }}
+    />
+  );
+};
+
+
 
 const GoToCart = ({ isCart }) => {
   const userId = useSelector((state) => state.auth?.userData?._id);
   const { data: cartData } = useFetchCartQuery({ userId }, { skip: !userId });
   const cartItems = cartData?.cart?.items?.length || 0;
+  const isInitialMount = React.useRef(true);
+  const showConfetti = useSelector((state) => state.cart?.showConfetti);
+
+   //const [showConfetti, setShowConfetti] = useState(false);
+const dispatch = useDispatch()
   const totalAmount = useMemo(
     () => calculateTotalAmount(cartData?.cart?.items)?.toFixed(2),
     [cartData?.cart?.items]
   );
 
-  if (!cartItems) return null;
+ 
 
   const remainingAmount = Math.max(1000 - (totalAmount || 0), 0);
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    let timer;
+    if (remainingAmount <= 0&&cartItems) {
+     // setShowConfetti(true);
+
+      dispatch(setShowConfetti(true))
+      timer = setTimeout(() => {
+        dispatch(setShowConfetti(false))
+      }, 3000);
+    }
+    return () => {
+      // setShowConfetti(false);
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [remainingAmount]);
+
+  if (!cartItems) return null;
 
   if (isCart) {
     return remainingAmount > 0 ? (
@@ -42,23 +124,41 @@ const GoToCart = ({ isCart }) => {
         </Text>
       </View>
     ) : (
-      <View
-        style={[
-          styles.offerMessage,
-          {
-            borderRadius: 10,
-            marginBottom: 0,
-          },
-        ]}
-      >
-        <Text style={styles.offerText}>
-          {"Congratulations! You are eligible for 1 kg sugar free! 🎉 "}
-        </Text>
-      </View>
+      <>
+        <View
+          style={[
+            styles.offerMessage,
+            {
+              borderRadius: 10,
+              marginBottom: 0,
+            },
+          ]}
+        >
+          <Text style={styles.offerText}>
+            {"Congratulations! You are eligible for 1 kg sugar free! 🎉 "}
+          </Text>
+          {showConfetti && <AnimatedBorder isCart={isCart} />}
+        </View>
+        {/* {showConfetti && (
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 1000,
+            }}
+          >
+            <LottieConfetti start={showConfetti} setStart={setShowConfetti} />
+          </View>
+        )} */}
+      </>
     );
   }
 
   return (
+    <>
     <TouchableOpacity
       onPress={() => router.navigate("/(cartScreen)/cartScreen")}
       style={styles.cartButtonContainer}
@@ -74,11 +174,16 @@ const GoToCart = ({ isCart }) => {
           </Text>
         </View>
       ) : (
+        
         <View style={styles.offerMessage}>
+          
           <Text style={styles.offerText}>
             {`Congratulations! You are eligible for 1 kg sugar free! 🎉 `}
           </Text>
+          {showConfetti && <AnimatedBorder />}
         </View>
+       
+        
       )}
       <View style={styles.cartButton}>
         <Text style={styles.cartText}>
@@ -90,6 +195,21 @@ const GoToCart = ({ isCart }) => {
         </View>
       </View>
     </TouchableOpacity>
+    {/* {showConfetti && (
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 1000,
+            }}
+          >
+            <LottieConfetti start={showConfetti} setStart={setShowConfetti} />
+          </View>
+        )} */}
+    </>
   );
 };
 

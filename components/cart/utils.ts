@@ -14,6 +14,20 @@ export const calculateTotalAmount = (products: CartItem[] = []): number => {
   }, 0);
 };
 
+export const calculateTotalAmountMrp = (products: CartItem[] = []): number => {
+  return products?.reduce((total, product) => {
+    const productTotal = product?.productDetails?.price
+      ? parseFloat(
+          (
+            product?.productDetails?.price * product?.quantity
+          )?.toFixed(2)
+        )
+      : 0;
+
+    return parseFloat(total?.toFixed(2)) + productTotal;
+  }, 0);
+};
+
 export const findCartChanges = (prevCart, nextCart) => {
   const priceChanges = [];
   const removedItems = [];

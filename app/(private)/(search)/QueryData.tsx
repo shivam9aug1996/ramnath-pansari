@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Keyboard,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -78,6 +79,7 @@ const QueryData: React.FC<QueryDataProps> = ({ query, onPress }) => {
         </View>
       )}
       <FlatList
+      bounces={Platform.OS === "android" ? false : true}
         //  disableAutoLayout
         //estimatedItemSize={197}
         data={data?.results || []}

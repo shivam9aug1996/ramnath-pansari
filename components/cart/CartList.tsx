@@ -1,18 +1,36 @@
-import { Easing, FlatList, StyleSheet, Text, View } from "react-native";
-import React, { memo, useCallback, useMemo } from "react";
+import { Easing, FlatList, Platform, StyleSheet, Text, View } from "react-native";
+import React, { memo, useCallback, useMemo, useRef, useEffect } from "react";
 import CartPlaceholder from "./CartPlaceholder";
 import CartItem from "./CartItem";
 import { CartItemProps } from "@/types/global";
 import { throttle } from "lodash";
 import { useAnimatedStyle, withTiming } from "react-native-reanimated";
+import { useFocusEffect } from "expo-router";
 
 const CartList = ({
   cartItemIndex,
   isCartProcessing,
   cartData,
   headerVisible,
+  footer=null
 }) => {
   console.log("loptr57");
+  const flatListRef = useRef(null);
+
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     if (flatListRef.current && cartData?.cart?.items?.length > 0) {
+  //       flatListRef.current.scrollToEnd({ animated: true });
+  //     }
+  //     return () => {
+  //       if (flatListRef.current && cartData?.cart?.items?.length > 0) {
+  //         flatListRef.current.scrollToEnd({ animated: false, });
+  //       }
+        
+  //     };
+  //   }, [])
+  // );
+
   const renderItem = useCallback(({ item, index }: CartItemProps) => {
     return <CartItem key={item?.productDetails?._id || index} item={item} />;
   }, []);
@@ -58,8 +76,17 @@ const CartList = ({
 
   return (
     <FlatList
-      onScroll={handleScroll}
-      scrollEventThrottle={32}
+    bounces={Platform.OS === "android" ? false : true}
+    // onLayout={()=>{
+    //   if (flatListRef.current && cartData?.cart?.items?.length > 0) {
+    //     flatListRef.current.scrollToEnd({ animated: true });
+    //   }
+    // }}
+    onScrollToIndexFailed={()=>{}}
+  //  initialScrollIndex={cartData?.cart?.items.length+4}
+      ref={flatListRef}
+      // onScroll={handleScroll}
+      // scrollEventThrottle={32}
       initialNumToRender={4}
       maxToRenderPerBatch={4}
       windowSize={2}
@@ -74,10 +101,15 @@ const CartList = ({
       }
       //extraData={cartData?.cart?.items}
       showsVerticalScrollIndicator={false}
+     
+     
       contentContainerStyle={styles.listContainer}
       data={cartData?.cart?.items}
       renderItem={renderItem}
       keyExtractor={(item, index) => item?.productDetails?._id || index}
+     // ListFooterComponent={footer?footer:null}
+      // ListFooterComponentStyle={{paddingTop:300}}
+      
       //ListFooterComponent={{}}
       // estimatedItemSize={101}
     />
@@ -88,7 +120,9 @@ export default memo(CartList);
 
 const styles = StyleSheet.create({
   listContainer: {
-    paddingBottom: 180,
-    paddingTop: 150,
+    
+    paddingTop: 30,
+    paddingBottom: 70,
+   
   },
 });

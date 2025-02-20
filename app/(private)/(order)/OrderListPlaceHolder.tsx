@@ -1,4 +1,4 @@
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, Platform, StyleSheet, Text, View } from "react-native";
 import React, { memo } from "react";
 import { Colors } from "@/constants/Colors";
 import ContentLoader, { Rect } from "react-content-loader/native";
@@ -53,6 +53,7 @@ const OrderListPlaceHolder = () => {
 
   return (
     <FlatList
+    bounces={Platform.OS === "android" ? false : true}
       showsVerticalScrollIndicator={false}
       data={[
         {

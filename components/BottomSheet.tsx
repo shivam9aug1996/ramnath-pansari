@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Dimensions, Pressable, StyleSheet, View } from "react-native";
+import { Dimensions, Platform, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedGestureHandler,
   useSharedValue,
@@ -82,7 +82,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             <ThemedView style={styles.ellipse} />
           </ThemedView>
           <ThemedView style={{ flex: 1 }}>
-            <ScrollView style={{ height: "30%" }}>{children}</ScrollView>
+            <ScrollView bounces={Platform.OS === "android" ? false : true} style={{ height: "30%" }}>{children}</ScrollView>
             {staticContent}
           </ThemedView>
         </View>

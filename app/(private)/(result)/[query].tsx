@@ -6,6 +6,7 @@ import {
   View,
   Alert,
   FlatList,
+  Platform,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
@@ -172,6 +173,7 @@ const Result = () => {
         ) : (
           <View style={styles.container}>
             <FlatList
+            bounces={Platform.OS === "android" ? false : true}
               //disableAutoLayout
               initialNumToRender={4}
               maxToRenderPerBatch={4}

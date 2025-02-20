@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   Keyboard,
+  Platform,
 } from "react-native";
 import { useSelector } from "react-redux";
 import { RootState } from "@/types/global";
@@ -109,6 +110,7 @@ const RecentSearch: React.FC<RecentSearchProps> = ({ onPress }) => {
         <RecentSearchPlaceholder />
       ) : (
         <FlatList
+        bounces={Platform.OS === "android" ? false : true}
           data={sortedData}
           keyExtractor={(item) => item._id}
           renderItem={renderItem}

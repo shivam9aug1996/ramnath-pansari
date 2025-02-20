@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import React, { lazy, Suspense, useEffect } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
@@ -99,6 +99,7 @@ const OrderDetail = () => {
       <CustomSuspense>
         <View style={{ marginBottom: 20 }}></View>
         <ScrollView
+        bounces={Platform.OS === "android" ? false : true}
           //nestedScrollEnabled={false}
           showsVerticalScrollIndicator={false}
         >

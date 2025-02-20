@@ -4,7 +4,8 @@ export const calculateSavingsAndFreebies = (items: any[]) => {
   const freebies: Array<{ name: string; quantity: number; value: number }> = [];
 
   items?.forEach(item => {
-    const { price, discountedPrice } = item.productDetails;
+    const  price = item?.productDetails?.price;
+    const discountedPrice = item?.productDetails?.discountedPrice;
     const quantity = item.quantity;
     
     // Calculate original price for this item

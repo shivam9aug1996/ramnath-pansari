@@ -7,7 +7,7 @@ import { Colors } from "@/constants/Colors";
 import { ThemedView } from "../ThemedView";
 import { CartItemProps } from "@/types/global";
 import { ThemedText } from "../ThemedText";
-import { formatNumber } from "@/utils/utils";
+import { formatNumber, truncateText } from "@/utils/utils";
 const CartButton = lazy(() => import("./CartButton"));
 
 const CartItem = ({ item, order = false }: CartItemProps) => {
@@ -21,177 +21,149 @@ const CartItem = ({ item, order = false }: CartItemProps) => {
   const discountP = Math.round(nDiscountP);
 
   return (
-    <>
-      <ThemedView
-        onLayout={(event) => {
-          const { height } = event.nativeEvent.layout;
-          setItemHeight(height);
-        }}
-        style={[
-          styles.container,
-          item?.productDetails?.discountedPrice == 0
-            ? {
-                borderWidth: 2,
-                borderColor: "#2cc3aa",
-              }
-            : {},
-        ]}
-      >
-        {nDiscountP ? (
-          <View
-            style={{
-              position: "absolute",
-              backgroundColor:
-                item?.productDetails?.discountedPrice == 0
-                  ? "#967c8e"
-                  : Colors.light.lightGreen,
-
-              zIndex: 1,
-              paddingHorizontal: 8,
-              paddingVertical: 3,
-              // borderTopLeftRadius: 28,
-              // borderBottomRightRadius: 28,
-              left: 10,
-              top: 10,
-            }}
-          >
-            <Text
-              style={{
-                color: Colors.light.white,
-                fontSize: 12,
-                fontFamily: "Montserrat_700Bold",
-              }}
-            >
-              {item?.productDetails?.discountedPrice == 0
-                ? "Free"
-                : `${discountP}%`}
-            </Text>
-          </View>
-        ) : null}
-        <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: item?.productDetails?.image || staticImage }}
-            placeholder={staticImage}
-            style={styles.image}
-            contentFit="contain"
-          />
+    <ThemedView
+      onLayout={(event) => {
+        const { height } = event.nativeEvent.layout;
+        setItemHeight(height);
+      }}
+      style={[
+        styles.container,
+        item?.productDetails?.discountedPrice == 0 && styles.freeItemBorder,
+      ]}
+    >
+      {nDiscountP ? (
+        <View style={[
+          styles.discountBadge, 
+          { backgroundColor: item?.productDetails?.discountedPrice == 0 ? "#967c8e" : Colors.light.lightGreen }
+        ]}>
+          <Text style={styles.discountText}>
+            {item?.productDetails?.discountedPrice == 0 ? "Free" : `${discountP}%`}
+          </Text>
         </View>
-        <View style={styles.detailsContainer}>
-          <ThemedText style={styles.productName}>
-            {item?.productDetails?.name}
-          </ThemedText>
-          <Text style={styles.size}>{item?.productDetails?.size}</Text>
+      ) : null}
+      
+      <Image
+        source={{ uri: item?.productDetails?.image || staticImage }}
+        placeholder={staticImage}
+        style={styles.image}
+        contentFit="contain"
+      />
+      
+      <View style={styles.detailsContainer}>
+        <ThemedText style={styles.productName}>
+          {truncateText(item?.productDetails?.name, 40)}
+        </ThemedText>
+        <Text style={styles.size}>{item?.productDetails?.size}</Text>
 
-          <ThemedText
-            style={[
-              styles.unitPrice,
-              {
-                textDecorationLine: "line-through",
-                textDecorationColor: Colors.light.darkGrey,
-                fontSize: 12,
-                // color: Colors.light.darkGrey,
-              },
-            ]}
-            type="title"
-          >
-            {`MRP ₹ ${item?.productDetails?.price}`}
+        <View style={styles.priceContainer}>
+          <ThemedText style={[styles.unitPrice, styles.strikethrough]}>
+            {`MRP ₹${item?.productDetails?.price}`}
           </ThemedText>
+          <ThemedText style={[styles.unitPrice, styles.discountedPrice]}>
+            {`₹${item?.productDetails?.discountedPrice}`}
+          </ThemedText>
+        </View>
+
+        <ThemedText style={styles.totalPrice}>
+          {`₹${formatNumber(item?.productDetails?.discountedPrice * item?.quantity)}`}
+        </ThemedText>
+      </View>
+
+      {order ? (
+        <View style={styles.quantityContainer}>
           <ThemedText style={styles.unitPrice}>
-            {`Unit price ₹${item?.productDetails?.discountedPrice}`}
-          </ThemedText>
-
-          <ThemedText style={styles.totalPrice}>
-            {`₹ ${formatNumber(
-              item?.productDetails?.discountedPrice * item?.quantity
-            )}`}
+            {`${item?.quantity || 0} Quantity`}
           </ThemedText>
         </View>
-        {order ? (
-          <View style={{ justifyContent: "flex-end", marginRight: 10 }}>
-            <ThemedText style={styles.unitPrice}>
-              {`${item?.quantity || 0} Quantity`}
-            </ThemedText>
-          </View>
-        ) : (
-          <Suspense fallback={null}>
-            {item?.productDetails?.discountedPrice == 0 ? null : (
-              <CartButton
-                key={item?.productDetails?._id}
-                item={item}
-                value={item?.quantity || 0}
-                itemHeight={itemHeight}
-              />
-            )}
-          </Suspense>
-        )}
-      </ThemedView>
-      {/* </Swipeable> */}
-    </>
+      ) : (
+        <Suspense fallback={null}>
+          {item?.productDetails?.discountedPrice != 0 && (
+            <CartButton
+              key={item?.productDetails?._id}
+              item={item}
+              value={item?.quantity || 0}
+              itemHeight={itemHeight}
+            />
+          )}
+        </Suspense>
+      )}
+    </ThemedView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
-    backgroundColor: "#F1F4F3",
-    padding: 20,
-    borderRadius: 23,
-    flex: 1,
-    justifyContent: "flex-start",
-    marginBottom: 20,
+    flexDirection: 'row',
+    backgroundColor: '#F1F4F3',
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 12,
+    alignItems: 'center',
   },
-  imageContainer: {
-    flex: 0.35,
+  freeItemBorder: {
+    borderWidth: 2,
+    borderColor: '#2cc3aa',
+  },
+  discountBadge: {
+    position: 'absolute',
+    zIndex: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    left: 8,
+    top: 8,
+    borderRadius: 4,
+  },
+  discountText: {
+    color: Colors.light.white,
+    fontSize: 11,
+    fontFamily: 'Montserrat_700Bold',
   },
   image: {
-    width: 50,
-    height: 50,
-    marginRight: 15,
+    width: 45,
+    height: 45,
+    marginRight: 12,
   },
   detailsContainer: {
-    justifyContent: "space-evenly",
     flex: 1,
-    marginLeft: 12,
+    gap: 4,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
   },
   productName: {
-    fontSize: 14,
-    fontFamily: "Raleway_700Bold",
+    fontSize: 12,
+    fontFamily: 'Raleway_700Bold',
     color: Colors.light.darkGreen,
   },
   unitPrice: {
-    fontSize: 11,
-    fontFamily: "Montserrat_500Medium",
+    fontSize: 12,
+    fontFamily: 'Montserrat_500Medium',
     color: Colors.light.mediumGrey,
-    marginVertical: 3,
+  },
+  strikethrough: {
+    textDecorationLine: 'line-through',
+    textDecorationColor: Colors.light.darkGrey,
+    fontSize: 11,
+  },
+  discountedPrice: {
+    fontFamily: 'Montserrat_700Bold',
   },
   totalPrice: {
-    fontSize: 20,
-    fontFamily: "Montserrat_600SemiBold",
+    fontSize: 16,
+    fontFamily: 'Montserrat_600SemiBold',
     color: Colors.light.lightGreen,
   },
   size: {
     fontSize: 10,
-    fontFamily: "Montserrat_600SemiBold",
+    fontFamily: 'Montserrat_600SemiBold',
     color: Colors.light.darkGrey,
     letterSpacing: 0.8,
-    paddingVertical: 6,
-    // position: "absolute",
-    // bottom: 0,
-    // right: 0,
   },
-  offerMessage: {
-    //backgroundColor: "#967c8e",
-    // marginBottom: 5,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 23,
-  },
-  offerText: {
-    color: "black",
-    fontSize: 14,
-    fontFamily: "Raleway_700Bold",
-    textAlign: "center",
-    letterSpacing: 0.5,
+  quantityContainer: {
+    justifyContent: 'flex-end',
+    marginRight: 8,
   },
 });
 

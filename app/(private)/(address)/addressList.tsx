@@ -185,6 +185,7 @@ const addressList = () => {
             </Suspense>
           ) : data?.length ? (
             <FlatList
+              bounces={Platform.OS === "android" ? false : true}
               extraData={checkoutFlow || selectedAddressId}
               ref={listRef}
               data={data}

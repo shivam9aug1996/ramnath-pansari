@@ -180,6 +180,7 @@ const profile = () => {
     <ScreenSafeWrapper useKeyboardAvoidingView={true}>
       <CustomSuspense>
         <ScrollView
+        bounces={Platform.OS === "android" ? false : true}
           ref={scrollViewRef}
           style={{ flex: 1, paddingTop: 10, marginTop: 20 }}
           showsVerticalScrollIndicator={false}

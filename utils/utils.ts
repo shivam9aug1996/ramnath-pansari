@@ -81,9 +81,9 @@ export const hapticFeedback = (style = Haptics.ImpactFeedbackStyle.Soft) => {
 };
 
 export const showToast = ({ type, text2 }: ToastShowParams) => {
-  Toast.hideAll();
+  Toast?.hideAll();
   setTimeout(() => {
-    Toast.show({
+    Toast?.show({
       type: type,
       text2: text2,
     });
@@ -91,5 +91,5 @@ export const showToast = ({ type, text2 }: ToastShowParams) => {
 };
 
 export const hideAllToast = () => {
-  Toast.hideAll();
+  Toast?.hideAll();
 };

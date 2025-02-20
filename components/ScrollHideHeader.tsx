@@ -138,6 +138,7 @@ import {
   View,
   StyleSheet,
   Dimensions,
+  Platform,
 } from "react-native";
 
 const ScrollHideHeader = () => {
@@ -218,6 +219,7 @@ const ScrollHideHeader = () => {
         <Text style={styles.headerText}>I am the header</Text>
       </Animated.View>
       <FlatList
+      bounces={Platform.OS === "android" ? false : true}
         data={data}
         keyExtractor={(item, index) => index.toString()}
         renderItem={renderItem}

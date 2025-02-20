@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -150,6 +151,7 @@ const Order = () => {
             <Text>Error loading data</Text>
           ) : (
             <FlatList
+            bounces={Platform.OS === "android" ? false : true}
               // disableAutoLayout
               ItemSeparatorComponent={() => (
                 <View style={{ height: 15 }}></View>

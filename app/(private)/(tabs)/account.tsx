@@ -6,6 +6,7 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
+  Platform,
 } from "react-native";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -36,8 +37,10 @@ const Account: React.FC = () => {
   const userInfo = useSelector((state: RootState) => state.auth.userData);
   const [logout, { isError: islogouterror, isSuccess }] = useLogoutMutation();
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [logoutConfirm, setLogoutConfirm] = useState(false);
   const [deleteAccount, { isLoading: isAccountDeleting }] =
     useDeleteAccountMutation();
+  const [isAnimating, setIsAnimating] = useState(true);
   console.log(userInfo);
   useFocusEffect(
     // Callback should be wrapped in `React.useCallback` to avoid running the effect too often.
@@ -48,11 +51,13 @@ const Account: React.FC = () => {
       return () => {
         console.log("This route is now unfocused.");
         setDeleteConfirm(false);
+        setLogoutConfirm(false);
       };
     }, [])
   );
   return (
     <>
+  
       <ScreenSafeWrapper title="Profile">
         {userInfo?._id ? (
           isAccountDeleting ? (
@@ -65,10 +70,13 @@ const Account: React.FC = () => {
           ) : (
             <CustomSuspense>
               <Suspense fallback={null}>
-                <ProfileContainer userInfo={userInfo} />
+                <ProfileContainer 
+                  userInfo={userInfo} 
+                  animate={isAnimating}
+                />
               </Suspense>
 
-              <ScrollView style={{ flex: 1, marginTop: 30 }}>
+              <ScrollView bounces={Platform.OS === "android" ? false : true}  style={{ flex: 1, marginTop: 10 }} contentContainerStyle={{paddingBottom: 100}} pinchGestureEnabled={false} showsVerticalScrollIndicator={false}>
                 <View style={styles.optionsContainer}>
                   <Suspense fallback={null}>
                     <AccountOption
@@ -134,6 +142,21 @@ const Account: React.FC = () => {
                       />
                     </Suspense>
                   )} */}
+                   <Suspense fallback={null}>
+                    <AccountOption
+                      onPress={() => {
+                        setLogoutConfirm(true);
+                      }}
+                      icon={
+                        <MaterialIcons
+                          name="logout"
+                          size={20}
+                          color={Colors.light.gradientRed_1}
+                        />
+                      }
+                      label="Logout"
+                    />
+                  </Suspense>
                   <Suspense fallback={null}>
                     <AccountOption
                       onPress={async () => {
@@ -149,21 +172,7 @@ const Account: React.FC = () => {
                       label="Delete Account"
                     />
                   </Suspense>
-                  <Suspense fallback={null}>
-                    <AccountOption
-                      onPress={async () => {
-                        await logout({})?.unwrap();
-                      }}
-                      icon={
-                        <MaterialIcons
-                          name="logout"
-                          size={20}
-                          color={Colors.light.gradientRed_1}
-                        />
-                      }
-                      label="Logout"
-                    />
-                  </Suspense>
+                 
                 </View>
               </ScrollView>
             </CustomSuspense>
@@ -182,7 +191,7 @@ const Account: React.FC = () => {
           onClose={() => {
             setDeleteConfirm(false);
           }}
-          wrapperStyle={{ height: "80%" }}
+          wrapperStyle={{ height: "100%", }}
         >
           <View style={styles.content}>
             <Text style={styles.title}>Confirm Deletion</Text>
@@ -215,6 +224,41 @@ const Account: React.FC = () => {
           </View>
         </BottomSheet>
       )}
+      {logoutConfirm && (
+        <BottomSheet
+          onClose={() => {
+            setLogoutConfirm(false);
+          }}
+          wrapperStyle={{ height: "100%" }}
+        >
+          <View style={styles.content}>
+            <Text style={styles.title}>Confirm Logout</Text>
+            <Text style={styles.message}>
+              Are you sure you want to log out of your account?
+            </Text>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => {
+                  setLogoutConfirm(false);
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={async () => {
+                  setLogoutConfirm(false);
+                  await logout({})?.unwrap();
+                }}
+              >
+                <Text style={styles.deleteButtonText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </BottomSheet>
+      )}
+    
     </>
   );
 };
@@ -224,58 +268,78 @@ export default Account;
 const styles = StyleSheet.create({
   optionsContainer: {
     flex: 0.75,
-    gap: 15,
-    marginTop: 10,
+    gap: 16,
+    marginTop: 20,
+    paddingHorizontal: 10,
+    marginBottom: 24,
   } as ViewStyle,
   content: {
-    backgroundColor: "white",
-    padding: 20,
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
+    backgroundColor: '#FFFFFF',
+    padding: 28,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     flex: 1,
-    marginTop: "5%",
+    marginTop: "6%",
   },
   title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-    textAlign: "center",
+    fontSize: 22,
+    fontFamily: 'Montserrat_800ExtraBold',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: Colors.light.darkGrey,
+    letterSpacing: 0.2,
   },
   message: {
-    fontSize: 14,
-    color: "#555",
-    marginBottom: 20,
-    textAlign: "center",
+    fontSize: 16,
+    fontFamily: 'Raleway_500Medium',
+    color: Colors.light.mediumGrey,
+    marginBottom: 32,
+    textAlign: 'center',
+    lineHeight: 24,
+    paddingHorizontal: 10,
   },
   buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 16,
   },
   cancelButton: {
     flex: 1,
-    marginRight: 10,
-    paddingVertical: 12,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 5,
-    alignItems: "center",
-    justifyContent: "center",
+    paddingVertical: 16,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   cancelButtonText: {
     fontSize: 16,
-    color: "#333",
+    color: Colors.light.darkGrey,
+    fontFamily: 'Montserrat_700Bold',
+    letterSpacing: 0.3,
   },
   deleteButton: {
     flex: 1,
-    paddingVertical: 12,
-    backgroundColor: "#ef3f3f",
-    borderRadius: 5,
-    alignItems: "center",
-    justifyContent: "center",
+    paddingVertical: 16,
+    backgroundColor: Colors.light.gradientRed_1,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.light.gradientRed_1,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   deleteButtonText: {
     fontSize: 16,
-    color: "#fff",
-    fontWeight: "bold",
+    color: 'white',
+    fontFamily: 'Montserrat_700Bold',
+    letterSpacing: 0.3,
   },
 });

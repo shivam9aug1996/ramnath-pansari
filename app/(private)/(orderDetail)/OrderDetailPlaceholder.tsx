@@ -1,275 +1,283 @@
 import { StyleSheet, Text, View } from "react-native";
-import React, { lazy, Suspense } from "react";
+import React from "react";
 import { Colors } from "@/constants/Colors";
 import ContentLoader, { Rect } from "react-content-loader/native";
-import StepOrderTracking from "./StepOrderTracking";
-import OrderedItems from "./OrderedItems";
-import CartPlaceholder from "@/components/cart/CartPlaceholder";
-import AddressItem from "./AddressItem";
 
-const renderText = () => {
-  return (
-    <ContentLoader
-      speed={1}
-      width={"100%"}
-      height={13}
-      backgroundColor="#f3f3f3"
-      foregroundColor="#e3e3e3"
-    >
-      <Rect width="100%" y={0} rx={5} ry={5} height="13" />
-    </ContentLoader>
-  );
-};
-
-const renderText2 = () => {
-  return (
-    <ContentLoader
-      speed={1}
-      width={"100%"}
-      height={45}
-      backgroundColor="#f3f3f3"
-      foregroundColor="#e3e3e3"
-      style={{ marginLeft: 10 }}
-    >
-      <Rect width="80%" y={0} rx={5} ry={5} height="15" />
-      <Rect width="80%" y={25} rx={5} ry={5} height="15" />
-    </ContentLoader>
-  );
-};
-
-const DetailItem = ({
-  label,
-  backgroundColor,
-  textColor,
-  fontFamily = "Raleway_600SemiBold",
-}: {
-  label: string;
-  backgroundColor: string;
-  textColor: string;
-  fontFamily?: string;
-}) => {
-  return (
-    <View style={styles.detailItemContainer}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={[styles.valueContainer, { backgroundColor }]}>
-        {renderText()}
-      </View>
-    </View>
-  );
-};
+const LoaderBlock = ({ width = "100%", height = 13 }) => (
+  <ContentLoader
+    speed={1}
+    width={width}
+    height={height}
+    backgroundColor="#f3f3f3"
+    foregroundColor="#e3e3e3"
+  >
+    <Rect width={width} y={0} rx={5} ry={5} height={height} />
+  </ContentLoader>
+);
 
 const OrderDetailPlaceholder = () => {
   return (
     <View>
-      <View style={{ flexDirection: "column" }}>
-        <Text style={[styles.heading, { marginTop: 0 }]}>Order Detail</Text>
-        <View style={styles.detailsContainer}>
-          <DetailItem
-            label="Status"
-            //  value={orderStatus}
-            backgroundColor="#F4F4F4"
-            textColor={Colors.light.darkGrey}
-          />
-          <DetailItem
-            label="Purchase Date"
-            // value={convertDate(orderStatusData?.timestamp)}
-            backgroundColor="#F4F4F4"
-            textColor={Colors.light.mediumGrey}
-            fontFamily="Montserrat_500Medium"
-          />
-        </View>
-        <View style={[styles.detailsContainer, { marginTop: 10 }]}>
-          <DetailItem
-            label="Order ID"
-            //value={data?.orderData?.orderId}
-            backgroundColor="#F4F4F4"
-            textColor={Colors.light.mediumGrey}
-            fontFamily="Montserrat_500Medium"
-          />
-          <View style={{ flex: 1 }}></View>
-        </View>
-      </View>
-      <View style={{ flexDirection: "column" }}>
-        <Text style={[styles.heading, { marginTop: 35 }]}>Payment Detail</Text>
-        <View style={styles.detailsContainer}>
-          <DetailItem
-            label="Amount"
-            // value={amountPaid}
-            backgroundColor="#F4F4F4"
-            textColor={Colors.light.mediumGrey}
-            fontFamily="Montserrat_500Medium"
-          />
-          <DetailItem
-            label="Payment Mode"
-            //value={tData?.method}
-            backgroundColor="#F4F4F4"
-            textColor={Colors.light.mediumGrey}
-          />
-        </View>
-      </View>
-      <Text style={[styles.heading, { marginTop: 35 }]}>Address Detail</Text>
+      {/* Order Detail Section */}
+      <View style={styles.section}>
+        <Text style={styles.heading}>Order Detail</Text>
+        <View style={styles.orderDetailsGrid}>
+          {/* Status Card */}
+          <View style={[styles.orderItemCard, { width: '100%' }]}>
+            <View style={styles.orderItemHeader}>
+              <View style={styles.iconContainer}>
+                <LoaderBlock width={18} height={18} />
+              </View>
+              <LoaderBlock width={80} />
+            </View>
+            <View style={styles.statusContainer}>
+              <LoaderBlock width={100} height={20} />
+            </View>
+          </View>
 
-      <AddressItem loading={true} />
+          {/* Purchase Date Card */}
+          <View style={styles.orderItemCard}>
+            <View style={styles.orderItemHeader}>
+              <View style={styles.iconContainer}>
+                <LoaderBlock width={18} height={18} />
+              </View>
+              <LoaderBlock width={80} />
+            </View>
+            <LoaderBlock width={120} height={45} />
+          </View>
 
-      <Text style={[styles.heading, { marginTop: 35 }]}>Tracking Detail</Text>
-      <View
-        style={[
-          styles.stepContainer,
-          {
-            backgroundColor: "#F4F4F4",
-            padding: 10,
-            borderRadius: 23,
-            //marginBottom: 9,
-            paddingVertical: 10,
-            marginTop: 35,
-          },
-        ]}
-      >
-        {renderText2()}
+          {/* Order ID Card */}
+          <View style={styles.orderItemCard}>
+            <View style={styles.orderItemHeader}>
+              <View style={styles.iconContainer}>
+                <LoaderBlock width={18} height={18} />
+              </View>
+              <LoaderBlock width={80} />
+            </View>
+            <LoaderBlock width={120} height={20} />
+          </View>
+        </View>
       </View>
-      <Text style={[styles.heading, { marginTop: 35, marginBottom: 15 }]}>
-        Items
-      </Text>
-      <CartPlaceholder wrapperStyle={{ paddingHorizontal: 0 }} />
+
+      {/* Payment Detail Section */}
+      <View style={styles.section}>
+        <Text style={styles.heading}>Payment Detail</Text>
+        <View style={styles.paymentCard}>
+          <View style={styles.paymentItem}>
+            <View style={[styles.iconContainer, { backgroundColor: '#E0F7FA' }]}>
+              <LoaderBlock width={20} height={20} />
+            </View>
+            <View style={styles.paymentContent}>
+              <LoaderBlock width={80} />
+              <LoaderBlock width={120} height={20} />
+            </View>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.paymentItem}>
+            <View style={[styles.iconContainer, { backgroundColor: '#FFF3E0' }]}>
+              <LoaderBlock width={20} height={20} />
+            </View>
+            <View style={styles.paymentContent}>
+              <LoaderBlock width={80} />
+              <LoaderBlock width={120} height={20} />
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Address Detail Section */}
+      <View style={styles.section}>
+        <Text style={styles.heading}>Address Detail</Text>
+        <View style={styles.addressCard}>
+          <View style={styles.addressHeader}>
+            <View style={styles.addressIconContainer}>
+              <LoaderBlock width={24} height={24} />
+            </View>
+            <View style={styles.addressContent}>
+              <LoaderBlock width={100} />
+              <LoaderBlock width={150} height={20} />
+            </View>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.addressBody}>
+            <LoaderBlock width="90%" height={15} />
+            <LoaderBlock width="80%" height={15} />
+            <LoaderBlock width="70%" height={15} />
+          </View>
+        </View>
+      </View>
+
+      {/* Tracking Detail Section */}
+      <View style={styles.section}>
+        <Text style={styles.heading}>Tracking Detail</Text>
+        <View style={styles.trackingCard}>
+          <View style={styles.trackingHeader}>
+            <LoaderBlock width={24} height={24} />
+            <LoaderBlock width={120} />
+          </View>
+          <View style={styles.trackingTimeline}>
+            {[1, 2, 3].map((_, index) => (
+              <View key={index} style={styles.timelineItem}>
+                <View style={styles.timelineDot}>
+                  <LoaderBlock width={12} height={12} />
+                </View>
+                <View style={styles.timelineContent}>
+                  <LoaderBlock width={150} />
+                  <LoaderBlock width={100} />
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
     </View>
   );
 };
 
-export default OrderDetailPlaceholder;
-
 const styles = StyleSheet.create({
+  section: {
+    marginTop: 30,
+  },
   heading: {
     fontFamily: "Raleway_700Bold",
     fontSize: 20,
-    color: Colors.light.darkGreen,
-    marginTop: 20,
-  },
-  detailsContainer: {
-    flexDirection: "row",
-    gap: 15,
-    marginTop: 20,
-  },
-  detailItemContainer: {
-    flex: 1,
-    flexDirection: "column",
-    gap: 5,
-  },
-  label: {
-    fontFamily: "Raleway_600SemiBold",
-    fontSize: 12,
     color: Colors.light.darkGrey,
-    marginLeft: 9,
+    marginBottom: 16,
   },
-  valueContainer: {
+  orderDetailsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  orderItemCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+    flex: 1,
+    minWidth: '47%',
+  },
+  orderItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.light.mediumGrey,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusContainer: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 13,
-    flexDirection: "row",
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+    alignSelf: 'flex-start',
+    marginTop: 4,
   },
-  valueText: {
-    fontFamily: "Raleway_600SemiBold",
-    fontSize: 10,
-    textTransform: "capitalize",
+  paymentCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  timelineContainer: {
-    flexDirection: "column",
-    marginLeft: 20,
-    marginTop: 10,
+  paymentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 4,
+  },
+  paymentContent: {
+    flex: 1,
+    gap: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginVertical: 16,
+  },
+  addressCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  addressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    padding: 20,
+    backgroundColor: Colors.light.lightGreen + '10',
+  },
+  addressIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#fff",
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addressContent: {
+    flex: 1,
+    gap: 4,
+  },
+  addressBody: {
+    padding: 20,
+    gap: 12,
+  },
+  trackingCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  trackingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 24,
+  },
+  trackingTimeline: {
+    paddingLeft: 8,
+    gap: 24,
   },
   timelineItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-    paddingLeft: 10,
+    flexDirection: 'row',
+    gap: 12,
   },
-  timelinePointContainer: {
-    position: "relative",
-    alignItems: "center",
-    width: 20,
-  },
-  timelinePoint: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  timelineLine: {
-    position: "absolute",
-    top: 12,
-    width: 2,
-    height: 40,
-    backgroundColor: Colors.light.mediumGrey,
+  timelineDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   timelineContent: {
-    marginLeft: 15,
-  },
-  timelineStatus: {
-    fontFamily: "Raleway_600SemiBold",
-    fontSize: 14,
-  },
-  timelineDate: {
-    fontFamily: "Raleway_400Regular",
-    fontSize: 12,
-    color: Colors.light.mediumGrey,
-  },
-  statusCircle: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
-    borderWidth: 3,
-  },
-  container: {
     flex: 1,
-    padding: 0,
-    backgroundColor: "#fff",
-  },
-  stepContainer: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 0,
-  },
-  stepIndicatorContainer: {
-    width: 20,
-    alignItems: "center",
-    top: 3,
-    left: 20,
-  },
-  completedStep: {
-    width: 5,
-    height: 5,
-    borderRadius: 6,
-    backgroundColor: "#4CAF50", // Green for completed
-  },
-  currentStep: {
-    width: 5,
-    height: 5,
-    borderRadius: 6,
-    // backgroundColor: "#FF9800", // Orange for current
-  },
-  stepLine: {
-    width: 1,
-    height: 45,
-    backgroundColor: "#4CAF50",
-    position: "absolute",
-    top: 12,
-    left: 9, // Center the line with the dot
-    opacity: 0.5,
-  },
-  stepContent: {
-    // marginLeft: 40,
-    // left: 30,
-  },
-  stepStatus: {
-    fontSize: 12,
-    color: Colors.light.darkGrey,
-    fontFamily: "Raleway_700Bold",
-    paddingBottom: 3,
-    textTransform: "capitalize",
-  },
-  stepDate: {
-    fontSize: 10,
-    color: Colors.light.mediumLightGrey,
-    fontFamily: "Montserrat_500Medium",
-    letterSpacing: 1,
+    gap: 4,
+    paddingTop: 4,
   },
 });
+
+export default OrderDetailPlaceholder;

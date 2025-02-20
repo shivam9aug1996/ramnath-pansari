@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React from "react";
 import { Image } from "expo-image";
 import { ThemedView } from "./ThemedView";
@@ -50,16 +50,23 @@ const CartIcon = () => {
       />
       {cartItems > 0 && (
         <View
-          style={{
-            width: 6,
-            height: 6,
-            backgroundColor: "#EC534A",
-            borderRadius: 3,
-            position: "absolute",
-            right: 5,
-            top: 10,
-          }}
-        />
+        style={{
+          minWidth: 14,
+          height: 14,
+          backgroundColor: "#EC534A",
+          borderRadius: 7,
+          position: "absolute",
+          top: 10,
+          right: 5,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 2,
+        }}
+      >
+        <Text style={{ color: 'white', fontSize: Platform.OS === "android" ? 8 : 10 }}>
+          {cartItems}
+        </Text>
+      </View>
       )}
     </TouchableOpacity>
   );

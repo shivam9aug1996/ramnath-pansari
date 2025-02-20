@@ -86,7 +86,7 @@
 // export default LazyLoadScrollView;
 
 import React, { useState, useRef, useEffect } from "react";
-import { ScrollView, View, Text, Dimensions, StyleSheet } from "react-native";
+import { ScrollView, View, Text, Dimensions, StyleSheet, Platform } from "react-native";
 import _ from "lodash";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -151,6 +151,7 @@ const LazyLoadScrollView = () => {
 
   return (
     <ScrollView
+    bounces={Platform.OS === "android" ? false : true}
       style={styles.container}
       onScroll={onScrollHandler}
       scrollEventThrottle={16}

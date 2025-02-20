@@ -1,6 +1,7 @@
 import React, { memo } from "react";
 import {
   FlatList,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -31,6 +32,7 @@ const RecentSearchPlaceholder = () => {
 
   return (
     <FlatList
+    bounces={Platform.OS === "android" ? false : true}
       data={PLACEHOLDER_DATA}
       keyExtractor={(item) => item._id}
       renderItem={renderItem}

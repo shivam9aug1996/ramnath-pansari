@@ -20,8 +20,14 @@ const ProductItem = ({
   isProductsFetching,
   paginationState,
 }: ProductItemProps) => {
+  console.log("hioiopiuiop[");
   const nDiscountP = ((item.price - item.discountedPrice) / item.price) * 100;
   const discountP = Math.round(nDiscountP);
+  if (cartItem) {
+   
+  }
+  console.log("product item------>",item);
+  console.log("iuyfghjkjhgfghjkl", cartItem);
 
   return (
     <View
@@ -41,8 +47,29 @@ const ProductItem = ({
       ]}
     >
       {nDiscountP ? (
-        <View style={styles.discountBadge}>
-          <Text style={styles.discountText}>{`${discountP}%`}</Text>
+        <View
+          style={{
+            position: "absolute",
+            backgroundColor: Colors.light.lightGreen,
+
+            zIndex: 1,
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            // borderTopLeftRadius: 28,
+            // borderBottomRightRadius: 28,
+            left: 10,
+            top: 10,
+          }}
+        >
+          <Text
+            style={{
+              color: Colors.light.white,
+              fontSize: 12,
+              fontFamily: "Montserrat_700Bold",
+            }}
+          >
+            {`${discountP}%`}
+          </Text>
         </View>
       ) : null}
 
@@ -51,7 +78,7 @@ const ProductItem = ({
           e?.isPropagationStopped();
           router.navigate(`/(productDetail)/${item?._id}`);
         }}
-        style={styles.productContent}
+        style={{ padding: 17 }}
       >
         <Image
           source={{
@@ -62,24 +89,32 @@ const ProductItem = ({
           cachePolicy={"disk"}
         />
         <>
-          <ThemedText 
-            style={styles.productName} 
-            type="title"
-            numberOfLines={2}
-            ellipsizeMode="tail"
-          >
+          <ThemedText style={styles.productName} type="title">
             {item.name}
           </ThemedText>
 
-          <ThemedText 
-            style={styles.mrpPrice} 
+          <ThemedText
+            style={[
+              styles.productPrice,
+              {
+                textDecorationLine: "line-through",
+                textDecorationColor: Colors.light.darkGrey,
+                fontSize: 12,
+                color: Colors.light.darkGrey,
+              },
+            ]}
             type="title"
-            numberOfLines={2}
-            ellipsizeMode="tail"
           >
             {`MRP ₹ ${formatNumber(item.price)}`}
           </ThemedText>
-          <View style={styles.priceContainer}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: 8,
+            }}
+          >
             <ThemedText style={styles.productPrice} type="title">
               {`₹ ${formatNumber(item.discountedPrice)}`}
             </ThemedText>
@@ -88,7 +123,7 @@ const ProductItem = ({
         </>
       </TouchableOpacity>
 
-      <View style={styles.cartButtonSpacing} />
+      <View style={{ marginTop: 35 }}></View>
 
       {isCartLoading ? null : (
         <Suspense fallback={null}>
@@ -103,28 +138,15 @@ export default memo(ProductItem);
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.light.softGrey_1,
+    backgroundColor: "#F1F4F3",
     borderRadius: 28,
     flex: 1,
+    // marginBottom: 20,
     position: "relative",
     maxWidth: "50%",
-  },
-  discountBadge: {
-    position: "absolute",
-    backgroundColor: Colors.light.lightGreen,
-    zIndex: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    left: 10,
-    top: 10,
-  },
-  discountText: {
-    color: Colors.light.white,
-    fontSize: 12,
-    fontFamily: "Montserrat_700Bold",
-  },
-  productContent: {
-    padding: 17,
+    //marginBottom: 5,
+
+    // minWidth: "100%",
   },
   image: {
     maxHeight: 100,
@@ -134,23 +156,8 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 11,
     maxWidth: "100%",
-    marginBottom: 4,
-    minHeight: 28,
-    lineHeight: 14,
-  },
-  mrpPrice: {
-    textDecorationLine: "line-through",
-    textDecorationColor: Colors.light.darkGrey,
-    fontSize: 12,
-    color: Colors.light.darkGrey,
-    marginBottom: 4,
-    minHeight: 32,
-    lineHeight: 16,
-  },
-  priceContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    // minHeight: 40,
+    // maxHeight: 40,
   },
   productPrice: {
     fontSize: 14,
@@ -162,8 +169,8 @@ const styles = StyleSheet.create({
     fontFamily: "Montserrat_600SemiBold",
     color: Colors.light.darkGrey,
     letterSpacing: 0.8,
-  },
-  cartButtonSpacing: {
-    marginTop: 35,
+    // position: "absolute",
+    // bottom: 0,
+    // right: 0,
   },
 });

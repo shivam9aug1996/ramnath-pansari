@@ -96,6 +96,7 @@ const cartSlice = createSlice({
     totalAmountInNumber: 0,
     orderSuccessView: false,
     localCart: [],
+    showConfetti: false,
   },
   reducers: {
     setCartButtonProductId: (state, action) => {
@@ -115,6 +116,9 @@ const cartSlice = createSlice({
     },
     updateLocalCart: (state, action) => {
       state.localCart.unshift(action?.payload);
+    },
+    setShowConfetti: (state, action) => {
+      state.showConfetti = action?.payload;
     },
   },
   extraReducers: (builder) => {
@@ -202,6 +206,7 @@ export const {
   setCartButtonProductId,
   removeCartButtonProductId,
   setOrderSuccessView,
+  setShowConfetti,
 } = cartSlice.actions;
 
 export const {

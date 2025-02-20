@@ -19,6 +19,7 @@ interface ButtonProps {
   wrapperStyle?: ViewStyle;
   textStyle?: TextStyle;
   disabled?: boolean;
+  variant?: 'default' | 'cart';
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -28,6 +29,7 @@ const Button: React.FC<ButtonProps> = ({
   wrapperStyle = {},
   textStyle = {},
   disabled = false,
+  variant = 'default',
 }) => {
   const handleOnPress = () => {
     Keyboard.dismiss();
@@ -35,24 +37,35 @@ const Button: React.FC<ButtonProps> = ({
   };
   return (
     <TouchableOpacity
-      style={[styles.buttonContainer, wrapperStyle]}
+      style={[
+        styles.buttonContainer,
+        variant === 'cart' && styles.cartButtonContainer,
+        wrapperStyle
+      ]}
       disabled={isLoading || disabled}
       onPress={handleOnPress}
     >
       <LinearGradient
         colors={[Colors.light.gradientGreen_2, Colors.light.gradientGreen_1]}
-        style={styles.button}
+        style={[
+          styles.button,
+          variant === 'cart' && styles.cartButton
+        ]}
       >
         {isLoading ? (
           <ActivityIndicator
-            style={{ paddingVertical: 1.5 }}
+            style={{ paddingVertical: variant === 'cart' ? 0 : 1.5 }}
             color={Colors.light.white}
           />
         ) : (
           <ThemedText
             lightColor={Colors.light.white}
-            darkColor={Colors.dark.darkGreen_3}
-            style={[styles.buttonText, textStyle]}
+            
+            style={[
+              styles.buttonText,
+              variant === 'cart' && styles.cartButtonText,
+              textStyle
+            ]}
           >
             {title}
           </ThemedText>
@@ -68,15 +81,26 @@ const styles = StyleSheet.create({
   buttonContainer: {
     marginTop: 35,
   },
+  cartButtonContainer: {
+    marginTop: 15,
+  },
   button: {
     borderRadius: 40,
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 20,
   },
+  cartButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
   buttonText: {
     ...fonts.defaultSemiBold,
     fontWeight: "700",
     paddingVertical: 2,
+  },
+  cartButtonText: {
+    paddingVertical: 0,
+    fontSize: 14,
   },
 });

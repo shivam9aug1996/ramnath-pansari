@@ -1,4 +1,4 @@
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, Platform, StyleSheet, Text, View } from "react-native";
 import React from "react";
 import { Colors } from "@/constants/Colors";
 
@@ -52,6 +52,7 @@ const AddressPlaceholder = () => {
   return (
     <View style={{ flex: 1 }}>
       <FlatList
+      bounces={Platform.OS === "android" ? false : true}
         data={[
           { _id: "1", name: "", city: "" },
           { _id: "2", name: "", city: "" },

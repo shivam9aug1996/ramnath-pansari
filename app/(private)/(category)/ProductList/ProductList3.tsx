@@ -58,7 +58,8 @@ const ProductList3 = ({
 
   const hasNextPage = data?.currentPage < data?.totalPages;
   const totalCount = data?.totalResults;
-  const renderLoader = () => {
+
+  const renderLoader = useCallback(() => {
     //if (!hasNextPage) return null;
     if (
       isProductsLoading ||
@@ -66,9 +67,12 @@ const ProductList3 = ({
     )
       return;
     return hasNextPage ? (
-      <ActivityIndicator size="large" color={Colors.light.lightGreen} />
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="small" color={Colors.light.lightGreen} />
+        <Text style={styles.loaderText}>Loading more...</Text>
+      </View>
     ) : null;
-  };
+  }, [isProductsLoading,isProductsFetching,data?.products?.length,hasNextPage]);
 
   // const renderProductItem = ({
   //   item,
@@ -181,7 +185,7 @@ const ProductList3 = ({
 
           lastOffset = currentOffset;
         }
-      }, 200), // 200ms debounce time
+      }, 500), // 200ms debounce time
     [hasNextPage]
   );
 
@@ -229,14 +233,15 @@ const ProductList3 = ({
 
   return (
     <FlatList
+    bounces={Platform.OS === "android" ? false : true}
       //getItemLayout={getItemLayout}
       // bounces={false}
       //removeClippedSubviews={true}
-      onScroll={handleScroll}
-      scrollEventThrottle={32}
-      initialNumToRender={4}
-      maxToRenderPerBatch={4}
-      windowSize={2}
+     // onScroll={handleScroll}
+     // scrollEventThrottle={32}
+       initialNumToRender={5}
+      // maxToRenderPerBatch={4}
+     // windowSize={10}
       ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
       //disableAutoLayout
       // extraData={cartData}
@@ -280,5 +285,16 @@ const styles = StyleSheet.create({
   productItemContainer: {
     flex: 1,
     margin: 5,
+  },
+  loaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  loaderText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: Colors.light.lightGreen,
   },
 });
