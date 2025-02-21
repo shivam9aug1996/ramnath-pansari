@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, {
+import  {
   Marker,
   PROVIDER_DEFAULT,
   PROVIDER_GOOGLE,
@@ -28,6 +28,7 @@ import CustomSuspense from "@/components/CustomSuspense";
 import isWithinDeliveryRadius from "./utils";
 import { showToast } from "@/utils/utils";
 import { Colors } from "@/constants/Colors";
+import MapWebView from "@/components/MapWebView";
 
 interface LocationData {
   city: string;
@@ -86,8 +87,8 @@ const MapSelect: React.FC = () => {
       const newRegion = {
         latitude,
         longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
+        latitudeDelta: 0.003,
+        longitudeDelta: 0.003,
       };
       setRegion(newRegion);
       if (animate) {
@@ -239,13 +240,14 @@ const MapSelect: React.FC = () => {
             multiline
           />
           <View style={styles.mapContainer}>
-            {fetchingLocationLoading || firstMountLoading ? (
+            {/* {fetchingLocationLoading || firstMountLoading ? (
               <View style={styles.loadingOverlay}>
                 <Text style={styles.loadingText}>Loading...</Text>
               </View>
-            ) : null}
+            ) : null} */}
 
-            <MapView
+            <MapWebView
+            
               // onTouchStart={() => {
               //   firstMount.current = false;
               // }}
@@ -272,7 +274,7 @@ const MapSelect: React.FC = () => {
                   longitude: region.longitude,
                 }}
               />
-            </MapView>
+            </MapWebView>
             {fetchingLocationLoading || firstMountLoading ? null : (
               <TouchableOpacity
                 onPress={() => {
