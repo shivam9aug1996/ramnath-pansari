@@ -1,0 +1,15 @@
+diff --git a/node_modules/@react-navigation/bottom-tabs/src/utils/useBottomTabBarHeight.tsx b/node_modules/@react-navigation/bottom-tabs/src/utils/useBottomTabBarHeight.tsx
+index 3d917b2..4c772b2 100644
+--- a/node_modules/@react-navigation/bottom-tabs/src/utils/useBottomTabBarHeight.tsx
++++ b/node_modules/@react-navigation/bottom-tabs/src/utils/useBottomTabBarHeight.tsx
+@@ -6,9 +6,7 @@ export function useBottomTabBarHeight() {
+   const height = React.useContext(BottomTabBarHeightContext);
+ 
+   if (height === undefined) {
+-    throw new Error(
+-      "Couldn't find the bottom tab bar height. Are you inside a screen in Bottom Tab Navigator?"
+-    );
++    return 0
+   }
+ 
+   return height;

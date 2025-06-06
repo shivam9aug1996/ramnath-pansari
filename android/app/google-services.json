@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "930671228267",
+    "project_id": "ramnath-pansari-6aea0",
+    "storage_bucket": "ramnath-pansari-6aea0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:930671228267:android:e7b1fa7113e0f4e90b082e",
+        "android_client_info": {
+          "package_name": "com.ramnath.pansari.shop"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1tYo1tJ49GpNcGwKx2M0CzBLyZytFSGI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
