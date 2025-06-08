@@ -26,7 +26,6 @@ const PayButton = ({
         const addressData = data?.find((item) => {
           return item?._id == selectedAddressId;
         });
-        console.log("kjhyt567890-", addressData, totalAmountInNumber);
 
         handleOnClick(totalAmountInNumber, addressData);
       }}

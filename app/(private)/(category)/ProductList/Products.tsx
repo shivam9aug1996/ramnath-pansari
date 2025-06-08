@@ -131,10 +131,8 @@ const Products = ({ isCategoryFetching, headerVisible }: ProductsProps) => {
     // return () => {
     //   handleCategoryChange.cancel();
     // };
-    console.log("selectedSubCategory---->", selectedSubCategory);
     requestAnimationFrame(() => {
       if (selectedSubCategory) {
-        console.log("876543456787654345678909876543456789");
         scrollToTop(flatListRef);
         setPaginationState((prev) => ({
           ...prev,

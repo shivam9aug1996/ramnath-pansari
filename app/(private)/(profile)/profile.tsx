@@ -141,7 +141,7 @@ const profile = () => {
           await fetchProfile({ _id: userInfo?._id }, false)?.unwrap();
           router.navigate("/account");
         } catch (error) {
-          console.log("Error updating profile", error);
+         // console.log("Error updating profile", error);
         }
       } else {
         router.navigate("/account");
@@ -160,7 +160,7 @@ const profile = () => {
     });
     let g = await ImagePicker.getPendingResultAsync();
     // console.log(result);
-    console.log("98765rfghjkl", result?.assets[0]?.fileSize);
+   // console.log("98765rfghjkl", result?.assets[0]?.fileSize);
     let fileSize = result?.assets[0]?.fileSize;
     fileSize = (fileSize / 1024 / 1024)?.toFixed(2);
     if (fileSize > 1) {

@@ -8,10 +8,7 @@ export default function Heavy() {
     requestAnimationFrame(() => {
       // Allow time for loading indicator to appear
       setTimeout(() => {
-        for (let i = 0; i < 100000; i++) {
-          console.log("i", i);
-          // heavy work
-        }
+       
         setIsProcessing(false); // done
       }, 0); // Defer loop one frame further
     });

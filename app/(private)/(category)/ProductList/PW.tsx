@@ -80,7 +80,6 @@ const Products = ({ isCategoryFetching }: { isCategoryFetching: boolean }) => {
   if (isProductError) {
     return <TryAgain refetch={refetch} />;
   }
-  console.log("products------>");
 
   return (
     <View style={{ flex: 1 }}>

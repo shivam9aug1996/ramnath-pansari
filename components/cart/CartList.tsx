@@ -27,11 +27,11 @@ const CartList = ({ cartItemIndex, isCartProcessing, cartData }) => {
 
   return (
     <FlatList
-      getItemLayout={(data, index) => ({
-        length: ITEM_HEIGHT,
-        offset: ITEM_HEIGHT * index,
-        index,
-      })}
+      // getItemLayout={(data, index) => ({
+      //   length: ITEM_HEIGHT,
+      //   offset: ITEM_HEIGHT * index,
+      //   index,
+      // })}
       contentContainerStyle={styles.listContainer}
       bounces={Platform.OS === "android" ? false : true}
       ref={flatListRef}

@@ -8,7 +8,6 @@ const Push = () => {
     "a7a14b0a75a3d073c905",
     "ap2"
   );
-  console.log("876thjkl", error);
   return (
     <View>
       <Text>Push</Text>

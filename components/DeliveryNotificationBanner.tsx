@@ -30,7 +30,7 @@ const DeliveryNotificationBanner: React.FC<DeliveryNotificationBannerProps> = ({
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   const dispatch = useDispatch();
   const pathname = usePathname();
-  console.log("u6543456=", pathname);
+ // console.log("u6543456=", pathname);
   useEffect(() => {
     if (!userId) return;
     const orderStatusRef = ref(database, `orders/${userId}/order/status`);
@@ -76,7 +76,7 @@ const DeliveryNotificationBanner: React.FC<DeliveryNotificationBannerProps> = ({
           ])
         );
       }
-      console.log("data4567890", data);
+     // console.log("data4567890", data);
     });
 
     return () => {

@@ -19,7 +19,7 @@ const DriverTrackingWebView: React.FC<DriverTrackingWebViewProps> = ({
 
   // Create the URL with query parameters
   const url = `http://192.168.1.19:3000/liveMap?orderId=${orderId}&lat=${customerLocation.lat}&lng=${customerLocation.lng}`;
-  console.log("jytr34567890-",url);
+  //console.log("jytr34567890-",url);
   return (
     <View style={styles.container}>
       <WebView
@@ -27,11 +27,11 @@ const DriverTrackingWebView: React.FC<DriverTrackingWebViewProps> = ({
         javaScriptEnabled={true}
         domStorageEnabled={true}
         onError={(error) => {
-          console.log(error);
+         // console.log(error);
           setIsLoading(false);
         }}
         onLoadEnd={() => {
-          console.log('onLoadEnd');
+        //  console.log('onLoadEnd');
           setIsLoading(false);
         }}
       />

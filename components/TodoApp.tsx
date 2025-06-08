@@ -33,10 +33,10 @@ export default function TodoApp() {
     // Simulate an API call
     fakeApiCallToAdd(newTodo)
       .then(() => {
-        console.log("Todo added successfully!");
+       // console.log("Todo added successfully!");
       })
       .catch(() => {
-        console.log("Failed to add todo, rolling back.");
+      //  console.log("Failed to add todo, rolling back.");
         setTodos({ type: "rollback" });
       });
 
@@ -49,10 +49,10 @@ export default function TodoApp() {
     // Simulate an API call
     fakeApiCallToRemove(id)
       .then(() => {
-        console.log("Todo removed successfully!");
+       // console.log("Todo removed successfully!");
       })
       .catch(() => {
-        console.log("Failed to remove todo, rolling back.");
+      //  console.log("Failed to remove todo, rolling back.");
         setTodos({ type: "rollback" });
       });
   };

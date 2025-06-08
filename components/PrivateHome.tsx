@@ -57,7 +57,7 @@ const PrivateHome = () => {
     const selectedIndex = parentCategory.children.findIndex(
       (item) => item?._id === selectedCategory?._id
     );
-    console.log("kjytr567890", index);
+   // console.log("kjytr567890", index);
     router.push({
       pathname: `/(category)/${parentCategory?._id}`,
       params: {

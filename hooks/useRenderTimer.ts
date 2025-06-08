@@ -9,6 +9,6 @@ export const useRenderTimer = (label: string) => {
   useEffect(() => {
     renderCount.current += 1;
     const duration = performance.now() - startTime.current;
-    console.log(`${label} render count: ${renderCount.current}, took ${duration.toFixed(2)}ms`);
+   // console.log(`${label} render count: ${renderCount.current}, took ${duration.toFixed(2)}ms`);
   });
 };

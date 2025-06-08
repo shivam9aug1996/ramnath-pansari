@@ -185,7 +185,7 @@ const AddAddress: React.FC = () => {
     currentAddressData?.action == "edit"
       ? currentAddressData?.form?._id
       : undefined;
-  console.log("765resdfghjk", JSON.stringify(currentAddressData));
+ // console.log("765resdfghjk", JSON.stringify(currentAddressData));
   const {
     loading: fetchingLocationLoading,
     data: fetchingLocationData,
@@ -326,8 +326,8 @@ const AddAddress: React.FC = () => {
     },
     []
   );
-  console.log("hgfdfghjk", form);
-  console.log("hgfdfghjkinitak", initialForm, itemId);
+  // console.log("hgfdfghjk", form);
+  // console.log("hgfdfghjkinitak", initialForm, itemId);
 
   const handleInputLayout =
     (key: keyof FormState) => (event: LayoutChangeEvent) => {
@@ -344,7 +344,7 @@ const AddAddress: React.FC = () => {
   const validateForm = useCallback(() => {
     let valid = true;
     const newErrors: ErrorState = { ...errors };
-    console.log("uytfghjk", form);
+    //console.log("uytfghjk", form);
     if (!form.name.trim()) {
       newErrors.name = "Name is required";
       scrollToField("name");
@@ -374,7 +374,7 @@ const AddAddress: React.FC = () => {
       scrollToField("colonyArea");
       valid = false;
     }
-    console.log("o9876trfghjkl");
+    //console.log("o9876trfghjkl");
     setErrors(newErrors);
     return valid;
   }, [form, errors]);
@@ -384,7 +384,7 @@ const AddAddress: React.FC = () => {
       if (
         form[key as keyof FormState] !== initialForm[key as keyof FormState]
       ) {
-        console.log(form[key], initialForm[key]);
+        //console.log(form[key], initialForm[key]);
         return true;
       }
     }
@@ -438,7 +438,7 @@ const AddAddress: React.FC = () => {
         // });
       }
     } catch (error) {}
-    console.log("kjht567890-", form);
+    //console.log("kjht567890-", form);
     //router.navigate("/(address)/mapSelect");
   };
 

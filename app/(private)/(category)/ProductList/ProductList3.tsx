@@ -56,7 +56,6 @@ const ProductList3 = ({
   isProductsLoading,
   paginationState,
 }: ProductList3Props) => {
-  console.log("product_list3---->");
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   const { data: cartData, isLoading: isCartLoading } = useFetchCartQuery(
     { userId },
@@ -66,7 +65,6 @@ const ProductList3 = ({
 
   useEffect(() => {
     return () => {
-      console.log("product_list3---->useEffect");
       // dispatch(
       //   setProductListScrollParams({
       //     isBeyondThreshold: false,
@@ -99,7 +97,6 @@ const ProductList3 = ({
     isBeyondThreshold: boolean;
     direction: "up" | "down";
   }) => {
-    console.log("Beyond?", isBeyondThreshold, "Direction?", direction);
     if (!isProductsFetching) {
       dispatch(
         setProductListScrollParams({
@@ -145,7 +142,6 @@ const ProductList3 = ({
     ({ item, index }: { item: Product; index: number }) => {
       const cartItem = cartItemsMap[item._id];
       //console.log("cartItem", JSON.stringify(cartItem));
-console.log("item4567890-", JSON.stringify(item))
       return (
         <ProductItem
           key={item?._id || index}
@@ -204,11 +200,11 @@ console.log("item4567890-", JSON.stringify(item))
       keyExtractor={(item) => item._id}
       renderItem={renderProductItem}
       ListEmptyComponent={renderEmptyComponent}
-      getItemLayout={(data, index) => ({
-        length: ITEM_HEIGHT,
-        offset: ITEM_HEIGHT * index,
-        index,
-      })}
+      // getItemLayout={(data, index) => ({
+      //   length: ITEM_HEIGHT,
+      //   offset: ITEM_HEIGHT * index,
+      //   index,
+      // })}
       contentContainerStyle={[
         styles.flatList,
         {
@@ -225,8 +221,8 @@ console.log("item4567890-", JSON.stringify(item))
       ListFooterComponent={renderLoader}
       ListFooterComponentStyle={{ paddingTop: 15, marginVertical: 15 }}
       style={{ marginTop: 20 }}
-      onScroll={handleScroll}
-      scrollEventThrottle={16}
+    //   onScroll={handleScroll}
+    //  scrollEventThrottle={16}
     />
   );
 };

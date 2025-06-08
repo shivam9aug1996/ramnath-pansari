@@ -27,7 +27,7 @@ const CartIcon = () => {
 
 
   const cartItems = cartData?.cart?.items?.length || 0;
-  console.log("Cart Items:", cartItems);
+ // console.log("Cart Items:", cartItems);
   const totalQuantity = useMemo(()=>{
     return cartData?.cart?.items?.reduce((total:number,item:any)=>total+(item.quantity||0),0) || 0
   },[cartData?.cart?.items])

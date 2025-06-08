@@ -10,7 +10,7 @@ export const cartApi = createApi({
     prepareHeaders: (headers, api) => {
       const token = api?.getState()?.auth?.token;
       if (token) {
-        console.log("kiop");
+        //console.log("kiop");
         headers.set("authorization", `Bearer ${token}`);
       }
       return headers;
@@ -162,10 +162,10 @@ const cartSlice = createSlice({
       cartApi.endpoints.updateCart.matchPending,
       (state, action) => {
         const { arg } = action.meta;
-        console.log("tresdfghjk", arg);
+        //console.log("tresdfghjk", arg);
         if (arg && arg?.originalArgs.body) {
           const productId = arg.originalArgs.body.productId;
-          console.log("uytfdfghjk", productId);
+         // console.log("uytfdfghjk", productId);
           const cartItem = state.cartState.find(
             (item) => item?._id === productId
           );
@@ -181,10 +181,10 @@ const cartSlice = createSlice({
       cartApi.endpoints.updateCart.matchFulfilled,
       (state, action) => {
         const { arg } = action.meta;
-        console.log("tresdfghjk", arg);
+        //console.log("tresdfghjk", arg);
         if (arg && arg?.originalArgs.body) {
           const productId = arg.originalArgs.body.productId;
-          console.log("uytfdfghjk", productId);
+         // console.log("uytfdfghjk", productId);
           const cartItem = state.cartState.find(
             (item) => item?._id === productId
           );
@@ -198,10 +198,10 @@ const cartSlice = createSlice({
       cartApi.endpoints.updateCart.matchRejected,
       (state, action) => {
         const { arg } = action.meta;
-        console.log("tresdfghjk", arg);
+        //console.log("tresdfghjk", arg);
         if (arg && arg?.originalArgs.body) {
           const productId = arg.originalArgs.body.productId;
-          console.log("uytfdfghjk", productId);
+         // console.log("uytfdfghjk", productId);
           const cartItem = state.cartState.find(
             (item) => item?._id === productId
           );

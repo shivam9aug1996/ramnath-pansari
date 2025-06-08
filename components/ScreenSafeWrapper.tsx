@@ -53,7 +53,7 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
   headerVisible,
   cartItems = undefined,
 }) => {
-  console.log("uytrfghjk", showCartIcon);
+ // console.log("uytrfghjk", showCartIcon);
   const WrapperComponent = useKeyboardAvoidingView
     ? KeyboardAvoidingView
     : View;
@@ -74,7 +74,7 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
       ],
     };
   });
-  console.log("9876trdfghj", cartItems);
+ // console.log("9876trdfghj", cartItems);
   return (
     <>
       <SafeAreaView style={[styles.container, wrapperStyle]}>

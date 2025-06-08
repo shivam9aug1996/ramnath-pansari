@@ -16,7 +16,7 @@ const useNetworkStatus = () => {
     const checkConnection = async () => {
       const data = await getNetworkStateAsync();
       setNetworkState(data);
-      console.log("yghjkl", data);
+     // console.log("yghjkl", data);
     };
     checkConnection();
   }, []);
@@ -25,9 +25,9 @@ const useNetworkStatus = () => {
     // Subscribe to network state changes
     const subscription = addNetworkStateListener(
       ({ type, isConnected, isInternetReachable }) => {
-        console.log(
-          `Network type: ${type}, Connected: ${isConnected}, Internet Reachable: ${isInternetReachable}`
-        );
+        // console.log(
+        //   `Network type: ${type}, Connected: ${isConnected}, Internet Reachable: ${isInternetReachable}`
+        // );
         setNetworkState({
           type,
           isConnected,

@@ -164,13 +164,13 @@ const ScrollHideHeader = () => {
       scrollOffset.current = currentOffset;
       return;
     }
-    console.log(
-      isBottom,
-      layoutMeasurement.height,
-      contentOffset.y,
-      layoutMeasurement.height + contentOffset.y,
-      contentSize.height
-    );
+    // console.log(
+    //   isBottom,
+    //   layoutMeasurement.height,
+    //   contentOffset.y,
+    //   layoutMeasurement.height + contentOffset.y,
+    //   contentSize.height
+    // );
     // Hide the header at the bottom of the list
     if (isBottom) {
       Animated.timing(animatedValue, {

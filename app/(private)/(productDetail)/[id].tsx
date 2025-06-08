@@ -65,7 +65,7 @@ const Product = () => {
     }
   );
   const productStaleData = JSON.parse(extraData);
-  console.log("extraData67890", JSON.parse(extraData));
+ // console.log("extraData67890", JSON.parse(extraData));
 
   const [showImage, setShowImage] = useState(false);
   // const isLoading = cartButtonProductId.includes(id);
@@ -78,7 +78,7 @@ const Product = () => {
     (it: CartItem) => it?.productId === id
   );
 
-  console.log("hgnm,.", data);
+  //console.log("hgnm,.", data);
 
   useEffect(()=>{
     if(!isFetching&&image){

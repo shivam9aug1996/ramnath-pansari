@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import  {
+import  MapView, {
   Marker,
   PROVIDER_DEFAULT,
   PROVIDER_GOOGLE,
@@ -101,13 +101,7 @@ const MapSelect: React.FC = () => {
     },
     []
   );
-  console.log(
-    "i765redfghjk",
-    fetchingLocationData,
-    firstEditMount,
-    firstMount,
-    fetchingLocationLoading
-  );
+
   // Fetch location data or update map when searchData changes
 
   useEffect(() => {
@@ -171,7 +165,7 @@ const MapSelect: React.FC = () => {
   //     fetchLocationData(region.latitude, region.longitude);
   //   }
   // }, []);
-  console.log("8765redfghjk", currentAddressData);
+  //console.log("8765redfghjk", currentAddressData);
 
   // useEffect(() => {
   //   fetchLocationData();
@@ -186,7 +180,7 @@ const MapSelect: React.FC = () => {
 
   const handleRegionChangeComplete = useCallback(() => {
     if (firstMount?.current === false) {
-      console.log("hiiuy456789");
+     // console.log("hiiuy456789");
       debouncedFetchLocation(region.latitude, region.longitude);
       setFirstMountLoading(true);
       firstMount.current = true;
@@ -200,10 +194,10 @@ const MapSelect: React.FC = () => {
     };
 
     if (isWithinDeliveryRadius(selectedLocation)) {
-      console.log("Location is eligible for delivery.");
+     // console.log("Location is eligible for delivery.");
       // Proceed with the selection
     } else {
-      console.log("Location is outside the delivery radius.");
+     // console.log("Location is outside the delivery radius.");
       // Show a message to the user
       alert("Sorry, we only deliver within a 5 km radius.");
     }
@@ -215,7 +209,7 @@ const MapSelect: React.FC = () => {
     longitude: region.longitude,
   };
   const loc = isWithinDeliveryRadius(selectedLocation);
-console.log("uytrdsdfghjk",searchData,fetchingLocationLoading,firstMountLoading)
+//console.log("uytrdsdfghjk",searchData,fetchingLocationLoading,firstMountLoading)
   return (
     <ScreenSafeWrapper
       useKeyboardAvoidingView

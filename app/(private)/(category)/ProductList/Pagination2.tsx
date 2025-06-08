@@ -12,7 +12,6 @@ const Pagination2 = ({
   onPrevious,
   onPress,
 }: PaginationProps) => {
-  console.log("pagination------>");
 
   // Helper function to generate page numbers
   const generatePageArray = () => {

@@ -39,7 +39,6 @@ const OrderComp = () => {
 
   useEffect(() => {
     if (message?.data) {
-      console.log("Driver Location Update", message);
       setDriverLocation(message?.data);
     }
   }, [message]);

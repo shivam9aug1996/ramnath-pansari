@@ -32,7 +32,7 @@ const SingleOtpInput: React.FC<Props> = ({ otp, setOtp, setErrorState, onSubmitO
     // 🚀 Auto-submit when 6 digits entered
     if (filteredText.length === 6) {
       Keyboard.dismiss()
-      console.log("filteredText", filteredText);
+      //console.log("filteredText", filteredText);
       onSubmitOtp(filteredText);
     }
   };
@@ -43,7 +43,7 @@ const SingleOtpInput: React.FC<Props> = ({ otp, setOtp, setErrorState, onSubmitO
 
   // Focus input when user taps anywhere
   const handlePress = () => {
-    console.log("handlePress");
+    //console.log("handlePress");
     inputRef.current?.focus();
   };
 

@@ -32,7 +32,6 @@ const CategoryList = ({
   const subCatFlatListRef = useRef(null);
 
   const dispatch = useDispatch();
-  console.log("cate567890-gory list---->",parentCategory);
 
   // useEffect(() => {
   //   if (categories?.length > 0) {
@@ -77,7 +76,6 @@ const CategoryList = ({
   //   })
   // }, [selectedCategory,parentCategory]);
 
-console.log("uytrdfghjrdsdfghjk",previousSelectedCategory.current)
   useEffect(() => {
     // Debounce function — triggers only once after 200ms of no changes
     const debouncedUpdate = debounce(() => {
@@ -178,7 +176,6 @@ if(previousSelectedCategory.current === selectedId?._id){
   };
 }, [selectedSubCategory, subCategories, selectedCategory, isCategoryFetching]);
 
-  console.log("categories---->",selectedSubCategory);
   return (
     <View>
       {isCategoryFetching ? (

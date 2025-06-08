@@ -17,7 +17,7 @@ import AnimatedQuantity from "../(category)/ProductList/AnimatedQuantity";
 
 const CartButton = ({ value, item }: CartButtonProps) => {
   const { quantity, handleAdd, handleRemove } = useCartOperations(item, value);
-  console.log("cart button------>", item?._id);
+  //console.log("cart button------>", item?._id);
   const cartButtonProductId = useSelector(
     (state: RootState) => state.cart.cartButtonProductId || []
   );

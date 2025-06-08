@@ -7,7 +7,7 @@ const ExpensiveComponent = () => {
   const [isLoaded, setIsLoaded] = useState(false);
 
   for(let i = 0; i < 1000; i++) {
-    console.log(i);
+   // console.log(i);
   }
   setIsLoaded(true);
 //   useEffect(() => {

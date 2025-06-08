@@ -73,13 +73,13 @@ const AddressItem: FC<AddressItemProps> = ({
   const handleDeletePress = async () => {
     try {
       setIsLoading(true);
-      console.log("hiiiiii");
+      //console.log("hiiiiii");
       await deleteAddress({ userId, addressId: item._id }).unwrap();
       await fetchAddress({ userId }, false)?.unwrap();
-      console.log("byeeeee");
+      //console.log("byeeeee");
     } catch (error) {
       // Handle error here
-      console.log("9876tghjkl;", error);
+      //console.log("9876tghjkl;", error);
     } finally {
       setIsLoading(false);
       onSelect();

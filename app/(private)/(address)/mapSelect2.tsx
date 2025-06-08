@@ -32,10 +32,10 @@ import {
   
     const fetchLocationData = async () => {
       const loc = await fetchLocation();
-      console.log('Native location data:', loc);
+     // console.log('Native location data:', loc);
       if (loc?.latitude && loc?.longitude) {
         const coords = { lat: loc.latitude, lng: loc.longitude };
-        console.log('Setting coordinates:', coords);
+       // console.log('Setting coordinates:', coords);
         setCoordinates(coords);
       }
     };

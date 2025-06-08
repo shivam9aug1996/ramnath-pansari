@@ -57,7 +57,7 @@ export function setupListeners(
           } else {
             handleOffline();
           }
-          console.log(
+          //console.log(
             `Network type: ${type}, Connected: ${isConnected}, Internet Reachable: ${isInternetReachable}`
           );
         }

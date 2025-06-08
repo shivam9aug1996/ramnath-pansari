@@ -9,7 +9,7 @@ export const orderApi = createApi({
     prepareHeaders: (headers, api) => {
       const token = api?.getState()?.auth?.token;
       if (token) {
-        console.log("kiop");
+       // console.log("kiop");
         headers.set("authorization", `Bearer ${token}`);
       }
       return headers;
@@ -48,21 +48,21 @@ export const orderApi = createApi({
       }),
       keepUnusedDataFor: 0,
       serializeQueryArgs: ({ endpointName, queryArgs }) => {
-        console.log("jhgfhjkl3456890", endpointName, queryArgs);
+       // console.log("jhgfhjkl3456890", endpointName, queryArgs);
         return `${endpointName}`;
       },
       merge: (currentCache, newItems, { arg: { page } }) => {
-        console.log("jhgfdsdfghjk", currentCache, page);
+       // console.log("jhgfdsdfghjk", currentCache, page);
         if (page === 1) {
           currentCache.orders = [];
           currentCache.currentPage = 1;
         }
-        console.log("jhgfdsdfghjk after", currentCache);
+       // console.log("jhgfdsdfghjk after", currentCache);
         currentCache?.orders?.push(...newItems?.orders);
         currentCache.currentPage = newItems?.currentPage;
       },
       forceRefetch: ({ currentArg, previousArg }) => {
-        console.log("lkuytr4567890-", currentArg, previousArg);
+       // console.log("lkuytr4567890-", currentArg, previousArg);
         return currentArg?.page !== previousArg?.page;
       },
       providesTags: (result, error, { userId, page }) => [

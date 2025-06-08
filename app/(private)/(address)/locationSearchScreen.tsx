@@ -52,8 +52,8 @@ const locationSearchScreen = () => {
         fetchDetails={true}
         onPress={(data, details = null) => {
           // 'details' is provided when fetchDetails = true
-          console.log("jhgfdsdfghjkl;", data);
-          console.log("jhgfdsdfgh56789jkl;", details);
+         // console.log("jhgfdsdfghjkl;", data);
+          //console.log("jhgfdsdfgh56789jkl;", details);
           const latitude = details?.geometry?.location?.lat;
           const longitude = details?.geometry?.location?.lng;
           dispatch(

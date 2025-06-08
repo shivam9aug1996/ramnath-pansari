@@ -9,7 +9,6 @@ export const searchApi = createApi({
     prepareHeaders: (headers, api) => {
       const token = api?.getState()?.auth?.token;
       if (token) {
-        console.log("kiop");
         headers.set("authorization", `Bearer ${token}`);
       }
       return headers;
@@ -45,10 +44,7 @@ export const searchApi = createApi({
         // console.log("765redfghjkl currentCache", JSON.stringify(currentCache));
 
         if (page === 1) {
-          console.log(
-            "kjhgew45678987654345678985456789",
-            JSON.stringify(newItems)
-          );
+         
           const startIndex = (page - 1) * 10;
           let updatedProducts = [...currentCache.results];
 
@@ -115,7 +111,7 @@ export const searchApi = createApi({
         }
       },
       forceRefetch: ({ currentArg, previousArg }) => {
-        console.log("lkuytr4567890-", currentArg, previousArg);
+       // console.log("lkuytr4567890-", currentArg, previousArg);
         return (
           currentArg?.page !== previousArg?.page || currentArg?.reset == true
         );

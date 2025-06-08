@@ -11,7 +11,6 @@ const Pagination = ({
   onNext,
   onPrevious,
 }: PaginationProps) => {
-  console.log("pagination------>");
   return (
     <View style={styles.paginationWrapper}>
       <View

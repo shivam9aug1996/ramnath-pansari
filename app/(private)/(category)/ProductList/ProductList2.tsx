@@ -32,7 +32,6 @@ const ProductList2 = ({
       skip: !userId,
     }
   );
-  console.log("product list------>", cartData);
 
   const renderProductItem = ({
     item,
@@ -63,7 +62,6 @@ const ProductList2 = ({
       </View>
     ) : null;
   };
-  console.log("765efghjkl;", data);
   const hasNextPage = data?.currentPage < data?.totalPages;
   const totalCount = data?.totalProducts;
 
@@ -85,7 +83,6 @@ const ProductList2 = ({
   };
   const renderLoader = () => {
     // if (!hasNextPage) return null;
-    console.log("876rdfghjk", data?.totalProducts);
     if (!isFetching) return null;
     return isFetching && data?.products?.length > 0 ? (
       <ActivityIndicator size="small" color={Colors.light.lightGreen} />
@@ -110,7 +107,6 @@ const ProductList2 = ({
       contentContainerStyle={styles.flatList}
       estimatedItemSize={277}
       onEndReached={() => {
-        console.log("hiii");
         if (isFetching) return;
         if (hasNextPage) fetchNextPage();
       }}

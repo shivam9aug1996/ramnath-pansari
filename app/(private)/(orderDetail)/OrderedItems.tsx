@@ -6,7 +6,7 @@ import { CartItemProps } from "@/types/global";
 import CartItem from "@/components/cart/CartItem";
 
 const OrderedItems = ({ itemsOrdered = [] }) => {
-  console.log("gfbnm,", itemsOrdered);
+ // console.log("gfbnm,", itemsOrdered);
   const renderItem = ({ item, index }: CartItemProps) => {
     return (
       <CartItem

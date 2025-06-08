@@ -111,7 +111,6 @@ const ProductScreen = () => {
     }
   },[])
 
-  console.log("876544567876543456789")
 
   return (
     <>

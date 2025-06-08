@@ -18,7 +18,6 @@ interface Props {
 }
 
 const CategoryItem = ({ item, index, isSelected, onSelectCategory }: Props) => {
-  console.log("item56789---->",item);
   const dispatch = useDispatch();
   const borderStyle = imageBorderStyle(arrayColor, isSelected, index);
 

@@ -59,7 +59,7 @@ const Search = () => {
     let timeoutId = setTimeout(() => {
       setQuery(query);
     }, 500);
-    console.log("ytdfghjkjhgfd", query);
+   // console.log("ytdfghjkjhgfd", query);
     router.push(`/(result)/${encodeURIComponent(query)}`);
 
     return () => {

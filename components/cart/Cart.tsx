@@ -25,7 +25,7 @@ interface CartProps {
 
 const Cart = ({ tabBarHeight = 0 }: CartProps) => {
   //useRenderTimer(`Cart`);
-  console.log("cart",tabBarHeight);
+ // console.log("cart",tabBarHeight);
   const userId = useSelector((state: RootState) => state.auth?.userData?._id);
   const cartButtonProductId = useSelector(
     (state: RootState) => state?.cart?.cartButtonProductId || []

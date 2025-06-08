@@ -23,7 +23,6 @@ const ProductList = ({
       skip: !userId,
     }
   );
-  console.log("product list------>", cartData);
 
   const renderProductItem = ({
     item,

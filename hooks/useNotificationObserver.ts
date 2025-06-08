@@ -10,7 +10,7 @@ export const useNotificationObserver = () => {
 
   useEffect(() => {
     if (lastNotificationResponse && userId) {
-      console.log(
+      //console.log(
         "lastNotificationResponse",
         JSON.stringify(lastNotificationResponse)
       );
@@ -20,7 +20,7 @@ export const useNotificationObserver = () => {
         notData = JSON.parse(notData?.body);
       }
       if (notData?.updateOrderStatus) {
-        console.log("kjhgfdfghjkpo0987");
+       // console.log("kjhgfdfghjkpo0987");
 
         const timer = setTimeout(() => {
           router.navigate(`/(orderDetail)/${notData.orderId}`);
@@ -39,7 +39,7 @@ export const useNotificationObserver = () => {
       const url = notification.request.content.data?.url;
       if (url) {
         // router.push(url);
-        console.log("765redfghjk", url);
+       // console.log("765redfghjk", url);
       }
     }
 
@@ -47,7 +47,7 @@ export const useNotificationObserver = () => {
       if (!isMounted || !response?.notification) {
         return;
       }
-      console.log(
+     // console.log(
         "getLastNotificationResponseAsync 765redfghjk",
         JSON.stringify(response)
       );
@@ -58,7 +58,7 @@ export const useNotificationObserver = () => {
 
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        console.log("response 765redfghjk", response);
+       // console.log("response 765redfghjk", response);
         //redirect(response.notification);
       }
     );

@@ -20,7 +20,6 @@ const ProductItem = ({
   isProductsFetching,
   paginationState,
 }: ProductItemProps) => {
-  console.log("hioiopiuiop[");
   const nDiscountP = ((item.price - item.discountedPrice) / item.price) * 100;
   const discountP = Math.round(nDiscountP);
   if (cartItem) {

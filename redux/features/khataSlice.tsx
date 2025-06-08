@@ -9,7 +9,7 @@ export const khataApi = createApi({
     prepareHeaders: (headers, api) => {
       const token = api?.getState()?.auth?.token;
       if (token) {
-        console.log("kiop");
+        //console.log("kiop");
         headers.set("authorization", `Bearer ${token}`);
       }
       return headers;

@@ -86,7 +86,6 @@ const getRazorpayOptions = (
 
 const usePayment = () => {
   const dispatch = useDispatch();
-  console.log("iuytrdfgh", isLive);
   const userInfo = useSelector((state: RootState) => state.auth?.userData);
   const userId = userInfo?._id;
   const [clearCart] = useClearCartMutation();
@@ -125,13 +124,11 @@ const usePayment = () => {
         isLive,
         amount,
       }).unwrap();
-      console.log("iuytrfdfghjkl", res);
       const options = getRazorpayOptions(
         res.data.amount,
         res.data.id,
         userInfo
       );
-      console.log("iuytrf876556789dfghjkl", options);
 
       const RazorpayCheckout = (await import("react-native-razorpay")).default;
 
@@ -147,14 +144,12 @@ const usePayment = () => {
             addressData,
             userId,
           }).unwrap();
-          console.log("kufghfhgjhkjlk", verifyResponse);
           if (verifyResponse?.verified) {
             await clearCart({
               body: {},
               params: { userId },
             }).unwrap();
             await fetchCartData({ userId }, false)?.unwrap();
-            console.log("payment verified");
             if (verifyResponse?.orderId) {
               router.dismissTo("/(tabs)/home");
       router.push("/(order)/order");
@@ -172,13 +167,12 @@ const usePayment = () => {
 
             // create order flow
           } else {
-            console.log("payment not  verified");
             showToast({ type: "error", text2: "Payment not  verified" });
             // create order with hold status
           }
         })
         .catch((error) => {
-          console.log("Payment failed:", error);
+          console.error("Payment failed:", error);
           showToast({
             type: "error",
             text2: error?.description || "Payment failed",

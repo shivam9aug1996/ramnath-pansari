@@ -16,7 +16,7 @@ const Resend = ({ resetInput, mobileNum }: ResendProps) => {
     mobileNum,
     resetInput
   );
-  console.log("resend");
+  //console.log("resend");
 
   return (
     <ThemedView

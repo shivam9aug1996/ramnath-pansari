@@ -62,7 +62,6 @@ const isWithinDeliveryRadius = (selectedLocation: LatLng): any => {
   const deliveryCenter: LatLng = { latitude: 28.713074, longitude: 77.65419 };
   const distance = getDistanceFromLatLngInKm(deliveryCenter, selectedLocation);
 
-  console.log(`Distance from delivery center: ${distance} km`);
   return { isWithin: distance <= 5, distance: distance };
 };
 

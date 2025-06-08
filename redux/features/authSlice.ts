@@ -129,7 +129,7 @@ export const authApi = createApi({
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          console.log("jhgfdfghjk", data);
+          //console.log("jhgfdfghjk", data);
           await AsyncStorage.setItem(
             "userData",
             JSON.stringify(data?.userData)
@@ -151,7 +151,7 @@ export const authApi = createApi({
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          console.log("jhgfdfghjk", data);
+          //console.log("jhgfdfghjk", data);
           await AsyncStorage.setItem(
             "userData",
             JSON.stringify(data?.userData)
@@ -266,7 +266,7 @@ const authSlice = createSlice({
         state.clearAuthData.isSuccess = false;
       })
       .addCase(clearAuthData.fulfilled, (state, action) => {
-        console.log("iuytrtyuio");
+        //console.log("iuytrtyuio");
         state.clearAuthData.isLoading = false;
         state.clearAuthData.isError = false;
         state.clearAuthData.data = null;
@@ -276,7 +276,7 @@ const authSlice = createSlice({
         state.successModalOnAccountCreation = false;
       })
       .addCase(clearAuthData.rejected, (state, action) => {
-        console.log("kiooooo");
+       // console.log("kiooooo");
         state.clearAuthData.isLoading = false;
         state.clearAuthData.isError = true;
         state.clearAuthData.error = action.payload || "";

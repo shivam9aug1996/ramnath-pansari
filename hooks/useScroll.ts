@@ -45,7 +45,7 @@ const useScroll = () => {
   );
 
   const handleSnap = ({ nativeEvent }) => {
-    console.log("ui");
+   // console.log("ui");
     const offsetY = nativeEvent.contentOffset.y;
     if (
       !(

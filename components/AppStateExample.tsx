@@ -21,7 +21,7 @@ const AppStateExample = () => {
       "change",
       async (nextAppState) => {
         if (nextAppState === "background") {
-          console.log("App has gone to the background!");
+         // console.log("App has gone to the background!");
           // Example: Save app state or perform cleanup
           await AsyncStorage.setItem("notificationData", JSON.stringify([]));
         }
@@ -30,7 +30,7 @@ const AppStateExample = () => {
           appState.current.match(/inactive|background/) &&
           nextAppState === "active"
         ) {
-          console.log("App has come to the foreground!");
+         // console.log("App has come to the foreground!");
           // AsyncStorage.removeItem("notificationData");
           const storedData = JSON.parse(
             (await AsyncStorage.getItem("notificationData")) || "[]"
@@ -40,10 +40,10 @@ const AppStateExample = () => {
           //     res("hi");
           //   }, 1000);
           // });
-          console.log("jhgfdfghjk", storedData);
+        //  console.log("jhgfdfghjk", storedData);
           storedData?.forEach(async (item) => {
             if (item?.updateOrderStatus) {
-              console.log("jhgfdcvbnm,./", item);
+             // console.log("jhgfdcvbnm,./", item);
 
               dispatch(
                 orderApi.util.invalidateTags([
@@ -62,12 +62,12 @@ const AppStateExample = () => {
             }
           });
           await AsyncStorage.removeItem("notificationData");
-          console.log(storedData);
+         // console.log(storedData);
         }
 
         appState.current = nextAppState;
         setAppStateVisible(appState.current);
-        console.log("AppState", appState.current);
+       // console.log("AppState", appState.current);
       }
     );
 

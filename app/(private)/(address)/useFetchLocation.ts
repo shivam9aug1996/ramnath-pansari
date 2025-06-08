@@ -30,7 +30,7 @@ const useFetchLocation = () => {
   };
 
   const fetchLocationData = async (lat = null, long = null) => {
-    console.log("trdfgbnm,./");
+   // console.log("trdfgbnm,./");
     setLoading(true);
     setError("");
     setData(initialState);
@@ -38,14 +38,12 @@ const useFetchLocation = () => {
     try {
       let latitude = lat;
       let longitude = long;
-      console.log("jhgfdsdfghjkl;'", latitude, longitude);
       if (!latitude) {
         let loc = await fetchLocation();
         latitude = loc?.latitude;
         longitude = loc?.longitude;
       }
 
-      console.log("fghjkl;", latitude, longitude);
       if (latitude && longitude) {
         const locData = await fetchGeocoding(
           {
@@ -54,12 +52,11 @@ const useFetchLocation = () => {
           },
           false
         )?.unwrap();
-        console.log("ytredfghjkl;/", locData);
         setData({ ...locData?.data, hasLat: lat ? true : false });
       }
     } catch (e: any) {
       setError(e?.message || "An unexpected error occurred");
-      console.log(e);
+      console.error(e);
     } finally {
       setLoading(false);
     }

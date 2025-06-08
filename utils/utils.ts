@@ -42,7 +42,6 @@ export const truncateText = (text, maxLength = 18) => {
 export const preloadRemoteImages = async (remoteImages = []) => {
   const remoteImagePromises = remoteImages.map((url) => Image.prefetch(url));
   await Promise.all(remoteImagePromises);
-  console.log("loadedassets65");
 };
 
 export const downloadAsset = async (url, fileName) => {
@@ -50,11 +49,11 @@ export const downloadAsset = async (url, fileName) => {
   const { exists } = await FileSystem.getInfoAsync(fileUri);
 
   if (!exists) {
-    console.log("Downloading asset...");
+    //console.log("Downloading asset...");
     await FileSystem.downloadAsync(url, fileUri);
-    console.log("Asset downloaded and stored at:", fileUri);
+    //console.log("Asset downloaded and stored at:", fileUri);
   } else {
-    console.log("Asset already exists locally:", fileUri);
+    //console.log("Asset already exists locally:", fileUri);
   }
 
   return fileUri;

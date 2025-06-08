@@ -66,7 +66,7 @@ export const toastConfig = {
         borderLeftColor: "#e63946",
       }}
       onPress={() => {
-        console.log("pressed");
+       // console.log("pressed");
       }}
       contentContainerStyle={contentContainerStyle}
       text2Style={{ ...text2Style, color: "#721c24" }}

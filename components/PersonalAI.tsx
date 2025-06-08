@@ -13,10 +13,10 @@ const PersonalAI = () => {
       error,
       refetch,
     } = useFetchCartQuery({ userId }, { skip: !userId });
-    console.log("cartData56789", JSON.stringify(cartData));
+   // console.log("cartData56789", JSON.stringify(cartData));
     const cartItems = cartData?.cart?.items?.length || 0;
     const { items } = useSelector(state => state.recentlyViewed);
-    console.log("items56789", JSON.stringify(items));
+   // console.log("items56789", JSON.stringify(items));
 
   return (
     <View>

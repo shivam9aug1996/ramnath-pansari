@@ -39,7 +39,7 @@ export const useCartOperations = (item: Product, initialValue: number) => {
   const [fetchProducts] = useLazyFetchProductsQuery();
   const [fetchProductDetail] = useLazyFetchProductDetailQuery();
   const [quantity, setQuantity] = useState<number>(() => initialValue);
-  console.log("oi7rfghjkl", initialValue);
+  //console.log("oi7rfghjkl", initialValue);
   useEffect(() => {
     setQuantity(initialValue);
   }, [initialValue]);
@@ -54,7 +54,7 @@ export const useCartOperations = (item: Product, initialValue: number) => {
           type: "info",
           text2: "This free gift cannot be modified or removed.",
         });
-        console.log("hiiiiuyfghjklghjkl", quantity, value);
+       // console.log("hiiiiuyfghjklghjkl", quantity, value);
         setQuantity(value);
 
         return;
@@ -100,15 +100,15 @@ export const useCartOperations = (item: Product, initialValue: number) => {
 
           let newCartData = await fetchCartData({ userId }, false).unwrap();
           let dataIndex = newCartData?.cart?.items?.findIndex((it) => {
-            console.log("iuytfghj8888kjhg", it);
+           // console.log("iuytfghj8888kjhg", it);
             return it?.productDetails?._id === item?._id;
           });
           let data = newCartData?.cart?.items?.find((it) => {
-            console.log("iuytfghj8888kjhg", it);
+           // console.log("iuytfghj8888kjhg", it);
             return it?.productDetails?._id === item?._id;
           });
 
-          console.log("iuytrdcvbnm,", dataIndex, item);
+         // console.log("iuytrdcvbnm,", dataIndex, item);
 
           if (dataIndex !== -1) {
             let isPriceChange = findProductChanges(item, data?.productDetails);
@@ -125,18 +125,18 @@ export const useCartOperations = (item: Product, initialValue: number) => {
             newCartData?.cart?.items
           )?.toFixed(2);
           let isItem = newCartData?.cart?.items?.find((it) => {
-            console.log("iuytfghj8888kjhg", it);
+          //  console.log("iuytfghj8888kjhg", it);
             return it?.productDetails?._id === "676da9f75763ded56d43032d";
           });
-          console.log("87654edfghjkl;", isItem);
+         // console.log("87654edfghjkl;", isItem);
           const isFreeItemPresent = isItem == undefined ? false : true;
-          console.log("o8765redfbnm,", isFreeItemPresent, totalAmount);
+         // console.log("o8765redfbnm,", isFreeItemPresent, totalAmount);
           if (totalAmount >= 1000 && !isFreeItemPresent) {
             let data = await fetchProductDetail(
               { productId: "676da9f75763ded56d43032d" },
               false
             )?.unwrap();
-            console.log("87trfghjkl", JSON.stringify(data));
+           // console.log("87trfghjkl", JSON.stringify(data));
             await updateCart({
               body: {
                 quantity: 1,
@@ -151,12 +151,12 @@ export const useCartOperations = (item: Product, initialValue: number) => {
             let newCartData = await fetchCartData({ userId }, false).unwrap();
           }
           if (totalAmount < 1000 && isFreeItemPresent) {
-            console.log("987654edfghjkl", isFreeItemPresent, totalAmount);
+          //  console.log("987654edfghjkl", isFreeItemPresent, totalAmount);
             let data = await fetchProductDetail(
               { productId: "676da9f75763ded56d43032d" },
               false
             )?.unwrap();
-            console.log("87trfghjkl", JSON.stringify(data));
+            //console.log("87trfghjkl", JSON.stringify(data));
             await updateCart({
               body: {
                 quantity: 0,
@@ -172,10 +172,10 @@ export const useCartOperations = (item: Product, initialValue: number) => {
           }
 
           dispatch(removeCartButtonProductId(item._id));
-          console.log("hiuytre34567890");
+         // console.log("hiuytre34567890");
           break;
         } catch (error) {
-          console.log("hiuytre3467890567890", attempts);
+         // console.log("hiuytre3467890567890", attempts);
           if (error?.status == 467) {
             if (attempts === 1) {
               showToast({
@@ -188,7 +188,7 @@ export const useCartOperations = (item: Product, initialValue: number) => {
               setQuantity(value); // Revert to the original value on failure
               dispatch(removeCartButtonProductId(item._id));
 
-              console.log(`Failed after ${3} attempts`, error);
+            //  console.log(`Failed after ${3} attempts`, error);
             }
           } else if (error?.status == 468) {
             showToast({

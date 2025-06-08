@@ -49,7 +49,6 @@ const OrderDetail = () => {
     prevStatus: string;
   }>();
 
-  console.log("prevOrderStatus", prevStatus, id);
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   const { data, isFetching, isSuccess, refetch } = useFetchOrderDetailQuery(
     { orderId: id, userId },
@@ -58,18 +57,15 @@ const OrderDetail = () => {
   const dispatch = useDispatch();
   const itemsOrdered = data?.orderData?.cartData?.cart?.items || [];
 
-  console.log("Order Data:", JSON.stringify(data));
 
   // Example tracking data (replace with actual data from API if available)
   const trackingData = data?.orderData?.orderHistory;
 
-  console.log("uytrfghjkl", trackingData);
 
   const amountPaid = `₹ ${formatNumber(data?.orderData?.amountPaid)}`;
   const orderStatus = data?.orderData?.orderStatus;
   const tData = data?.orderData?.transactionData;
   let orderHistory = data?.orderData?.orderHistory;
-  console.log("ytrdsdfghjk", orderHistory);
   let orderStatusData = orderHistory?.[orderHistory?.length - 1];
   const isOrderConfirmed = orderStatus?.toLowerCase() === OrderStatus.CONFIRMED;
   const isOrderCancelled = orderStatus?.toLowerCase() === OrderStatus.CANCELED;
@@ -89,7 +85,6 @@ const OrderDetail = () => {
 
   const { totalOriginalPrice, freebieValue, freebies } =
     calculateSavingsAndFreebies(cartItems);
-  console.log("totalOriginalPrice", totalOriginalPrice, "freebies", freebies);
   const regularSavings = totalOriginalPrice - data?.orderData?.amountPaid;
 
   useEffect(() => {

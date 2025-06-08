@@ -9,7 +9,7 @@ export const productApi = createApi({
     prepareHeaders: (headers, api) => {
       const token = api?.getState()?.auth?.token;
       if (token) {
-        console.log("kiop");
+       // console.log("kiop");
         headers.set("authorization", `Bearer ${token}`);
       }
       return headers;
@@ -31,12 +31,12 @@ export const productApi = createApi({
         return `${endpointName}-${queryArgs.categoryId}`;
       },
       providesTags: (result, error, { categoryId }) => {
-        console.log("iuytredsxcvbnm", categoryId);
+       // console.log("iuytredsxcvbnm", categoryId);
         return [{ type: "Products", id: categoryId }];
       },
 
       merge: (currentCache, newItems, { arg }) => {
-        console.log("jhgfg567890hjkl");
+       // console.log("jhgfg567890hjkl");
         let page = arg?.page;
         let categoryId = arg?.categoryId;
 
@@ -46,10 +46,7 @@ export const productApi = createApi({
         // console.log("765redfghjkl currentCache", JSON.stringify(currentCache));
 
         if (page === 1) {
-          console.log(
-            "kjhgew45678987654345678985456789",
-            JSON.stringify(newItems)
-          );
+         
           const startIndex = (page - 1) * 10;
           // let updatedProducts = [...currentCache.products];
           // for (let i = 0; i < newItems.products.length; i++) {
@@ -137,13 +134,7 @@ export const productApi = createApi({
       //   }
       // },
       forceRefetch: ({ currentArg, previousArg, state, endpointState }) => {
-        console.log(
-          "lkuytr4567890-",
-          currentArg,
-          previousArg,
-
-          endpointState
-        );
+        
         return (
           currentArg?.categoryId !== previousArg?.categoryId ||
           currentArg?.page !== previousArg?.page ||

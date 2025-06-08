@@ -31,15 +31,15 @@ export const calculateTotalAmountMrp = (products: CartItem[] = []): number => {
 export const findCartChanges = (prevCart, nextCart) => {
   const priceChanges = [];
   const removedItems = [];
-  console.log("jio87", prevCart);
+ // console.log("jio87", prevCart);
   // Create a map for fast lookup of previous items
   const prevItemsMap = new Map(
     prevCart?.cart?.items?.map((item) => {
-      console.log("87654efghjk", item);
+     // console.log("87654efghjk", item);
       return [item.productId, item];
     })
   );
-  console.log("567567890890-", prevItemsMap);
+//  console.log("567567890890-", prevItemsMap);
 
   // Iterate over nextCart items to check for price changes
   nextCart?.cart?.items.forEach((nextItem) => {

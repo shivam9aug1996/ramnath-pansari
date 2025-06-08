@@ -34,7 +34,7 @@ const Page = () => {
     useLazyFetchProfileQuery();
   const [localUrl, setLocalUrl] = useState("");
 
-  console.log(id);
+  //console.log(id);
 
   useEffect(() => {
     getFun(khataUrl);
@@ -49,7 +49,7 @@ const Page = () => {
           { searchQuery: mobileNumber },
           false
         )?.unwrap();
-        console.log("uytfdcfvgbhj", data);
+       // console.log("uytfdcfvgbhj", data);
         if (data?.url) {
           const formRes = new FormData();
           formRes.append("khataUrl", data?.url);
@@ -66,7 +66,7 @@ const Page = () => {
         }
       }
     } catch (error) {
-      console.log(error);
+     // console.log(error);
     }
   };
   return (

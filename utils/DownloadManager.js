@@ -19,7 +19,7 @@ class DownloadManager {
     // Check if the file already exists
     const fileInfo = await FileSystem.getInfoAsync(fileUri);
     if (fileInfo.exists) {
-      console.log(`File already exists at ${fileUri}`);
+      //console.log(`File already exists at ${fileUri}`);
       return fileUri; // Return the URI of the existing file
     }
 
@@ -47,7 +47,7 @@ class DownloadManager {
 
     try {
       const { uri } = await this.downloadResumable.downloadAsync();
-      console.log(`Finished downloading to ${uri}`);
+      //console.log(`Finished downloading to ${uri}`);
       await AsyncStorage.removeItem(`pausedDownload_${fileName}`); // Clean up
       return uri;
     } catch (e) {
@@ -69,7 +69,7 @@ class DownloadManager {
           `pausedDownload_${fileName}`,
           JSON.stringify(savableData)
         );
-        console.log(`Paused and saved download state for ${fileName}`);
+        //console.log(`Paused and saved download state for ${fileName}`);
       } catch (e) {
         console.error("Error pausing download:", e);
       }
@@ -100,7 +100,7 @@ class DownloadManager {
 
     try {
       const { uri } = await this.downloadResumable.resumeAsync();
-      console.log(`Resumed and finished downloading to ${uri}`);
+      //console.log(`Resumed and finished downloading to ${uri}`);
       await AsyncStorage.removeItem(`pausedDownload_${fileName}`); // Clean up
       return uri;
     } catch (e) {

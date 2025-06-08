@@ -10,7 +10,6 @@ const SubCategorySelector = ({
   subCatFlatListRef,
   contentContainerStyle,
 }: SubCategorySelectorProps) => {
-  console.log("subCategories67890---->",subCategories);
   const renderItem = ({ item }: { item: any }) => {
     const isSelected = item._id === selectedSubCategory?._id;
     return (

@@ -13,7 +13,6 @@ interface Props {
 }
 
 const SubCategoryItem = ({ item, isSelected, onPress }: Props) => {
-    console.log("item123456789888---->",item);
   const dispatch = useDispatch();
 
   const handlePress = () => {

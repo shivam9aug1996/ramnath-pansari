@@ -95,10 +95,7 @@ const SpinWheel = () => {
       setIsSpinning(false);
       
       const prize = SECTIONS[targetSectionIndex].label;
-      console.log('Target Section:', targetSectionIndex);
-      console.log('Target Degree:', targetDegree);
-      console.log('Total Rotation:', totalDegrees);
-      console.log('Won Prize:', prize);
+     
 
       alert(`Congratulations! You won ${prize}!`);
     });

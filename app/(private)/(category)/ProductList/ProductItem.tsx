@@ -23,7 +23,6 @@ const ProductItem = ({
   //isProductsFetching,
   //paginationState,
 }: ProductItemProps) => {
-  console.log("product_item---->",item?._id)
   const discountPercentage = useMemo(() => {
     const nDiscountP = ((item.price - item.discountedPrice) / item.price) * 100;
     return Math.round(nDiscountP);

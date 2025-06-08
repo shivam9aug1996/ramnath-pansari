@@ -36,9 +36,7 @@ const usePusher = (appKey, appCluster) => {
         const newChannel = await pusher.subscribe({
           channelName,
           onEvent: (event) => {
-            console.log(`Received da8ta from ${eventName}:`, event);
             if (event?.data) {
-              console.log("kjtroiytrtyuiop", JSON.parse(event?.data));
               setMessage(JSON.parse(event?.data));
             }
           },

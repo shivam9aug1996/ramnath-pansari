@@ -93,7 +93,7 @@ const addressList = () => {
     cartButtonProductId?.length != 0 || isPaymentProcessing;
 
   const handleIncomingURL = (event) => {
-    console.log("Received URL:", event);
+   // console.log("Received URL:", event);
     // Parse and handle the URL as needed
   };
 
@@ -111,7 +111,7 @@ const addressList = () => {
 
   const isNotServiceable = useMemo(() => {
     const selectedAddress = data?.find((item) => item?._id === selectedAddressId);
-    console.log("selectedAddress",selectedAddress)
+    //console.log("selectedAddress",selectedAddress)
     return selectedAddress?.pincode !== "245304";
   }, [data,selectedAddressId]);
 
@@ -130,7 +130,7 @@ const addressList = () => {
   const handleSelect = (id: string) => {
     setSelectedAddressId(id);
   };
-  console.log("876trfghjk", data);
+  //console.log("876trfghjk", data);
 
   const refetchMe = () => {
     refetch();
@@ -237,7 +237,7 @@ const addressList = () => {
                 const addressData = data?.find((item) => {
                   return item?._id == selectedAddressId;
                 });
-                console.log("kjhyt567890-", addressData, totalAmountInNumber);
+               // console.log("kjhyt567890-", addressData, totalAmountInNumber);
                 setIsPayModal(true);
 
                 //handleOnClick(totalAmountInNumber, addressData);

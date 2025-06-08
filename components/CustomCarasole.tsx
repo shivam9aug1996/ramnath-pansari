@@ -81,7 +81,7 @@ function CustomCarasole() {
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={() => {
-        console.log("carousel_pressed", item);
+       // console.log("carousel_pressed", item);
         const selectedCategory = item?.category;
         let selectedIndex = 0;
         let parentCategory = null;

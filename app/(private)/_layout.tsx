@@ -13,7 +13,7 @@ const MainNavigator = () => {
   //     Alert.alert("hi");
   //   }, 5000);
   // }, []);
-  console.log("kjhtr67890-");
+ // console.log("kjhtr67890-");
   return (
     
    

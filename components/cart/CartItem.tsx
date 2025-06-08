@@ -12,7 +12,7 @@ import CartButton from "./CartButton";
 const CartItem = ({ item, order = false }: CartItemProps) => {
   const [itemHeight, setItemHeight] = useState(0);
 
-  console.log("jhgfdfghjkl cart item", item?.productDetails?._id);
+ // console.log("jhgfdfghjkl cart item", item?.productDetails?._id);
   const nDiscountP =
     ((item?.productDetails?.price - item?.productDetails?.discountedPrice) /
       item?.productDetails?.price) *

@@ -69,7 +69,7 @@ async function registerForPushNotificationsAsync() {
     const projectId =
       Constants?.expoConfig?.extra?.eas?.projectId ??
       Constants?.easConfig?.projectId;
-    console.log("projectId", projectId);
+   // console.log("projectId", projectId);
     if (!projectId) {
       handleRegistrationError("Project ID not found");
     }
@@ -79,7 +79,7 @@ async function registerForPushNotificationsAsync() {
           projectId,
         })
       ).data;
-      console.log("pushTokenString", pushTokenString);
+     // console.log("pushTokenString", pushTokenString);
       return pushTokenString;
     } catch (e: unknown) {
       handleRegistrationError(`${e}`);
@@ -106,12 +106,12 @@ export default function Push1() {
 
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {
-        console.log("kjhgertyjkl;", JSON.stringify(notification));
+       // console.log("kjhgertyjkl;", JSON.stringify(notification));
         let notData = notification?.request?.content?.data?.body;
         if (notData) {
           notData = JSON.parse(notification?.request?.content?.data?.body);
           if (notData?.updateOrderStatus) {
-            console.log("jhgfdcvbnm567890,./", notData);
+           // console.log("jhgfdcvbnm567890,./", notData);
 
             dispatch(
               orderApi.util.invalidateTags([
@@ -137,7 +137,7 @@ export default function Push1() {
       Notifications.addNotificationResponseReceivedListener((response) => {
         let notData = response?.notification?.request?.content?.data;
         let title = response?.notification?.request?.content?.title;
-        console.log("kjhgert567890-yjkl;", JSON.stringify(response));
+       // console.log("kjhgert567890-yjkl;", JSON.stringify(response));
         if (!title) {
           return;
         }

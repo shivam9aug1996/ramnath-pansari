@@ -20,7 +20,7 @@ interface AddressItemProps {
 
 const AddressItem = ({ addressData }: AddressItemProps) => {
   if (!addressData) return null;
-  console.log("addressData---->", addressData);
+  //console.log("addressData---->", addressData);
 
   return (
     <View style={styles.addressCard}>

@@ -19,9 +19,6 @@ const MockLagComponent = () => {
 //     return () => clearInterval(interval);
 //   });
 
-for(let i=0;i<20000;i++){
-  console.log("i34567890-",i)
-}
 
   return (
     <View style={styles.container}>

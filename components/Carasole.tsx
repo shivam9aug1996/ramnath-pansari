@@ -54,7 +54,7 @@ function Carasole() {
     { skip: !token }
   );
 
-console.log("isFocused", isFocused);
+//console.log("isFocused", isFocused);
 
 useEffect(() => {
   if (carouselRef.current) {
@@ -81,7 +81,7 @@ useEffect(() => {
   ref={carouselRef}
 
           onIndexChanged={(index) => {
-            console.log("index", index);
+           // console.log("index", index);
             currentIndex.value = index.index;
           }}
           mergeStyles
@@ -99,20 +99,20 @@ useEffect(() => {
             return <Pressable
               key={item?.id}
               onPress={() => {
-                console.log("carsole_pressed", item);
+               // console.log("carsole_pressed", item);
                 const selectedCategory = item?.category;
                 let selectedIndex = 0;
                 let parentCategory = null;
                 categoriesData?.categories?.forEach((item1) => {
                   item1?.children.map((item, index) => {
-                    console.log("65ewsdfghjkl", item?.name);
+                   // console.log("65ewsdfghjkl", item?.name);
                     if (item?._id === selectedCategory?._id) {
                       parentCategory = item1;
                       selectedIndex = index;
                     }
                   });
                 });
-                console.log({ selectedIndex, parentCategory });
+              //  console.log({ selectedIndex, parentCategory });
                 router.push({
                   pathname: `/(category)/${parentCategory?._id}`,
                   params: {

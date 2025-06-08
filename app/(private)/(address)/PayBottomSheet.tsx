@@ -21,7 +21,7 @@ const PayBottomSheet = ({
     <BottomSheet
       animation={false}
       onClose={() => {
-        console.log("closed");
+       // console.log("closed");
         setIsPayModal(false);
       }}
     >
@@ -46,7 +46,6 @@ const PayBottomSheet = ({
             const addressData = data?.find((item) => {
               return item?._id == selectedAddressId;
             });
-            console.log("kjhyt567890-", addressData, totalAmountInNumber);
             // setIsPayModal({
             //   status: true,
             //   value: {

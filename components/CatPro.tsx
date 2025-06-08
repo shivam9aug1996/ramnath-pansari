@@ -46,12 +46,12 @@ const CatPro = ({ id, name, selectedCategoryIdIndex }) => {
 
       // Return function is invoked whenever the route gets out of focus.
       return () => {
-        console.log("This route is now unfocused.");
+       // console.log("This route is now unfocused.");
       };
     }, [])
   );
 
-  console.log("uytfghjhgfghj", id, name, selectedCategoryIdIndex, count);
+ // console.log("uytfghjhgfghj", id, name, selectedCategoryIdIndex, count);
 
   return (
     <>

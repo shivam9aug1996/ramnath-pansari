@@ -48,7 +48,7 @@ const Account: React.FC = () => {
   const [deleteAccount, { isLoading: isAccountDeleting }] =
     useDeleteAccountMutation();
   const [isAnimating, setIsAnimating] = useState(true);
-  console.log(userInfo);
+ // console.log(userInfo);
   useFocusEffect(
     // Callback should be wrapped in `React.useCallback` to avoid running the effect too often.
     useCallback(() => {
@@ -56,7 +56,7 @@ const Account: React.FC = () => {
 
       // Return function is invoked whenever the route gets out of focus.
       return () => {
-        console.log("This route is now unfocused.");
+      //  console.log("This route is now unfocused.");
         setDeleteConfirm(false);
         setLogoutConfirm(false);
       };

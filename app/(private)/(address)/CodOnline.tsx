@@ -9,7 +9,7 @@ const CodOnline = ({ setIsPayModal, isPayModal }) => {
       <>
         <BottomSheet
           onClose={() => {
-            console.log("closed");
+           // console.log("closed");
             setIsOpen(false);
           }}
         >

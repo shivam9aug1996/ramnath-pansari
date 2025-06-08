@@ -61,7 +61,6 @@ const Order = () => {
     },
     []
   );
-  console.log("8765redfghjk", JSON.stringify(orderData));
   return (
     <>
       <ScreenSafeWrapper title="My Orders">

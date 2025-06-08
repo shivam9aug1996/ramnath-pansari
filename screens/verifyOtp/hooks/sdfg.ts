@@ -70,7 +70,7 @@ const useVerifyOtp1 = (): VerifyOtpHook => {
   }, []);
 
   const validateOtp = useCallback((otpValue: string): string => {
-    console.log("otpValue", otpValue, !/^\d{6}$/.test(otpValue));
+    //console.log("otpValue", otpValue, !/^\d{6}$/.test(otpValue));
     if (!otpValue || otpValue.length !== 6 || !/^\d{6}$/.test(otpValue)) {
       return "Please enter a valid OTP containing 6 digits";
     }
@@ -80,11 +80,11 @@ const useVerifyOtp1 = (): VerifyOtpHook => {
   const handleVerifyOtp = useCallback(
     (otpValue: string) => {
       const validationError = validateOtp(otpValue);
-      console.log("validationError", validationError);
+     // console.log("validationError", validationError);
       if (validationError) {
         setErrorState(validationError);
       } else {
-        console.log("otp hit", otpValue,mobileNumber);
+       // console.log("otp hit", otpValue,mobileNumber);
         verifyOtp({
           mobileNumber: mobileNumber || "",
           otp: otpValue,

@@ -12,7 +12,6 @@ const GoToCartWrapper = ({ showGoToCart,isCart }) => {
   const translateY = useRef(new Animated.Value(0)).current
   const scaleY = useRef(new Animated.Value(1)).current // Initially scaled to full size
   const opacity = useRef(new Animated.Value(1)).current // Initially fully opaque
-console.log("render3456789")
   useEffect(() => {
     if (!scrollParams) return
     if (scrollParams.direction === "down" && scrollParams.isBeyondThreshold) {

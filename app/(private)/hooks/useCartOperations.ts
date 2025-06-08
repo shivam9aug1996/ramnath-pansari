@@ -47,13 +47,13 @@ export const useCartOperations = (item: Product, initialValue: number) => {
   //console.log("iuytrdfghjkl;", selectedSubCategory);
   const handlePress = useCallback(
     async (quantity: number, value: number, item: Product) => {
-      console.log("hiiiiuyfghjklghjkl", quantity, value, item);
+     // console.log("hiiiiuyfghjklghjkl", quantity, value, item);
       if (item?.discountedPrice == 0) {
         showToast({
           type: "info",
           text2: "This free gift cannot be modified or removed.",
         });
-        console.log("hiiiiuyfghjklghjkl", quantity, value);
+      //  console.log("hiiiiuyfghjklghjkl", quantity, value);
         setQuantity(value);
         dispatch(setIsCartOperationProcessing(false))
         buttonClicked.current = false;
@@ -87,7 +87,7 @@ export const useCartOperations = (item: Product, initialValue: number) => {
         dispatch(setIsCartOperationProcessing(false))
       }
 
-      console.log("o8765redfghjkl", quantity, initialValue);
+     // console.log("o8765redfghjkl", quantity, initialValue);
       dispatch(setCartButtonProductId(item._id));
 
       try {
@@ -104,21 +104,21 @@ export const useCartOperations = (item: Product, initialValue: number) => {
         }).unwrap();
 
         let newCartData = await fetchCartData({ userId }, false).unwrap();
-        console.log("newCartData", JSON.stringify(newCartData));
+       // console.log("newCartData", JSON.stringify(newCartData));
         let dataIndex = newCartData?.cart?.items?.findIndex((it) => {
-          console.log("iuytfghj8888kjhg", it);
+        //  console.log("iuytfghj8888kjhg", it);
           return it?.productDetails?._id === item?._id;
         });
         let data = newCartData?.cart?.items?.find((it) => {
-          console.log("iuytfghj8888kjhg", it);
+         // console.log("iuytfghj8888kjhg", it);
           return it?.productDetails?._id === item?._id;
         });
 
-        console.log("iuytrdcvbnm,", dataIndex, item,data);
+       // console.log("iuytrdcvbnm,", dataIndex, item,data);
 
         if (dataIndex !== -1) {
           let isChange = findProductChanges(item, data?.productDetails);
-          console.log("isCh67890-ange", isChange);
+         // console.log("isCh67890-ange", isChange);
           if (isChange) {
             dispatch(setResetPagination({ item: item, status: true }));
             showToast({
@@ -179,7 +179,7 @@ export const useCartOperations = (item: Product, initialValue: number) => {
         // }
 
         dispatch(removeCartButtonProductId(item._id));
-        console.log("hiuytre34567890");
+       // console.log("hiuytre34567890");
       } catch (error) {
         if (error?.status == 467) {
           showToast({
@@ -190,7 +190,7 @@ export const useCartOperations = (item: Product, initialValue: number) => {
           setQuantity(value); // Revert to the original value on failure
           dispatch(removeCartButtonProductId(item._id));
 
-          console.log(`Failed after ${3} attempts`, error);
+         // console.log(`Failed after ${3} attempts`, error);
         } else if (error?.status == 468) {
           showToast({
             type: "info",
@@ -257,7 +257,7 @@ export const useCartOperations = (item: Product, initialValue: number) => {
           dispatch(setIsCartOperationProcessing(false))
         }
       } finally {
-        console.log("handlePress completed.");
+       // console.log("handlePress completed.");
         buttonClicked.current = false;
         dispatch(setIsCartOperationProcessing(false))
       }

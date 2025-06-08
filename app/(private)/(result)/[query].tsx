@@ -92,7 +92,7 @@ const Result = () => {
       let limit = 10;
       let page = Math.ceil((index + 1) / limit);
       let mLimit = page * limit;
-      console.log("jhgee4567890", page, index);
+    //  console.log("jhgee4567890", page, index);
       fetchProductsBySearch(
         {
           query,

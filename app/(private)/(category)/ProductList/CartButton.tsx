@@ -35,7 +35,6 @@ const CartButton = ({ value, item }: CartButtonProps) => {
   //     }, 200);
   //   }
   // },[isLoading])
-  console.log("cart button------>", item,value);
   return (
     <View style={[styles.container]}>
       {!item?.isOutOfStock && (

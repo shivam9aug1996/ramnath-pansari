@@ -9,7 +9,6 @@ const CategorySelector = ({
   onSelectCategory,
   contentContainerStyle,
 }: CategorySelectorProps) => {
-  console.log("categoriesseclector---->",categories);
   const renderCategory = ({ item, index }: { item: any; index: number }) => {
     const isSelected = item._id === selectedCategory?._id;
     return (
