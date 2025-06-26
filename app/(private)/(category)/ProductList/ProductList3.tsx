@@ -16,6 +16,7 @@ import ProductItem from "./ProductItem";
 import { useScrollDirection } from "@/hooks/useScrollDirection";
 import { setProductListScrollParams } from "@/redux/features/productSlice";
 import { useFocusEffect } from "expo-router";
+import ProductItemWrapper from "./ProductItemWrapper";
 
 const ITEM_HEIGHT = 250
 
@@ -39,7 +40,6 @@ interface ProductList3Props {
   isProductsFetching: boolean;
   isProductsLoading: boolean;
   paginationState: PaginationState;
-  headerVisible: boolean;
 }
 
 interface CartData {
@@ -56,11 +56,7 @@ const ProductList3 = ({
   isProductsLoading,
   paginationState,
 }: ProductList3Props) => {
-  const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
-  const { data: cartData, isLoading: isCartLoading } = useFetchCartQuery(
-    { userId },
-    { skip: !userId }
-  );
+  
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -90,24 +86,24 @@ const ProductList3 = ({
   //   }, [])
   // );
 
-  const handleScrollChange = ({
-    isBeyondThreshold,
-    direction,
-  }: {
-    isBeyondThreshold: boolean;
-    direction: "up" | "down";
-  }) => {
-    if (!isProductsFetching) {
-      dispatch(
-        setProductListScrollParams({
-          isBeyondThreshold,
-          direction,
-        })
-      );
-    }
-  };
+  // const handleScrollChange = ({
+  //   isBeyondThreshold,
+  //   direction,
+  // }: {
+  //   isBeyondThreshold: boolean;
+  //   direction: "up" | "down";
+  // }) => {
+  //   if (!isProductsFetching) {
+  //     dispatch(
+  //       setProductListScrollParams({
+  //         isBeyondThreshold,
+  //         direction,
+  //       })
+  //     );
+  //   }
+  // };
 
-  const handleScroll = useScrollDirection(handleScrollChange, 800);
+  // const handleScroll = useScrollDirection(handleScrollChange, 800);
 
   const hasNextPage = data?.currentPage < data?.totalPages;
 
@@ -130,28 +126,13 @@ const ProductList3 = ({
     hasNextPage,
   ]);
 
-  const cartItemsMap = useMemo(() => {
-    const map: Record<string, CartItem> = {};
-    (cartData?.cart?.items || []).forEach((it) => {
-      map[it.productId] = it;
-    });
-    return map;
-  }, [cartData?.cart?.items]);
+ 
 
   const renderProductItem = useCallback(
     ({ item, index }: { item: Product; index: number }) => {
-      const cartItem = cartItemsMap[item._id];
-      //console.log("cartItem", JSON.stringify(cartItem));
-      return (
-        <ProductItem
-          key={item?._id || index}
-          cartItem={cartItem}
-          item={item}
-          index={index}
-        />
-      );
+      return <ProductItemWrapper item={item} index={index} />
     },
-    [cartItemsMap]
+    []
   );
 
   const renderEmptyComponent = useCallback(() => {

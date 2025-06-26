@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -8,6 +8,7 @@ import {
   View,
   LayoutChangeEvent,
   ScrollView,
+  Keyboard,
 } from "react-native";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import { ThemedView } from "@/components/ThemedView";
@@ -26,65 +27,20 @@ import {
   useLazyFetchAddressQuery,
   useUpdateAddressMutation,
 } from "@/redux/features/addressSlice";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
 import { showToast } from "@/utils/utils";
+import isWithinDeliveryRadius from "./utils";
+import WebMap from "./WebMap";
+import WebMapRenderer from "./WebMapRenderer";
 
-// Define the types for form fields and validation rules
-interface Field {
-  key: keyof FormState;
-  label: string;
-  iconName?: keyof typeof Ionicons.glyphMap;
-  prefix?: string;
-  keyboardType?: "default" | "phone-pad";
-  maxLength?: number;
-}
-
-// Define the form state and error state types
 interface FormState {
   name: string;
   phone: string;
-  city: string;
-  state: string;
-  pincode: string;
-  buildingName: string;
-  colonyArea: string;
+  address: string;
   latitude: string;
   longitude: string;
 }
-
-interface ErrorState {
-  name: string;
-  phone: string;
-  city: string;
-  state: string;
-  pincode: string;
-  buildingName: string;
-  colonyArea: string;
-}
-
-// Define form fields and corresponding validation rules
-const fields: Field[] = [
-  { key: "name", label: "Name", iconName: "person-outline", maxLength: 30 },
-  {
-    key: "phone",
-    label: "Phone Number",
-    prefix: "+91",
-    keyboardType: "phone-pad",
-    maxLength: 10,
-  },
-  { key: "buildingName", label: "H.No/Building Name" },
-  { key: "colonyArea", label: "Colony/Area" },
-  { key: "city", label: "City" },
-  { key: "state", label: "State" },
-  {
-    key: "pincode",
-    label: "Pincode",
-    keyboardType: "phone-pad",
-    maxLength: 6,
-    helperText: "We currently deliver to 245304 only",
-  },
-];
 
 interface InputFieldProps {
   label: string;
@@ -98,348 +54,224 @@ interface InputFieldProps {
   customRef?: React.RefObject<TextInput>;
   readOnly?: boolean;
   multiLine?: boolean;
+  helperText?: string;
 }
 
-export const InputField: React.FC<InputFieldProps> = ({
-  label,
-  value,
-  onChange,
-  error,
-  keyboardType = "default",
-  iconName,
-  prefix,
-  maxLength,
-  customRef,
-  readOnly = false,
-  multiLine = false,
-  helperText = "",
-}) => {
-  const handlePress = () => customRef?.current?.focus();
+export const InputField: React.FC<InputFieldProps> = memo(
+  ({
+    label,
+    value,
+    onChange,
+    error,
+    keyboardType = "default",
+    iconName,
+    prefix,
+    maxLength,
+    customRef,
+    readOnly = false,
+    multiLine = false,
+    helperText = "",
+  }) => {
+    const handlePress = () => customRef?.current?.focus();
 
-  return (
-    <>
-      <ThemedText style={styles.label}>{label}</ThemedText>
-      <Pressable
-        onPress={handlePress}
-        style={[
-          styles.inputContainer,
-          {
-            marginBottom: error ? 0 : 20,
-          },
-          readOnly && styles.inputContainerReadOnly,
-        ]}
-      >
-        {iconName && (
-          <Ionicons
-            style={[styles.prefix, styles.iconStyle]}
-            name={iconName}
-            size={20}
-          />
-        )}
-        {prefix && <ThemedText style={styles.prefix}>{prefix}</ThemedText>}
-        <TextInput
-          readOnly={readOnly}
-          ref={customRef}
-          value={value}
-          onChangeText={onChange}
-          style={[styles.textInput, { left: !prefix && !iconName ? 25 : 60 }]}
-          keyboardType={keyboardType}
-          maxLength={maxLength}
-          multiline={multiLine}
-        />
-      </Pressable>
-      {!error && helperText && (
-        <ThemedText
-          style={[styles.helperText]}
-          lightColor={Colors.light.mediumLightGrey}
-        >
-          {helperText}
-        </ThemedText>
-      )}
-      {error && (
-        <ThemedText
-          lightColor={Colors.light.lightRed}
+    return (
+      <>
+        <ThemedText style={styles.label}>{label}</ThemedText>
+        <Pressable
+          onPress={handlePress}
           style={[
-            styles.errorText,
+            styles.inputContainer,
             {
-              marginBottom: 15,
+              marginBottom: error ? 0 : 20,
             },
+            readOnly && styles.inputContainerReadOnly,
           ]}
         >
-          {error}
-        </ThemedText>
-      )}
-    </>
-  );
-};
+          {iconName && (
+            <Ionicons
+              style={[styles.prefix, styles.iconStyle]}
+              name={iconName}
+              size={20}
+            />
+          )}
+          {prefix && <ThemedText style={styles.prefix}>{prefix}</ThemedText>}
+          <TextInput
+            readOnly={readOnly}
+            ref={customRef}
+            value={value}
+            onChangeText={onChange}
+            style={[styles.textInput, { left: !prefix && !iconName ? 25 : 60 }]}
+            keyboardType={keyboardType}
+            maxLength={maxLength}
+            multiline={multiLine}
+          />
+        </Pressable>
+        {!error && helperText && (
+          <ThemedText
+            style={[styles.helperText]}
+            lightColor={Colors.light.mediumLightGrey}
+          >
+            {helperText}
+          </ThemedText>
+        )}
+        {error && (
+          <ThemedText
+            lightColor={Colors.light.lightRed}
+            style={[styles.errorText, { marginBottom: 15 }]}
+          >
+            {error}
+          </ThemedText>
+        )}
+      </>
+    );
+  }
+);
 
 const AddAddress: React.FC = () => {
-  //const params = useLocalSearchParams();
-  // const itemId = params?._id;
-
   const currentAddressData = useSelector(
     (state: RootState) => state?.address?.currentAddressData
   );
+  const [isMapVisible, setIsMapVisible] = useState(false);
   const action = currentAddressData?.action;
   const itemId =
-    currentAddressData?.action == "edit"
+    currentAddressData?.action === "edit"
       ? currentAddressData?.form?._id
       : undefined;
- // console.log("765resdfghjk", JSON.stringify(currentAddressData));
-  const {
-    loading: fetchingLocationLoading,
-    data: fetchingLocationData,
-    fetchLocationData,
-  } = useFetchLocation();
-  const [
-    createAddress,
-    { isLoading: createAddressLoading, data: addressData },
-  ] = useCreateAddressMutation();
+
+  const [createAddress, { isLoading: createAddressLoading }] =
+    useCreateAddressMutation();
   const [updateAddress, { isLoading: updateAddressLoading }] =
     useUpdateAddressMutation();
   const [fetchAddress, { isFetching: fetchingAddressLoading }] =
     useLazyFetchAddressQuery();
   const userInfo = useSelector((state: RootState) => state.auth.userData);
+
   const [form, setForm] = useState<FormState>({
     name: "",
     phone: "",
-    city: "",
-    state: "",
-    pincode: "",
-    buildingName: "",
-    colonyArea: "",
-    latitude: "",
-    longitude: "",
-  });
-  const [initialForm, setInitialForm] = useState<FormState>({
-    name: "",
-    phone: "",
-    city: "",
-    state: "",
-    pincode: "",
-    buildingName: "",
-    colonyArea: "",
+    address: "",
     latitude: "",
     longitude: "",
   });
 
-  const [errors, setErrors] = useState<ErrorState>({
+  const [errors, setErrors] = useState<FormState>({
     name: "",
     phone: "",
-    city: "",
-    state: "",
-    pincode: "",
-    buildingName: "",
-    colonyArea: "",
+    address: "",
+    latitude: "",
+    longitude: "",
   });
 
-  const inputRefs = useRef<{
-    [key in keyof FormState]: React.RefObject<TextInput>;
-  }>({
-    name: React.createRef(),
-    phone: React.createRef(),
-    city: React.createRef(),
-    state: React.createRef(),
-    pincode: React.createRef(),
-    buildingName: React.createRef(),
-    colonyArea: React.createRef(),
-    latitude: React.createRef(),
-    longitude: React.createRef(),
-  });
+  const nameRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
+  const addressRef = useRef<TextInput>(null);
 
-  const scrollViewRef = useRef<ScrollView>(null);
-  const inputLayouts = useRef<{ [key in keyof FormState]?: { y: number } }>({});
+  useFocusEffect(
+    useCallback(() => {
+      if (action === "add" || action === "edit") {
+        const formData = {
+          ...form,
+          ...currentAddressData?.form,
+        };
+        delete formData?.area;
+        delete formData?.query;
+        delete formData?.action;
+        setForm(formData);
 
-  useEffect(() => {
-    if (fetchingLocationData) {
-      const { city, area, pincode, state, latitude, longitude } =
-        fetchingLocationData;
-      setForm({
-        ...form,
-        colonyArea: area,
-        city: city,
-        pincode: pincode,
-        state: state,
-        latitude: latitude,
-        longitude: longitude,
-      });
-    }
-  }, [fetchingLocationData]);
-
-  // useEffect(() => {
-  //   if (itemId) {
-  //     setForm({
-  //       ...form,
-  //       ...params,
-  //     });
-  //     setInitialForm(params);
-  //     setErrors((prev) => ({
-  //       ...prev,
-  //       buildingName: "",
-  //       city: "",
-  //       colonyArea: "",
-  //       name: "",
-  //       phone: "",
-  //       pincode: "",
-  //       state: "",
-  //     }));
-  //   }
-  // }, [itemId]);
-
-  useEffect(() => {
-    if (action == "add" || action == "edit") {
-      let obj = {
-        ...form,
-        ...currentAddressData?.form,
-      };
-      delete obj?.area;
-      delete obj?.query;
-      delete obj?.action;
-      setForm(obj);
-
-      let obj2 = {
-        ...form,
-        ...currentAddressData?.initialForm,
-      };
-      delete obj2?.area;
-      delete obj2?.query;
-      delete obj2?.action;
-
-      setInitialForm(obj2);
-      setErrors((prev) => ({
-        ...prev,
-        buildingName: "",
-        city: "",
-        colonyArea: "",
-        name: "",
-        phone: "",
-        pincode: "",
-        state: "",
-      }));
-    }
-  }, [action]);
-
-  const handleChange = useCallback(
-    (key: keyof FormState) => (value: string) => {
-      setErrors((prev) => ({ ...prev, [key]: "" }));
-      setForm((prev) => ({ ...prev, [key]: value }));
-    },
-    []
+        setErrors({
+          name: "",
+          phone: "",
+          address: "",
+          latitude: "",
+          longitude: "",
+        });
+      }
+    }, [currentAddressData]) // run whenever form changes
   );
-  // console.log("hgfdfghjk", form);
-  // console.log("hgfdfghjkinitak", initialForm, itemId);
 
-  const handleInputLayout =
-    (key: keyof FormState) => (event: LayoutChangeEvent) => {
-      inputLayouts.current[key] = event.nativeEvent.layout;
-    };
+  const { isWithin, distance } =
+    form?.latitude && form?.longitude
+      ? isWithinDeliveryRadius({
+          latitude: parseFloat(form.latitude),
+          longitude: parseFloat(form.longitude),
+        })
+      : { isWithin: false, distance: 0 };
 
-  const scrollToField = (field: keyof FormState) => {
-    const layout = inputLayouts.current[field];
-    if (layout && scrollViewRef.current) {
-      scrollViewRef.current.scrollTo({ y: layout.y - 10, animated: true });
-    }
+  const handleChange = (key: keyof FormState) => (value: string) => {
+    setErrors((prev) => ({ ...prev, [key]: "" }));
+    setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const validateForm = useCallback(() => {
+  const validateForm = () => {
     let valid = true;
-    const newErrors: ErrorState = { ...errors };
-    //console.log("uytfghjk", form);
+    const newErrors: FormState = { ...errors };
+
     if (!form.name.trim()) {
       newErrors.name = "Name is required";
-      scrollToField("name");
       valid = false;
     } else if (!/^\d{10}$/.test(form.phone.trim())) {
       newErrors.phone = "Invalid phone number";
-      scrollToField("phone");
       valid = false;
-    } else if (!form.city.trim()) {
-      newErrors.city = "City is required";
-      scrollToField("city");
+    } else if (!form.address.trim()) {
+      newErrors.address = "Address is required";
       valid = false;
-    } else if (!form.state.trim()) {
-      newErrors.state = "State is required";
-      scrollToField("state");
+    } else if (!form.latitude) {
+      newErrors.latitude = "Latitude is required";
       valid = false;
-    } else if (!/^\d{6}$/.test(form.pincode.trim())) {
-      newErrors.pincode = "Invalid pincode";
-      scrollToField("pincode");
-      valid = false;
-    } else if (!form.buildingName.trim()) {
-      newErrors.buildingName = "Building name is required";
-      scrollToField("buildingName");
-      valid = false;
-    } else if (!form.colonyArea.trim()) {
-      newErrors.colonyArea = "Colony/Area is required";
-      scrollToField("colonyArea");
+    } else if (!form.longitude) {
+      newErrors.longitude = "Longitude is required";
       valid = false;
     }
-    //console.log("o9876trfghjkl");
-    setErrors(newErrors);
-    return valid;
-  }, [form, errors]);
+    // else if(!isWithin) {
+    //   newErrors.address = "You're just outside our 3 km delivery zone.";
+    //   valid = false;
+    // }
+    //console.log("newErr67890ors",newErrors,form,isWithinDeliveryRadius({latitude: parseFloat(form.latitude), longitude: parseFloat(form.longitude)})?.isWithin)
+    // return false;
 
-  const changeInFields = () => {
-    for (const key in form) {
-      if (
-        form[key as keyof FormState] !== initialForm[key as keyof FormState]
-      ) {
-        //console.log(form[key], initialForm[key]);
-        return true;
-      }
-    }
-    return false;
+    setErrors(newErrors);
+
+    return valid;
   };
 
   const handleSave = async () => {
-    if(form.latitude == "" || form.longitude == ""){
-      showToast({
-        text2: "Please tap on Get current location button.",
-        type: "error",
-      });
-      return
-      
-    }
     try {
       if (validateForm()) {
-        if (changeInFields()) {
-          if (itemId) {
-            await updateAddress({
-              body: {
-                userId: userInfo?._id,
-                address: {
-                  ...form,
-                },
-                addressId: itemId,
-              },
-            })?.unwrap();
-          } else {
-            await createAddress({
-              body: {
-                userId: userInfo?._id,
-                address: {
-                  ...form,
-                },
-              },
-            })?.unwrap();
-          }
-          await fetchAddress(
-            {
+        if (itemId) {
+          await updateAddress({
+            body: {
               userId: userInfo?._id,
+              address: {
+                ...form,
+              },
+              addressId: itemId,
             },
-            false
-          )?.unwrap();
+          })?.unwrap();
+        } else {
+          console.log("4567876544567890", {
+            userId: userInfo?._id,
+            address: {
+              ...form,
+            },
+          });
+          await createAddress({
+            body: {
+              userId: userInfo?._id,
+              address: {
+                ...form,
+              },
+            },
+          })?.unwrap();
         }
+        await fetchAddress(
+          {
+            userId: userInfo?._id,
+          },
+          false
+        )?.unwrap();
         router.dismissTo("/(address)/addressList");
-
-        //router.dismissTo("/(address)/addressList");
-        // router.navigate({
-        //   pathname: "/(address)/addressList",
-        // });
       }
     } catch (error) {}
-    //console.log("kjht567890-", form);
-    //router.navigate("/(address)/mapSelect");
   };
 
   return (
@@ -447,74 +279,92 @@ const AddAddress: React.FC = () => {
       title={`${itemId ? "Edit" : "Add"} delivery address`}
       useKeyboardAvoidingView={true}
     >
+      {/* <WebMapRenderer visible={false} latitude={form.latitude} longitude={form.longitude} /> */}
       <DeferredFadeIn delay={100} style={{ flexShrink: 0, flex: 1 }}>
         <ScrollView
           bounces={Platform.OS === "android" ? false : true}
-          ref={scrollViewRef}
-          style={{ flex: 1, paddingTop: 10, marginTop: 20 }}
+          style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           <ThemedView style={styles.container}>
-            {fields.map((field) => (
-              <View key={field.key} onLayout={handleInputLayout(field.key)}>
-                {field.key === "colonyArea" ? (
-                  <FetchLocation
-                    loading={fetchingLocationLoading}
-                    onPress={() => {
-                      setErrors((prev) => ({
-                        ...prev,
-                        city: "",
-                        state: "",
-                        pincode: "",
-                        colonyArea: "",
-                      }));
-                      fetchLocationData();
-                    }}
-                  />
-                ) : null}
-                {field.key === "name" ? (
-                  <FetchUserInfo
-                    onPress={() => {
-                      setForm({
-                        ...form,
-                        name: userInfo?.name || "",
-                        phone: userInfo?.mobileNumber || "",
-                      });
-                      setErrors((prev) => ({ ...prev, name: "", phone: "" }));
-                    }}
-                  />
-                ) : null}
-                <InputField
-                  label={field.label}
-                  value={form[field.key]}
-                  onChange={handleChange(field.key)}
-                  error={errors[field.key]}
-                  iconName={field.iconName}
-                  prefix={field.prefix}
-                  keyboardType={field.keyboardType}
-                  maxLength={field.maxLength}
-                  customRef={inputRefs.current[field.key]}
-                  multiLine={field?.key == "colonyArea" ? true : false}
-                  helperText={field?.helperText}
-                />
-              </View>
-            ))}
+            {!userInfo?.isGuestUser && (
+              <FetchUserInfo
+                onPress={() => {
+                  setForm((prev) => ({
+                    ...prev,
+                    name: userInfo?.name || "",
+                    phone: userInfo?.mobileNumber || "",
+                  }));
+                  setErrors((prev) => ({ ...prev, name: "", phone: "" }));
+                }}
+              />
+            )}
+
+            <InputField
+              label="Name"
+              value={form.name}
+              onChange={handleChange("name")}
+              error={errors.name}
+              iconName="person-outline"
+              maxLength={30}
+              customRef={nameRef}
+            />
+
+            <InputField
+              label="Phone Number"
+              value={form.phone}
+              onChange={handleChange("phone")}
+              error={errors.phone}
+              prefix="+91"
+              keyboardType="phone-pad"
+              maxLength={10}
+              customRef={phoneRef}
+            />
+
+            <FetchLocation
+              title="Set Location on Map"
+              loading={false}
+              onPress={() => {
+                Keyboard.dismiss()
+                router.push({
+                  pathname: "/(address)/WebMap",
+                  params: {
+                    latitude: form.latitude,
+                    longitude: form.longitude,
+                  },
+                });
+              }}
+            />
+
+            <InputField
+              label="Address"
+              value={form.address}
+              onChange={handleChange("address")}
+              error={errors.address}
+              iconName="location-outline"
+              customRef={addressRef}
+              multiLine={true}
+              // helperText={form?.address ? !isWithin
+              //   ? `We're sorry, but you're ${distance} km away from our delivery zone. We currently deliver within a 3 km radius.`
+              //   : `Great news! You're ${distance} km away and well within our 3 km delivery zone.` : ""}
+            />
+
+            <Button
+              isLoading={
+                createAddressLoading ||
+                updateAddressLoading ||
+                fetchingAddressLoading
+              }
+              wrapperStyle={{
+                marginTop: 10,
+                marginBottom: 10,
+                paddingBottom: 20,
+              }}
+              onPress={handleSave}
+              title={itemId ? "Update Address" : "Save Address"}
+            />
           </ThemedView>
-          <Button
-            isLoading={
-              createAddressLoading ||
-              updateAddressLoading ||
-              fetchingAddressLoading
-            }
-            wrapperStyle={{
-              marginTop: 10,
-              marginBottom: 10,
-              paddingBottom: 20,
-            }}
-            onPress={handleSave}
-            title={itemId ? "Update Address" : "Save Address"}
-          />
         </ScrollView>
       </DeferredFadeIn>
     </ScreenSafeWrapper>
@@ -526,9 +376,12 @@ export default AddAddress;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    // padding: 20,
+    marginTop: 20,
   },
   errorText: {
     marginTop: 4,
+    fontFamily: "Montserrat_500Medium",
   },
   label: {
     marginBottom: 10,
@@ -537,7 +390,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     width: "100%",
     borderRadius: 20,
-    paddingVertical: 20,
+    paddingVertical: Platform.OS === "android" ? 10 : 20,
     position: "relative",
     backgroundColor: "#f2f4f3",
   },
@@ -546,7 +399,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     fontSize: 16,
     paddingHorizontal: 20,
-    top: Platform.OS === "android" ? 23 : 19,
+    top: Platform.OS === "android" ? 20 : 19,
   },
   textInput: {
     ...(fonts.defaultNumber as any),
@@ -561,7 +414,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   inputContainerReadOnly: {
-    backgroundColor: "#e0e0e0", // Lighter background to indicate non-editable
+    backgroundColor: "#e0e0e0",
   },
   helperText: {
     marginBottom: 15,

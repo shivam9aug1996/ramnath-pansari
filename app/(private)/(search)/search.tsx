@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useCallback, useRef, useState } from "react";
 import {
+  Button,
   Keyboard,
   Pressable,
   StyleSheet,
@@ -18,6 +19,7 @@ import QueryData from "./QueryData";
 import RecentSearch from "./RecentSearch";
 import useSearchStageLioad from "@/hooks/useSearchStageLioad";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
+import { showToast } from "@/utils/utils";
 // const QueryData = lazy(() => import("./QueryData"));
 // const RecentSearch = lazy(() => import("./RecentSearch"));
 
@@ -73,6 +75,7 @@ const Search = () => {
         title="Search for products"
         showCartIcon
       >
+        
         <DeferredFadeIn delay={100} style={{flex:1}}>
           <View style={styles.searchContainer}>
             <CustomTextInput

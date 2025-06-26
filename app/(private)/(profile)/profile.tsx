@@ -139,12 +139,12 @@ const profile = () => {
         try {
           await updateProfile(formRes)?.unwrap();
           await fetchProfile({ _id: userInfo?._id }, false)?.unwrap();
-          router.navigate("/account");
+          router.back();
         } catch (error) {
          // console.log("Error updating profile", error);
         }
       } else {
-        router.navigate("/account");
+        router.back();
       }
     }
   };

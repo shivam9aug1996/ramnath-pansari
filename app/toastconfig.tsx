@@ -1,5 +1,5 @@
 import { BaseToast } from "react-native-toast-message";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { fonts } from "@/constants/Fonts";
 
 const baseStyles = {
@@ -96,6 +96,37 @@ export const toastConfig = {
       swipeable={true}
       contentContainerStyle={contentContainerStyle}
       text2Style={{ ...text2Style, color: "#2c3e50", fontSize: 12 }}
+      text2NumberOfLines={2}
+      renderLeadingIcon={() => (
+        <Ionicons
+          name="information-circle"
+          size={28}
+          style={{
+            color: "#3498db",
+            alignSelf: "center",
+            marginLeft: 10,
+          }}
+        />
+      )}
+    />
+  ),
+  cart:(props: any) => (
+    <BaseToast
+      {...props}
+      style={{
+        ...baseStyles,
+        backgroundColor: "#eaf4fc",
+        borderColor: "#a3cfe3",
+        borderLeftColor: "#3498db",
+      }}
+      swipeable={true}
+      contentContainerStyle={contentContainerStyle}
+      text2Style={{ ...text2Style, fontSize: 12,fontWeight: "bold",
+       // textAlign: "center",
+        textDecorationLine: "underline",
+        color: "#1E90FF", // DodgerBlue — looks like a link/button
+        
+         }}
       text2NumberOfLines={2}
       renderLeadingIcon={() => (
         <Ionicons

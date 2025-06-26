@@ -87,19 +87,58 @@ const Account: React.FC = () => {
               >
                 
                   <View style={styles.optionsContainer}>
-                    <AccountOption
-                      onPress={() => {
-                        router.push("/profile");
-                      }}
-                      icon={
-                        <MaterialCommunityIcons
-                          name="account"
-                          size={20}
-                          color={Colors.light.gradientGreen_2}
-                        />
-                      }
-                      label="My Profile"
-                    />
+                    {userInfo?.isGuestUser && (
+                       <AccountOption
+                       onPress={() => {
+                         router.push("/login");
+                       }}
+                       icon={
+                         <MaterialCommunityIcons
+                           name="login"
+                           size={20}
+                           color={Colors.light.gradientGreen_2}
+                         />
+                       }
+                       label="Login/Signup"
+                     /> 
+                    )}
+                    
+                    
+
+                    {/* {userInfo?.khataUrl == "NA" ? null : (
+                    <Suspense fallback={null}>
+                      <AccountOption
+                        onPress={async () => {
+                          router.push("khata/56789");
+                        }}
+                        icon={
+                          <MaterialIcons
+                            name="manage-accounts"
+                            size={20}
+                            color={Colors.light.lightGreen}
+                          />
+                        }
+                        label="Khata"
+                      />
+                    </Suspense>
+                  )} */}
+
+                   {!userInfo?.isGuestUser && (
+                    <>
+                     <AccountOption
+                     onPress={() => {
+                       router.push("/profile");
+                     }}
+                     icon={
+                       <MaterialCommunityIcons
+                         name="account"
+                         size={20}
+                         color={Colors.light.gradientGreen_2}
+                       />
+                     }
+                     label="My Profile"
+                   /> 
+                    
 
                     <AccountOption
                       onPress={() => {
@@ -130,26 +169,7 @@ const Account: React.FC = () => {
                       }
                       label="Saved Addresses"
                     />
-
-                    {/* {userInfo?.khataUrl == "NA" ? null : (
-                    <Suspense fallback={null}>
-                      <AccountOption
-                        onPress={async () => {
-                          router.push("khata/56789");
-                        }}
-                        icon={
-                          <MaterialIcons
-                            name="manage-accounts"
-                            size={20}
-                            color={Colors.light.lightGreen}
-                          />
-                        }
-                        label="Khata"
-                      />
-                    </Suspense>
-                  )} */}
-
-                    <AccountOption
+                     <AccountOption
                       onPress={() => {
                         setLogoutConfirm(true);
                       }}
@@ -176,6 +196,8 @@ const Account: React.FC = () => {
                       }
                       label="Delete Account"
                     />
+                    </>
+                   )}
                   </View>
                 
               </ScrollView>

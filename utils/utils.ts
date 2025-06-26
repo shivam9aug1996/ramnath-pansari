@@ -79,12 +79,15 @@ export const hapticFeedback = (style = Haptics.ImpactFeedbackStyle.Soft) => {
   }
 };
 
-export const showToast = ({ type, text2 }: ToastShowParams) => {
+export const showToast = ({ type, text2,onPress,text2Style }: ToastShowParams) => {
   Toast?.hide();
   setTimeout(() => {
     Toast?.show({
       type: type,
       text2: text2,
+      onPress:()=>{
+        onPress?.();
+      },
     });
   }, 100);
 };

@@ -4,7 +4,7 @@ import { Fragment, Suspense, useEffect } from "react";
 import { Platform, View } from "react-native";
 import "react-native-reanimated";
 import "react-native-get-random-values";
-import { Provider } from "react-redux";
+import { Provider, useDispatch } from "react-redux";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
 import { StatusBar } from "expo-status-bar";
@@ -20,6 +20,8 @@ import { setupNotifications } from "./notificationService";
 import { AuthenticationFlow } from "./AuthenticationFlow";
 import { useFonts } from "./useFonts";
 import { toastConfig } from "./toastconfig";
+import { ItemTaskQueue } from "@/utils/ItemTaskQueueManager";
+import { setIsCartOperationProcessing } from "@/redux/features/cartSlice";
 
 
 // Prevent splash screen from auto-hiding
@@ -33,6 +35,7 @@ SplashScreen.setOptions({
 setupNotifications();
 
 export function InitialLayout() {
+
   return (
     <AuthenticationFlow>
       <Slot />
@@ -41,6 +44,7 @@ export function InitialLayout() {
 }
 
 const RootLayout = () => {
+ 
   const [fontsLoaded] = useFonts();
 
   useEffect(() => {
@@ -52,6 +56,8 @@ const RootLayout = () => {
 
     hideSplashScreen();
   }, []);
+
+ 
 
   return (
     <Fragment>

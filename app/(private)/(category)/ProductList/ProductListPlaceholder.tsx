@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     flex: 1 / 2,
     marginBottom: 20,
     position: "relative",
-    minHeight: 267,
+    minHeight: 250,
   },
   image: {
     height: 120,

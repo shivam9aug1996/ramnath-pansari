@@ -8,6 +8,7 @@ const CategorySelector = ({
   selectedCategory,
   onSelectCategory,
   contentContainerStyle,
+  variant = "small"
 }: CategorySelectorProps) => {
   const renderCategory = ({ item, index }: { item: any; index: number }) => {
     const isSelected = item._id === selectedCategory?._id;
@@ -17,6 +18,7 @@ const CategorySelector = ({
         index={index}
         isSelected={isSelected}
         onSelectCategory={onSelectCategory}
+        variant={variant}
       />
     );
   };

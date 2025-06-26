@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
-import React, { lazy, Suspense, useCallback, useState } from "react";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import React, { lazy, memo, Suspense, useCallback, useState } from "react";
+import { useFocusEffect } from "expo-router";
 import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import CustomSuspense from "@/components/CustomSuspense";
@@ -89,6 +89,6 @@ const CatPro = ({ id, name, selectedCategoryIdIndex }) => {
   );
 };
 
-export default CatPro;
+export default memo(CatPro);
 
 const styles = StyleSheet.create({});

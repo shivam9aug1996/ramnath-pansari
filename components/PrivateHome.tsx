@@ -1,49 +1,35 @@
-import React, { lazy, Suspense, useEffect } from "react";
-import {
-  StyleSheet,
-  View,
-  ScrollView,
-  Text,
-  Button,
-  Platform,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { useSelector } from "react-redux";
-import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
+import React, { useEffect } from "react";
+import { StyleSheet, View, ScrollView, Platform, TextInput } from "react-native";
+import { router, useRouter } from "expo-router";
+import { useDispatch, useSelector } from "react-redux";
+import { setCategoryData, useFetchCategoriesQuery } from "@/redux/features/categorySlice";
 import { RootState, Category } from "@/types/global";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import { Colors } from "@/constants/Colors";
 import { truncateText } from "@/utils/utils";
-import CustomSuspense from "./CustomSuspense";
 import CategoryCardPlaceholder from "./CategoryCardPlaceholder";
 import CategoryCard from "./CategoryCard";
 import DashboardHeader from "./DashboardHeader";
 import CustomTextInput from "./CustomTextInput";
-import Carasole from "./Carasole";
-import WebView from "react-native-webview";
-import RecentlyViewed from "./RecentlyViewed";
+
 import store from "@/redux/store";
-import {
-  clearRecentlyViewed,
-  loadRecentlyViewed,
-} from "@/redux/features/recentlyViewedSlice";
-import PersonalAI from "./PersonalAI";
-import SpinWheel from "@/app/components/SpinWheel";
-import Toast from "react-native-toast-message";
+import { loadRecentlyViewed } from "@/redux/features/recentlyViewedSlice";
 import DeferredFadeIn from "./DeferredFadeIn";
 import RecentlyViewedProducts from "@/app/(private)/(productDetail)/RecentlyViewedProducts";
-
-// const DashboardHeader = lazy(() => import("./DashboardHeader"));
-// const CustomTextInput = lazy(() => import("@/components/CustomTextInput"));
-// const Carasole = lazy(() => import("./Carasole"));
-// const CategoryCard = lazy(() => import("./CategoryCard"));
+import GreetingMessage from "./GreetingMessage/GreetingMessage";
+import Carasole from "./Carasole";
+import GreetingMessageWrapper from "./GreetingMessage/GreetingMessageWrapper";
+import Example from "@/utils/Example";
+import WeatherSection from "./WeatherSection/WeatherSection";
 
 const PrivateHome = () => {
+  const dispatch = useDispatch();
   const token = useSelector((state: RootState) => state?.auth?.token);
   const userData = useSelector((state: RootState) => state?.auth?.userData);
   const { data: categoriesData, isFetching: isCategoryFetching } =
     useFetchCategoriesQuery({}, { skip: !token });
-  const router = useRouter();
+
+    //console.log("categoriesData",JSON.stringify(categoriesData))
 
   useEffect(() => {
     store.dispatch(loadRecentlyViewed());
@@ -57,23 +43,28 @@ const PrivateHome = () => {
     const selectedIndex = parentCategory.children.findIndex(
       (item) => item?._id === selectedCategory?._id
     );
-   // console.log("kjytr567890", index);
-    router.push({
-      pathname: `/(category)/${parentCategory?._id}`,
-      params: {
-        name: parentCategory?.name,
-        selectedCategoryIdIndex: selectedIndex,
-      },
-    });
-
+    // const selectedCategory1 = parentCategory.children.find(
+    //   (item) => item?._id === selectedCategory?._id
+    // );
+   // console.log("selectedCategory",JSON.stringify(selectedCategory))
+   console.log("categoriesData",JSON.stringify(selectedCategory))
+    const selectedCategory1 = categoriesData?.categories.find(
+      (item) => {
+        return item?._id == parentCategory?._id
+      }
+    );
+    console.log("selectedCategory1",JSON.stringify(selectedCategory1))
+    console.log("selectedIndex",JSON.stringify(selectedIndex))
     // router.push({
-    //   pathname: `/(private)/(tabs)/cat`,
+    //   pathname: `/(category)/${parentCategory?._id}`,
     //   params: {
     //     name: parentCategory?.name,
-    //     selectedCategoryIdIndex: selectedIndex,
+    //     selectedCategoryIdIndex: selectedIndex?.toString(),
     //     id: parentCategory?._id,
     //   },
     // });
+    dispatch(setCategoryData(selectedCategory1))
+    router.push(`/(category)/${parentCategory?._id?.toString()}?name=${parentCategory?.name}&selectedCategoryIdIndex=${selectedIndex?.toString()}`)
   };
 
   const handleProfilePress = () => {
@@ -82,8 +73,11 @@ const PrivateHome = () => {
 
   return (
     <>
-      <ScreenSafeWrapper showBackButton={false}>
-        {/* <CustomSuspense fallback={<View style={{ flex: 1 }} />}> */}
+      <ScreenSafeWrapper
+        showBackButton={false}
+        wrapperStyle={{ paddingHorizontal: 0 }}
+        showWeatherSection={true}
+      >
         <DeferredFadeIn delay={100} style={{ flex: 1 }}>
           <ScrollView
             bounces={Platform.OS === "android" ? false : true}
@@ -94,33 +88,50 @@ const PrivateHome = () => {
                 userName={truncateText(userData?.name?.split(" ")[0], 10)}
                 profileImage={userData?.profileImage}
                 onProfilePress={handleProfilePress}
-              />
-              <Text style={styles.subtitleText}>
-                Your one-stop shop for everything you love.
-              </Text>
-              {/* <RecentlyViewed /> */}
-
-              <CustomTextInput
-                onChangeText={() => {}}
-                value="Search..."
-                type="search"
-                variant={2}
-                wrapperStyle={styles.textInputWrapper}
-                textInputStyle={styles.textInputStyle}
-                onPress={() => {
-                  router.push("/(search)/search");
-                  // router.push("/(private)/(tabs)/search");
-                }}
+                isGuestUser={userData?.isGuestUser}
               />
 
-              {/* <DeferredFadeIn delay={150}>
+              {/* <DeferredFadeIn
+              delay={300}
+              fallback={<View style={{height:27}}/>}
+              >
+                <GreetingMessageWrapper />
+              </DeferredFadeIn> */}
+
+              <View style={{ paddingHorizontal: 20 }}>
+                <CustomTextInput
+                  onChangeText={() => {}}
+                  value="Search..."
+                  type="search"
+                  variant={2}
+                  wrapperStyle={styles.textInputWrapper}
+                  textInputStyle={styles.textInputStyle}
+                  onPress={() => {
+                    router.push("/(search)/search");
+                  }}
+                />
+                
+              </View>
+              <DeferredFadeIn
+                delay={100}
+                fallback={<View style={{ width: 393, height: 236 }} />}
+                style={{ flex: 1 }}
+              >
                 <Carasole />
-                </DeferredFadeIn> */}
+              </DeferredFadeIn>
 
-              {/* <Suspense fallback={null}> */}
+              <DeferredFadeIn
+                delay={0}
+                //fallback={<View style={{ minWidth: "100%", minHeight: 80 }} />}
+              >
+                <View style={{ minHeight: 80, minWidth: "100%" }}>
+                  <WeatherSection />
+                </View>
+              </DeferredFadeIn>
+
               <DeferredFadeIn delay={200}>
                 {isCategoryFetching ? (
-                  <View>
+                  <View style={{ paddingHorizontal: 20 }}>
                     <CategoryCardPlaceholder />
                     <CategoryCardPlaceholder />
                   </View>
@@ -130,27 +141,20 @@ const PrivateHome = () => {
                       <CategoryCard
                         key={category?._id?.toString()}
                         category={category}
+                        index={index}
                         onSelect={handleCategorySelect}
+                        length={categoriesData?.categories?.length}
                       />
                     )
                   )
                 )}
               </DeferredFadeIn>
-              {/* </Suspense> */}
             </View>
-           <DeferredFadeIn delay={200}>
-            <RecentlyViewedProducts variant={"compact"} />
-           </DeferredFadeIn>
-            {/* <SpinWheel/> */}
+            <DeferredFadeIn delay={200}>
+              <RecentlyViewedProducts variant={"compact"} />
+            </DeferredFadeIn>
           </ScrollView>
         </DeferredFadeIn>
-        {/* </CustomSuspense> */}
-        {/* <Button
-          title="go"
-          onPress={() => {
-            router.navigate("/(tabs)/cat?id=1&name=shivam");
-          }}
-        /> */}
       </ScreenSafeWrapper>
     </>
   );

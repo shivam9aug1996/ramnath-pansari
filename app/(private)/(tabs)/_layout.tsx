@@ -22,6 +22,7 @@ export default function TabLayout() {
   } = useFetchCartQuery(
     {
       userId,
+      getLocalData:true
     },
     {
       skip: !userId,

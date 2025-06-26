@@ -4,7 +4,7 @@ import AppTransition from "@/components/AppTransition";
 import VerifyOtp from "@/screens/verifyOtp";
 
 const verify = () => {
-  return <AppTransition><VerifyOtp /></AppTransition>;
+  return <VerifyOtp />
 };
 
 export default verify;

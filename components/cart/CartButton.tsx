@@ -26,13 +26,13 @@ const CartButton = ({ item, value, itemHeight }: any) => {
       <View style={[styles.quantityContainer]}>
         <TouchableOpacity
           onPress={() => {
-            if (isLoading) {
-              showToast({
-                type: "info",
-                text2: "Please wait a moment — we’re still updating your cart.",
-              });
-              return;
-            }
+            // if (isLoading) {
+            //   showToast({
+            //     type: "info",
+            //     text2: "Please wait a moment — we’re still updating your cart.",
+            //   });
+            //   return;
+            // }
             handleRemove();
           }}
           style={styles.quantityButton}
@@ -45,13 +45,13 @@ const CartButton = ({ item, value, itemHeight }: any) => {
         <AnimatedQuantity variant={3} quantity={quantity} />
         <TouchableOpacity
           onPress={() => {
-            if (isLoading) {
-              showToast({
-                type: "info",
-                text2: "Please wait a moment — we’re still updating your cart.",
-              });
-              return;
-            }
+            // if (isLoading) {
+            //   showToast({
+            //     type: "info",
+            //     text2: "Please wait a moment — we’re still updating your cart.",
+            //   });
+            //   return;
+            // }
             handleAdd();
           }}
           style={styles.quantityButton}

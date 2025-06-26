@@ -58,11 +58,11 @@ const AddressItem = ({ addressData }: AddressItemProps) => {
               color={Colors.light.mediumGrey}
             />
             <Text style={styles.addressText}>
-              {addressData.buildingName}, {addressData.colonyArea}
+              {addressData?.address}
             </Text>
           </View>
 
-          <View style={styles.addressLine}>
+          {/* <View style={styles.addressLine}>
             <MaterialCommunityIcons
               name="map-marker-outline"
               size={16}
@@ -71,7 +71,7 @@ const AddressItem = ({ addressData }: AddressItemProps) => {
             <Text style={styles.cityText}>
               {addressData.city}, {addressData.state} - {addressData.pincode}
             </Text>
-          </View>
+          </View> */}
         </View>
 
         {addressData.mapImage && (

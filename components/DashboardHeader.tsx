@@ -1,44 +1,38 @@
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React, { memo } from "react";
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
+
 import { Colors } from "@/constants/Colors";
+import { Link, router } from "expo-router";
+import AccountOption from "./AccountOption";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-const DashboardHeader = ({ userName, profileImage, onProfilePress }) => {
-  // const rotateValue = useSharedValue(0);
+const DashboardHeader = ({ userName, profileImage, onProfilePress,isGuestUser }) => {
 
-  // React.useEffect(() => {
-  //   rotateValue.value = withRepeat(
-  //     withTiming(50, { duration: 600, easing: Easing.ease }),
-  //     4, // Infinite repetition
-  //     true // Reverse direction for a waving effect
-  //   );
-  // }, [rotateValue]);
-
-  // // useEffect(() => {
-  // //   StatusBar.setStatusBarBackgroundColor("red");
-  // // }, []);
-
-  // const animatedStyle = useAnimatedStyle(() => {
-  //   return {
-  //     transform: [{ rotate: `${rotateValue.value}deg` }],
-  //   };
-  // });
 
   return (
     <View style={styles.headerContainer}>
       <View style={{ flex: 2 }}>
-        <Text style={styles.greetingText}>
-          {`Hey ${userName} `}
-          {/* <Animated.View style={[animatedStyle]}>
-            <Text style={{ fontSize: 18 }}>👋</Text>
-          </Animated.View> */}
-        </Text>
+      {isGuestUser ? (
+  <AccountOption
+  onPress={() => {
+    router.navigate("/login");
+  }}
+  icon={
+    <MaterialCommunityIcons
+      name="login"
+      size={20}
+      color={Colors.light.gradientGreen_2}
+    />
+  }
+  label="Login/Signup"
+/> 
+) : (
+  <Text style={styles.greetingText}>
+    {`Hey ${userName} `}
+  </Text>
+)}
+
+
       </View>
       <TouchableOpacity
         style={{ flex: 1, alignItems: "flex-end" }}
@@ -66,6 +60,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: 20,
   },
   greetingText: {
     fontFamily: "Raleway_800ExtraBold",
@@ -73,4 +68,30 @@ const styles = StyleSheet.create({
     color: Colors.light.darkGreen,
     marginBottom: 3,
   },
+  loginWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: "#D1D5DB", // subtle gray border
+    alignSelf: "flex-start",
+  },
+  
+  loginIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 8,
+    tintColor: Colors.light.darkGreen,
+  },
+  
+  loginText: {
+    fontSize: 16,
+    fontFamily: "Raleway_600SemiBold",
+    color: Colors.light.darkGreen,
+  }
+  
+  
 });

@@ -1,22 +1,27 @@
-import { Image, StyleSheet, TouchableOpacity } from "react-native";
+import { ActivityIndicator, Image, StyleSheet, TouchableOpacity } from "react-native";
 import React from "react";
 import { ThemedView } from "../ThemedView";
 import { Colors } from "@/constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
 
-const Button = ({ handlePress }) => {
+const Button = ({ handlePress,isLoadingVerifyOtp = false }:any) => {
   return (
     <ThemedView style={styles.outerButtonBorder}>
-      <TouchableOpacity onPress={handlePress}>
+      <TouchableOpacity disabled={isLoadingVerifyOtp} onPress={handlePress}>
         <LinearGradient
           colors={[Colors.light.gradientGreen_2, Colors.light.gradientGreen_1]}
           style={[styles.button]}
         >
-          <Image
+          {isLoadingVerifyOtp ? (
+            <ActivityIndicator style={{padding:5}} size="small" color={Colors.light.white} />
+          ) : (
+            <Image
             tintColor={Colors.light.white}
             source={require("../../assets/images/bi_arrow-right.png")}
             style={{ width: 30, height: 30 }}
           />
+          )}
+         
         </LinearGradient>
       </TouchableOpacity>
     </ThemedView>

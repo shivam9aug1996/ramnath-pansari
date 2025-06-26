@@ -18,7 +18,8 @@ import DeferredFadeIn from "@/components/DeferredFadeIn";
 const ProductItem = ({
   item,
   index,
-  cartItem,
+  //cartItem,
+  quantity,
   //isCartLoading,
   //isProductsFetching,
   //paginationState,
@@ -95,7 +96,7 @@ const ProductItem = ({
       <View style={styles.cartButtonSpacing} />
 
       
-       <CartButton value={cartItem?.quantity || 0} item={item} />
+       <CartButton value={quantity || 0} item={item} />
        
       
     </View>

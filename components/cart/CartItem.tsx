@@ -19,6 +19,7 @@ const CartItem = ({ item, order = false }: CartItemProps) => {
     100;
   const discountP = Math.round(nDiscountP);
 
+
   return (
     <ThemedView
       // onLayout={(event) => {

@@ -1,325 +1,177 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  removeCartButtonProductId,
-  setCartButtonProductId,
+  cartApi,
+  setCartItemQuantity,
   setIsCartOperationProcessing,
-  useLazyFetchCartQuery,
-  useSyncCartMutation,
-  useUpdateCartMutation,
+  setNeedToSyncWithBackend,
 } from "@/redux/features/cartSlice";
+
 import {
-  debounce,
   hapticFeedback,
   hideAllToast,
   showToast,
 } from "@/utils/utils";
 import { RootState, Product } from "@/types/global";
-import {
-  productApi,
-  setResetPagination,
-  useLazyFetchProductDetailQuery,
-  useLazyFetchProductsQuery,
-} from "@/redux/features/productSlice";
-import {
-  calculateTotalAmount,
-  findCartChanges,
-  findProductChanges,
-} from "@/components/cart/utils";
+import { calculateTotalAmount } from "@/components/cart/utils";
+import { router } from "expo-router";
+
+
+const FREE_ITEM_ID = "676da9f75763ded56d43032d";
+const FREE_ITEM = {
+  _id: FREE_ITEM_ID,
+  productId: FREE_ITEM_ID,
+  quantity: 1,
+  productDetails: {
+    _id: FREE_ITEM_ID,
+    name: "UTTAM SUGAR Sulphurfree Sugar (Refined Safed Cheeni)",
+    categoryPath: [
+      "66a2495650d9ec140942917c",
+      "676da1e1e48e180ad5a91181",
+      "676da298e48e180ad5a91182",
+    ],
+    image:
+      "https://rukminim2.flixcart.com/image/832/832/xif0q/sugar/i/a/q/-original-imagtxubkgmbwpa6.jpeg?q=70",
+    discountedPrice: 0,
+    price: 65,
+    size: "1 kg",
+    category: "Sugar",
+    lastUpdated: "2025-05-24T19:48:11.668Z",
+  },
+};
 
 export const useCartOperations = (item: Product, initialValue: number) => {
+  const isCartOperationProcessing = useSelector((state: RootState) => state?.cart?.isCartOperationProcessing);
   const dispatch = useDispatch();
-
   const buttonClicked = useRef(false);
-  const userId = useSelector((state: RootState) => state.auth.userData?._id);
-  const [syncCart, { isLoading: isSyncCartLoading }] = useSyncCartMutation();
+  const userInfo = useSelector((state: RootState) => state.auth.userData);
+  const userId = userInfo?._id;
+  const isGuestUser = userInfo?.isGuestUser;
 
-  const [updateCart, { isError: isUpdateCartError }] = useUpdateCartMutation();
-  const [fetchCartData] = useLazyFetchCartQuery();
-
-  const [quantity, setQuantity] = useState<number>(() => initialValue);
-  //console.log("oi7rfghjkl", initialValue);
-  useEffect(() => {
-    setQuantity(initialValue);
-  }, [initialValue]);
-
-
-  //console.log("iuytrdfghjkl;", selectedSubCategory);
-  const handlePress = useCallback(
-    async (quantity: number, value: number, item: Product) => {
-     // console.log("hiiiiuyfghjklghjkl", quantity, value, item);
-      if (item?.discountedPrice == 0) {
-        showToast({
-          type: "info",
-          text2: "This free gift cannot be modified or removed.",
-        });
-      //  console.log("hiiiiuyfghjklghjkl", quantity, value);
-        setQuantity(value);
-        dispatch(setIsCartOperationProcessing(false))
-        buttonClicked.current = false;
-        return;
-      }
-      if (value == quantity) {
-        dispatch(setIsCartOperationProcessing(false))
-        buttonClicked.current = false;
-        return;
-      }
-      if (value == 5 && quantity > 5) {
-        quantity = 5;
-        setQuantity(quantity);
-        showToast({
-          type: "info",
-          text2:
-            "You have reached the maximum limit allowed for purchase of this item.",
-        });
-        dispatch(setIsCartOperationProcessing(false))
-        buttonClicked.current = false;
-        return;
-      }
-      if (quantity > 5) {
-        quantity = 5;
-        setQuantity(quantity);
-        showToast({
-          type: "info",
-          text2:
-            "You have reached the maximum limit allowed for purchase of this item.",
-        });
-        dispatch(setIsCartOperationProcessing(false))
-      }
-
-     // console.log("o8765redfghjkl", quantity, initialValue);
-      dispatch(setCartButtonProductId(item._id));
-
-      try {
-        await updateCart({
-          body: {
-            quantity: quantity,
-            productDetails: {
-              name: item.name,
-              image: item.image,
-            },
-            productId: item._id,
-          },
-          params: { userId },
-        }).unwrap();
-
-        let newCartData = await fetchCartData({ userId }, false).unwrap();
-       // console.log("newCartData", JSON.stringify(newCartData));
-        let dataIndex = newCartData?.cart?.items?.findIndex((it) => {
-        //  console.log("iuytfghj8888kjhg", it);
-          return it?.productDetails?._id === item?._id;
-        });
-        let data = newCartData?.cart?.items?.find((it) => {
-         // console.log("iuytfghj8888kjhg", it);
-          return it?.productDetails?._id === item?._id;
-        });
-
-       // console.log("iuytrdcvbnm,", dataIndex, item,data);
-
-        if (dataIndex !== -1) {
-          let isChange = findProductChanges(item, data?.productDetails);
-         // console.log("isCh67890-ange", isChange);
-          if (isChange) {
-            dispatch(setResetPagination({ item: item, status: true }));
-            showToast({
-              type: "info",
-              text2:
-                "Product details are changed. Please review before checkout.",
-            });
-          }
-        }
-        // let totalAmount = calculateTotalAmount(
-        //   newCartData?.cart?.items
-        // )?.toFixed(2);
-        // let isItem = newCartData?.cart?.items?.find((it) => {
-        //   console.log("iuytfghj8888kjhg", it);
-        //   return it?.productDetails?._id === "676da9f75763ded56d43032d";
-        // });
-        // console.log("87654edfghjkl;", isItem);
-        // const isFreeItemPresent = isItem == undefined ? false : true;
-        // console.log("o8765redfbnm,", isFreeItemPresent, totalAmount);
-        // if (totalAmount >= 1000 && !isFreeItemPresent) {
-        //   let data = await fetchProductDetail(
-        //     { productId: "676da9f75763ded56d43032d" },
-        //     false
-        //   )?.unwrap();
-        //   console.log("87trfghjkl", JSON.stringify(data));
-        //   await updateCart({
-        //     body: {
-        //       quantity: 1,
-        //       productDetails: {
-        //         name: data?.product?.name,
-        //         image: data?.product?.image,
-        //       },
-        //       productId: data?.product?._id,
-        //     },
-        //     params: { userId },
-        //   }).unwrap();
-        //   let newCartData = await fetchCartData({ userId }, false).unwrap();
-        // }
-        // if (totalAmount < 1000 && isFreeItemPresent) {
-        //   console.log("987654edfghjkl", isFreeItemPresent, totalAmount);
-        //   let data = await fetchProductDetail(
-        //     { productId: "676da9f75763ded56d43032d" },
-        //     false
-        //   )?.unwrap();
-        //   console.log("87trfghjkl", JSON.stringify(data));
-        //   await updateCart({
-        //     body: {
-        //       quantity: 0,
-        //       productDetails: {
-        //         name: data?.product?.name,
-        //         image: data?.product?.image,
-        //       },
-        //       productId: data?.product?._id,
-        //     },
-        //     params: { userId },
-        //   }).unwrap();
-        //   let newCartData = await fetchCartData({ userId }, false).unwrap();
-        // }
-
-        dispatch(removeCartButtonProductId(item._id));
-       // console.log("hiuytre34567890");
-      } catch (error) {
-        if (error?.status == 467) {
-          showToast({
-            type: "info",
-            text2: "Unable to update. Please try again",
-          });
-
-          setQuantity(value); // Revert to the original value on failure
-          dispatch(removeCartButtonProductId(item._id));
-
-         // console.log(`Failed after ${3} attempts`, error);
-        } else if (error?.status == 468) {
-          showToast({
-            type: "info",
-            text2: "This item is no longer available.",
-          });
-          try {
-            await syncCart({
-              body: {},
-              params: { userId: userId },
-            })?.unwrap();
-            await fetchCartData({ userId }, false).unwrap();
-
-            // dispatch(setResetPagination(true));
-            dispatch(setResetPagination({ item: item, status: true }));
-
-            dispatch(
-              productApi.endpoints.fetchProductDetail.initiate(
-                {
-                  productId: item._id,
-                },
-                { subscribe: false, forceRefetch: true }
-              )
-            );
-          } catch (error) {
-          } finally {
-            setQuantity(value); // Revert to the original value on failure
-            dispatch(removeCartButtonProductId(item._id));
-            hideAllToast();
-            dispatch(setIsCartOperationProcessing(false))
-          }
-        } else if (error?.status == 404) {
-          showToast({
-            type: "info",
-            text2: "Product not found",
-          });
-          try {
-            await syncCart({
-              body: {},
-              params: { userId: userId },
-            })?.unwrap();
-            await fetchCartData({ userId }, false).unwrap();
-
-            // dispatch(setResetPagination(true));
-            dispatch(setResetPagination({ item: item, status: true }));
-
-            dispatch(
-              productApi.endpoints.fetchProductDetail.initiate(
-                {
-                  productId: item._id,
-                },
-                { subscribe: false, forceRefetch: true }
-              )
-            );
-          } catch (error) {
-          } finally {
-            setQuantity(value); // Revert to the original value on failure
-            dispatch(removeCartButtonProductId(item._id));
-            hideAllToast();
-            dispatch(setIsCartOperationProcessing(false))
-          }
-        } else {
-          setQuantity(value); // Revert to the original value on failure
-          dispatch(removeCartButtonProductId(item._id));
-          dispatch(setIsCartOperationProcessing(false))
-        }
-      } finally {
-       // console.log("handlePress completed.");
-        buttonClicked.current = false;
-        dispatch(setIsCartOperationProcessing(false))
-      }
-    },
-    [dispatch, updateCart, fetchCartData, userId]
+  const quantity = useSelector(
+    (state: RootState) => state.cart.cartItemQuantity[item._id]
   );
 
-  const debouncePress = useCallback(debounce(handlePress, 1000, false), [
-    handlePress,
-  ]);
+  useEffect(() => {
+    dispatch(
+      setCartItemQuantity({ productId: item._id, quantity: initialValue })
+    );
+  }, [dispatch, item._id, initialValue]);
+
+  const updateCartItems = useCallback(
+    async(newQuantity: number) => {
+      dispatch(setNeedToSyncWithBackend({status:true}));  
+      
+      dispatch(setCartItemQuantity({ productId: item._id, quantity: newQuantity }));
+
+      dispatch(
+        cartApi.util.updateQueryData("fetchCart", { userId }, (draft) => {
+          const items = draft.cart.items || [];
+          const index = items.findIndex(i => i.productDetails?._id === item._id);
+
+          if (newQuantity === 0 && index !== -1) {
+            items.splice(index, 1); // ❌ Remove item
+          } else if (index !== -1) {
+            items[index].quantity = newQuantity; // ✅ Update
+          } else if (newQuantity > 0) {
+            items.push({
+              _id: `temp-${Date.now()}`,
+              productId: item._id,
+              quantity: newQuantity,
+              productDetails: item,
+            }); // 🆕 Add
+          }
+
+          // Handle free item logic
+          const totalAmount = calculateTotalAmount(items);
+          const hasFreeItem = items.some(i => i.productDetails?._id === FREE_ITEM_ID);
+
+          if (totalAmount >= 1000 && !hasFreeItem) {
+            items.unshift(FREE_ITEM); // Add free item at top
+          } else if (totalAmount < 1000 && hasFreeItem) {
+            const freeItemIndex = items.findIndex(i => i.productDetails?._id === FREE_ITEM_ID);
+            if (freeItemIndex !== -1) {
+              items.splice(freeItemIndex, 1); // Remove free item
+            }
+          }
+        })
+      );
+
+      //  let updatedCart = store.getState().cartApi.queries[
+      //   `fetchCart({"userId":"${userId}"})`
+      // ]?.data;
+
+      // updatedCart = updatedCart?.cart?.items;
+
+      // if (updatedCart) {
+      //  await SecureStore.setItemAsync(`cartData-${userId}`, JSON.stringify(updatedCart))
+      //  await SecureStore.setItemAsync(`cartData-${userId}-needToSync`, JSON.stringify(true))
+      // }
+    },
+    [dispatch, item, userId]
+  );
 
   const handleAdd = useCallback(() => {
-    dispatch(setIsCartOperationProcessing(true))
+    if(isCartOperationProcessing){
+      showToast({
+        type: "info",
+        text2: "Please wait a moment — we’re still updating your cart.",
+      });
+      return;
+    }
+    if (isGuestUser) {
+      showToast({
+        type: "info",
+        text2: "🛍️ Tap here to log in and start filling your cart!",
+        onPress() {
+          router.push("/login");
+          hideAllToast();
+        },
+      });
+      return;
+    }
+
     hapticFeedback();
     if (quantity < 5) {
       buttonClicked.current = true;
-      const newQuantity = quantity + 1;
-      setQuantity(newQuantity);
-      debouncePress(newQuantity, initialValue, item);
+      updateCartItems(quantity + 1);
     } else {
       showToast({
         type: "info",
-        text2:
-          "You have reached the maximum limit allowed for purchase of this item.",
+        text2: "You have reached the maximum limit allowed for purchase of this item.",
       });
-      dispatch(setIsCartOperationProcessing(false))
+      
     }
-  },[quantity, initialValue, item,debouncePress]);
+  }, [isGuestUser, quantity, updateCartItems, dispatch,isCartOperationProcessing]);
 
   const handleRemove = useCallback(() => {
-    dispatch(setIsCartOperationProcessing(true))
-    hapticFeedback();
-
-    buttonClicked.current = true;
-    if (quantity > 0) {
-      const newQuantity = quantity - 1;
-      setQuantity(newQuantity);
-      debouncePress(newQuantity, initialValue, item);
+    if(isCartOperationProcessing){
+      showToast({
+        type: "info",
+        text2: "Please wait a moment — we’re still updating your cart.",
+      });
+      return;
     }
-  },[quantity, initialValue, item,debouncePress]);
+    hapticFeedback();
+    if (quantity > 0) {
+      buttonClicked.current = true;
+      updateCartItems(quantity - 1);
+    }
+  }, [quantity, updateCartItems,isCartOperationProcessing]);
 
   const handleClearAll = useCallback(() => {
-    dispatch(setIsCartOperationProcessing(true))
     hapticFeedback();
-
-    buttonClicked.current = true;
     if (quantity > 0) {
-      setQuantity(0);
-      handlePress(0, initialValue, item);
-      //debouncePress(0, initialValue, item);
+      buttonClicked.current = true;
+      updateCartItems(0);
     }
-  },[quantity, initialValue, item,handlePress]);
+  }, [quantity, updateCartItems]);
 
   return {
     quantity,
     handleAdd,
     handleRemove,
-    buttonClicked,
     handleClearAll,
+    buttonClicked,
   };
 };
-
-
-
-

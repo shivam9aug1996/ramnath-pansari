@@ -17,27 +17,28 @@ import { RootState } from "@/types/global";
 import { staticImage } from "@/app/(private)/(category)/CategoryList/utils";
 import Carousel from "pinar";
 import { useIsFocused } from "@react-navigation/native";
+import DeferredFadeIn from "./DeferredFadeIn";
 
 const carouselData = [
   {
     id: 1,
     category: {
-      _id: "66a24ac950d9ec140942918b",
-      name: "Atta & Flours",
+      _id: "67a5879461d60ec5eb8b4266",
+      name: "Coffee",
       children: [],
     },
     image:
-      "https://rukminim2.flixcart.com/fk-p-flap/960/420/image/107ad841d07533a9.jpg?q=100",
+      "https://rukminim2.flixcart.com/fk-p-flap/960/420/image/61725d49f1a21828.jpeg?q=100",
   },
   {
     id: 2,
     category: {
-      _id: "66a2498a50d9ec140942917d",
-      name: "Dals & Pulses",
+      _id: "67a5883461d60ec5eb8b426a",
+      name: "Tea",
       children: [],
     },
     image:
-      "https://rukminim2.flixcart.com/fk-p-flap/480/210/image/e5044575b65e3823.jpeg?q=100",
+      "https://rukminim2.flixcart.com/fk-p-flap/960/420/image/4fb35b7f555375d7.jpeg?q=100"
   },
 ];
 
@@ -67,7 +68,7 @@ useEffect(() => {
 }, [isFocused]);
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1,paddingHorizontal:10 }}>
       <View
         style={{
           flex: 1,
@@ -77,7 +78,8 @@ useEffect(() => {
           marginRight: 10,
         }}
       >
-        <Carousel
+       
+       <Carousel
   ref={carouselRef}
 
           onIndexChanged={(index) => {
@@ -142,6 +144,7 @@ useEffect(() => {
             </Pressable>
           })}
         </Carousel>
+       
       </View>
       <Pagi data={carouselData} currentIndex={currentIndex} />
     </View>

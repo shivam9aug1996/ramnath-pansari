@@ -51,6 +51,8 @@ const Cart = ({ tabBarHeight = 0 }: CartProps) => {
     dispatch(cartApi.util.resetApiState());
   };
 
+  console.log("cartData",JSON.stringify(cartData))
+
   return (
     <>
       <ScreenSafeWrapper title="My Bag" cartItems={cartItems}>

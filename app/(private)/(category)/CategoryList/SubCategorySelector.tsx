@@ -27,6 +27,9 @@ const SubCategorySelector = ({
       bounces={Platform.OS !== "android"}
       contentContainerStyle={contentContainerStyle}
       ref={subCatFlatListRef}
+      onScrollToIndexFailed={()=>{
+        console.error("onScrollToIndexFailed")
+      }}
       data={subCategories}
       keyExtractor={(item) => item._id}
       renderItem={renderItem}

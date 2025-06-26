@@ -36,14 +36,14 @@ const CartList = ({ cartItemIndex, isCartProcessing, cartData }) => {
       bounces={Platform.OS === "android" ? false : true}
       ref={flatListRef}
       initialNumToRender={4}
-      ListHeaderComponent={
-        cartItemIndex == -1 && isCartProcessing ? (
-          <CartPlaceholder
-            wrapperStyle={{ paddingHorizontal: 0, paddingTop: 0 }}
-            count={1}
-          />
-        ) : null
-      }
+      // ListHeaderComponent={
+      //   cartItemIndex == -1 && isCartProcessing ? (
+      //     <CartPlaceholder
+      //       wrapperStyle={{ paddingHorizontal: 0, paddingTop: 0 }}
+      //       count={1}
+      //     />
+      //   ) : null
+      // }
       showsVerticalScrollIndicator={false}
       
       data={cartData?.cart?.items}

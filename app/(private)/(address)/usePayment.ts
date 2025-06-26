@@ -49,7 +49,7 @@ const isLive =
 const getRazorpayKey = () => {
   const key = isLive
     ? process.env.EXPO_PUBLIC_RAZORPAY_KEY_LIVE
-    : process.env.EXPO_PUBLIC_RAZORPAY_KEY;
+    : process.env.EXPO_PUBLIC_RAZORPAY_KEY_TEST;
   
   if (!key) {
     throw new Error('Razorpay key is not configured. Please check your environment variables.');

@@ -53,9 +53,9 @@ const AddressItem: FC<AddressItemProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [deleteAddress] = useDeleteAddressMutation();
   const [fetchAddress] = useLazyFetchAddressQuery();
-
-  const fullAddress = `${item.buildingName}, ${item.colonyArea}, ${item.city} - ${item.pincode}, ${item.state}`;
-
+console.log("item",item)
+  //const fullAddress = `${item.buildingName}, ${item.colonyArea}, ${item.city} - ${item.pincode}, ${item.state}`;
+const fullAddress = item?.address || ''
   const handleEditPress = () => {
     dispatch(
       setCurrentAddressData({
@@ -122,19 +122,21 @@ const AddressItem: FC<AddressItemProps> = ({
         color={Colors.light.darkGrey}
         style={[styles.iconStyle, { bottom: 5 }]}
       />
+      {item.mapImage &&
       <View style={styles.imageContainer}>
         <Image
           source={{ uri: item.mapImage || staticImage }}
           style={styles.image}
         />
       </View>
+}
 
       <View style={styles.textContainer}>
         <Text style={styles.name}>{truncateText(item.name, 20)}</Text>
         <View style={styles.separator} />
         <Text style={styles.address}>{truncateText(fullAddress, 150)}</Text>
         <Text style={styles.phone}>Phone: {item.phone}</Text>
-        <Text
+        {/* <Text
           style={{
             color: isNotServiceable
               ? Colors.light.lightRed
@@ -145,7 +147,7 @@ const AddressItem: FC<AddressItemProps> = ({
           }}
         >
           {isNotServiceable ? "Not serviceable" : ""}
-        </Text>
+        </Text> */}
       </View>
     </TouchableOpacity>
   );

@@ -32,11 +32,12 @@ export const cartApi = createApi({
           // Filter out items that are out of stock
           const filteredItems = response?.cart?.items
             ?.filter((item) => !item.productDetails?.isOutOfStock)
-            ?.sort((a, b) => {
-              if (a.productDetails?.discountedPrice === 0) return 1;
-              if (b.productDetails?.discountedPrice === 0) return -1;
-              return 0;
-            });
+            // ?.sort((a, b) => {
+            //   if (a.productDetails?.discountedPrice === 0) return 1;
+            //   if (b.productDetails?.discountedPrice === 0) return -1;
+            //   return 0;
+            // })
+            
 
           // console.log(
           //   "Filtered and Reversed Response:",
@@ -47,7 +48,7 @@ export const cartApi = createApi({
             ...response,
             cart: {
               ...response.cart,
-              items: filteredItems.reverse(),
+              items: filteredItems
             },
           };
         }
@@ -57,6 +58,7 @@ export const cartApi = createApi({
       },
       providesTags: ["cartList"],
     }),
+    
     updateCart: builder.mutation({
       query: (data) => ({
         url: "/cart",
@@ -83,6 +85,21 @@ export const cartApi = createApi({
       }),
       // invalidatesTags: ["cartList"],
     }),
+    bulkUpdateCart: builder.query({
+      query: (data) => ({
+        url: "/cart/bulk",
+        method: "PUT",
+        params: data?.params,
+        body: data?.body,
+      }),
+    }),
+    fetchGreetingMessage: builder.query({
+      query: (data) => ({
+        url: "/generateGreeting",
+        method: "POST",
+        body: data?.body,
+      }),
+    }),
   }),
 });
 
@@ -100,6 +117,12 @@ const cartSlice = createSlice({
     isCartOperationProcessing: false,
     isClearCartLoading: false,
     isVisibleGoToCartWrapper: true,
+    cartItemQuantity:{},
+    cartQueueCount:{},
+    needToSyncWithBackend:{
+      status:false,
+      count:0
+    },
   },
   reducers: {
     setCartButtonProductId: (state, action) => {
@@ -131,6 +154,32 @@ const cartSlice = createSlice({
     },
     setIsVisibleGoToCartWrapper: (state, action) => {
       state.isVisibleGoToCartWrapper = action?.payload;
+    },
+    setCartItemQuantity: (state, action) => {
+      state.cartItemQuantity = {
+        ...state.cartItemQuantity,
+        [action?.payload?.productId]: action?.payload?.quantity,
+      }
+    },
+    incrementCartQueueCount: (state, action) => {
+      //console.log("5456786567890456789-",action?.payload?.productId,state.cartQueueCount[action?.payload?.productId])
+      state.cartQueueCount = {
+        ...state.cartQueueCount,
+        [action?.payload?.productId]: state.cartQueueCount[action?.payload?.productId] ? state.cartQueueCount[action?.payload?.productId] + 1 : 1,
+      }
+    },
+    decrementCartQueueCount: (state, action) => {
+      state.cartQueueCount = {
+        ...state.cartQueueCount,
+        [action?.payload?.productId]: state.cartQueueCount[action?.payload?.productId] ? Math.max(state.cartQueueCount[action?.payload?.productId] - 1, 0) : 0,
+      }
+    },
+    setNeedToSyncWithBackend: (state, action) => {
+      state.needToSyncWithBackend = {
+        ...state.needToSyncWithBackend,
+        count: state.needToSyncWithBackend.count + 1,
+        status: action?.payload?.status,
+      };
     },
   },
   extraReducers: (builder) => {
@@ -222,6 +271,10 @@ export const {
   setIsCartOperationProcessing,
   setIsClearCartLoading,
   setIsVisibleGoToCartWrapper,
+  setCartItemQuantity,
+  incrementCartQueueCount,
+  decrementCartQueueCount,
+  setNeedToSyncWithBackend
 } = cartSlice.actions;
 
 export const {
@@ -230,6 +283,8 @@ export const {
   useLazyFetchCartQuery,
   useClearCartMutation,
   useSyncCartMutation,
+  useLazyFetchGreetingMessageQuery,
+  useLazyBulkUpdateCartQuery
 } = cartApi;
 
 export default cartSlice.reducer;

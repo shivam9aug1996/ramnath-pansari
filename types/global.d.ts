@@ -71,6 +71,7 @@ export interface OnboardingItemProps {
   handlePress: () => void;
   item: OnboardingSlide;
   activeSlide: number;
+  isLoadingVerifyOtp: boolean;
 }
 
 export interface SaveAuthDataPayload {
@@ -101,6 +102,7 @@ export interface CategorySelectorProps {
   selectedCategory?: Category | null;
   onSelectCategory: (category: Category) => void;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  variant?: "small" | "large";
 }
 
 export interface SubCategorySelectorProps {

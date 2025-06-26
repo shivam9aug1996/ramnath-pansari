@@ -14,13 +14,15 @@ import { addCategoryView } from "@/redux/features/recentlyViewedSlice";
 import { debounce } from "lodash";
 import { setSubCategoryActionClicked } from "@/redux/features/categorySlice";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
+import { router } from "expo-router";
 const CategoryList = ({
   categories,
   isCategoryFetching,
-  selectedCategoryIdIndex,
+  selectedCategoryIdIndex=0,
   contentContainerStyle,
   parentCategory
 }: CategoryListProps) => {
+  
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null
   );
@@ -39,17 +41,18 @@ const CategoryList = ({
   //   }
   // }, [categories]);
 
+  // useEffect(() => {
+  //   if (categories?.length > 0) {
+  //     setSelectedCategory(categories[0]);
+  //   }
+    
+  // }, [selectedCategoryIdIndex, categories, parentCategory]);
+
   useEffect(() => {
-    if (categories?.length > 0) {
-      setSelectedCategory(categories[0]);
-    }
-    if (selectedCategoryIdIndex && categories) {
-  //    console.log("parentCategory", parentCategory);
-     
-//      console.log("ugfdfghjhgfdgh",JSON.stringify(categories))
+    if (selectedCategoryIdIndex!==undefined && categories) {
       setSelectedCategory(categories[selectedCategoryIdIndex]);
     }
-  }, [selectedCategoryIdIndex, categories, parentCategory]);
+  }, [selectedCategoryIdIndex, categories]);
 
   // useEffect(() => {
   //   requestAnimationFrame(()=>{
@@ -94,6 +97,7 @@ const CategoryList = ({
             ...(selectedCategory.children || []),
           ];
           setSubCategories(updatedSubCategories);
+          console.log("selectedSubCategory234567890-",{selectedCategory,selectedSubCategory})
           setSelectedSubCategory(updatedSubCategories[0]);
           scrollToTop(subCatFlatListRef);
         // dispatch(setSubCategoryActionClicked(false));
@@ -117,6 +121,7 @@ const CategoryList = ({
   
     return () => {
       debouncedUpdate.cancel(); // Clean up on unmount or deps change
+     // console.log("debouncedUpdate.cancel()",selectedSubCategory)
     };
   }, [selectedCategory, parentCategory]);
   
@@ -176,6 +181,15 @@ if(previousSelectedCategory.current === selectedId?._id){
   };
 }, [selectedSubCategory, subCategories, selectedCategory, isCategoryFetching]);
 
+const handleSelectCategory = (category: Category) => {
+  console.log("category",category)
+  const index = categories.findIndex(c => c._id === category._id);
+  setSelectedCategory(category);
+  router.setParams({
+    selectedCategoryIdIndex: index?.toString()
+  })
+}
+
   return (
     <View>
       {isCategoryFetching ? (
@@ -190,7 +204,7 @@ if(previousSelectedCategory.current === selectedId?._id){
           <CategorySelector
             categories={categories}
             selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
+            onSelectCategory={handleSelectCategory}
             contentContainerStyle={contentContainerStyle}
          />
         //  </DeferredFadeIn>

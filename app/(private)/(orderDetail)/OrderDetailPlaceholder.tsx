@@ -136,7 +136,7 @@ const OrderDetailPlaceholder = () => {
 
 const styles = StyleSheet.create({
   section: {
-    marginTop: 25,
+   // marginTop: 25,
   },
   heading: {
     fontFamily: "Raleway_700Bold",

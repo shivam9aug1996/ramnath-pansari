@@ -17,7 +17,9 @@ const ProfileContainer = ({ userInfo }) => {
         style={styles.profileImage}
       />
       <Text style={styles.profileName}>{userInfo?.name}</Text>
-      <Text style={styles.profilePhone}>{`+91 ${userInfo?.mobileNumber}`}</Text>
+      {!userInfo?.isGuestUser && (
+        <Text style={styles.profilePhone}>{`+91 ${userInfo?.mobileNumber}`}</Text>
+      )}
     </View>
   );
 };

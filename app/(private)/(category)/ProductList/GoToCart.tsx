@@ -26,51 +26,15 @@ import {
 import { calculateTotalAmount } from "@/components/cart/utils";
 import { formatNumber } from "@/utils/utils";
 
-// Animated Border for Confetti Effect
-const AnimatedBorder = ({ isCart = false }) => {
-  const progress = useSharedValue(0);
 
-  useEffect(() => {
-    progress.value = withRepeat(
-      withTiming(1, {
-        duration: 2000,
-        easing: Easing.linear,
-      }),
-      -1,
-      false
-    );
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => {
-    const colors = ["#FFD700", "#FFA500", "#FF69B4", "#FFD700"];
-    const index = Math.floor(progress.value * 3);
-    const color = colors[index];
-    const opacity = 0.6 + Math.sin(progress.value * Math.PI * 2) * 0.2;
-
-    return {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      borderWidth: 5,
-      borderRadius: isCart ? 10 : 0,
-      borderLeftWidth: isCart ? 5 : 0,
-      borderRightWidth: isCart ? 5 : 0,
-      borderColor: color,
-      opacity,
-    };
-  });
-
-  return <Animated.View style={animatedStyle} />;
-};
 
 const GoToCart = ({ isCart }) => {
-  const dispatch = useDispatch();
-  const isInitialMount = useRef(true);
 
   const userId = useSelector((state: RootState) => state.auth?.userData?._id);
-  const { data: cartData } = useFetchCartQuery({ userId }, { skip: !userId });
+  const isCartProcessing = useSelector((state: RootState) => state.cart?.isCartOperationProcessing);
+  const cartButtonProductId = useSelector((state: RootState) => state.cart?.cartButtonProductId);
+
+  const { data: cartData,isFetching:isCartFetching} = useFetchCartQuery({ userId }, { skip: !userId });
 
   const cartItems = cartData?.cart?.items?.length || 0;
   const cartProducts = cartData?.cart?.items || [];
@@ -81,24 +45,9 @@ const GoToCart = ({ isCart }) => {
   );
 
   const remainingAmount = Math.max(1000 - totalAmount, 0);
-  const showConfetti = useSelector((state: RootState) => state.cart?.showConfetti);
-  const isCartProcessing = useSelector((state: RootState) => state.cart?.isCartOperationProcessing);
-  const cartButtonProductId = useSelector((state: RootState) => state.cart?.cartButtonProductId);
 
-  // Handle showing confetti
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
 
-    if (remainingAmount <= 0 && cartItems) {
-      dispatch(setShowConfetti(true));
-      const timer = setTimeout(() => dispatch(setShowConfetti(false)), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [remainingAmount, cartItems]);
-
+// console.log("isCartFetching",isCartFetching,cartButtonProductId,isCartProcessing)
   if (!cartItems) return null;
 
   const renderOfferMessage = () => (
@@ -116,7 +65,7 @@ const GoToCart = ({ isCart }) => {
           <>Congratulations! You are eligible for 1 kg sugar free! 🎉</>
         )}
       </Text>
-      {showConfetti && <AnimatedBorder isCart={isCart} />}
+      {/* {showConfetti && <AnimatedBorder isCart={isCart} />} */}
     </View>
   );
 
@@ -130,16 +79,9 @@ const GoToCart = ({ isCart }) => {
       {renderOfferMessage()}
 
       <View style={styles.cartButton}>
-        {isCartProcessing || cartButtonProductId?.length > 0 ? (
-          <View style={styles.cartUpdating}>
-            <Text style={styles.cartText}>Updating cart... </Text>
-            <ActivityIndicator size="small" color={Colors.light.white} />
-          </View>
-        ) : (
-          <Text style={styles.cartText}>
+         <Text style={styles.cartText}>
             {`${cartItems} Items | ₹${formatNumber(totalAmount)}`}
           </Text>
-        )}
 
         <View style={styles.cartAction}>
           <Ionicons name="bag-outline" size={18} color={Colors.light.white} />
@@ -165,7 +107,7 @@ const styles = StyleSheet.create({
   },
   offerText: {
     color: "white",
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: "Raleway_700Bold",
     textAlign: "center",
   },

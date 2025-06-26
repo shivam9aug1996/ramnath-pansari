@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { TouchableOpacity, View, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { ThemedText } from "@/components/ThemedText";
@@ -15,31 +15,60 @@ interface Props {
   index: number;
   isSelected: boolean;
   onSelectCategory?: (item: Category, index: number) => void;
+  variant?: "small" | "large";
 }
 
-const CategoryItem = ({ item, index, isSelected, onSelectCategory }: Props) => {
-  const dispatch = useDispatch();
-  const borderStyle = imageBorderStyle(arrayColor, isSelected, index);
+const IMAGE_SIZES = {
+  small: 40,
+  large: 60,
+};
 
-  const handlePress = () => {
+const MAX_WIDTHS = {
+  small: 70,
+  large: 80,
+};
+
+const FONT_SIZES = {
+  small: 10,
+  large: 12,
+};
+
+const CategoryItem = ({
+  item,
+  index,
+  isSelected,
+  onSelectCategory,
+  variant = "small",
+}: Props) => {
+  const dispatch = useDispatch();
+
+  const imageSize = IMAGE_SIZES[variant];
+  const maxWidth = MAX_WIDTHS[variant];
+  const fontSize = FONT_SIZES[variant];
+  const borderStyle = useMemo(
+    () => imageBorderStyle(arrayColor, isSelected, index),
+    [isSelected, index]
+  );
+
+  const handlePress = useCallback(() => {
     if (!isSelected) {
       dispatch(setSubCategoryActionClicked(true));
     }
     onSelectCategory?.(item, index);
-  };
+  }, [isSelected, item, index, onSelectCategory]);
 
   return (
-    <TouchableOpacity style={styles.container} onPress={handlePress}>
+    <TouchableOpacity style={[styles.container, { maxWidth }]} onPress={handlePress}>
       <View style={[styles.imageContainer, borderStyle]}>
         <Image
           source={{ uri: item.image || staticImage }}
-          style={styles.image}
+          style={{ width: imageSize, height: imageSize }}
           contentFit="cover"
           placeholder={{ uri: staticImage }}
           cachePolicy="disk"
         />
       </View>
-      <ThemedText style={styles.text}>
+      <ThemedText style={[styles.text, { fontSize }]}>
         {truncateText(item.name, 15)}
       </ThemedText>
     </TouchableOpacity>
@@ -48,20 +77,14 @@ const CategoryItem = ({ item, index, isSelected, onSelectCategory }: Props) => {
 
 const styles = StyleSheet.create({
   container: {
-    maxWidth: 70,
     marginTop: 15,
     marginRight: 10,
   },
   imageContainer: {
     borderRadius: 23,
     marginBottom: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    padding: 10,
     borderWidth: 1,
-  },
-  image: {
-    height: 40,
-    width: 40,
   },
   text: {
     fontSize: 10,

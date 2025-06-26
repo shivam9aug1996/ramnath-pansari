@@ -13,5 +13,5 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "utils/DownloadManager.js"
-  ]
+, "components/GreetingMessage"  ]
 }

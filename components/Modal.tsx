@@ -2,7 +2,6 @@ import { Link } from "expo-router";
 import { useState } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, SlideInDown } from "react-native-reanimated";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 
 export default function Modal() {
   const [isOpen, setIsOpen] = useState(false);

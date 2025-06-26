@@ -1,49 +1,59 @@
-import { Platform, StyleSheet, Text, View, Image, Pressable } from "react-native";
-import React, { lazy, Suspense, useMemo, useState } from "react";
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  withTiming,
-} from "react-native-reanimated";
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+  Image,
+  Pressable,
+} from "react-native";
+import React, { useMemo, useState } from "react";
 import { Colors } from "@/constants/Colors";
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
 import { formatNumber, showToast } from "@/utils/utils";
 import { useDispatch } from "react-redux";
 import { router } from "expo-router";
-import { calculateTotalAmount, calculateTotalAmountMrp, findCartChanges } from "./utils";
+import { calculateTotalAmount, findCartChanges } from "./utils";
 import {
+  cartApi,
+  setIsCartOperationProcessing,
   setIsClearCartLoading,
+  setNeedToSyncWithBackend,
   useClearCartMutation,
+  useFetchCartQuery,
+  useLazyBulkUpdateCartQuery,
   useLazyFetchCartQuery,
   useSyncCartMutation,
 } from "@/redux/features/cartSlice";
+
 import { useLazyFetchAddressQuery } from "@/redux/features/addressSlice";
 import { setCheckoutFlow } from "@/redux/features/orderSlice";
-import GoToCart from "@/app/(private)/(category)/ProductList/GoToCart";
 import { calculateSavingsAndFreebies } from "@/app/(private)/(orderDetail)/utils";
 import { useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import Button from "../Button";
- import { useRenderTimer } from "@/hooks/useRenderTimer";
-const Continue = ({
-  cartData,
-  headerVisible,
-  tabBarHeight,
-  isCartProcessing,
-  userId,
-}) => {
+import { useRenderTimer } from "@/hooks/useRenderTimer";
+
+const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
   useRenderTimer(`Continue`);
   const isCartOperationProcessing = useSelector(
     (state: RootState) => state?.cart?.isCartOperationProcessing
   );
-  const isClearCartLoading = useSelector((state: RootState) => state.cart.isClearCartLoading);
+  const { data: cartData } = useFetchCartQuery({ userId }, { skip: !userId });
+  const isClearCartLoading = useSelector(
+    (state: RootState) => state.cart.isClearCartLoading
+  );
 
   const [fetchCartData, { isLoading: isCartLoading }] = useLazyFetchCartQuery();
   const [fetchAddress, { isFetching: fetchingAddressLoading }] =
     useLazyFetchAddressQuery();
+  const [bulkUpdateCart] = useLazyBulkUpdateCartQuery();
   const [syncCart, { isLoading: isSyncCartLoading }] = useSyncCartMutation();
   const [clearCart] = useClearCartMutation();
+  const needToSyncWithBackend = useSelector(
+    (state: RootState) => state?.cart?.needToSyncWithBackend
+  );
+  // const navigation = useNavigation();
 
   const [isDisabled, setIsDisabled] = useState(false);
   const [showPriceDetails, setShowPriceDetails] = useState(false);
@@ -55,16 +65,107 @@ const Continue = ({
 
   const dispatch = useDispatch();
 
+  // useEffect(() => {
+  //   latestCartDataRef.current = cartData;
+  // }, [cartData?.cart?.items]);
+
+  // console.log(pathname);
+  //   useFocusEffect(
+  //     // Callback should be wrapped in `React.useCallback` to avoid running the effect too often.
+  //     useCallback(() => {
+  //       // Invoked whenever the route is focused.
+  // console.log("needToSyncWithBackend",needToSyncWithBackend)
+  //         if(needToSyncWithBackend.status){
+  //           dispatch(setIsCartOperationProcessing(true));
+
+  //         (async()=>{
+  //           try {
+
+  //           let updatedCart = store.getState().cartApi.queries[
+  //         `fetchCart({"userId":"${userId}"})`
+  //       ]?.data;
+  //        let payload = updatedCart?.cart?.items?.map((item:any)=>{
+  //         return {
+  //           productId:item?.productDetails?._id,
+  //           quantity:item?.quantity
+  //         }
+  //       })
+  //       payload = payload.filter(
+  //         (item: any) =>
+  //           item?.productId !== "676da9f75763ded56d43032d"
+  //       );
+  //           console.log("payload",payload)
+  //           await bulkUpdateCart({
+  //             body: {
+  //               items:payload
+  //             },
+  //             params: { userId },
+  //           })?.unwrap();
+  //           await fetchCartData({ userId }, false)?.unwrap();
+  //           } catch (error) {
+
+  //           }
+  //           dispatch(setNeedToSyncWithBackend({status:false}));
+  //           dispatch(setIsCartOperationProcessing(false));
+  //          })()
+  //         }
+
+  //       // Return function is invoked whenever the route gets out of focus.
+  //       return () => {
+  //         console.log('This route is now unfocused.');
+  //       };
+  //     }, [needToSyncWithBackend?.status]));
+
+  //     useEffect(() => {
+  //       const unsubscribe = navigation.addListener("tabPress", () => {
+  //         if(needToSyncWithBackend.status){
+  //           dispatch(setIsCartOperationProcessing(true));
+
+  //         (async()=>{
+  //           try {
+
+  //           let updatedCart = store.getState().cartApi.queries[
+  //         `fetchCart({"userId":"${userId}"})`
+  //       ]?.data;
+  //        let payload = updatedCart?.cart?.items?.map((item:any)=>{
+  //         return {
+  //           productId:item?.productDetails?._id,
+  //           quantity:item?.quantity
+  //         }
+  //       })
+  //       payload = payload.filter(
+  //         (item: any) =>
+  //           item?.productId !== "676da9f75763ded56d43032d"
+  //       );
+  //           console.log("payload",payload)
+  //           await bulkUpdateCart({
+  //             body: {
+  //               items:payload
+  //             },
+  //             params: { userId },
+  //           })?.unwrap();
+  //           await fetchCartData({ userId }, false)?.unwrap();
+  //           } catch (error) {
+
+  //           }
+  //           dispatch(setNeedToSyncWithBackend({status:false}));
+  //           dispatch(setIsCartOperationProcessing(false));
+  //          })()
+  //         }
+  //       });
+
+  //       return unsubscribe;
+  //     }, [navigation,needToSyncWithBackend?.status]);
 
   const pb = {
     paddingBottom:
       Platform.OS === "android"
         ? tabBarHeight === 0
-          ? tabBarHeight +10
+          ? tabBarHeight + 10
           : tabBarHeight - 40
         : tabBarHeight === 0
-          ? tabBarHeight + 10
-          : tabBarHeight - 60,
+        ? tabBarHeight + 10
+        : tabBarHeight - 60,
   };
 
   const { totalOriginalPrice, freebieValue, freebies } = useMemo(() => {
@@ -73,15 +174,44 @@ const Continue = ({
 
   const regularSavings = totalOriginalPrice - parseFloat(totalAmount);
   const totalSavings = regularSavings + freebieValue;
-if(!cartItems) return null;
+
+  // useFocusEffect(
+  //   // Callback should be wrapped in `React.useCallback` to avoid running the effect too often.
+  //   useCallback(() => {
+  //     // Invoked whenever the route is focused.
+  //     console.log(`Hello, I'm focused!`,totalAmount);
+  //     (async()=>{
+  //       const payload = cartData?.cart?.items?.map((item:any)=>{
+  //         return {
+  //           productId:item?.productDetails?._id,
+  //           quantity:item?.quantity
+  //         }
+  //       })
+  //       console.log("payload",payload)
+  //       await bulkUpdateCart({
+  //         body: {
+  //           items:payload
+  //         },
+  //         params: { userId },
+  //       })?.unwrap();
+  //       await fetchCartData({ userId }, false)?.unwrap();
+  //     })()
+
+  //     // Return function is invoked whenever the route gets out of focus.
+  //     return () => {
+  //       console.log('This route is now unfocused.');
+  //     };
+  //   }, [cartData?.cart?.items,totalAmount])
+  //  );
+
+  if (!cartItems) return null;
   return (
     <View style={[styles.animatedContainer]}>
-     
       <>
         {cartItems ? (
           <>
             {/* <View style={styles.divider} /> */}
-            
+
             {/* Price Summary Button */}
             <View
               style={{
@@ -92,51 +222,77 @@ if(!cartItems) return null;
                 //marginVertical: 4,
               }}
             >
-            <Pressable 
-              style={styles.priceDetailsButton} 
-              onPress={() => setShowPriceDetails(!showPriceDetails)}
-            >
-              <ThemedText style={styles.priceDetailsText}>
-                {showPriceDetails ? "Hide Price Details" : "View Price Details"}
-              </ThemedText>
-            </Pressable>
-            <Pressable
-               
-               disabled={isDisabled ||
-                   isSyncCartLoading ||
-                   isCartLoading ||
-                   fetchingAddressLoading ||
-                   isCartProcessing ||
-                   isCartOperationProcessing ||
-                   isClearCartLoading}
-               style={[styles.clearCartButton,{
-                 opacity:isDisabled ||
-                   isSyncCartLoading ||
-                   isCartLoading ||
-                   fetchingAddressLoading ||
-                   isCartProcessing ||
-                   isCartOperationProcessing ||
-                   isClearCartLoading?0.5:1
-               }]}
-               onPress={async () => {
-                 try {
-                   dispatch(setIsClearCartLoading(true));
-                   await clearCart({
-                     body: {},
-                     params: { userId },
-                   }).unwrap();
-                   await fetchCartData({ userId }, false)?.unwrap();
-                 } catch (error) {
-                 } finally {
-                   dispatch(setIsClearCartLoading(false));
-                 }
-               }}
-             >
-               <ThemedText style={styles.clearCartText}>
-                 {"Clear Cart"}
-               </ThemedText>
-             </Pressable>
-           </View>
+              <Pressable
+                style={styles.priceDetailsButton}
+                onPress={() => setShowPriceDetails(!showPriceDetails)}
+              >
+                <ThemedText style={styles.priceDetailsText}>
+                  {showPriceDetails
+                    ? "Hide Price Details"
+                    : "View Price Details"}
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                disabled={
+                  isDisabled ||
+                  isSyncCartLoading ||
+                  isCartLoading ||
+                  fetchingAddressLoading ||
+                  isCartProcessing ||
+                  isCartOperationProcessing ||
+                  isClearCartLoading
+                }
+                style={[
+                  styles.clearCartButton,
+                  {
+                    opacity:
+                      isDisabled ||
+                      isSyncCartLoading ||
+                      isCartLoading ||
+                      fetchingAddressLoading ||
+                      isCartProcessing ||
+                      isCartOperationProcessing ||
+                      isClearCartLoading
+                        ? 0.5
+                        : 1,
+                  },
+                ]}
+                onPress={async () => {
+                  try {
+                    if (needToSyncWithBackend.status) {
+                      dispatch(
+                        cartApi.util.updateQueryData(
+                          "fetchCart",
+                          { userId },
+                          (draft) => {
+                            if (draft?.cart?.items) {
+                              draft.cart.items = []; // 🔥 clear all items
+                            }
+                          }
+                        )
+                      );
+                      dispatch(setNeedToSyncWithBackend({ status: false }));
+                      return
+                    }
+                    dispatch(setIsClearCartLoading(true));
+            
+
+                    await clearCart({
+                      body: {},
+                      params: { userId },
+                    }).unwrap();
+                    await fetchCartData({ userId }, false)?.unwrap();
+                  } catch (error) {
+                  } finally {
+                    dispatch(setIsClearCartLoading(false));
+                  }
+                }}
+              >
+                <ThemedText style={styles.clearCartText}>
+                  {"Clear Cart"}
+                </ThemedText>
+              </Pressable>
+            </View>
 
             {/* Collapsible Price Details */}
             {showPriceDetails && (
@@ -147,10 +303,12 @@ if(!cartItems) return null;
                     totalOriginalPrice
                   )}`}</ThemedText>
                 </ThemedView>
-                
+
                 {regularSavings > 0 && (
                   <ThemedView style={styles.totalContainer}>
-                    <ThemedText style={styles.totalLabel}>{"Regular Savings"}</ThemedText>
+                    <ThemedText style={styles.totalLabel}>
+                      {"Regular Savings"}
+                    </ThemedText>
                     <ThemedText style={styles.savingsAmount}>{`₹ ${formatNumber(
                       regularSavings.toFixed(2)
                     )}`}</ThemedText>
@@ -158,9 +316,13 @@ if(!cartItems) return null;
                 )}
 
                 {freebieValue > 0 && (
-                  <ThemedView style={[styles.totalContainer, styles.freebieSection]}>
+                  <ThemedView
+                    style={[styles.totalContainer, styles.freebieSection]}
+                  >
                     <View style={styles.freebiesContainer}>
-                      <ThemedText style={styles.totalLabel}>{"Freebies Value"}</ThemedText>
+                      <ThemedText style={styles.totalLabel}>
+                        {"Freebies Value"}
+                      </ThemedText>
                       <View style={styles.freebiesList}>
                         {freebies.map((freebie, index) => (
                           <View key={index} style={styles.freebieItem}>
@@ -173,9 +335,14 @@ if(!cartItems) return null;
                             )}
                             <View style={styles.freebieDetails}>
                               <View style={styles.quantityBadge}>
-                                <Text style={styles.quantityText}>{freebie.quantity}x</Text>
+                                <Text style={styles.quantityText}>
+                                  {freebie.quantity}x
+                                </Text>
                               </View>
-                              <Text style={styles.freebieName} numberOfLines={1}>
+                              <Text
+                                style={styles.freebieName}
+                                numberOfLines={1}
+                              >
                                 {freebie.name}
                               </Text>
                             </View>
@@ -190,11 +357,18 @@ if(!cartItems) return null;
                 )}
 
                 {totalSavings > 0 && (
-                  <ThemedView style={[styles.totalContainer, styles.totalSavingsContainer]}>
-                    <ThemedText style={styles.totalLabel}>{"Total Savings"}</ThemedText>
-                    <ThemedText style={[styles.savingsAmount, styles.totalSavings]}>{`₹ ${formatNumber(
-                      totalSavings.toFixed(2)
-                    )}`}</ThemedText>
+                  <ThemedView
+                    style={[
+                      styles.totalContainer,
+                      styles.totalSavingsContainer,
+                    ]}
+                  >
+                    <ThemedText style={styles.totalLabel}>
+                      {"Total Savings"}
+                    </ThemedText>
+                    <ThemedText
+                      style={[styles.savingsAmount, styles.totalSavings]}
+                    >{`₹ ${formatNumber(totalSavings.toFixed(2))}`}</ThemedText>
                   </ThemedView>
                 )}
               </View>
@@ -203,7 +377,7 @@ if(!cartItems) return null;
             {/* Final amount and button row */}
             <ThemedView style={styles.checkoutContainer}>
               <View style={styles.amountContainer}>
-              <ThemedText style={styles.finalTotalLabel}>
+                <ThemedText style={styles.finalTotalLabel}>
                   {"Final Amount"}
                 </ThemedText>
                 <ThemedText style={styles.finalTotalAmount}>{`₹ ${formatNumber(
@@ -211,77 +385,93 @@ if(!cartItems) return null;
                 )}`}</ThemedText>
               </View>
 
-             
-                <Button
-                  variant="cart"
-                  wrapperStyle={styles.checkoutButton}
-                  isLoading={
-                    isDisabled ||
-                    isSyncCartLoading ||
-                    isCartLoading ||
-                    fetchingAddressLoading ||
-                    isCartProcessing || 
-                    isCartOperationProcessing || isClearCartLoading
-                  }
-                  disabled={
-                    isDisabled ||
-                    isSyncCartLoading ||
-                    isCartLoading ||
-                    fetchingAddressLoading ||
-                    isCartProcessing || 
-                    isCartOperationProcessing || isClearCartLoading
-                  }
-                  onPress={async () => {
-                    dispatch(setCheckoutFlow(true));
-                    setIsDisabled(true);
-                    await syncCart({
-                      body: {},
-                      params: { userId: userId },
-                    })?.unwrap();
-                    const newCartData = await fetchCartData(
-                      { userId },
-                      false
+              <Button
+                variant="cart"
+                wrapperStyle={styles.checkoutButton}
+                isLoading={
+                  isDisabled ||
+                  isSyncCartLoading ||
+                  isCartLoading ||
+                  fetchingAddressLoading ||
+                  isCartProcessing ||
+                  isCartOperationProcessing ||
+                  isClearCartLoading
+                }
+                disabled={
+                  isDisabled ||
+                  isSyncCartLoading ||
+                  isCartLoading ||
+                  fetchingAddressLoading ||
+                  isCartProcessing ||
+                  isCartOperationProcessing ||
+                  isClearCartLoading
+                }
+                onPress={async () => {
+                  dispatch(setCheckoutFlow(true));
+                  setIsDisabled(true);
+                  console.log("cartData", JSON.stringify(cartData));
+                  let payload = cartData?.cart?.items?.map((item: any) => {
+                    return {
+                      productId: item?.productDetails?._id,
+                      quantity: item?.quantity,
+                    };
+                  });
+                  payload = payload.filter(
+                    (item: any) =>
+                      item?.productId !== "676da9f75763ded56d43032d"
+                  );
+                  console.log("payload", payload);
+                  await bulkUpdateCart({
+                    body: {
+                      items: payload,
+                    },
+                    params: { userId },
+                  })?.unwrap();
+
+                  // await syncCart({
+                  //   body: {},
+                  //   params: { userId: userId },
+                  // })?.unwrap();
+                  const newCartData = await fetchCartData(
+                    { userId },
+                    false
+                  )?.unwrap();
+                  dispatch(setNeedToSyncWithBackend({ status: false }));
+                  //await SecureStore.deleteItemAsync(`cartData-${userId}`)
+
+                  let changes = findCartChanges(cartData, newCartData);
+
+                  if (
+                    changes?.priceChanges.length > 0 ||
+                    changes?.removedItems.length > 0
+                  ) {
+                    showToast({
+                      type: "info",
+                      text2:
+                        "Product details are changed. Please review before checkout.",
+                    });
+                    setIsDisabled(false);
+                  } else {
+                    await fetchAddress(
+                      {
+                        userId: userId,
+                      },
+                      true
                     )?.unwrap();
-
-                    let changes = findCartChanges(cartData, newCartData);
-
-                    if (
-                      changes?.priceChanges.length > 0 ||
-                      changes?.removedItems.length > 0
-                    ) {
-                      showToast({
-                        type: "info",
-                        text2:
-                          "Product details are changed. Please review before checkout.",
-                      });
-                      setIsDisabled(false);
-                    } else {
-                      await fetchAddress(
-                        {
-                          userId: userId,
-                        },
-                        true
-                      )?.unwrap();
-                      setIsDisabled(false);
-                      router.push({
-                        pathname: "/(address)/addressList",
-                      });
-                    }
-                  }}
-                  title={
-                    isCartProcessing
-                      ? "Processing..."
-                      : `Checkout`
+                    setIsDisabled(false);
+                    router.push({
+                      pathname: "/(address)/addressList",
+                    });
                   }
-                />
-              
+                }}
+                title={isCartProcessing ? "Processing..." : `Checkout`}
+              />
             </ThemedView>
           </>
         ) : null}
 
         <View style={pb} />
       </>
-      
     </View>
   );
 };
@@ -330,7 +520,7 @@ const styles = StyleSheet.create({
   mrpAmount: {
     fontFamily: "Montserrat_500Medium",
     fontSize: 16,
-    textDecorationLine: 'line-through',
+    textDecorationLine: "line-through",
     color: Colors.light.mediumGrey,
   },
   savingsAmount: {
@@ -368,9 +558,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: Colors.light.background,
-    paddingBottom:  Platform.OS === "android" ? 0 : 16,
-   // marginBottom: Platform.OS === "android" ? -20 : 16,
-    shadowColor: '#000',
+    paddingBottom: Platform.OS === "android" ? 0 : 16,
+    // marginBottom: Platform.OS === "android" ? -20 : 16,
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: -2,
@@ -392,24 +582,24 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   freebieItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   freebieImage: {
     width: 24,
     height: 24,
     borderRadius: 4,
-    backgroundColor: Colors.light.lightGrey + '20',
+    backgroundColor: Colors.light.lightGrey + "20",
   },
   freebieDetails: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
   },
   quantityBadge: {
-    backgroundColor: Colors.light.lightGreen + '20',
+    backgroundColor: Colors.light.lightGreen + "20",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
@@ -428,7 +618,7 @@ const styles = StyleSheet.create({
   priceDetailsButton: {
     paddingHorizontal: 34,
     paddingVertical: 10,
-   // marginVertical: 4,
+    // marginVertical: 4,
   },
   priceDetailsText: {
     fontFamily: "Raleway_600SemiBold",
@@ -436,9 +626,9 @@ const styles = StyleSheet.create({
     color: Colors.light.lightGreen,
   },
   checkoutContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 34,
     paddingVertical: 16,
     borderTopWidth: 1,
@@ -452,22 +642,23 @@ const styles = StyleSheet.create({
   checkoutButton: {
     marginTop: 0,
     flex: 1,
+    maxHeight:40
   },
   priceDetailsContainer: {
     paddingVertical: 12,
     backgroundColor: Colors.light.background,
     paddingTop: 4,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.mediumLightGrey + '10',
+    borderTopColor: Colors.light.mediumLightGrey + "10",
   },
   freebieSection: {
     paddingVertical: 12,
-    backgroundColor: Colors.light.background + '50',
+    backgroundColor: Colors.light.background + "50",
   },
   totalSavingsContainer: {
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.mediumLightGrey + '20',
+    borderTopColor: Colors.light.mediumLightGrey + "20",
     marginTop: 8,
   },
   clearCartButton: {

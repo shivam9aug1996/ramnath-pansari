@@ -1,9 +1,14 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import {
+  createApi,
+  fetchBaseQuery,
+  fakeBaseQuery,
+} from "@reduxjs/toolkit/query/react";
 import { baseUrl } from "../constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthData, SaveAuthDataPayload } from "@/types/global";
 import * as SecureStore from "expo-secure-store";
+import { cartApi } from "./cartSlice";
 
 // const saveAuthDataToAsyncStorage = async (token: any, userData: any) => {
 //   try {
@@ -31,7 +36,7 @@ export const saveAuthData = createAsyncThunk(
 
 export const loadAuthData = createAsyncThunk(
   "auth/loadAuthData",
-  async (_, { rejectWithValue }) => {
+  async (_, {dispatch, rejectWithValue }) => {
     try {
       // await new Promise((res) => {
       //   setTimeout(() => {
@@ -40,11 +45,24 @@ export const loadAuthData = createAsyncThunk(
       // });
       // 9887765432
       //await AsyncStorage.clear();
+      // await SecureStore.deleteItemAsync("LOCATION_CACHE");
+      // await SecureStore.deleteItemAsync("WEATHER_CACHE");
+      // await SecureStore.deleteItemAsync("GREETING_CACHE_KEY");
       // const token = await AsyncStorage?.getItem("token");
+      
       const token = await SecureStore.getItemAsync("token");
-
+      
       let userData = await AsyncStorage?.getItem("userData");
+      
       userData = userData ? JSON.parse(userData) : null;
+  
+      
+      if (userData?.isGuestUser) {
+        await SecureStore.deleteItemAsync("token");
+        await AsyncStorage?.clear();
+        await AsyncStorage.removeItem("recentlyViewedItems");
+        return { token: null, userData: null };
+      }
       return { token, userData };
     } catch (error) {
       return rejectWithValue("error in loadAuthData: " + JSON.stringify(error));
@@ -97,11 +115,38 @@ export const authApi = createApi({
       }),
     }),
     verifyOtp: builder.mutation({
-      query: (data) => ({
-        url: "/auth/verifyOtp",
-        method: "POST",
-        body: data,
-      }),
+      queryFn: async (data, api, extraOptions, baseQuery) => {
+       // console.log("FGHJIEWERTYU", data);
+        // Check if isGuestUser is true
+        if (data.isGuestUser) {
+          // Mock response for guest user
+          // await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+          const mockResponse = {
+            data: {
+              isGuestUser: true,
+              message: "OTP successfully verified",
+              token:
+                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NTYxYjQ0ZmNkZjczMmIyNDU4ODIwMiIsIm1vYmlsZU51bWJlciI6Ijk5OTk5OTk5OTEiLCJpc0d1ZXN0VXNlciI6dHJ1ZSwiaWF0IjoxNzUwNTE0NTQ4fQ.y4PIyRN1zgEY8sOOl6m2OTFYMw45sRdcbWjAsbs-tpQ",
+              userAlreadyRegistered: true,
+              userData: {
+                _id: "68561b44fcdf732b24588202",
+                isGuestUser: true,
+                mobileNumber: "9999999991",
+                name: "Guest User",
+              },
+            },
+          };
+
+          return { data: mockResponse.data };
+        } else {
+          // Use real API for non-guest users
+          return baseQuery({
+            url: "/auth/verifyOtp",
+            method: "POST",
+            body: data,
+          });
+        }
+      },
     }),
     privateData: builder.mutation({
       query: (data) => ({
@@ -276,7 +321,7 @@ const authSlice = createSlice({
         state.successModalOnAccountCreation = false;
       })
       .addCase(clearAuthData.rejected, (state, action) => {
-       // console.log("kiooooo");
+        // console.log("kiooooo");
         state.clearAuthData.isLoading = false;
         state.clearAuthData.isError = true;
         state.clearAuthData.error = action.payload || "";

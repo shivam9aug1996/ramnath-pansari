@@ -27,6 +27,7 @@ const MainNavigator = () => {
           keyboardHandlingEnabled: true,
           animation: "ios_from_right",
           animationDuration: 0,
+          // presentation: "card",
         }}
       />
       <Stack.Screen
@@ -48,6 +49,7 @@ const MainNavigator = () => {
           // animationDuration: 0,
           animation: "ios_from_right",
           animationDuration: 0,
+         // presentation: "modal",
         }}
       />
       <Stack.Screen
@@ -78,6 +80,14 @@ const MainNavigator = () => {
       />
       <Stack.Screen
         name="(address)/mapSelect"
+        options={{
+          headerShown: false,
+          animation: "ios_from_right",
+          animationDuration: 0,
+        }}
+      />
+      <Stack.Screen
+        name="(address)/WebMap"
         options={{
           headerShown: false,
           animation: "ios_from_right",

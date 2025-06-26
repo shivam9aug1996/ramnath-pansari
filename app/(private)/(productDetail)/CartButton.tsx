@@ -42,14 +42,14 @@ const CartButton = ({ value, item }: CartButtonProps) => {
           {quantity > 0 ? (
             <TouchableOpacity
               onPress={() => {
-                if (isLoading) {
-                  showToast({
-                    type: "info",
-                    text2:
-                      "Please wait a moment — we’re still updating your cart.",
-                  });
-                  return;
-                }
+                // if (isLoading) {
+                //   showToast({
+                //     type: "info",
+                //     text2:
+                //       "Please wait a moment — we’re still updating your cart.",
+                //   });
+                //   return;
+                // }
                 handleRemove();
               }}
               style={[styles.removeButton]}
@@ -69,14 +69,14 @@ const CartButton = ({ value, item }: CartButtonProps) => {
           {quantity > 0 ? (
             <TouchableOpacity
               onPress={() => {
-                if (isLoading) {
-                  showToast({
-                    type: "info",
-                    text2:
-                      "Please wait a moment — we’re still updating your cart.",
-                  });
-                  return;
-                }
+                // if (isLoading) {
+                //   showToast({
+                //     type: "info",
+                //     text2:
+                //       "Please wait a moment — we’re still updating your cart.",
+                //   });
+                //   return;
+                // }
                 handleAdd();
               }}
               // disabled={isLoading}
@@ -91,14 +91,14 @@ const CartButton = ({ value, item }: CartButtonProps) => {
           ) : (
             <TouchableOpacity
               onPress={() => {
-                if (isLoading) {
-                  showToast({
-                    type: "info",
-                    text2:
-                      "Please wait a moment — we’re still updating your cart.",
-                  });
-                  return;
-                }
+                // if (isLoading) {
+                //   showToast({
+                //     type: "info",
+                //     text2:
+                //       "Please wait a moment — we’re still updating your cart.",
+                //   });
+                //   return;
+                // }
                 handleAdd();
               }}
               // disabled={isLoading}

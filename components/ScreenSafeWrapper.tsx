@@ -10,10 +10,12 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
+  StyleProp,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
@@ -31,6 +33,7 @@ import Toast from "react-native-toast-message";
 import { toastConfig } from "@/app/toastconfig";
 import DeferredFadeIn from "./DeferredFadeIn";
 import DeliveryNotificationBanner from "./DeliveryNotificationBanner";
+import WeatherSection from "./WeatherSection/WeatherSection";
 
 interface ScreenSafeWrapperProps {
   children: ReactNode;
@@ -39,6 +42,11 @@ interface ScreenSafeWrapperProps {
   useKeyboardAvoidingView?: boolean;
   showCartIcon?: boolean;
   showSearchIcon?: boolean;
+  wrapperStyle?: StyleProp<ViewStyle>;
+  headerStyle?: StyleProp<ViewStyle>;
+  headerVisible?: boolean;
+  cartItems?: number;
+  showWeatherSection?: boolean;
 }
 
 const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
@@ -52,8 +60,9 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
   headerStyle = {},
   headerVisible,
   cartItems = undefined,
+  showWeatherSection = false,
 }) => {
- // console.log("uytrfghjk", showCartIcon);
+  // console.log("uytrfghjk", showCartIcon);
   const WrapperComponent = useKeyboardAvoidingView
     ? KeyboardAvoidingView
     : View;
@@ -74,11 +83,11 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
       ],
     };
   });
- // console.log("9876trdfghj", cartItems);
+  // console.log("9876trdfghj", cartItems);
   return (
     <>
       <SafeAreaView style={[styles.container, wrapperStyle]}>
-       
+        
         <WrapperComponent
           style={{ flex: 1 }}
           behavior={
@@ -87,77 +96,77 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
               : "height"
           }
         >
-         <DeferredFadeIn delay={100}>
-         <ThemedView
-            style={[
-              {
-                flexDirection: "row",
-                alignItems: "center",
-                position: "relative",
-                minHeight: showBackButton || title ? 42 : 0,
-              },
-              headerStyle,
-            ]}
-          >
-            {showBackButton && <HeaderBackButton />}
-            {title && (
-              <Animated.View
-                style={[
-                  {
-                    position: "absolute",
-                    alignItems: "center",
-                    alignSelf: "center",
-                    paddingHorizontal: 10,
-                    left: "25%",
-                    right: "25%",
-                  },
-                  animatedHeaderStyle,
-                ]}
-              >
-                <ThemedText type="screenHeader">{title}</ThemedText>
-              </Animated.View>
-            )}
-            {showSearchIcon && (
-              <TouchableOpacity
-                onPress={() => {
-                  router.push("/(search)/search");
-                  // router.push("/(private)/(tabs)/search");
-                }}
-                style={{
-                  position: "absolute",
-                  right: 50,
-                  alignItems: "center",
-                  // zIndex: -1,
-                }}
-              >
-                <Ionicons name={"search"} size={25} color={"#777777"} />
-              </TouchableOpacity>
-            )}
-            {cartItems !== undefined && cartItems !== 0 ? (
-              <Animated.View
-                style={[
-                  {
-                    position: "absolute",
-                    right: 0,
-                    alignItems: "center",
-                    padding: 10,
-                  },
-                  animatedHeaderStyle,
-                ]}
-              >
-                <ThemedText type="screenHeader">{`${cartItems} items`}</ThemedText>
-              </Animated.View>
-            ) : null}
-            {showCartIcon && <CartIcon />}
-          </ThemedView>
-         </DeferredFadeIn>
           
+          <DeferredFadeIn delay={100}>
+            <ThemedView
+              style={[
+                {
+                  flexDirection: "row",
+                  alignItems: "center",
+                  position: "relative",
+                  minHeight: showBackButton || title ? 42 : 0,
+                },
+                headerStyle,
+              ]}
+            >
+              {showBackButton && <HeaderBackButton />}
+              {title && (
+                <Animated.View
+                  style={[
+                    {
+                      position: "absolute",
+                      alignItems: "center",
+                      alignSelf: "center",
+                      paddingHorizontal: 10,
+                      left: "25%",
+                      right: "25%",
+                    },
+                    animatedHeaderStyle,
+                  ]}
+                >
+                  <ThemedText type="screenHeader">{title}</ThemedText>
+                </Animated.View>
+              )}
+              {showSearchIcon && (
+                <TouchableOpacity
+                  onPress={() => {
+                    router.push("/(search)/search");
+                    // router.push("/(private)/(tabs)/search");
+                  }}
+                  style={{
+                    position: "absolute",
+                    right: 50,
+                    alignItems: "center",
+                    // zIndex: -1,
+                  }}
+                >
+                  <Ionicons name={"search"} size={25} color={"#777777"} />
+                </TouchableOpacity>
+              )}
+              {cartItems !== undefined && cartItems !== 0 ? (
+                <Animated.View
+                  style={[
+                    {
+                      position: "absolute",
+                      right: 0,
+                      alignItems: "center",
+                      padding: 10,
+                    },
+                    animatedHeaderStyle,
+                  ]}
+                >
+                  <ThemedText type="screenHeader">{`${cartItems} items`}</ThemedText>
+                </Animated.View>
+              ) : null}
+              {showCartIcon && <CartIcon />}
+            </ThemedView>
+          </DeferredFadeIn>
+
           {children}
         </WrapperComponent>
-        
       </SafeAreaView>
       {/* <DeliveryNotificationBanner  onClose={() => {}}  /> */}
-      
+
       {/* <GoToCart /> */}
     </>
   );
@@ -178,7 +187,6 @@ const styles = StyleSheet.create({
     top: 0,
     height: "400%",
   },
- 
 });
 
 export default memo(ScreenSafeWrapper);

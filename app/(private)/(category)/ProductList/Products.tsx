@@ -28,7 +28,6 @@ import { setSubCategoryActionClicked } from "@/redux/features/categorySlice";
 
 interface ProductsProps {
   isCategoryFetching: boolean;
-  headerVisible: boolean;
 }
 
 interface PaginationState {
@@ -54,7 +53,7 @@ interface ProductList3Props {
   headerVisible: boolean;
 }
 
-const Products = ({ isCategoryFetching, headerVisible }: ProductsProps) => {
+const Products = ({ isCategoryFetching }: ProductsProps) => {
   const subCategoryActionClicked = useSelector(
     (state: RootState) => state.category.subCategoryActionClicked
   );
@@ -258,7 +257,6 @@ const Products = ({ isCategoryFetching, headerVisible }: ProductsProps) => {
               }
               isProductsLoading={isProductsLoading}
               paginationState={paginationState}
-              headerVisible={headerVisible}
             />
           {/* )} */}
         </>

@@ -17,7 +17,7 @@ import React, {
   useTransition,
 } from "react";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import {
   addressApi,
   setCurrentAddressData,
@@ -176,7 +176,7 @@ const addressList = () => {
                   );
                   router.push({
                     pathname: "/(address)/addAddress",
-                    // pathname: "/(address)/mapSelect",
+                    // pathname: "/(address)/WebMap",
                   });
                 }}
               >
@@ -228,7 +228,7 @@ const addressList = () => {
             )}
           </DeferredFadeIn>
         </>
-        {checkoutFlow && data?.length && !isNotServiceable ? (
+        {checkoutFlow && data?.length  ? (
           <DeferredFadeIn delay={300}>
             <Button
               isLoading={isButtonLoading}
@@ -250,14 +250,14 @@ const addressList = () => {
           </DeferredFadeIn>
         ) : null}
 
-        {checkoutFlow && data?.length && isNotServiceable ? (
+        {/* {checkoutFlow && data?.length && isNotServiceable ? (
           <DeferredFadeIn delay={300}>
             <Text style={styles.notServiceableText}>
               This address is not serviceable. Please select a different
               address.
             </Text>
           </DeferredFadeIn>
-        ) : null}
+        ) : null} */}
       </ScreenSafeWrapper>
 
       {isPayModal && (

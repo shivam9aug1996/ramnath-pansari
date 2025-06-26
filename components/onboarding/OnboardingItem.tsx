@@ -3,19 +3,19 @@ import React, { lazy, memo, Suspense } from "react";
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
 import { Colors } from "@/constants/Colors";
-import { useColorScheme } from "@/hooks/useColorScheme";
 import { OnboardingItemProps } from "@/types/global";
-import CustomSuspense from "../CustomSuspense";
-const ProgressBar = lazy(() => import("./ProgressBar"));
-const Button = lazy(() => import("./Button"));
+import Button from "./Button";
+import ProgressBar from "./ProgressBar";
+import DeferredFadeIn from "../DeferredFadeIn";
+
 const width = Dimensions.get("screen").width;
 
 const OnboardingItem = ({
   handlePress,
   item,
   activeSlide,
+  isLoadingVerifyOtp
 }: OnboardingItemProps) => {
-  const colorScheme = useColorScheme();
   return (
     <ThemedView
       style={[styles.container, { backgroundColor: item.backgroundColor }]}
@@ -27,11 +27,10 @@ const OnboardingItem = ({
         <ThemedView style={styles.ellipse} />
       </ThemedView>
       <ThemedView style={styles.textContainer}>
-        <Suspense fallback={<View></View>}>
-          <CustomSuspense fallback={<View></View>}>
-            <ProgressBar activeIndex={activeSlide} />
-          </CustomSuspense>
-        </Suspense>
+        <DeferredFadeIn delay={100} fallback={<View style={{height:4}}/>} style={{}}>
+          <ProgressBar activeIndex={activeSlide} />
+        </DeferredFadeIn>
+
         <ThemedView style={styles.content}>
           <ThemedText style={styles.title} type="title">
             {item.title}
@@ -39,11 +38,7 @@ const OnboardingItem = ({
           <ThemedText style={styles.text}>{item.text}</ThemedText>
         </ThemedView>
         <ThemedView style={{ flex: 0.5 }}>
-          <Suspense fallback={<View></View>}>
-            <CustomSuspense fallback={<View></View>}>
-              <Button handlePress={handlePress} />
-            </CustomSuspense>
-          </Suspense>
+          <Button handlePress={handlePress} isLoadingVerifyOtp={isLoadingVerifyOtp}/>
         </ThemedView>
       </ThemedView>
     </ThemedView>

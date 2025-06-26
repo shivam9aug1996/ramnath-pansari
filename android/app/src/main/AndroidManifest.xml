@@ -31,7 +31,6 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="myapp"/>
-        <data android:scheme="com.ramnath.pansari.shop"/>
         <data android:scheme="exp+ramnath-pansari"/>
       </intent-filter>
     </activity>

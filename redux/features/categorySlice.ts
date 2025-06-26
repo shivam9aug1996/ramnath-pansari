@@ -33,16 +33,20 @@ const categorySlice = createSlice({
   name: "categorySlice",
   initialState: {
     subCategoryActionClicked:false,
+    catgeoryData: undefined
   },
   reducers: {
     setSubCategoryActionClicked: (state, action) => {
       state.subCategoryActionClicked = action.payload;
     },
+    setCategoryData: (state, action) => {
+      state.catgeoryData = action.payload;
+    },
   },
   extraReducers: (builder) => {},
 });
 
-export const { setSubCategoryActionClicked } = categorySlice.actions;
+export const { setSubCategoryActionClicked,setCategoryData } = categorySlice.actions;
 export const { useFetchCategoriesQuery } = categoryApi;
 
 export default categorySlice.reducer;

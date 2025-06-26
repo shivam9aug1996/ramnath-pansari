@@ -17,6 +17,7 @@ interface VerifyOtpHook {
   handleVerifyOtp: (otpValue: string) => void;
   setErrorState: React.Dispatch<React.SetStateAction<string>>;
   mobileNumber: string | undefined;
+  guestLogin: () => void;
 }
 
 interface RouteParams {
@@ -32,6 +33,7 @@ const useVerifyOtp1 = (): VerifyOtpHook => {
   const [errorState, setErrorState] = useState<string>("");
   const [otp, setOtp] = useState<string>("");
 
+
   const route = useRoute();
   const dispatch = useDispatch();
 
@@ -43,6 +45,7 @@ const useVerifyOtp1 = (): VerifyOtpHook => {
   // Save auth data when OTP is successfully verified
   useEffect(() => {
     if (isSuccess) {
+      //console.log("data34567890",data);
       dispatch(saveAuthData(data) as any);
     }
   }, [isSuccess]);
@@ -94,6 +97,17 @@ const useVerifyOtp1 = (): VerifyOtpHook => {
     [mobileNumber, validateOtp, verifyOtp]
   );
 
+  const guestLogin = useCallback(() => {
+   // const data = {"isGuestUser": true, "message": "OTP successfully verified", "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NTYxYjQ0ZmNkZjczMmIyNDU4ODIwMiIsIm1vYmlsZU51bWJlciI6Ijk5OTk5OTk5OTEiLCJpc0d1ZXN0VXNlciI6dHJ1ZSwiaWF0IjoxNzUwNTE0NTQ4fQ.y4PIyRN1zgEY8sOOl6m2OTFYMw45sRdcbWjAsbs-tpQ", "userAlreadyRegistered": true, "userData": {"_id": "68561b44fcdf732b24588202", "isGuestUser": true, "mobileNumber": "9999999991", "name": "Guest User"}}
+    //dispatch(saveAuthData(data) as any);
+
+    verifyOtp({
+     
+      isGuestUser: true,
+
+    });
+  }, []);
+
   return {
     isLoading,
     errorState,
@@ -105,6 +119,7 @@ const useVerifyOtp1 = (): VerifyOtpHook => {
     handleVerifyOtp,
     setErrorState,
     mobileNumber,
+    guestLogin,
   };
 };
 

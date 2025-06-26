@@ -50,6 +50,7 @@ const useVerifyOtp = (): VerifyOtpHook => {
 
   useEffect(() => {
     if (isSuccess) {
+      
       dispatch(saveAuthData(data) as any);
     }
   }, [isSuccess]);
@@ -96,6 +97,13 @@ const useVerifyOtp = (): VerifyOtpHook => {
     }
   }, [inputValues, mobileNumber, validateOtp, verifyOtp]);
 
+  const guestLogin = useCallback(() => {
+    verifyOtp({
+      mobileNumber: "9999999991" || "",
+      otp: "123456",
+    });
+  }, []);
+
   return {
     isLoading,
     errorState,
@@ -108,6 +116,7 @@ const useVerifyOtp = (): VerifyOtpHook => {
     handleVerifyOtp,
     setErrorState,
     mobileNumber,
+    guestLogin,
   };
 };
 

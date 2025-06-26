@@ -2,30 +2,41 @@ import { StyleSheet, Text, View } from "react-native";
 import React, { memo } from "react";
 import { Category } from "@/types/global";
 import CategorySelector from "@/app/(private)/(category)/CategoryList/CategorySelector";
-import { imageBorderStyle } from "@/app/(private)/(category)/CategoryList/utils";
-import { arrayColor } from "@/app/(private)/(category)/CategoryList/constants";
-import { Colors } from "@/constants/Colors";
+
+const emojiMap: Record<string, string> = {
+  "Staples": "🌾",
+  "Packaged Food": "🍱",
+  "Dairy & Bakery": "🧈",
+};
 
 const CategoryCard = ({
   category,
   onSelect,
+  index = 0,
+  length = 0,
 }: {
   category: Category;
   onSelect: any;
+  index?: number;
+  length?: number;
 }) => {
-  const categoryIndex = category?.id ? category.id % arrayColor.length : 0;
-  const borderStyle = imageBorderStyle(arrayColor, false, categoryIndex);
-  
+  const emoji = emojiMap[category?.name] || "🛒";
+
   return (
-    <View style={styles.categoryCard}>
-      <View style={[styles.categoryTitleContainer, borderStyle]}>
-        <Text style={styles.categoryTitleText}>{category?.name}</Text>
-      </View>
-      <View style={styles.childrenContainer}>
-        <CategorySelector
-          categories={category?.children}
-          onSelectCategory={(data, index) => onSelect(data, category, index)}
-        />
+    <View style={[styles.cardWrapper, { marginBottom: index !== length - 1 ? 16 : 0 }]}>
+      <View style={styles.categoryCard}>
+        <View style={styles.titleRow}>
+          <Text style={styles.emoji}>{emoji}</Text>
+          <Text style={styles.categoryTitleText}>{category?.name}</Text>
+        </View>
+
+        <View style={styles.childrenContainer}>
+          <CategorySelector
+            categories={category?.children}
+            onSelectCategory={(data, childIndex) => onSelect(data, category, childIndex)}
+            variant="large"
+          />
+        </View>
       </View>
     </View>
   );
@@ -34,32 +45,27 @@ const CategoryCard = ({
 export default memo(CategoryCard);
 
 const styles = StyleSheet.create({
-  categoryCard: {
-    flex: 1,
-    flexDirection: "column",
-    //marginBottom: 40,
-    backgroundColor: Colors.light.background,
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    paddingHorizontal:0
+  cardWrapper: {
+    paddingHorizontal:20
   },
-  categoryTitleContainer: {
-    borderRadius: 23,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderWidth: 1,
-    alignSelf: "flex-start",
-    marginBottom: 16,
+  categoryCard: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    paddingVertical:16
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  emoji: {
+    fontSize: 22,
+    marginRight: 8,
   },
   categoryTitleText: {
-    fontFamily: "Raleway_600SemiBold",
-    fontSize: 14,
-    color: Colors.light.mediumGrey,
+    fontFamily: "Raleway_700Bold",
+    fontSize: 16,
+    color: "#222",
   },
   childrenContainer: {
     marginTop: 8,

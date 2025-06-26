@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     width: "100%",
     borderRadius: 20,
-    paddingVertical: 20,
+    paddingVertical: Platform.OS === "android" ? 10 : 20,
     position: "relative",
     backgroundColor: "#f2f4f3",
   },
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     color: Colors.light.darkGrey,
   },
   iconStyle: {
-    top: Platform.OS === "android" ? 23 : 19,
+    top: Platform.OS === "android" ? 20 : 19,
     fontWeight: "900",
     fontSize: 20,
   },

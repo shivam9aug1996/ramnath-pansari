@@ -48,14 +48,14 @@ const CartButton = ({ value, item }: CartButtonProps) => {
             <TouchableOpacity
               disabled={item?.isOutOfStock}
               onPress={()=>{
-                if(isLoading){
-                  showToast({
-                    type: "info",
-                    text2:
-                      "Please wait a moment — we’re still updating your cart.",
-                });
-                return;
-              }
+              //   if(isLoading){
+              //     showToast({
+              //       type: "info",
+              //       text2:
+              //         "Please wait a moment — we’re still updating your cart.",
+              //   });
+              //   return;
+              // }
               handleRemove();
             }}
               style={[styles.removeButton]}
@@ -79,14 +79,14 @@ const CartButton = ({ value, item }: CartButtonProps) => {
           <TouchableOpacity
             disabled={item?.isOutOfStock}
             onPress={()=>{
-              if(isLoading){
-                showToast({
-                  type: "info",
-                  text2:
-                    "Please wait a moment — we’re still updating your cart.",
-                });
-                return;
-              }
+              // if(isLoading){
+              //   showToast({
+              //     type: "info",
+              //     text2:
+              //       "Please wait a moment — we’re still updating your cart.",
+              //   });
+              //   return;
+              // }
               handleAdd();
             }}
             style={[styles.addButton]}
