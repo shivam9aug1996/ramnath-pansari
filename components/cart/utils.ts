@@ -78,3 +78,57 @@ export const findCartChanges = (prevCart, nextCart) => {
 export const findProductChanges = (prevCart: Product, nextCart: Product) => {
   return prevCart?.price !== nextCart?.price || prevCart?.image!== nextCart?.image || prevCart?.name!== nextCart?.name || prevCart?.discountedPrice!== nextCart?.discountedPrice
 };
+
+
+// ... existing code ...
+
+// ... existing code ...
+
+export const findMaxQuantityChanges = (prevCart, nextCart) => {
+  const maxQuantityChanges = [];
+  const itemsToRemove = [];
+
+  // Create a map for fast lookup of previous items
+  const prevItemsMap = new Map(
+    prevCart?.cart?.items?.map((item) => {
+      return [item.productId, item];
+    })
+  );
+
+  // Iterate over nextCart items to check for maxQuantity changes
+  nextCart?.cart?.items.forEach((nextItem) => {
+    const prevItem = prevItemsMap.get(nextItem.productId);
+
+    if (prevItem) {
+      console.log("prevItem8765456789",prevItem,nextItem)
+      const prevMaxQuantity = prevItem.productDetails?.maxQuantity || 5;
+      const nextMaxQuantity = nextItem.productDetails?.maxQuantity || 5;
+
+      // Check if maxQuantity has changed
+      if (prevMaxQuantity !== nextMaxQuantity) {
+        // If new maxQuantity is 0, mark for removal
+        if (nextMaxQuantity === 0) {
+          itemsToRemove.push({
+            productId: nextItem.productId,
+            productName: nextItem.productDetails.name,
+            oldMaxQuantity: prevMaxQuantity,
+            newMaxQuantity: nextMaxQuantity,
+          });
+        } else if (nextMaxQuantity < prevMaxQuantity) {
+          // Only show toast if new maxQuantity is less than old maxQuantity
+          maxQuantityChanges.push({
+            productId: nextItem.productId,
+            productName: nextItem.productDetails.name,
+            oldMaxQuantity: prevMaxQuantity,
+            newMaxQuantity: nextMaxQuantity,
+          });
+        }
+      }
+
+      // Remove the item from the map to track remaining items
+      prevItemsMap.delete(nextItem.productId);
+    }
+  });
+
+  return { maxQuantityChanges, itemsToRemove };
+};

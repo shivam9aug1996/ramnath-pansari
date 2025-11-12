@@ -37,6 +37,7 @@ const HeaderBackButton: React.FC<Props> = ({ onPress }) => {
           paddingHorizontal: 21,
           paddingVertical: 11,
           borderRadius: 100,
+          backgroundColor:"transparent"
 
           // marginLeft: 10,
         }}

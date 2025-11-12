@@ -1,22 +1,27 @@
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { fetchLocation } from "./fetchLocation";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/types/global";
+import { setError, setHour, setLoading, setWeather } from "@/redux/features/weatherSlice";
 
 const OPENWEATHER_API_KEY = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
 const WEATHER_CACHE_KEY = "WEATHER_CACHE";
 const CACHE_DURATION = 5 * 60 * 1000;
 
 export function useWeatherInfo() {
-  const [weather, setWeather] = useState<any | null>(null);
-  const [hour, setHour] = useState<number>(new Date().getHours());
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const dispatch = useDispatch();
+ const weatherData = useSelector((state: RootState) => state?.weather);
+ const hour = weatherData?.hour;
+ const loading = weatherData?.loading;
+ const error = weatherData?.error;
+ const weather = weatherData?.weather;
 
   const fetchWeather = async () => {
     try {
       //console.log("🌦️ useWeatherInfo hook triggered");
-      setLoading(true);
+      dispatch(setLoading(true));
+      dispatch(setError(null));
       const now = Date.now();
 
       // 1. Check for cached weather
@@ -29,9 +34,9 @@ export function useWeatherInfo() {
 
         if (age < CACHE_DURATION) {
           //console.log("✅ Using cached weather");
-          setWeather(cachedWeather);
-          setHour(new Date().getHours());
-          setLoading(false);
+          dispatch(setWeather(cachedWeather));
+          dispatch(setHour(new Date().getHours()));
+          dispatch(setLoading(false));
           return cachedWeather;
         }
 
@@ -54,8 +59,8 @@ export function useWeatherInfo() {
       //console.log("🌤️ Fetched weather:", currentWeather);
 
       // 4. Update state
-      setWeather(currentWeather);
-      setHour(new Date().getHours());
+      dispatch(setWeather(currentWeather));
+      dispatch(setHour(new Date().getHours()));
 
       // 5. Save to cache
       await SecureStore.setItemAsync(
@@ -69,10 +74,10 @@ export function useWeatherInfo() {
       //console.log("💾 Weather cached successfully");
     } catch (err: any) {
       console.error("❌ Error fetching weather:", err);
-      setError(err?.message || "Failed to fetch weather");
+      dispatch(setError(err?.message || "Failed to fetch weather"));
       return null
     } finally {
-      setLoading(false);
+      dispatch(setLoading(false));
     }
   };
 

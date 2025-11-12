@@ -7,6 +7,7 @@ import categorySlice, { categoryApi } from "./features/categorySlice";
 import khataSlice, { khataApi } from "./features/khataSlice";
 import orderSlice, { orderApi } from "./features/orderSlice";
 import productSlice, { productApi } from "./features/productSlice";
+import adminOrderSlice, { adminOrderApi } from "./features/adminOrderSlice";
 import recentSearchSlice, {
   recentSearchApi,
 } from "./features/recentSearchSlice";
@@ -15,6 +16,8 @@ import searchSlice, { searchApi } from "./features/searchSlice";
 import handle401Middleware from "./handle401Middleware";
 import handleLogoutMiddleware from "./handleLogoutMiddleware";
 import asyncStorageMiddleware from "./asyncStorageMiddleware";
+import weatherSlice from "./features/weatherSlice";
+import productApiMiddleware from "./productApiMiddleware";
 
 const store = configureStore({
   reducer: {
@@ -34,24 +37,30 @@ const store = configureStore({
     [addressApi.reducerPath]: addressApi.reducer,
     order: orderSlice,
     [orderApi.reducerPath]: orderApi.reducer,
+    adminOrder: adminOrderSlice,
+    [adminOrderApi.reducerPath]: adminOrderApi.reducer,
     khata: khataSlice,
     [khataApi.reducerPath]: khataApi.reducer,
     recentlyViewed: recentlyViewedSlice,
+    weather: weatherSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
       .concat(authApi.middleware)
       .concat(categoryApi.middleware)
+     
       .concat(productApi.middleware)
       .concat(searchApi.middleware)
       .concat(cartApi.middleware)
       .concat(recentSearchApi.middleware)
       .concat(addressApi.middleware)
       .concat(orderApi.middleware)
+      .concat(adminOrderApi.middleware)
       .concat(khataApi.middleware)
       .concat(asyncStorageMiddleware)
       .concat(handle401Middleware)
-      .concat(handleLogoutMiddleware),
+      .concat(handleLogoutMiddleware)
+      
 });
 
 export default store;

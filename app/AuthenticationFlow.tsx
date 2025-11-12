@@ -7,20 +7,32 @@ import { RootState } from "@/types/global";
 export const AuthenticationFlow = ({ children }: { children: React.ReactNode }) => {
   const dispatch = useDispatch();
   const [isLoggedIn, setIsLoggedIn] = useState(0);
+  const [isReady, setIsReady] = useState(false);
 
   const loadAuthDataState = useSelector((state: RootState) => state?.auth?.loadAuthData);
+  console.log("loadAuthDataState", loadAuthDataState);
   const clearAuthData = useSelector((state: RootState) => state?.auth?.clearAuthData);
   const token = useSelector((state: RootState) => state?.auth?.token);
 
   useEffect(() => {
     dispatch(loadAuthData() as any);
+   // Set ready after a brief delay to ensure Slot is rendered
+   const timer = setTimeout(() => {
+    setIsReady(true);
+  }, 100);
+  return () => clearTimeout(timer);
   }, []);
   //console.log("loadAuthDataState", loadAuthDataState,isLoggedIn);
 
   useEffect(() => {
+    if (!isReady) return;
     if (loadAuthDataState?.isSuccess) {
       if (loadAuthDataState?.data?.token && loadAuthDataState?.data?.userData?.name) {
-        setIsLoggedIn(3);
+        if(loadAuthDataState?.data?.userData?.isAdminUser){
+          router.replace("/admin/home");
+        }else{
+          router.replace("/(private)/(tabs)/home");
+        }
       } else if (loadAuthDataState?.data?.token && loadAuthDataState?.data?.userData?.userAlreadyRegistered === false) {
         setIsLoggedIn(2);
       } else {
@@ -29,9 +41,10 @@ export const AuthenticationFlow = ({ children }: { children: React.ReactNode }) 
     } else if (loadAuthDataState?.isError) {
       setIsLoggedIn(1);
     }
-  }, [loadAuthDataState]);
+  }, [loadAuthDataState, isReady]);
 
   useEffect(() => {
+    if (!isReady) return;
     if (isLoggedIn === 1) {
       router.replace("/(onboarding)/onboarding");
     } else if (isLoggedIn === 2) {
@@ -39,16 +52,17 @@ export const AuthenticationFlow = ({ children }: { children: React.ReactNode }) 
     } else if (isLoggedIn === 3) {
       router.replace("/(private)/(tabs)/home");
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, isReady]);
 
   useEffect(() => {
+    if (!isReady) return;
     if ((clearAuthData?.isSuccess || clearAuthData?.isError) && !token) {
       const timeoutId = setTimeout(() => {
         router.navigate("/(onboarding)/onboarding");
       }, 500);
       return () => clearTimeout(timeoutId);
     }
-  }, [clearAuthData, token]);
+  }, [clearAuthData, token, isReady]);
 
   return children;
 }; 

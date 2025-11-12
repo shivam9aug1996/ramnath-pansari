@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { useDispatch } from "react-redux";
 import { setSelectedCategoryClicked, setSelectedSubCategoryId } from "@/redux/features/productSlice";
@@ -34,6 +34,7 @@ const CategoryList = ({
   const subCatFlatListRef = useRef(null);
 
   const dispatch = useDispatch();
+  console.log("selectedCategoryIdIndex234567890878-",selectedSubCategory)
 
   // useEffect(() => {
   //   if (categories?.length > 0) {
@@ -123,7 +124,7 @@ const CategoryList = ({
       debouncedUpdate.cancel(); // Clean up on unmount or deps change
      // console.log("debouncedUpdate.cancel()",selectedSubCategory)
     };
-  }, [selectedCategory, parentCategory]);
+  }, [selectedCategory, parentCategory?._id]);
   
 
   // useEffect(() => {
@@ -167,7 +168,7 @@ if(previousSelectedCategory.current === selectedId?._id){
   dispatch(setSubCategoryActionClicked(false));
 }
             previousSelectedCategory.current = selectedId?._id;
-
+console.log("selectedId234567890-",selectedId)
         dispatch(setSelectedSubCategoryId(selectedId));
        // dispatch(setSubCategoryActionClicked(false));
       }
@@ -181,14 +182,14 @@ if(previousSelectedCategory.current === selectedId?._id){
   };
 }, [selectedSubCategory, subCategories, selectedCategory, isCategoryFetching]);
 
-const handleSelectCategory = (category: Category) => {
+const handleSelectCategory = useCallback((category: Category) => {
   console.log("category",category)
   const index = categories.findIndex(c => c._id === category._id);
   setSelectedCategory(category);
-  router.setParams({
-    selectedCategoryIdIndex: index?.toString()
-  })
-}
+  // router.setParams({
+  //   selectedCategoryIdIndex: index?.toString()
+  // })
+},[categories])
 
   return (
     <View>

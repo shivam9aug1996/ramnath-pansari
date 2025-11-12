@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React, { useEffect, useMemo, useRef } from "react";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -69,6 +69,7 @@ const CartIcon = () => {
         padding: 10,
       }}
     >
+      
       <Image
         tintColor={"#777777"}
         source={require("../assets/images/bag.png")}
@@ -77,6 +78,7 @@ const CartIcon = () => {
           height: 23,
         }}
       />
+     
       {cartItems > 0 && (
         <Animated.View
           style={[
@@ -100,6 +102,7 @@ const CartIcon = () => {
           </Text>
         </Animated.View>
       )}
+
     </TouchableOpacity>
   );
 };

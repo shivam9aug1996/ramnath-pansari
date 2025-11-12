@@ -3,7 +3,7 @@ import React from 'react'
 import { useLocalSearchParams } from 'expo-router'
 import WebMapComp from './WebMapComp';
 
-const webMap = () => {
+const WebMap = () => {
   const { latitude, longitude } = useLocalSearchParams();
 
   return (
@@ -11,6 +11,6 @@ const webMap = () => {
   )
 }
 
-export default webMap
+export default WebMap
 
 const styles = StyleSheet.create({})

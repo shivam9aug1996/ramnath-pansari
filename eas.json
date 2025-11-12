@@ -11,6 +11,9 @@
       "distribution": "internal"
     },
     "production": {
+      "ios": {
+        "distribution": "store"
+      },
       "android": {
         "buildType": "apk"
       }

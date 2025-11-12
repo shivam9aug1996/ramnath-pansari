@@ -26,7 +26,7 @@ const AnimatedQuantity = ({ quantity, variant = 1 }: AnimatedQuantityProps) => {
     }
 
     opacity.value = 0;
-    translateY.value = 10;
+    translateY.value = 15;
 
     opacity.value = withTiming(1, { duration: 200 });
     translateY.value = withTiming(0, { duration: 200 });

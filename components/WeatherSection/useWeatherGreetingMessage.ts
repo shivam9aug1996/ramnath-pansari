@@ -4,7 +4,7 @@ import { useLazyFetchGreetingMessageQuery } from "@/redux/features/cartSlice";
 import { getTimeOfDay } from "@/utils/huggingface";
 
 const CACHE_DURATION = 60 * 60 * 1000; 
-
+const FALLBACK_MESSAGE_GENERIC = "🚀 Fast delivery. Reliable service. Everything you need at your doorstep.";
 
 const key = "GREETING_CACHE_KEY";
 
@@ -54,7 +54,7 @@ It should feel casual and human, mention the weather naturally, and subtly encou
       ).unwrap();
 
       const raw = result?.text?.trim()?.replace(/^"|"$/g, "") || "";
-      const cleanText = raw.replace(/[\r\n]+/g, " ").replace(/\s\s+/g, " ").trim();
+      const cleanText = raw?.replace(/[\r\n]+/g, " ")?.replace(/\s\s+/g, " ")?.trim() || FALLBACK_MESSAGE_GENERIC;
 
       setGreeting(cleanText);
       //console.log("💬 Received greeting:", cleanText);
@@ -67,7 +67,8 @@ It should feel casual and human, mention the weather naturally, and subtly encou
       //console.log("💾 Greeting cached");
     } catch (err) {
       console.error("❌ Failed to fetch AI greeting", err);
-      return null;
+      setGreeting(FALLBACK_MESSAGE_GENERIC);
+      return FALLBACK_MESSAGE_GENERIC;
     }
   }
 

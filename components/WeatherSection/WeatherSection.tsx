@@ -15,11 +15,6 @@ const WeatherSection = () => {
   const { greeting: fetchedGreeting, fetchGreeting } = useWeatherGreetingMessage();
   const { message: fetchedMessage, fetchAndGenerateGreeting } = useGreetingMessage();
 
-  // const [greetingMessage, setGreetingMessage] = useState({
-  //   message1: null,
-  //   message2: null,
-  //   message3: null,
-  // });
 
   const [currentMessage, setCurrentMessage] = useState<string | null>("🛒 Hello! Need groceries fast? We've got your staples and pulses covered — delivered in 30 minutes!");
   const messageIndexRef = useRef(0);
@@ -74,11 +69,10 @@ const WeatherSection = () => {
     const updatedMessages = {
       message1: "🛒 Hello! Need groceries fast? We've got your staples and pulses covered — delivered in 30 minutes!",
       message2: greeting,
+      //give nice different static message
       message3: message,
     };
 
-    // setGreetingMessage(updatedMessages);
-    // setCurrentMessage(updatedMessages.message1);
 
     startMessageRotation(updatedMessages);
   };
@@ -101,15 +95,6 @@ const WeatherSection = () => {
     }, 5000);
   };
 
-  // useEffect(() => {
-  //   return () => {
-  //     if (intervalRef.current) {
-  //       clearInterval(intervalRef.current);
-  //     }
-  //   };
-  // }, []);
-
- //console.log("currentMessage",currentMessage)
 
   return (
     <View >

@@ -40,7 +40,8 @@ import DeferredFadeIn from "@/components/DeferredFadeIn";
 
 const Account: React.FC = () => {
   const dispatch = useDispatch();
-
+const clearAuthDataState = useSelector((state: RootState) => state?.auth?.clearAuthData);
+console.log("clearAuthDataState456789099", clearAuthDataState);
   const userInfo = useSelector((state: RootState) => state.auth.userData);
   const [logout, { isError: islogouterror, isSuccess }] = useLogoutMutation();
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -72,7 +73,13 @@ const Account: React.FC = () => {
               title={"Deleting Account..."}
               subtitle={"Please wait while we delete your account."}
             />
-          ) : (
+          ) : clearAuthDataState?.isLoading ? 
+          <NotFound
+              title={"Logging Out..."}
+              subtitle={"Please wait while we securely log you out."}
+            />
+          :
+          (
             <>
               
                 <ProfileContainer userInfo={userInfo} animate={isAnimating} />

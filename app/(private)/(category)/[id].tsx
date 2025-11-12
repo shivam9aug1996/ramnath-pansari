@@ -10,8 +10,6 @@ const ProductScreen = () => {
     selectedCategoryIdIndex?: string;
   }>();
 
-
-
   return (
     <>
       <ProCat

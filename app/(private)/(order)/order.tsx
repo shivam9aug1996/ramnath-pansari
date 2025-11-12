@@ -2,6 +2,7 @@ import {
   ActivityIndicator,
   FlatList,
   Platform,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,9 +12,9 @@ import React, { useCallback, useState } from "react";
 import OrderComp from "./OrderComp";
 import Push from "./Push";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
-import { useFetchOrdersQuery } from "@/redux/features/orderSlice";
+import { orderApi, useFetchOrdersQuery } from "@/redux/features/orderSlice";
 import { RootState } from "@/types/global";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { FlashList } from "@shopify/flash-list";
 import { Colors } from "@/constants/Colors";
 import NotFound from "../(result)/NotFound";
@@ -38,13 +39,17 @@ const Order = () => {
     isLoading: isOrderLoading,
     isFetching: isOrderFetching,
     error: orderError,
+    refetch: refetchOrder,
   } = useFetchOrdersQuery(
     { userId: userId, limit: 10, page: page },
-    { skip: !userId }
+    { skip: !userId, refetchOnMountOrArgChange: true,
+      refetchOnReconnect: true,
+      // Set to 0 so data is immediately removed from cache
+     },
   );
 
   const hasNextPage = orderData?.currentPage < orderData?.totalPages;
-
+const dispatch = useDispatch();
   const renderLoader = () => {
     return isOrderFetching ? (
       <ActivityIndicator size="large" color={Colors.light.lightGreen} />
@@ -53,6 +58,13 @@ const Order = () => {
 
   const fetchNextPage = () => {
     setPage((prev) => prev + 1);
+  };
+
+  const onRefresh = () => {
+    //forefully fetych with page 1
+    setPage(1);
+    //dispatch(orderApi.endpoints.fetchOrders.initiate({ userId: userId, limit: 10, page: 1 }, { forceRefetch: true }) as any);
+    dispatch(orderApi.util.resetApiState());
   };
 
   const renderProductItem = useCallback(
@@ -77,6 +89,14 @@ const Order = () => {
                 <Text>Error loading data</Text>
               ) : (
                 <FlatList
+                refreshControl={
+                  <RefreshControl
+                    refreshing={isOrderFetching}
+                    onRefresh={() => {
+                      onRefresh();
+                    }}
+                  />
+                }
                 initialNumToRender={5}
                   bounces={Platform.OS === "android" ? false : true}
                   // disableAutoLayout

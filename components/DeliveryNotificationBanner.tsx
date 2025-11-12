@@ -51,7 +51,7 @@ const DeliveryNotificationBanner: React.FC<DeliveryNotificationBannerProps> = ({
         } else if (data?.status === "canceled") {
           showToast({
             type: "error",
-            text2: "Your order is cancelled!",
+            text2: "Your order is canceled!",
           });
         }
 

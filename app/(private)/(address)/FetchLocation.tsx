@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import {
   StyleSheet,
   Text,
@@ -70,4 +70,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FetchLocation;
+export default memo(FetchLocation);

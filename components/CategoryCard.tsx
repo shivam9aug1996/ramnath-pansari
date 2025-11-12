@@ -32,6 +32,9 @@ const CategoryCard = ({
 
         <View style={styles.childrenContainer}>
           <CategorySelector
+          contentContainerStyle={{
+            paddingHorizontal:20
+          }}
             categories={category?.children}
             onSelectCategory={(data, childIndex) => onSelect(data, category, childIndex)}
             variant="large"
@@ -46,17 +49,19 @@ export default memo(CategoryCard);
 
 const styles = StyleSheet.create({
   cardWrapper: {
-    paddingHorizontal:20
+    //paddingHorizontal:20
   },
   categoryCard: {
     backgroundColor: "#fff",
-    borderRadius: 14,
-    paddingVertical:16
+    //borderRadius: 14,
+    paddingVertical:16,
+    //paddingHorizontal:20
   },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 12,
+    paddingHorizontal:20
   },
   emoji: {
     fontSize: 22,

@@ -20,13 +20,16 @@ import RecentSearch from "./RecentSearch";
 import useSearchStageLioad from "@/hooks/useSearchStageLioad";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
 import { showToast } from "@/utils/utils";
+import _ from "lodash";
 // const QueryData = lazy(() => import("./QueryData"));
 // const RecentSearch = lazy(() => import("./RecentSearch"));
 
 const Search = () => {
   const { showQueryData, showRecentSearch, showWrapper } =
     useSearchStageLioad();
+    const queryRef = useRef("");
   const [query, setQuery] = useState("");
+  const [typeLoading, setTypeLoading] = useState(false);
   const [isInputBoxFocused, setInputBoxFocused] = useState(true);
   const textInputRef = useRef<TextInput>(null);
   useFocusEffect(
@@ -42,15 +45,27 @@ const Search = () => {
     }, [])
   );
 
-  const handleInputChange = (text: string) => setQuery(text);
+  const debouncedQuery = _.debounce((text:string)=>{
+    setQuery(text)
+  },500)
+
+  const handleInputChange = (text: string) => {
+    queryRef.current = text;
+    debouncedQuery(text)
+
+    //setQuery(text)
+  };
 
   const onSubmitEditing = () => {
-    if (query) {
-      router.push(`/(result)/${query}`);
+    if (queryRef.current ) {
+      router.push(`/(result)/${queryRef.current }`);
     }
   };
 
-  const handleClear = () => setQuery("");
+  const handleClear = () => {
+    queryRef.current = "";
+    setQuery("");
+  }
 
   const handleCancel = () => {
     Keyboard.dismiss();
@@ -74,12 +89,13 @@ const Search = () => {
         useKeyboardAvoidingView
         title="Search for products"
         showCartIcon
+        onBackPress={() => router.back()}
       >
         
         <DeferredFadeIn delay={100} style={{flex:1}}>
           <View style={styles.searchContainer}>
             <CustomTextInput
-              value={query}
+              defaultValue={queryRef.current}
               onChangeText={handleInputChange}
               textInputRef={textInputRef}
               type="search"

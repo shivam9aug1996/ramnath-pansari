@@ -2,6 +2,8 @@ import { calculateTotalAmount } from "@/components/cart/utils";
 import { createSlice } from "@reduxjs/toolkit";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { baseUrl } from "../constants";
+import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const cartApi = createApi({
   reducerPath: "cartApi",
@@ -21,44 +23,111 @@ export const cartApi = createApi({
 
   endpoints: (builder) => ({
     fetchCart: builder.query({
-      query: (data) => ({
-        url: "/cart",
-        method: "GET",
-        params: data,
-      }),
-      transformResponse: (response) => {
-       // console.log("gfghjkl", JSON.stringify(response));
-        if (response && Array.isArray(response?.cart?.items)) {
-          // Filter out items that are out of stock
-          const filteredItems = response?.cart?.items
-            ?.filter((item) => !item.productDetails?.isOutOfStock)
-            // ?.sort((a, b) => {
-            //   if (a.productDetails?.discountedPrice === 0) return 1;
-            //   if (b.productDetails?.discountedPrice === 0) return -1;
-            //   return 0;
-            // })
-            
-
-          // console.log(
-          //   "Filtered and Reversed Response:",
-          //   JSON.stringify(filteredItems)
-          // );
-
+      queryFn: async (data, api, extraOptions, baseQuery) => {
+        const userId = api?.getState()?.auth?.userData?._id;
+        const isGuestUser = api?.getState()?.auth?.userData?.isGuestUser;
+        if(isGuestUser){
           return {
-            ...response,
-            cart: {
-              ...response.cart,
-              items: filteredItems
+            data: {
+              cart: {
+                items: [],
+              },
             },
           };
         }
+        // const cartData = await SecureStore.getItemAsync(`cartData-${userId}`);
+        // const needToSync = await SecureStore.getItemAsync(`cartData-${userId}-needToSync`);
+        const cartData = await AsyncStorage.getItem(`cartData-${userId}`);
+        const needToSync = await AsyncStorage.getItem(`cartData-${userId}-needToSync`);
 
-        console.error("Invalid response format:", response);
-        return response; // Return as is if items is not an array or response is invalid
+        console.log("needToSync", needToSync);
+        console.log("cartData", cartData);
+        if(cartData && needToSync=="true"){
+          const parsedCartData = JSON.parse(cartData);
+          console.log("payloa4567890d", parsedCartData);
+          let payload = parsedCartData?.map((item: any) => {
+            return {
+              productId: item?.productDetails?._id,
+              quantity: item?.quantity,
+            };
+          });
+          payload = payload.filter(
+            (item: any) =>
+              item?.productId !== "676da9f75763ded56d43032d"
+          );
+          console.log("payload4567890", payload);
+          const data1 = {
+            params: {
+              userId,
+            },
+            body: {
+              items: payload,
+            },
+          }
+          const response = await baseQuery({
+            url: "/cart/bulk",
+            method: "PUT",
+            params: data1?.params,
+            body: data1?.body,
+          })
+          const response1 = await baseQuery({
+            url: "/cart",
+            method: "GET",
+            params: data,
+          })
+          //await SecureStore.setItemAsync(`cartData-${userId}-needToSync`, "false")
+          await AsyncStorage.setItem(`cartData-${userId}-needToSync`, "false")
+          return response1;
+
+        }else{
+          const response = await baseQuery({
+            url: "/cart",
+            method: "GET",
+            params: data,
+          })
+          return response;  
+        }
+        
+        
       },
+      // query: (data) => ({
+      //   url: "/cart",
+      //   method: "GET",
+      //   params: data,
+      // }),
+      // transformResponse: (response) => {
+      //   console.log("gfghjkl", JSON.stringify(response));
+      //   if (response && Array.isArray(response?.cart?.items)) {
+      //     // Filter out items that are out of stock
+      //     const filteredItems = response?.cart?.items?.filter(
+      //       (item) => !item.productDetails?.isOutOfStock
+      //     );
+      //     // ?.sort((a, b) => {
+      //     //   if (a.productDetails?.discountedPrice === 0) return 1;
+      //     //   if (b.productDetails?.discountedPrice === 0) return -1;
+      //     //   return 0;
+      //     // })
+
+      //     // console.log(
+      //     //   "Filtered and Reversed Response:",
+      //     //   JSON.stringify(filteredItems)
+      //     // );
+
+      //     return {
+      //       ...response,
+      //       cart: {
+      //         ...response.cart,
+      //         items: filteredItems,
+      //       },
+      //     };
+      //   }
+
+      //   console.error("Invalid response format:", response);
+      //   return response; // Return as is if items is not an array or response is invalid
+      // },
       providesTags: ["cartList"],
     }),
-    
+
     updateCart: builder.mutation({
       query: (data) => ({
         url: "/cart",
@@ -93,6 +162,14 @@ export const cartApi = createApi({
         body: data?.body,
       }),
     }),
+    updateProductsAsPerCart: builder.query({
+      query: (data) => ({
+        url: "/cart/updateProductsAsPerCart",
+        method: "PUT",
+        params: data?.params,
+        body: data?.body,
+      }),
+    }),
     fetchGreetingMessage: builder.query({
       query: (data) => ({
         url: "/generateGreeting",
@@ -117,11 +194,11 @@ const cartSlice = createSlice({
     isCartOperationProcessing: false,
     isClearCartLoading: false,
     isVisibleGoToCartWrapper: true,
-    cartItemQuantity:{},
-    cartQueueCount:{},
-    needToSyncWithBackend:{
-      status:false,
-      count:0
+    cartItemQuantity: {},
+    cartQueueCount: {},
+    needToSyncWithBackend: {
+      status: false,
+      count: 0,
     },
   },
   reducers: {
@@ -159,20 +236,28 @@ const cartSlice = createSlice({
       state.cartItemQuantity = {
         ...state.cartItemQuantity,
         [action?.payload?.productId]: action?.payload?.quantity,
-      }
+      };
     },
     incrementCartQueueCount: (state, action) => {
       //console.log("5456786567890456789-",action?.payload?.productId,state.cartQueueCount[action?.payload?.productId])
       state.cartQueueCount = {
         ...state.cartQueueCount,
-        [action?.payload?.productId]: state.cartQueueCount[action?.payload?.productId] ? state.cartQueueCount[action?.payload?.productId] + 1 : 1,
-      }
+        [action?.payload?.productId]: state.cartQueueCount[
+          action?.payload?.productId
+        ]
+          ? state.cartQueueCount[action?.payload?.productId] + 1
+          : 1,
+      };
     },
     decrementCartQueueCount: (state, action) => {
       state.cartQueueCount = {
         ...state.cartQueueCount,
-        [action?.payload?.productId]: state.cartQueueCount[action?.payload?.productId] ? Math.max(state.cartQueueCount[action?.payload?.productId] - 1, 0) : 0,
-      }
+        [action?.payload?.productId]: state.cartQueueCount[
+          action?.payload?.productId
+        ]
+          ? Math.max(state.cartQueueCount[action?.payload?.productId] - 1, 0)
+          : 0,
+      };
     },
     setNeedToSyncWithBackend: (state, action) => {
       state.needToSyncWithBackend = {
@@ -214,7 +299,7 @@ const cartSlice = createSlice({
         //console.log("tresdfghjk", arg);
         if (arg && arg?.originalArgs.body) {
           const productId = arg.originalArgs.body.productId;
-         // console.log("uytfdfghjk", productId);
+          // console.log("uytfdfghjk", productId);
           const cartItem = state.cartState.find(
             (item) => item?._id === productId
           );
@@ -233,7 +318,7 @@ const cartSlice = createSlice({
         //console.log("tresdfghjk", arg);
         if (arg && arg?.originalArgs.body) {
           const productId = arg.originalArgs.body.productId;
-         // console.log("uytfdfghjk", productId);
+          // console.log("uytfdfghjk", productId);
           const cartItem = state.cartState.find(
             (item) => item?._id === productId
           );
@@ -250,7 +335,7 @@ const cartSlice = createSlice({
         //console.log("tresdfghjk", arg);
         if (arg && arg?.originalArgs.body) {
           const productId = arg.originalArgs.body.productId;
-         // console.log("uytfdfghjk", productId);
+          // console.log("uytfdfghjk", productId);
           const cartItem = state.cartState.find(
             (item) => item?._id === productId
           );
@@ -274,7 +359,7 @@ export const {
   setCartItemQuantity,
   incrementCartQueueCount,
   decrementCartQueueCount,
-  setNeedToSyncWithBackend
+  setNeedToSyncWithBackend,
 } = cartSlice.actions;
 
 export const {
@@ -284,7 +369,8 @@ export const {
   useClearCartMutation,
   useSyncCartMutation,
   useLazyFetchGreetingMessageQuery,
-  useLazyBulkUpdateCartQuery
+  useLazyBulkUpdateCartQuery,
+  useLazyUpdateProductsAsPerCartQuery,
 } = cartApi;
 
 export default cartSlice.reducer;

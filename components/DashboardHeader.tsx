@@ -5,12 +5,16 @@ import { Colors } from "@/constants/Colors";
 import { Link, router } from "expo-router";
 import AccountOption from "./AccountOption";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import WeatherEmojiOverlay from "./WeatherEmojiOverlay";
 
 const DashboardHeader = ({ userName, profileImage, onProfilePress,isGuestUser }) => {
 
 
   return (
     <View style={styles.headerContainer}>
+        {/* {true && (
+          <WeatherEmojiOverlay />
+        )} */}
       <View style={{ flex: 2 }}>
       {isGuestUser ? (
   <AccountOption
@@ -28,7 +32,7 @@ const DashboardHeader = ({ userName, profileImage, onProfilePress,isGuestUser })
 /> 
 ) : (
   <Text style={styles.greetingText}>
-    {`Hey ${userName} `}
+    {`Hey ${userName} garg `}
   </Text>
 )}
 
@@ -39,6 +43,10 @@ const DashboardHeader = ({ userName, profileImage, onProfilePress,isGuestUser })
         onPress={onProfilePress}
       >
         <Image
+        style={{
+          borderWidth:1,
+          borderColor: Colors.light.lightGreen
+        }}
           borderRadius={25}
           width={50}
           height={50}

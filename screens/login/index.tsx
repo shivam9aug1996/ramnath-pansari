@@ -12,6 +12,7 @@ import { useSendOtp } from "./hooks/useSendOtp";
 import CustomTextInput from "../../components/CustomTextInput";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import Button from "@/components/Button";
+import DeferredFadeIn from "@/components/DeferredFadeIn";
 
 const Login: React.FC = () => {
   const {
@@ -29,7 +30,8 @@ const Login: React.FC = () => {
 
   return (
     <ScreenSafeWrapper useKeyboardAvoidingView={false}>
-      <TouchableWithoutFeedback onPress={dismissKeyboard}>
+     <DeferredFadeIn style={{flex:1}} delay={200}>
+     <TouchableWithoutFeedback onPress={dismissKeyboard}>
         <ThemedView style={styles.container}>
           <ThemedText type="title">{"Welcome to\nRamnath Pansari!"}</ThemedText>
           <ThemedText style={styles.label}>{"Phone Number"}</ThemedText>
@@ -54,6 +56,7 @@ const Login: React.FC = () => {
           />
         </ThemedView>
       </TouchableWithoutFeedback>
+     </DeferredFadeIn>
     </ScreenSafeWrapper>
   );
 };

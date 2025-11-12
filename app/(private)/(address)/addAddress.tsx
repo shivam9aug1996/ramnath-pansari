@@ -1,4 +1,11 @@
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+} from "react";
 import {
   Platform,
   Pressable,
@@ -20,7 +27,7 @@ import Button from "@/components/Button";
 import FetchLocation from "./FetchLocation";
 import useFetchLocation from "./useFetchLocation";
 import FetchUserInfo from "./FetchUserInfo";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import {
   useCreateAddressMutation,
@@ -31,8 +38,8 @@ import { router, useFocusEffect } from "expo-router";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
 import { showToast } from "@/utils/utils";
 import isWithinDeliveryRadius from "./utils";
-import WebMap from "./WebMap";
-import WebMapRenderer from "./WebMapRenderer";
+import { setCurrentAddressData } from "@/redux/features/addressSlice";
+import GenericFetchButton from "./GenericFetchButton";
 
 interface FormState {
   name: string;
@@ -44,7 +51,6 @@ interface FormState {
 
 interface InputFieldProps {
   label: string;
-  value: string;
   onChange: (value: string) => void;
   error: string;
   keyboardType?: "default" | "phone-pad";
@@ -55,12 +61,13 @@ interface InputFieldProps {
   readOnly?: boolean;
   multiLine?: boolean;
   helperText?: string;
+  defaultValue?: string;
+  onBlur?: () => void;
 }
 
 export const InputField: React.FC<InputFieldProps> = memo(
   ({
     label,
-    value,
     onChange,
     error,
     keyboardType = "default",
@@ -71,8 +78,11 @@ export const InputField: React.FC<InputFieldProps> = memo(
     readOnly = false,
     multiLine = false,
     helperText = "",
+    defaultValue = "",
+    onBlur,
   }) => {
     const handlePress = () => customRef?.current?.focus();
+    console.log("InputField---------->", defaultValue, label);
 
     return (
       <>
@@ -98,12 +108,14 @@ export const InputField: React.FC<InputFieldProps> = memo(
           <TextInput
             readOnly={readOnly}
             ref={customRef}
-            value={value}
+            // value={value}
+            defaultValue={defaultValue}
             onChangeText={onChange}
             style={[styles.textInput, { left: !prefix && !iconName ? 25 : 60 }]}
             keyboardType={keyboardType}
             maxLength={maxLength}
             multiline={multiLine}
+            onBlur={onBlur}
           />
         </Pressable>
         {!error && helperText && (
@@ -127,7 +139,19 @@ export const InputField: React.FC<InputFieldProps> = memo(
   }
 );
 
+function areEqual(prevProps: any, nextProps: any) {
+  return (
+    // prevProps.defaultValue === nextProps.defaultValue &&
+    prevProps.error === nextProps.error &&
+    prevProps.label === nextProps.label &&
+    prevProps.helperText === nextProps.helperText
+    //&&
+    // prevProps.onChange === nextProps.onChange
+  );
+}
+
 const AddAddress: React.FC = () => {
+  const dispatch = useDispatch();
   const currentAddressData = useSelector(
     (state: RootState) => state?.address?.currentAddressData
   );
@@ -146,7 +170,8 @@ const AddAddress: React.FC = () => {
     useLazyFetchAddressQuery();
   const userInfo = useSelector((state: RootState) => state.auth.userData);
 
-  const [form, setForm] = useState<FormState>({
+  // Use refs for form data to prevent re-renders
+  const formRef = useRef<FormState>({
     name: "",
     phone: "",
     address: "",
@@ -154,13 +179,17 @@ const AddAddress: React.FC = () => {
     longitude: "",
   });
 
-  const [errors, setErrors] = useState<FormState>({
+  // Use refs for errors instead of state
+  const errorsRef = useRef<FormState>({
     name: "",
     phone: "",
     address: "",
     latitude: "",
     longitude: "",
   });
+
+  // Add a state to force re-render when needed (for display purposes)
+  const [, forceUpdate] = useState({});
 
   const nameRef = useRef<TextInput>(null);
   const phoneRef = useRef<TextInput>(null);
@@ -170,67 +199,98 @@ const AddAddress: React.FC = () => {
     useCallback(() => {
       if (action === "add" || action === "edit") {
         const formData = {
-          ...form,
+          ...formRef.current,
           ...currentAddressData?.form,
         };
         delete formData?.area;
         delete formData?.query;
         delete formData?.action;
-        setForm(formData);
+        formRef.current = formData;
+        console.log("formRef34567890", formData);
+        forceUpdate({}); // Force re-render to update UI
 
-        setErrors({
+        // Clear errors using ref
+        errorsRef.current = {
           name: "",
           phone: "",
           address: "",
           latitude: "",
           longitude: "",
-        });
+        };
       }
-    }, [currentAddressData]) // run whenever form changes
+    }, [currentAddressData])
   );
 
-  const { isWithin, distance } =
-    form?.latitude && form?.longitude
-      ? isWithinDeliveryRadius({
-          latitude: parseFloat(form.latitude),
-          longitude: parseFloat(form.longitude),
-        })
-      : { isWithin: false, distance: 0 };
+  console.log("formRef3456678907890", currentAddressData);
 
-  const handleChange = (key: keyof FormState) => (value: string) => {
-    setErrors((prev) => ({ ...prev, [key]: "" }));
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
+  const deliveryRadiusInfo = useMemo(() => {
+    if (formRef.current?.latitude && formRef.current?.longitude) {
+      return isWithinDeliveryRadius({
+        latitude: parseFloat(formRef.current.latitude),
+        longitude: parseFloat(formRef.current.longitude),
+      });
+    }
+    return { isWithin: false, distance: 0 };
+  }, [formRef.current?.latitude, formRef.current?.longitude]);
+
+  // Memoize helper text
+  const addressHelperText = useMemo(() => {
+    return deliveryRadiusInfo.distance
+      ? `You are ${deliveryRadiusInfo.distance} km away from our delivery zone.`
+      : "";
+  }, [deliveryRadiusInfo.distance]);
+
+  const handleNameChange = useCallback((value: string) => {
+    if (errorsRef.current.name) {
+      errorsRef.current.name = "";
+      forceUpdate({});
+    }
+    formRef.current.name = value;
+    //forceUpdate({}); // Force re-render to update error display
+  }, []);
+
+  const handlePhoneChange = useCallback((value: string) => {
+    if (errorsRef.current.phone) {
+      errorsRef.current.phone = "";
+      forceUpdate({});
+    }
+    formRef.current.phone = value;
+    //forceUpdate({}); // Force re-render to update error display
+  }, []);
+
+  const handleAddressChange = useCallback((value: string) => {
+    if (errorsRef.current.address) {
+      errorsRef.current.address = "";
+      forceUpdate({});
+    }
+    formRef.current.address = value;
+    //forceUpdate({}); // Force re-render to update error display
+  }, []);
 
   const validateForm = () => {
     let valid = true;
-    const newErrors: FormState = { ...errors };
+    const newErrors: FormState = { ...errorsRef.current };
+    console.log("formRef---------->", formRef);
 
-    if (!form.name.trim()) {
+    if (!formRef.current.name.trim()) {
       newErrors.name = "Name is required";
       valid = false;
-    } else if (!/^\d{10}$/.test(form.phone.trim())) {
+    } else if (!/^\d{10}$/.test(formRef.current.phone.trim())) {
       newErrors.phone = "Invalid phone number";
       valid = false;
-    } else if (!form.address.trim()) {
+    } else if (!formRef.current.address.trim()) {
       newErrors.address = "Address is required";
       valid = false;
-    } else if (!form.latitude) {
-      newErrors.latitude = "Latitude is required";
+    } else if (!formRef.current.latitude) {
+      newErrors.latitude = "Please select location on map";
       valid = false;
-    } else if (!form.longitude) {
-      newErrors.longitude = "Longitude is required";
+    } else if (!formRef.current.longitude) {
+      newErrors.longitude = "Please select location on map";
       valid = false;
     }
-    // else if(!isWithin) {
-    //   newErrors.address = "You're just outside our 3 km delivery zone.";
-    //   valid = false;
-    // }
-    //console.log("newErr67890ors",newErrors,form,isWithinDeliveryRadius({latitude: parseFloat(form.latitude), longitude: parseFloat(form.longitude)})?.isWithin)
-    // return false;
 
-    setErrors(newErrors);
-
+    errorsRef.current = newErrors;
+    forceUpdate({}); // Force re-render to display errors
     return valid;
   };
 
@@ -242,23 +302,17 @@ const AddAddress: React.FC = () => {
             body: {
               userId: userInfo?._id,
               address: {
-                ...form,
+                ...formRef.current,
               },
               addressId: itemId,
             },
           })?.unwrap();
         } else {
-          console.log("4567876544567890", {
-            userId: userInfo?._id,
-            address: {
-              ...form,
-            },
-          });
           await createAddress({
             body: {
               userId: userInfo?._id,
               address: {
-                ...form,
+                ...formRef.current,
               },
             },
           })?.unwrap();
@@ -274,12 +328,43 @@ const AddAddress: React.FC = () => {
     } catch (error) {}
   };
 
+  const handleSetLocation = useCallback(() => {
+    Keyboard.dismiss();
+    dispatch(
+      setCurrentAddressData({
+        ...currentAddressData,
+        form: {
+          ...currentAddressData?.form,
+          ...formRef.current,
+        },
+      })
+    );
+    router.push({
+      pathname: "/(address)/WebMap",
+      params: {
+        ...formRef.current,
+        latitude: formRef.current.latitude,
+        longitude: formRef.current.longitude,
+      },
+    });
+  }, [dispatch, currentAddressData]);
+
+  const handleGetUserInfo = useCallback(() => {
+    formRef.current = {
+      ...formRef.current,
+      name: userInfo?.name || "",
+      phone: userInfo?.mobileNumber || "",
+    };
+    errorsRef.current.name = "";
+    errorsRef.current.phone = "";
+    forceUpdate({}); // Force re-render to update UI
+  }, [userInfo, forceUpdate]);
+
   return (
     <ScreenSafeWrapper
       title={`${itemId ? "Edit" : "Add"} delivery address`}
       useKeyboardAvoidingView={true}
     >
-      {/* <WebMapRenderer visible={false} latitude={form.latitude} longitude={form.longitude} /> */}
       <DeferredFadeIn delay={100} style={{ flexShrink: 0, flex: 1 }}>
         <ScrollView
           bounces={Platform.OS === "android" ? false : true}
@@ -289,23 +374,18 @@ const AddAddress: React.FC = () => {
         >
           <ThemedView style={styles.container}>
             {!userInfo?.isGuestUser && (
-              <FetchUserInfo
-                onPress={() => {
-                  setForm((prev) => ({
-                    ...prev,
-                    name: userInfo?.name || "",
-                    phone: userInfo?.mobileNumber || "",
-                  }));
-                  setErrors((prev) => ({ ...prev, name: "", phone: "" }));
-                }}
+              <GenericFetchButton
+                iconName="person"
+                onPress={handleGetUserInfo}
+                title="Get User Info"
               />
             )}
 
             <InputField
               label="Name"
-              value={form.name}
-              onChange={handleChange("name")}
-              error={errors.name}
+              defaultValue={formRef.current.name}
+              onChange={handleNameChange}
+              error={errorsRef.current.name}
               iconName="person-outline"
               maxLength={30}
               customRef={nameRef}
@@ -313,41 +393,33 @@ const AddAddress: React.FC = () => {
 
             <InputField
               label="Phone Number"
-              value={form.phone}
-              onChange={handleChange("phone")}
-              error={errors.phone}
+              defaultValue={formRef.current.phone}
+              onChange={handlePhoneChange}
+              error={errorsRef.current.phone}
               prefix="+91"
               keyboardType="phone-pad"
               maxLength={10}
               customRef={phoneRef}
             />
-
-            <FetchLocation
-              title="Set Location on Map"
-              loading={false}
-              onPress={() => {
-                Keyboard.dismiss()
-                router.push({
-                  pathname: "/(address)/WebMap",
-                  params: {
-                    latitude: form.latitude,
-                    longitude: form.longitude,
-                  },
-                });
-              }}
-            />
+             <GenericFetchButton
+                iconName="location-sharp"
+                onPress={handleSetLocation}
+                title="Set Location on Map"
+              />
 
             <InputField
               label="Address"
-              value={form.address}
-              onChange={handleChange("address")}
-              error={errors.address}
+              defaultValue={formRef.current.address}
+              onChange={handleAddressChange}
+              error={
+                errorsRef.current.address ||
+                errorsRef.current.latitude ||
+                errorsRef.current.longitude
+              }
               iconName="location-outline"
               customRef={addressRef}
               multiLine={true}
-              // helperText={form?.address ? !isWithin
-              //   ? `We're sorry, but you're ${distance} km away from our delivery zone. We currently deliver within a 3 km radius.`
-              //   : `Great news! You're ${distance} km away and well within our 3 km delivery zone.` : ""}
+              helperText={addressHelperText}
             />
 
             <Button

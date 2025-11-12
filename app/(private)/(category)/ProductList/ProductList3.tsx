@@ -1,7 +1,7 @@
 import { Colors } from "@/constants/Colors";
 import { useFetchCartQuery } from "@/redux/features/cartSlice";
 import { CartItem, Product, RootState } from "@/types/global";
-import React, { memo, useCallback, useEffect, useMemo } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -9,16 +9,21 @@ import {
   Platform,
   ActivityIndicator,
   FlatList,
+  RefreshControl,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import NotFound from "../../(result)/NotFound";
 import ProductItem from "./ProductItem";
 import { useScrollDirection } from "@/hooks/useScrollDirection";
-import { setProductListScrollParams } from "@/redux/features/productSlice";
+import {
+  productApi,
+  setProductListScrollParams,
+} from "@/redux/features/productSlice";
 import { useFocusEffect } from "expo-router";
 import ProductItemWrapper from "./ProductItemWrapper";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const ITEM_HEIGHT = 250
+const ITEM_HEIGHT = 250;
 
 interface PaginationState {
   categoryId: string | null;
@@ -55,55 +60,16 @@ const ProductList3 = ({
   isProductsFetching,
   isProductsLoading,
   paginationState,
+  refetch,
 }: ProductList3Props) => {
-  
+  const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
+  const { data: cartData, isLoading: isCartLoading } = useFetchCartQuery(
+    { userId },
+    { skip: !userId }
+  );
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const dispatch = useDispatch();
-
-  useEffect(() => {
-    return () => {
-      // dispatch(
-      //   setProductListScrollParams({
-      //     isBeyondThreshold: false,
-      //     direction: "up",
-      //   })
-      // );
-    };
-  }, []);
-
-  // useFocusEffect(
-  //   useCallback(() => {
-      
-
-  //     return () => {
-  //       console.log("product_list3---->useFocusEffect");
-  //       dispatch(
-  //         setProductListScrollParams({
-  //           isBeyondThreshold: false,
-  //           direction: "up",
-  //         })
-  //       );
-  //     };
-  //   }, [])
-  // );
-
-  // const handleScrollChange = ({
-  //   isBeyondThreshold,
-  //   direction,
-  // }: {
-  //   isBeyondThreshold: boolean;
-  //   direction: "up" | "down";
-  // }) => {
-  //   if (!isProductsFetching) {
-  //     dispatch(
-  //       setProductListScrollParams({
-  //         isBeyondThreshold,
-  //         direction,
-  //       })
-  //     );
-  //   }
-  // };
-
-  // const handleScroll = useScrollDirection(handleScrollChange, 800);
+console.log("uyewasdfghgfd",JSON.stringify(data))
 
   const hasNextPage = data?.currentPage < data?.totalPages;
 
@@ -126,13 +92,34 @@ const ProductList3 = ({
     hasNextPage,
   ]);
 
- 
+  // const renderProductItem = useCallback(
+  //   ({ item, index }: { item: Product; index: number }) => {
+  //     return <ProductItemWrapper item={item} index={index} />;
+  //   },
+  //   []
+  // );
+
+  const cartItemsMap = useMemo(() => {
+    console.log("cartDatashivam---------->");
+    const map: Record<string, CartItem> = {};
+    (cartData?.cart?.items || []).forEach((it) => {
+      map[it.productId] = it;
+    });
+    return map;
+  }, [cartData?.cart?.items]);
 
   const renderProductItem = useCallback(
     ({ item, index }: { item: Product; index: number }) => {
-      return <ProductItemWrapper item={item} index={index} />
+      const cartItem = cartItemsMap[item._id];
+      return (
+        <ProductItemWrapper
+          item={item}
+          index={index}
+          quantity={cartItem?.quantity ?? 0}
+        />
+      );
     },
-    []
+    [cartItemsMap] // ✅ depends on the cart mapping
   );
 
   const renderEmptyComponent = useCallback(() => {
@@ -169,8 +156,41 @@ const ProductList3 = ({
     }));
   }, [setPaginationState]);
 
+  // const refreshProducts = useCallback(async() => {
+  //   const key = `products-${paginationState.categoryId}-`
+  //   const keys = await AsyncStorage.getAllKeys();
+  //   console.log("keys",keys);
+  //   keys.forEach(async(k: string) => {
+  //     if (k.startsWith(key)) {
+  //       await AsyncStorage.removeItem(k);
+  //     }
+  //   });
+  //   const keys2 = await AsyncStorage.getAllKeys();
+  //   console.log("keys",keys2);
+  //   refetch()
+  //   // dispatch(productApi.util.resetApiState())
+  //   setPaginationState((prevState) => {
+  //     return {
+  //       ...prevState,
+  //       page: 1,
+  //     }
+  //   });
+  // }, [paginationState.categoryId]);
+
+  const handleRefresh = async() => {
+    console.log("handleRefresh765434567890");
+    setIsRefreshing(true);
+    await refetch()
+    setIsRefreshing(false);
+  };
+  console.log("data76543456kkk7890");
+
   return (
     <FlatList
+   //refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+
+      // onRefresh={refetch}
+      // refreshing={isRefreshing}
       bounces={Platform.OS === "android" ? false : true}
       initialNumToRender={2}
       ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
@@ -181,11 +201,6 @@ const ProductList3 = ({
       keyExtractor={(item) => item._id}
       renderItem={renderProductItem}
       ListEmptyComponent={renderEmptyComponent}
-      // getItemLayout={(data, index) => ({
-      //   length: ITEM_HEIGHT,
-      //   offset: ITEM_HEIGHT * index,
-      //   index,
-      // })}
       contentContainerStyle={[
         styles.flatList,
         {
@@ -202,8 +217,6 @@ const ProductList3 = ({
       ListFooterComponent={renderLoader}
       ListFooterComponentStyle={{ paddingTop: 15, marginVertical: 15 }}
       style={{ marginTop: 20 }}
-    //   onScroll={handleScroll}
-    //  scrollEventThrottle={16}
     />
   );
 };

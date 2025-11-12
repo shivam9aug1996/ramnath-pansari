@@ -34,6 +34,10 @@ import { toastConfig } from "@/app/toastconfig";
 import DeferredFadeIn from "./DeferredFadeIn";
 import DeliveryNotificationBanner from "./DeliveryNotificationBanner";
 import WeatherSection from "./WeatherSection/WeatherSection";
+import { LinearGradient } from "expo-linear-gradient";
+import GrientBackground from "./GrientBackground";
+import WeatherEmojiOverlay from "./WeatherEmojiOverlay";
+import CartItemsCount from "./CartItemsCount";
 
 interface ScreenSafeWrapperProps {
   children: ReactNode;
@@ -47,6 +51,8 @@ interface ScreenSafeWrapperProps {
   headerVisible?: boolean;
   cartItems?: number;
   showWeatherSection?: boolean;
+  showGradient?: boolean;
+  showCartItemsCount?: boolean;
 }
 
 const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
@@ -59,15 +65,14 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
   wrapperStyle = {},
   headerStyle = {},
   headerVisible,
-  cartItems = undefined,
-  showWeatherSection = false,
+  showGradient = false,
+  showCartItemsCount = false,
 }) => {
-  // console.log("uytrfghjk", showCartIcon);
+  console.log("uytrf5698765434567890ghjk", showCartIcon);
   const WrapperComponent = useKeyboardAvoidingView
     ? KeyboardAvoidingView
     : View;
   //const router = useRouter();
-  const userId = useSelector((state: RootState) => state.auth?.userData?._id);
 
   const animatedHeaderStyle = useAnimatedStyle(() => {
     if (!headerVisible) return {};
@@ -83,11 +88,14 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
       ],
     };
   });
-  // console.log("9876trdfghj", cartItems);
+   console.log("9876trdf4567890-ghj");
   return (
     <>
       <SafeAreaView style={[styles.container, wrapperStyle]}>
-        
+        {showGradient && (
+          <GrientBackground />
+        )}
+      
         <WrapperComponent
           style={{ flex: 1 }}
           behavior={
@@ -96,7 +104,6 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
               : "height"
           }
         >
-          
           <DeferredFadeIn delay={100}>
             <ThemedView
               style={[
@@ -105,6 +112,7 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
                   alignItems: "center",
                   position: "relative",
                   minHeight: showBackButton || title ? 42 : 0,
+                  backgroundColor:"transparent"
                 },
                 headerStyle,
               ]}
@@ -131,6 +139,7 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
                 <TouchableOpacity
                   onPress={() => {
                     router.push("/(search)/search");
+                    //router.push("/(tabs)/search");
                     // router.push("/(private)/(tabs)/search");
                   }}
                   style={{
@@ -143,20 +152,10 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
                   <Ionicons name={"search"} size={25} color={"#777777"} />
                 </TouchableOpacity>
               )}
-              {cartItems !== undefined && cartItems !== 0 ? (
-                <Animated.View
-                  style={[
-                    {
-                      position: "absolute",
-                      right: 0,
-                      alignItems: "center",
-                      padding: 10,
-                    },
-                    animatedHeaderStyle,
-                  ]}
-                >
-                  <ThemedText type="screenHeader">{`${cartItems} items`}</ThemedText>
-                </Animated.View>
+              {showCartItemsCount ? (
+               <CartItemsCount
+               animatedHeaderStyle={animatedHeaderStyle}
+               />
               ) : null}
               {showCartIcon && <CartIcon />}
             </ThemedView>
@@ -188,5 +187,32 @@ const styles = StyleSheet.create({
     height: "400%",
   },
 });
+
+
+function areEqual(prevProps: ScreenSafeWrapperProps, nextProps: ScreenSafeWrapperProps) {
+  return (
+    prevProps.showBackButton === nextProps.showBackButton
+    &&
+    prevProps.title === nextProps.title
+    &&
+    prevProps.showBackButton === nextProps.showBackButton
+    &&
+    prevProps.useKeyboardAvoidingView === nextProps.useKeyboardAvoidingView
+    &&
+    prevProps.showCartIcon === nextProps.showCartIcon
+    &&
+    prevProps.showSearchIcon === nextProps.showSearchIcon
+    &&
+    prevProps.wrapperStyle === nextProps.wrapperStyle
+    &&
+    prevProps.headerStyle === nextProps.headerStyle
+    &&
+    prevProps.headerVisible === nextProps.headerVisible
+    &&
+    prevProps.showGradient === nextProps.showGradient
+    &&
+    prevProps.showCartItemsCount === nextProps.showCartItemsCount
+  );
+}
 
 export default memo(ScreenSafeWrapper);

@@ -110,6 +110,12 @@ const DeferredFadeIn: React.FC<DeferredFadeInProps> = ({
   const frameId = useRef<number | null>(null);
 
   useEffect(() => {
+    if (__DEV__) {
+      setShouldRender(true);
+      opacity.value = 1;
+      return;
+    }
+
     isMounted.current = true;
 
     frameId.current = requestAnimationFrame(() => {

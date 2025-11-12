@@ -158,14 +158,14 @@ import {
                     {isFetching ? (
                       <>
                       {renderText()}
-                      <View style={{height:100}}/>
+                      <View style={{height:50}}/>
                       </>
                     ) : (
                       <>
                         <ThemedText style={styles.productName} type="title">
                           {name}
                         </ThemedText>
-                        <Text style={styles.size}>{size}</Text>
+                        {/* <Text style={styles.size}>{size}</Text> */}
                         {price && discountedPrice && price > discountedPrice && (
                           <View style={styles.discountTag}>
                             <Text style={styles.discountText}>
@@ -200,7 +200,7 @@ import {
                 </View>
               </View>
   
-              <RecentlyViewedProducts scrollRef={scrollRef} filterProductIds={[id]} />
+              <RecentlyViewedProducts variant="compact" scrollRef={scrollRef} filterProductIds={[id]} />
             </ScrollView>
           </DeferredFadeIn>
         </ScreenSafeWrapper>

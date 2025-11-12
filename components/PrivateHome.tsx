@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { StyleSheet, View, ScrollView, Platform, TextInput } from "react-native";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View, ScrollView, Platform, TextInput, RefreshControl } from "react-native";
 import { router, useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import { setCategoryData, useFetchCategoriesQuery } from "@/redux/features/categorySlice";
@@ -21,12 +21,18 @@ import Carasole from "./Carasole";
 import GreetingMessageWrapper from "./GreetingMessage/GreetingMessageWrapper";
 import Example from "@/utils/Example";
 import WeatherSection from "./WeatherSection/WeatherSection";
+import HomeSearch from "./HomeSearch";
+import JammedUIExample from "./JammedUIExample";
+import { setSelectedSubCategoryId } from "@/redux/features/searchSlice";
+import { Text } from "react-native";
+import Products from "@/app/(private)/(category)/ProductList/Products";
 
 const PrivateHome = () => {
   const dispatch = useDispatch();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const token = useSelector((state: RootState) => state?.auth?.token);
   const userData = useSelector((state: RootState) => state?.auth?.userData);
-  const { data: categoriesData, isFetching: isCategoryFetching } =
+  const { data: categoriesData, isFetching: isCategoryFetching,refetch } =
     useFetchCategoriesQuery({}, { skip: !token });
 
     //console.log("categoriesData",JSON.stringify(categoriesData))
@@ -64,11 +70,19 @@ const PrivateHome = () => {
     //   },
     // });
     dispatch(setCategoryData(selectedCategory1))
+    
+   // dispatch(setSelectedSubCategoryId(selectedCategory1))
     router.push(`/(category)/${parentCategory?._id?.toString()}?name=${parentCategory?.name}&selectedCategoryIdIndex=${selectedIndex?.toString()}`)
   };
 
   const handleProfilePress = () => {
     router.navigate("/(tabs)/account");
+  };
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    refetch();
+    setIsRefreshing(false);
   };
 
   return (
@@ -77,9 +91,12 @@ const PrivateHome = () => {
         showBackButton={false}
         wrapperStyle={{ paddingHorizontal: 0 }}
         showWeatherSection={true}
+        showGradient={true}
       >
         <DeferredFadeIn delay={100} style={{ flex: 1 }}>
+          
           <ScrollView
+            refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
             bounces={Platform.OS === "android" ? false : true}
             showsVerticalScrollIndicator={false}
           >
@@ -99,17 +116,7 @@ const PrivateHome = () => {
               </DeferredFadeIn> */}
 
               <View style={{ paddingHorizontal: 20 }}>
-                <CustomTextInput
-                  onChangeText={() => {}}
-                  value="Search..."
-                  type="search"
-                  variant={2}
-                  wrapperStyle={styles.textInputWrapper}
-                  textInputStyle={styles.textInputStyle}
-                  onPress={() => {
-                    router.push("/(search)/search");
-                  }}
-                />
+               <HomeSearch />
                 
               </View>
               <DeferredFadeIn
@@ -153,8 +160,13 @@ const PrivateHome = () => {
             <DeferredFadeIn delay={200}>
               <RecentlyViewedProducts variant={"compact"} />
             </DeferredFadeIn>
+            <DeferredFadeIn delay={200}>
+            </DeferredFadeIn>
+       
           </ScrollView>
+          
         </DeferredFadeIn>
+        
       </ScreenSafeWrapper>
     </>
   );
@@ -177,13 +189,25 @@ const styles = StyleSheet.create({
   textInputWrapper: {
     marginTop: 20,
     marginBottom: 30,
+    backgroundColor: Colors.light.white,
+    borderRadius: 25,
+    // shadowColor: Colors.light.darkGreen,
+    // shadowOffset: {
+    //   width: 0,
+    //   height: 4,
+    // },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 8,
+    // elevation: 8,
+    borderWidth: 2,
+    borderColor: Colors.light.lightGrey,
   },
   textInputStyle: {
     fontFamily: "Raleway_400Regular",
     fontSize: 12,
     color: Colors.light.darkGreen,
     top: 1,
-    opacity: 0.6,
+    //opacity: 0.6,
   },
   background1: {
     position: "absolute",

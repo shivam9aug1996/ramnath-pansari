@@ -8,60 +8,68 @@ const usePusher = (appKey, appCluster) => {
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
 
-  const startSocket = async (channelName, eventName) => {
-    try {
-      if (channel) {
-        await channel.unsubscribe();
-        setChannel(null);
-      }
+  const startSocket = ()=>{
 
-      if (pusherInstance) {
-        await pusherInstance.disconnect();
-        setPusherInstance(null);
-        setIsConnected(false);
-      }
-      // Initialize Pusher instance inside startSocket
-      const pusher = Pusher.getInstance();
+  }
 
-      await pusher.init({
-        apiKey: appKey,
-        cluster: appCluster,
-      });
+  const closeSocket = ()=>{
+    
+  }
 
-      await pusher.connect();
-      setPusherInstance(pusher);
-      setIsConnected(true);
+  // const startSocket = async (channelName, eventName) => {
+  //   try {
+  //     if (channel) {
+  //       await channel.unsubscribe();
+  //       setChannel(null);
+  //     }
 
-      if (channelName && eventName) {
-        const newChannel = await pusher.subscribe({
-          channelName,
-          onEvent: (event) => {
-            if (event?.data) {
-              setMessage(JSON.parse(event?.data));
-            }
-          },
-        });
-        setChannel(newChannel);
-      } else {
-        setError("Channel name or event name not provided.");
-      }
-    } catch (err) {
-      setError(`Error initializing Pusher or subscribing: ${err.message}`);
-    }
-  };
+  //     if (pusherInstance) {
+  //       await pusherInstance.disconnect();
+  //       setPusherInstance(null);
+  //       setIsConnected(false);
+  //     }
+  //     // Initialize Pusher instance inside startSocket
+  //     const pusher = Pusher.getInstance();
 
-  const closeSocket = async () => {
-    if (channel) {
-      await channel.unsubscribe();
-      setChannel(null);
-    }
+  //     await pusher.init({
+  //       apiKey: appKey,
+  //       cluster: appCluster,
+  //     });
 
-    if (pusherInstance) {
-      await pusherInstance.disconnect();
-      setPusherInstance(null);
-      setIsConnected(false);
-    }
-  };
+  //     await pusher.connect();
+  //     setPusherInstance(pusher);
+  //     setIsConnected(true);
+
+  //     if (channelName && eventName) {
+  //       const newChannel = await pusher.subscribe({
+  //         channelName,
+  //         onEvent: (event) => {
+  //           if (event?.data) {
+  //             setMessage(JSON.parse(event?.data));
+  //           }
+  //         },
+  //       });
+  //       setChannel(newChannel);
+  //     } else {
+  //       setError("Channel name or event name not provided.");
+  //     }
+  //   } catch (err) {
+  //     setError(`Error initializing Pusher or subscribing: ${err.message}`);
+  //   }
+  // };
+
+  // const closeSocket = async () => {
+  //   if (channel) {
+  //     await channel.unsubscribe();
+  //     setChannel(null);
+  //   }
+
+  //   if (pusherInstance) {
+  //     await pusherInstance.disconnect();
+  //     setPusherInstance(null);
+  //     setIsConnected(false);
+  //   }
+  // };
 
   return {
     isConnected,

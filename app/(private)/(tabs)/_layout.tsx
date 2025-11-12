@@ -22,7 +22,6 @@ export default function TabLayout() {
   } = useFetchCartQuery(
     {
       userId,
-      getLocalData:true
     },
     {
       skip: !userId,
@@ -42,7 +41,7 @@ export default function TabLayout() {
           height: 80,
           paddingBottom: 25,
           display:
-            route.name === "cat" || route.name === "search" ? "none" : "flex",
+            route.name === "cat" || route.name === "search" || route.name === "mapTab" ? "none" : "flex",
         },
 
         tabBarHideOnKeyboard: true,

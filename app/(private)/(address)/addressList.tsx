@@ -52,6 +52,8 @@ import useAddressListStageLoad from "@/hooks/useAddressListStageLoad";
 import FadeSlideIn from "@/app/components/FadeSlideIn";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
 import isWithinDeliveryRadius from "./utils";
+import { setIsCartOperationProcessing } from "@/redux/features/cartSlice";
+import GenericFetchButton from "./GenericFetchButton";
 // import PayBottomSheet from "./PayBottomSheet";
 // const PayBottomSheet = lazy(() => import("./PayBottomSheet"));
 // const TryAgain = lazy(() => import("../(category)/CategoryList/TryAgain"));
@@ -88,6 +90,15 @@ const addressList = () => {
       scrollToTop(listRef);
     }
   }, [isFetching]);
+
+  useEffect(()=>{
+    const timeout = setTimeout(()=>{
+      dispatch(setIsCartOperationProcessing(false))
+    },500)
+    return ()=>{
+      clearTimeout(timeout)
+    }
+  },[])
 
   const isButtonLoading =
     cartButtonProductId?.length != 0 || isPaymentProcessing;
@@ -137,6 +148,19 @@ const addressList = () => {
     dispatch(addressApi.util.resetApiState());
   };
 
+  const handleAddNewAddress = ()=>{
+    dispatch(
+      setCurrentAddressData({
+        action: "add",
+        form: undefined,
+        initialForm: undefined,
+      })
+    );
+    router.push({
+      pathname: "/(address)/addAddress",
+    });
+  }
+
   return (
     <>
       <ScreenSafeWrapper>
@@ -164,20 +188,24 @@ const addressList = () => {
                     : "Saved Addresses"
                 }`}</ThemedText>
               </View>
-              <TouchableOpacity
+              <GenericFetchButton
+                onPress={handleAddNewAddress}
+                title="Add new"
+              />
+              {/* <TouchableOpacity
                 disabled={isButtonLoading}
+                style={{
+                  borderWidth:1,
+                  borderColor:Colors.light.mediumGreen,
+                  borderRadius:10,
+                  paddingHorizontal:10,
+                  paddingVertical:5,
+                  backgroundColor:Colors.light.softGreen,
+                  marginRight:10,
+                  marginBottom:10,
+                }}
                 onPress={() => {
-                  dispatch(
-                    setCurrentAddressData({
-                      action: "add",
-                      form: undefined,
-                      initialForm: undefined,
-                    })
-                  );
-                  router.push({
-                    pathname: "/(address)/addAddress",
-                    // pathname: "/(address)/WebMap",
-                  });
+                 
                 }}
               >
                 <Text
@@ -187,9 +215,9 @@ const addressList = () => {
                     fontSize: 14,
                   }}
                 >
-                  add new
+                  Add new
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           </DeferredFadeIn>
 

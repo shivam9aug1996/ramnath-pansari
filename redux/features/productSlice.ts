@@ -1,6 +1,8 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { baseUrl } from "../constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { CACHE_DURATION, cleanOldProductCache } from "@/utils/utils";
 
 export const productApi = createApi({
   reducerPath: "productApi",
@@ -9,7 +11,7 @@ export const productApi = createApi({
     prepareHeaders: (headers, api) => {
       const token = api?.getState()?.auth?.token;
       if (token) {
-       // console.log("kiop");
+        // console.log("kiop");
         headers.set("authorization", `Bearer ${token}`);
       }
       return headers;
@@ -19,11 +21,40 @@ export const productApi = createApi({
   tagTypes: ["Products"],
   endpoints: (builder) => ({
     fetchProducts: builder.query({
-      query: (data) => ({
-        url: "/products",
-        method: "GET",
-        params: data,
-      }),
+      async queryFn(arg, _queryApi, _extraOptions, baseQuery) {
+        
+        const { page, clear, categoryId, ...rest } = arg;
+        const localKey = `products-${categoryId}-${page}`;
+        const now = Date.now();
+        const cached = await AsyncStorage.getItem(localKey);
+
+        
+        if (cached) {
+          const { data, timestamp } = JSON.parse(cached);
+          const age = now - timestamp;
+          if (age < CACHE_DURATION) {
+            return { data };
+          }
+        }
+
+        // else, proceed with the normal baseQuery
+        const result = await baseQuery({
+          url: "/products",
+          method: "GET",
+          params: { page, categoryId, ...rest },
+        });
+        if (result.data) {
+          await AsyncStorage.setItem(
+            localKey,
+            JSON.stringify({
+              data: result.data,
+              timestamp: now,
+            })
+          );
+        }
+
+        return result;
+      },
       keepUnusedDataFor: 0,
 
       serializeQueryArgs: ({ endpointName, queryArgs }) => {
@@ -31,12 +62,12 @@ export const productApi = createApi({
         return `${endpointName}-${queryArgs.categoryId}`;
       },
       providesTags: (result, error, { categoryId }) => {
-       // console.log("iuytredsxcvbnm", categoryId);
+        // console.log("iuytredsxcvbnm", categoryId);
         return [{ type: "Products", id: categoryId }];
       },
 
       merge: (currentCache, newItems, { arg }) => {
-       // console.log("jhgfg567890hjkl");
+        // console.log("jhgfg567890hjkl");
         let page = arg?.page;
         let categoryId = arg?.categoryId;
 
@@ -46,7 +77,6 @@ export const productApi = createApi({
         // console.log("765redfghjkl currentCache", JSON.stringify(currentCache));
 
         if (page === 1) {
-         
           const startIndex = (page - 1) * 10;
           // let updatedProducts = [...currentCache.products];
           // for (let i = 0; i < newItems.products.length; i++) {
@@ -65,23 +95,22 @@ export const productApi = createApi({
           // console.log("updatedProducts67890", JSON.stringify(updatedProducts));
           // currentCache.products = updatedProducts;
           console.log("currentCache.currentPage > newItems?.currentPage");
-            let updatedProducts = [...currentCache.products];
-            
-            // Clear out all items from the start index
-            updatedProducts.splice(startIndex, 10);
-            
-            // Insert new items at the correct position
-            updatedProducts.splice(startIndex, 0, ...newItems.products);
-            
-            currentCache.products = updatedProducts;
+          let updatedProducts = [...currentCache.products];
+
+          // Clear out all items from the start index
+          updatedProducts.splice(startIndex, 10);
+
+          // Insert new items at the correct position
+          updatedProducts.splice(startIndex, 0, ...newItems.products);
+
+          currentCache.products = updatedProducts;
         } else {
           const startIndex = (page - 1) * 10; // Assuming limit is 10
 
           if (currentCache.currentPage < newItems?.currentPage) {
             currentCache?.products?.push(...newItems?.products);
             currentCache.currentPage = newItems?.currentPage;
-          } 
-          else if (currentCache.currentPage >= newItems?.currentPage) {
+          } else if (currentCache.currentPage >= newItems?.currentPage) {
             // console.log("currentCache.currentPage > newItems?.currentPage");
             // let updatedProducts = [...currentCache.products];
             // for (let i = 0; i < newItems.products.length; i++) {
@@ -104,13 +133,13 @@ export const productApi = createApi({
             // currentCache.products = updatedProducts;
             console.log("currentCache.currentPage > newItems?.currentPage");
             let updatedProducts = [...currentCache.products];
-            
+
             // Clear out all items from the start index
             updatedProducts.splice(startIndex, 10);
-            
+
             // Insert new items at the correct position
             updatedProducts.splice(startIndex, 0, ...newItems.products);
-            
+
             currentCache.products = updatedProducts;
             // currentCache.currentPage = newItems?.currentPage;
           }
@@ -134,7 +163,6 @@ export const productApi = createApi({
       //   }
       // },
       forceRefetch: ({ currentArg, previousArg, state, endpointState }) => {
-        
         return (
           currentArg?.categoryId !== previousArg?.categoryId ||
           currentArg?.page !== previousArg?.page ||
@@ -195,12 +223,12 @@ const productSlice = createSlice({
     selectedCategoryClicked: false,
     productListScrollParams: {
       isBeyondThreshold: false,
-      direction: "up"
-    }
+      direction: "up",
+    },
   },
   reducers: {
     setSelectedSubCategoryId: (state, action) => {
-      if (action?.payload) {
+      if (action?.payload || action?.payload === "null") {
         state.selectedSubCategoryId = action?.payload;
       }
     },

@@ -1,4 +1,4 @@
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Button, StyleSheet, Text, View } from "react-native";
 import React, { memo, useEffect, useState } from "react";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import WebView from "react-native-webview";
@@ -21,18 +21,20 @@ const WebMapComp = ({
   
   const token = useSelector((state: RootState) => state?.auth?.token);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentLocation, setCurrentLocation] = useState<any>(null);
   const currentAddressData = useSelector(
     (state: RootState) => state?.address?.currentAddressData
   );
   const dispatch = useDispatch();
   const [loc, setLoc] = useState<any>(null);
   useEffect(() => {
-    console.log("latitude34567890-0987654");
     fetchLocation1();
   }, []);
 
   const fetchLocation1 = async () => {
     try {
+        const data =await fetchLocation();
+        setCurrentLocation(data)
       let locInfo =
         latitude && longitude
           ? {
@@ -51,7 +53,8 @@ const WebMapComp = ({
       router.back();
     }
   };
-  console.log("loc", loc);
+ // console.log("loc", loc);
+
   return (
     <ScreenSafeWrapper title="Select Address">
       {isLoading && (
@@ -60,9 +63,11 @@ const WebMapComp = ({
           <Text style={styles.loaderText}>Loading map...</Text>
         </View>
       )}
-      <View style={{ flex: 1, marginTop: 20 }}>
+      <View style={{ flex: 1, marginTop: 20 }}> 
         {loc && (
           <WebView
+          
+          cacheMode="LOAD_CACHE_ELSE_NETWORK"
             onContentSizeChange={(event) => {
               console.log("onContentSizeChange", event);
             }}
@@ -90,7 +95,7 @@ const WebMapComp = ({
               setIsLoading(false);
             }}
             source={{
-              uri: `${hostUrl}/addressMap?lat=${loc?.latitude}&lng=${loc?.longitude}`,
+              uri: `${hostUrl}/addressMap?lat=${loc?.latitude}&lng=${loc?.longitude}&cLat=${currentLocation?.latitude}&cLng=${currentLocation?.longitude}`,
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,

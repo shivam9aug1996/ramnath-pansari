@@ -11,17 +11,28 @@ import {
 import Animated, { useSharedValue } from "react-native-reanimated";
 import Pagi from "./Pagi";
 import { router } from "expo-router";
-import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
+import { setCategoryData, useFetchCategoriesQuery } from "@/redux/features/categorySlice";
 import { useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import { staticImage } from "@/app/(private)/(category)/CategoryList/utils";
 import Carousel from "pinar";
 import { useIsFocused } from "@react-navigation/native";
 import DeferredFadeIn from "./DeferredFadeIn";
+import { useDispatch } from "react-redux";
 
 const carouselData = [
   {
     id: 1,
+    category: {
+      _id: "66a2498a50d9ec140942917d",
+      name: "Dals & Pulses",
+      children: [],
+    },
+    image:
+      "https://rukminim2.flixcart.com/fk-p-flap/960/420/image/4f42398937013ef1.jpg?q=100"
+  },
+  {
+    id: 2,
     category: {
       _id: "67a5879461d60ec5eb8b4266",
       name: "Coffee",
@@ -31,7 +42,7 @@ const carouselData = [
       "https://rukminim2.flixcart.com/fk-p-flap/960/420/image/61725d49f1a21828.jpeg?q=100",
   },
   {
-    id: 2,
+    id: 3,
     category: {
       _id: "67a5883461d60ec5eb8b426a",
       name: "Tea",
@@ -40,6 +51,7 @@ const carouselData = [
     image:
       "https://rukminim2.flixcart.com/fk-p-flap/960/420/image/4fb35b7f555375d7.jpeg?q=100"
   },
+ 
 ];
 
 function Carasole() {
@@ -48,7 +60,7 @@ function Carasole() {
   const token = useSelector((state: RootState) => state?.auth?.token);
   const isFocused = useIsFocused();
   const carouselRef = useRef<Carousel>(null);
-
+const dispatch = useDispatch();
 
   const { data: categoriesData } = useFetchCategoriesQuery(
     {},
@@ -68,7 +80,7 @@ useEffect(() => {
 }, [isFocused]);
 
   return (
-    <View style={{ flex: 1,paddingHorizontal:10 }}>
+    <View style={{ flex: 1,marginHorizontal:5 }}>
       <View
         style={{
           flex: 1,
@@ -114,14 +126,17 @@ useEffect(() => {
                     }
                   });
                 });
+                const selectedCategory1 = categoriesData?.categories.find(
+                  (item) => {
+                    return item?._id == parentCategory?._id
+                  }
+                );
+                dispatch(setCategoryData(selectedCategory1))
+
               //  console.log({ selectedIndex, parentCategory });
-                router.push({
-                  pathname: `/(category)/${parentCategory?._id}`,
-                  params: {
-                    name: parentCategory?.name,
-                    selectedCategoryIdIndex: selectedIndex,
-                  },
-                });
+              router.push(`/(category)/${parentCategory?._id?.toString()}?name=${parentCategory?.name}&selectedCategoryIdIndex=${selectedIndex?.toString()}`)
+
+               
 
               }}
               style={{

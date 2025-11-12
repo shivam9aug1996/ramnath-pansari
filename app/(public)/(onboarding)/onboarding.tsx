@@ -7,6 +7,8 @@ import { onboardingSlides } from "./utils";
 import OnboardingItem from "@/components/onboarding/OnboardingItem";
 import useVerifyOtp1 from "@/screens/verifyOtp/hooks/sdfg";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
+import { useSelector } from "react-redux";
+import { RootState } from "@/types/global";
 
 const Onboarding = () => {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -14,6 +16,9 @@ const Onboarding = () => {
   const sliderRef = useRef<AppIntroSlider>(null);
   const [isPending, startTransition] = useTransition();
   const { guestLogin, isLoading: isLoadingVerifyOtp } = useVerifyOtp1();
+  const saveAuthDataState = useSelector(
+    (state: RootState) => state?.auth?.saveAuthData
+  );
   const renderItem = useCallback(
     ({ item }: any) => {
       const debouncePress = debounce(handlePress, 500, true);
@@ -23,12 +28,12 @@ const Onboarding = () => {
           activeSlide={activeSlide}
           handlePress={debouncePress}
           item={item}
-          isLoadingVerifyOtp={isLoadingVerifyOtp}
+          isLoadingVerifyOtp={isLoadingVerifyOtp || saveAuthDataState?.isLoading}
         />
        </DeferredFadeIn>
       );
     },
-    [activeSlide, isLoadingVerifyOtp]
+    [activeSlide, isLoadingVerifyOtp, saveAuthDataState?.isLoading]
   );
 
   const onSlideChange = (index: number) => {

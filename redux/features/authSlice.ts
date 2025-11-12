@@ -9,6 +9,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthData, SaveAuthDataPayload } from "@/types/global";
 import * as SecureStore from "expo-secure-store";
 import { cartApi } from "./cartSlice";
+import { CACHE_DURATION, cleanOldProductCache } from "@/utils/utils";
 
 // const saveAuthDataToAsyncStorage = async (token: any, userData: any) => {
 //   try {
@@ -44,7 +45,8 @@ export const loadAuthData = createAsyncThunk(
       //   }, 1000);
       // });
       // 9887765432
-      //await AsyncStorage.clear();
+      // await AsyncStorage.clear();
+      // await SecureStore.deleteItemAsync("lastSavedPushToken");
       // await SecureStore.deleteItemAsync("LOCATION_CACHE");
       // await SecureStore.deleteItemAsync("WEATHER_CACHE");
       // await SecureStore.deleteItemAsync("GREETING_CACHE_KEY");
@@ -53,16 +55,17 @@ export const loadAuthData = createAsyncThunk(
       const token = await SecureStore.getItemAsync("token");
       
       let userData = await AsyncStorage?.getItem("userData");
+      await cleanOldProductCache(CACHE_DURATION);
       
       userData = userData ? JSON.parse(userData) : null;
   
       
-      if (userData?.isGuestUser) {
-        await SecureStore.deleteItemAsync("token");
-        await AsyncStorage?.clear();
-        await AsyncStorage.removeItem("recentlyViewedItems");
-        return { token: null, userData: null };
-      }
+      // if (userData?.isGuestUser) {
+      //   await SecureStore.deleteItemAsync("token");
+      //   await AsyncStorage?.clear();
+      //   await AsyncStorage.removeItem("recentlyViewedItems");
+      //   return { token: null, userData: null };
+      // }
       return { token, userData };
     } catch (error) {
       return rejectWithValue("error in loadAuthData: " + JSON.stringify(error));
@@ -72,13 +75,17 @@ export const loadAuthData = createAsyncThunk(
 
 export const clearAuthData = createAsyncThunk(
   "auth/clearAuthData",
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, dispatch }) => {
     try {
       // await new Promise((res) => {
       //   setTimeout(() => {
       //     res("hi");
       //   }, 1000);
       // });
+      await dispatch(savePushToken1({
+        isGuestUser:  true,
+        _id : "68561b44fcdf732b24588202" 
+      }) as any);
       await SecureStore.deleteItemAsync("token");
       await AsyncStorage?.clear();
 
@@ -89,6 +96,79 @@ export const clearAuthData = createAsyncThunk(
       return rejectWithValue(
         "error in clearAuthData: " + JSON.stringify(error)
       );
+    }
+  }
+);
+
+export const loadPushToken = createAsyncThunk(
+  "auth/loadPushToken",
+  async (_, { rejectWithValue }) => {
+    try {
+      // use secure store to get the last saved push token
+      const lastSavedToken = await SecureStore.getItemAsync("lastSavedPushToken");
+      return lastSavedToken === null ? "loaded" : lastSavedToken;
+    } catch (error) {
+      return rejectWithValue("error in loadPushToken: " + JSON.stringify(error));
+    }
+  }
+);
+
+export const savePushTokenToStorage = createAsyncThunk(
+  "auth/savePushTokenToStorage",
+  async (token: string, { rejectWithValue }) => {
+    try {
+      await SecureStore.setItemAsync("lastSavedPushToken", token);
+      return token;
+    } catch (error) {
+      return rejectWithValue("error in savePushTokenToStorage: " + JSON.stringify(error));
+    }
+  }
+);
+
+
+// create a thunk to call the api to save the push token
+export const savePushToken1 = createAsyncThunk(
+  "auth/savePushToken1",
+  async (data, { rejectWithValue, getState }) => {
+    // get darta from state
+    const token = getState()?.auth?.lastSavedPushToken;
+    const authToken = getState()?.auth?.token;
+    const userData = getState()?.auth?.userData;
+    const isGuestUser = data?.isGuestUser || userData?.isGuestUser;
+    const isAdminUser = userData?.isAdminUser;
+    const userId = data?._id || userData?._id;
+    try {
+      const body = isGuestUser
+          ? {
+              token,
+              userId,
+              isGuestUser: true,
+            }
+          : isAdminUser
+          ? {
+              token,
+              userId,
+              isAdminUser: true,
+            }
+          : {
+              token,
+              userId,
+            };
+            console.log("body4556789067890-67890", body);
+      const response = await fetch(`${baseUrl}/save-push-token`, {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: {
+          authorization: `Bearer ${authToken}`,
+        }
+      });
+      //await new Promise((resolve) => setTimeout(resolve, 5000));
+      if (!response.ok) {
+        throw new Error("Failed to save push token");
+      }
+      return response.json();
+    } catch (error) {
+      return rejectWithValue("error in savePushToken: " + JSON.stringify(error));
     }
   }
 );
@@ -196,7 +276,7 @@ export const authApi = createApi({
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          //console.log("jhgfdfghjk", data);
+          console.log("jhgfdf67890ghjk", data);
           await AsyncStorage.setItem(
             "userData",
             JSON.stringify(data?.userData)
@@ -216,6 +296,13 @@ export const authApi = createApi({
         params: data,
       }),
     }),
+    savePushToken: builder.mutation({
+      query: (data) => ({
+        url: "/save-push-token",
+        method: "POST",
+        body: data,
+      }),
+    }),
   }),
 });
 
@@ -224,6 +311,7 @@ const authSlice = createSlice({
   initialState: {
     token: null,
     userData: null,
+    lastSavedPushToken: null, // Add this new field
     saveAuthData: {
       data: null,
       isLoading: false,
@@ -256,6 +344,9 @@ const authSlice = createSlice({
       } else {
         state.userData = null;
       }
+    },
+    setLastSavedPushToken: (state, action) => {
+      state.lastSavedPushToken = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -330,6 +421,13 @@ const authSlice = createSlice({
         state.userData = null;
         state.successModalOnAccountCreation = false;
       });
+      builder
+      .addCase(loadPushToken.fulfilled, (state, action) => {
+        state.lastSavedPushToken = action.payload;
+      })
+      .addCase(savePushTokenToStorage.fulfilled, (state, action) => {
+        state.lastSavedPushToken = action.payload;
+      });
     builder.addMatcher(
       authApi.endpoints.updateProfile.matchFulfilled,
       (state, action) => {
@@ -384,6 +482,7 @@ const authSlice = createSlice({
     //     state.saveAuthData.saveStatus = "failed";
     //   }
     // );
+    
   },
 });
 
@@ -395,8 +494,9 @@ export const {
   useUpdateProfileMutation,
   useLazyFetchProfileQuery,
   useDeleteAccountMutation,
+  useSavePushTokenMutation,
 } = authApi;
 
-export const { setAuth } = authSlice.actions;
+export const { setAuth, setLastSavedPushToken } = authSlice.actions;
 
 export default authSlice.reducer;

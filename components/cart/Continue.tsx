@@ -13,7 +13,7 @@ import { ThemedText } from "../ThemedText";
 import { formatNumber, showToast } from "@/utils/utils";
 import { useDispatch } from "react-redux";
 import { router } from "expo-router";
-import { calculateTotalAmount, findCartChanges } from "./utils";
+import { calculateTotalAmount, findCartChanges, findMaxQuantityChanges } from "./utils";
 import {
   cartApi,
   setIsCartOperationProcessing,
@@ -23,6 +23,7 @@ import {
   useFetchCartQuery,
   useLazyBulkUpdateCartQuery,
   useLazyFetchCartQuery,
+  useLazyUpdateProductsAsPerCartQuery,
   useSyncCartMutation,
 } from "@/redux/features/cartSlice";
 
@@ -33,6 +34,8 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import Button from "../Button";
 import { useRenderTimer } from "@/hooks/useRenderTimer";
+import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
   useRenderTimer(`Continue`);
@@ -48,6 +51,7 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
   const [fetchAddress, { isFetching: fetchingAddressLoading }] =
     useLazyFetchAddressQuery();
   const [bulkUpdateCart] = useLazyBulkUpdateCartQuery();
+  const [updateProductsAsPerCart] = useLazyUpdateProductsAsPerCartQuery();
   const [syncCart, { isLoading: isSyncCartLoading }] = useSyncCartMutation();
   const [clearCart] = useClearCartMutation();
   const needToSyncWithBackend = useSelector(
@@ -259,29 +263,30 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                 ]}
                 onPress={async () => {
                   try {
-                    if (needToSyncWithBackend.status) {
-                      dispatch(
-                        cartApi.util.updateQueryData(
-                          "fetchCart",
-                          { userId },
-                          (draft) => {
-                            if (draft?.cart?.items) {
-                              draft.cart.items = []; // 🔥 clear all items
-                            }
-                          }
-                        )
-                      );
-                      dispatch(setNeedToSyncWithBackend({ status: false }));
-                      return
-                    }
+                    
                     dispatch(setIsClearCartLoading(true));
-            
+                    const needToSync = await AsyncStorage.getItem(`cartData-${userId}-needToSync`)     
+                    console.log("needToSync654345678",needToSync)
+                    if(needToSync === "true"){
+                      await AsyncStorage.setItem(`cartData-${userId}`,JSON.stringify([]))
+                      dispatch(
+                        cartApi.util.updateQueryData("fetchCart", { userId }, (draft) => {
+                          draft.cart.items = [];
+                        })
+                      )
+                    }else{
 
-                    await clearCart({
-                      body: {},
-                      params: { userId },
-                    }).unwrap();
-                    await fetchCartData({ userId }, false)?.unwrap();
+                      await clearCart({
+                        body: {},
+                        params: { userId },
+                      }).unwrap();
+                      // await SecureStore.setItemAsync(`cartData-${userId}`,JSON.stringify([]))
+                      // await SecureStore.setItemAsync(`cartData-${userId}-needToSync`, "true")
+                      await AsyncStorage.setItem(`cartData-${userId}`,JSON.stringify([]))
+                      await AsyncStorage.setItem(`cartData-${userId}-needToSync`, "true")
+                      await fetchCartData({ userId }, false)?.unwrap();
+                    }
+
                   } catch (error) {
                   } finally {
                     dispatch(setIsClearCartLoading(false));
@@ -389,24 +394,27 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                 variant="cart"
                 wrapperStyle={styles.checkoutButton}
                 isLoading={
+                  isCartOperationProcessing ||
                   isDisabled ||
                   isSyncCartLoading ||
                   isCartLoading ||
                   fetchingAddressLoading ||
                   isCartProcessing ||
-                  isCartOperationProcessing ||
+                 
                   isClearCartLoading
                 }
                 disabled={
+                  isCartOperationProcessing ||
                   isDisabled ||
                   isSyncCartLoading ||
                   isCartLoading ||
                   fetchingAddressLoading ||
                   isCartProcessing ||
-                  isCartOperationProcessing ||
+                  
                   isClearCartLoading
                 }
                 onPress={async () => {
+                  dispatch(setIsCartOperationProcessing(true))
                   dispatch(setCheckoutFlow(true));
                   setIsDisabled(true);
                   console.log("cartData", JSON.stringify(cartData));
@@ -421,12 +429,31 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                       item?.productId !== "676da9f75763ded56d43032d"
                   );
                   console.log("payload", payload);
+                 
+                 
+                 
+                 let data112= await updateProductsAsPerCart({
+                    body: {
+                      items: payload,
+                    },
+                    params: { userId },
+                  })?.unwrap();
+                  console.log("data112o87667890-0987",data112)
+                  let newPayload = data112?.data.filter(
+                    (item: any) =>
+                      item?.productId !== "676da9f75763ded56d43032d"
+                  );
                   await bulkUpdateCart({
                     body: {
                       items: payload,
                     },
                     params: { userId },
                   })?.unwrap();
+                  
+                 
+                  //await SecureStore.setItemAsync(`cartData-${userId}-needToSync`, "false")
+                  await AsyncStorage.setItem(`cartData-${userId}-needToSync`, "false")
+
 
                   // await syncCart({
                   //   body: {},
@@ -436,11 +463,14 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                     { userId },
                     false
                   )?.unwrap();
-                  dispatch(setNeedToSyncWithBackend({ status: false }));
+                 // dispatch(setNeedToSyncWithBackend({ status: false }));
                   //await SecureStore.deleteItemAsync(`cartData-${userId}`)
 
                   let changes = findCartChanges(cartData, newCartData);
-
+                  let quantityChanges = findMaxQuantityChanges(cartData, newCartData);
+                  console.log("newCartDa567890ta8765456789",quantityChanges)
+                  console.log("changes8765456789",changes)
+                 // console.log("quantityChanges8765456789",quantityChanges)
                   if (
                     changes?.priceChanges.length > 0 ||
                     changes?.removedItems.length > 0
@@ -451,7 +481,27 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                         "Product details are changed. Please review before checkout.",
                     });
                     setIsDisabled(false);
-                  } else {
+                    dispatch(setIsCartOperationProcessing(false))
+                  }
+                   else if(quantityChanges?.maxQuantityChanges.length > 0){
+                    showToast({
+                      type: "info",
+                      text2:
+                        "Product quantity is changed. Please review before checkout.",
+                    });
+                    setIsDisabled(false);
+                    dispatch(setIsCartOperationProcessing(false))
+                  }
+                  else if(quantityChanges?.itemsToRemove.length > 0){
+                    showToast({
+                      type: "info",
+                      text2:
+                        "Product is removed from cart. Please review before checkout.",
+                    });
+                    setIsDisabled(false);
+                    dispatch(setIsCartOperationProcessing(false))
+                  }
+                  else {
                     await fetchAddress(
                       {
                         userId: userId,
@@ -463,6 +513,7 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                       pathname: "/(address)/addressList",
                     });
                   }
+                  
                 }}
                 title={isCartProcessing ? "Processing..." : `Checkout`}
               />

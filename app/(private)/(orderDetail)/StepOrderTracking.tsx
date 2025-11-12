@@ -59,7 +59,9 @@ const StepItem = ({
   const statusStyle = getStatusStyle(status);
 
   return (
-    <View style={styles.stepContainer}>
+    <View style={[styles.stepContainer,{
+      opacity: index==0 ? 1 : 0.8,
+    }]}>
       <View style={styles.timelineLeft}>
         <View style={[
           styles.iconContainer,
@@ -170,7 +172,7 @@ const styles = StyleSheet.create({
     top: 32,
     bottom: -24,
     left: 15,
-    opacity: 0.3,
+    opacity: 1,
   },
   stepContent: {
     flex: 1,

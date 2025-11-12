@@ -36,12 +36,6 @@ const VerifyOtp: React.FC = () => {
           <ThemedText style={styles.description}>
             {"We have just sent a code to your\nmobile number"}
           </ThemedText>
-          {/* <Input
-            setInputValues={setInputValues}
-            inputValues={inputValues}
-            ref={inputRef}
-            setErrorState={setErrorState}
-          /> */}
           <SingleOtpInput otp={otp} setOtp={setOtp} setErrorState={setErrorState} onSubmitOtp={handleVerifyOtp} />
 
           {errorState && (

@@ -1,5 +1,4 @@
 import * as Location from "expo-location";
-import { LatLng } from "react-native-maps";
 
 export const getLatLng = (
   locationData: Location.LocationObject
@@ -31,15 +30,8 @@ export const fetchLocation = async () => {
   }
 };
 
-/**
- * Calculates the distance in kilometers between two geographical points
- * using the Haversine formula.
- *
- * @param {LatLng} point1 - The first point (latitude and longitude).
- * @param {LatLng} point2 - The second point (latitude and longitude).
- * @returns {number} - The distance in kilometers.
- */
-const getDistanceFromLatLngInKm = (point1: LatLng, point2: LatLng): number => {
+
+const getDistanceFromLatLngInKm = (point1: any, point2: any): number => {
   const R = 6371; // Earth's radius in km
   const toRad = (value: number) => (value * Math.PI) / 180;
 
@@ -74,9 +66,9 @@ function getDistanceInKm(lat1: number, lon1: number, lat2: number, lon2: number)
   return R * c;
 }
 
-const isWithinDeliveryRadius = (selectedLocation: LatLng): any => {
+const isWithinDeliveryRadius = (selectedLocation: any): any => {
   console.log("selectedLocation",selectedLocation)
-  const deliveryCenter: LatLng = { latitude: 28.713074, longitude: 77.65419 };
+  const deliveryCenter: any = { latitude: 28.713074, longitude: 77.65419 };
   const distance = getDistanceInKm(deliveryCenter.latitude, deliveryCenter.longitude, selectedLocation.latitude, selectedLocation.longitude);
 
   return { isWithin: distance <= 3, distance: distance.toFixed(1) };

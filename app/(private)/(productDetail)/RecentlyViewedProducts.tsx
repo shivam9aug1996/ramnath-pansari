@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -12,6 +12,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { Colors } from "@/constants/Colors";
+import { useIsFocused } from "@react-navigation/native";
 
 type Props = {
   filterProductIds?: string[];
@@ -24,17 +25,41 @@ const RecentlyViewedProducts = ({
   scrollRef,
   variant = "default",
 }: Props) => {
+  const isFocused = useIsFocused();
   const flatListRef = useRef<FlatList>(null);
   const recentlyViewed = useSelector(
     (state: RootState) => state?.recentlyViewed?.items
   );
+  const [localRecentlyViewed,setLocalRecentlyViewed] = useState<any[]>([]);
 
-  const productItems = recentlyViewed?.filter(
-    (item) =>
-      item?.type === "product" &&
-      !filterProductIds?.includes(item?.id) &&
-      item?.name
-  );
+
+
+useEffect(()=>{
+  if(recentlyViewed?.length>0){
+    const productItems = recentlyViewed?.filter(
+      (item) =>
+        item?.type === "product" &&
+        !filterProductIds?.includes(item?.id) &&
+        item?.name
+    );
+    setLocalRecentlyViewed(productItems);
+  }
+},[recentlyViewed])
+
+useEffect(()=>{
+  if(localRecentlyViewed?.length>0){
+    scrollRef?.current?.scrollTo({ y: 0, animated: true });
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }
+},[localRecentlyViewed])
+
+// useEffect(() => {
+//   if (isFocused) {
+   
+//   }
+// }, [isFocused, scrollRef]);
+
+ 
 
   const navigateToProduct = (id: string, item: any) => {
     router.push({
@@ -44,17 +69,12 @@ const RecentlyViewedProducts = ({
         extraData: JSON.stringify(item),
       },
     });
-    //router.navigate(`/(productDetail)/${item.id}?extraData=${encodeURIComponent(JSON.stringify(item))}`)
-   // });
 
 
-    setTimeout(() => {
-      scrollRef?.current?.scrollTo({ y: 0, animated: false });
-      flatListRef.current?.scrollToIndex({ index: 0, animated: false });
-    }, 100);
+   
   };
 
-  if (!productItems || productItems.length === 0) return null;
+  if (!localRecentlyViewed || localRecentlyViewed.length === 0) return null;
 
   const isCompact = variant === "compact";
 
@@ -70,7 +90,7 @@ const RecentlyViewedProducts = ({
       <FlatList
         ref={flatListRef}
         horizontal
-        data={productItems}
+        data={localRecentlyViewed}
         keyExtractor={(item) => item.id}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContent}

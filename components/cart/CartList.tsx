@@ -24,6 +24,7 @@ const CartList = ({ cartItemIndex, isCartProcessing, cartData }) => {
   const renderItem = useCallback(({ item, index }: CartItemProps) => {
     return <CartItem key={item?.productDetails?._id || index} item={item} />;
   }, []);
+  console.log("cartItemI4567890ndex",cartData)
 
   return (
     <FlatList

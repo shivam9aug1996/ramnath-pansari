@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, startTransition } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   cartApi,
@@ -15,6 +15,10 @@ import {
 import { RootState, Product } from "@/types/global";
 import { calculateTotalAmount } from "@/components/cart/utils";
 import { router } from "expo-router";
+import store from "@/redux/store";
+import * as SecureStore from 'expo-secure-store';
+import { debounce } from "lodash";
+import CartDebounceManager from "./CartDebounceManager";
 
 
 const FREE_ITEM_ID = "676da9f75763ded56d43032d";
@@ -42,6 +46,9 @@ const FREE_ITEM = {
 
 export const useCartOperations = (item: Product, initialValue: number) => {
   const isCartOperationProcessing = useSelector((state: RootState) => state?.cart?.isCartOperationProcessing);
+  const isClearCartLoading = useSelector(
+    (state: RootState) => state?.cart?.isClearCartLoading
+  );
   const dispatch = useDispatch();
   const buttonClicked = useRef(false);
   const userInfo = useSelector((state: RootState) => state.auth.userData);
@@ -58,12 +65,15 @@ export const useCartOperations = (item: Product, initialValue: number) => {
     );
   }, [dispatch, item._id, initialValue]);
 
+
+
   const updateCartItems = useCallback(
     async(newQuantity: number) => {
-      dispatch(setNeedToSyncWithBackend({status:true}));  
+      console.log("newQuantity765434567890",newQuantity);
       
       dispatch(setCartItemQuantity({ productId: item._id, quantity: newQuantity }));
 
+     startTransition(()=>{
       dispatch(
         cartApi.util.updateQueryData("fetchCart", { userId }, (draft) => {
           const items = draft.cart.items || [];
@@ -96,23 +106,29 @@ export const useCartOperations = (item: Product, initialValue: number) => {
           }
         })
       );
+     }) 
+      
 
-      //  let updatedCart = store.getState().cartApi.queries[
-      //   `fetchCart({"userId":"${userId}"})`
-      // ]?.data;
-
-      // updatedCart = updatedCart?.cart?.items;
-
-      // if (updatedCart) {
-      //  await SecureStore.setItemAsync(`cartData-${userId}`, JSON.stringify(updatedCart))
-      //  await SecureStore.setItemAsync(`cartData-${userId}-needToSync`, JSON.stringify(true))
-      // }
+      startTransition(()=>{
+        
+        let updatedCart = store.getState().cartApi.queries[
+          `fetchCart({"userId":"${userId}"})`
+        ]?.data;
+  
+         updatedCart = updatedCart?.cart?.items || [];
+  
+        if (updatedCart?.length>=0) {
+          console.log("updatedCar456789t",updatedCart);
+          CartDebounceManager.getInstance().updateCart(updatedCart, userId);
+        }
+      })
+       
     },
     [dispatch, item, userId]
   );
 
   const handleAdd = useCallback(() => {
-    if(isCartOperationProcessing){
+    if(isCartOperationProcessing || isClearCartLoading){
       showToast({
         type: "info",
         text2: "Please wait a moment — we’re still updating your cart.",
@@ -132,7 +148,9 @@ export const useCartOperations = (item: Product, initialValue: number) => {
     }
 
     hapticFeedback();
-    if (quantity < 5) {
+    console.log("quantityu76543456789",item);
+    const maxQuantity = item?.maxQuantity || 5;
+    if (quantity < maxQuantity) {
       buttonClicked.current = true;
       updateCartItems(quantity + 1);
     } else {
@@ -142,10 +160,10 @@ export const useCartOperations = (item: Product, initialValue: number) => {
       });
       
     }
-  }, [isGuestUser, quantity, updateCartItems, dispatch,isCartOperationProcessing]);
+  }, [isGuestUser, quantity, updateCartItems, dispatch,isCartOperationProcessing,isClearCartLoading]);
 
   const handleRemove = useCallback(() => {
-    if(isCartOperationProcessing){
+    if(isCartOperationProcessing || isClearCartLoading){
       showToast({
         type: "info",
         text2: "Please wait a moment — we’re still updating your cart.",
@@ -157,7 +175,7 @@ export const useCartOperations = (item: Product, initialValue: number) => {
       buttonClicked.current = true;
       updateCartItems(quantity - 1);
     }
-  }, [quantity, updateCartItems,isCartOperationProcessing]);
+  }, [quantity, updateCartItems,isCartOperationProcessing,isClearCartLoading]);
 
   const handleClearAll = useCallback(() => {
     hapticFeedback();

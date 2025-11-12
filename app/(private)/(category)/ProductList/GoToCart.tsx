@@ -1,38 +1,30 @@
-import React, { memo, useEffect, useMemo, useRef } from "react";
+import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
 } from "react-native";
-import { useSelector, useDispatch } from "react-redux";
-import Animated, {
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  useSharedValue,
-  Easing,
-} from "react-native-reanimated";
+import { useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
 import { Colors } from "@/constants/Colors";
 import { RootState } from "@/types/global";
 import {
-  setShowConfetti,
   useFetchCartQuery,
 } from "@/redux/features/cartSlice";
 import { calculateTotalAmount } from "@/components/cart/utils";
 import { formatNumber } from "@/utils/utils";
+import ConfettiLottie from "@/components/ConfettiLottie";
 
 
 
 const GoToCart = ({ isCart }) => {
+  const [cartHeight, setCartHeight] = useState(0);
 
   const userId = useSelector((state: RootState) => state.auth?.userData?._id);
-  const isCartProcessing = useSelector((state: RootState) => state.cart?.isCartOperationProcessing);
-  const cartButtonProductId = useSelector((state: RootState) => state.cart?.cartButtonProductId);
+  
 
   const { data: cartData,isFetching:isCartFetching} = useFetchCartQuery({ userId }, { skip: !userId });
 
@@ -47,11 +39,13 @@ const GoToCart = ({ isCart }) => {
   const remainingAmount = Math.max(1000 - totalAmount, 0);
 
 
-// console.log("isCartFetching",isCartFetching,cartButtonProductId,isCartProcessing)
   if (!cartItems) return null;
 
   const renderOfferMessage = () => (
+    <View>
+    {/* <ConfettiLottie  remainingAmount={remainingAmount} /> */}
     <View style={[styles.offerMessage, isCart && { borderRadius: 10 }]}>
+      
       <Text style={styles.offerText} numberOfLines={2}>
         {remainingAmount > 0 ? (
           <>
@@ -65,17 +59,24 @@ const GoToCart = ({ isCart }) => {
           <>Congratulations! You are eligible for 1 kg sugar free! 🎉</>
         )}
       </Text>
-      {/* {showConfetti && <AnimatedBorder isCart={isCart} />} */}
+    </View>
     </View>
   );
 
   if (isCart) return renderOfferMessage();
+  console.log("cartHeig67898765ht",cartHeight)
 
   return (
-    <TouchableOpacity
+   <View style={{paddingBottom:cartItems>0?cartHeight:0}} >
+     <TouchableOpacity
+     onLayout={(e)=>{
+      console.log("u6543234567890",e.nativeEvent.layout.height)
+      setCartHeight(e.nativeEvent.layout.height-35)
+     }}
       onPress={() => router.navigate("/(cartScreen)/cartScreen")}
       style={styles.cartButtonContainer}
     >
+      
       {renderOfferMessage()}
 
       <View style={styles.cartButton}>
@@ -89,6 +90,7 @@ const GoToCart = ({ isCart }) => {
         </View>
       </View>
     </TouchableOpacity>
+   </View>
   );
 };
 
@@ -98,6 +100,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.white,
     paddingVertical: 15,
     paddingTop: 0,
+    position:"absolute",
+    bottom:0,
+    left:0,
+    right:0,
   },
   offerMessage: {
     backgroundColor: "#967c8e",

@@ -28,7 +28,7 @@ const QueryData: React.FC<QueryDataProps> = ({ query, onPress }) => {
   const debounceQuery = useCallback(
     _.debounce((value: string) => {
       setDebouncedQuery(value);
-    }, 500),
+    }, 0),
     []
   );
 

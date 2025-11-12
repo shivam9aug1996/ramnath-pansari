@@ -55,12 +55,13 @@ export const useSendOtp = (): UseSendOtpProps => {
     if (validationError) {
       setErrorState(validationError);
     } else {
-      let timeLeft = await getResendTime(mobileNumber);
-      if (timeLeft) {
-        showToast({ type: "error", text2: `Try again in ${timeLeft} seconds` });
-      } else {
-        sendOtp({ mobileNumber });
-      }
+      sendOtp({ mobileNumber });
+      // let timeLeft = await getResendTime(mobileNumber);
+      // if (timeLeft) {
+      //   showToast({ type: "error", text2: `Try again in ${timeLeft} seconds` });
+      // } else {
+      //   sendOtp({ mobileNumber });
+      // }
     }
   }, [mobileNumber, sendOtp]);
 

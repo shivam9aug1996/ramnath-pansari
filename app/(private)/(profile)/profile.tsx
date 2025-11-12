@@ -41,6 +41,7 @@ const fields: any = [
 
 const profile = () => {
   const userInfo = useSelector((state: RootState) => state.auth.userData);
+  console.log("userInfo", userInfo);
   const [updateProfile, { isLoading: updateProfileLoading }] =
     useUpdateProfileMutation();
   const [fetchProfile, { isLoading: fetchProfileLoading }] =
@@ -131,17 +132,23 @@ const profile = () => {
         formRes.append("images[type]", form?.image?.mimeType);
         formRes.append("images[image]", form?.image?.base64);
         hasChanges = true;
+      }else if(form?.removeImage){
+        formRes.append("images[type]", "null");
+        formRes.append("images[image]", "null");
+        formRes.append("removeImage", "true");
+        hasChanges = true;
       }
 
       // Only update profile if there are changes
       if (hasChanges) {
         formRes.append("_id", userInfo?._id);
+        console.log("form67890Res", formRes);
         try {
           await updateProfile(formRes)?.unwrap();
           await fetchProfile({ _id: userInfo?._id }, false)?.unwrap();
           router.back();
         } catch (error) {
-         // console.log("Error updating profile", error);
+          // console.log("Error updating profile", error);
         }
       } else {
         router.back();
@@ -160,7 +167,7 @@ const profile = () => {
     });
     let g = await ImagePicker.getPendingResultAsync();
     // console.log(result);
-   // console.log("98765rfghjkl", result?.assets[0]?.fileSize);
+    // console.log("98765rfghjkl", result?.assets[0]?.fileSize);
     let fileSize = result?.assets[0]?.fileSize;
     fileSize = (fileSize / 1024 / 1024)?.toFixed(2);
     if (fileSize > 1) {
@@ -172,19 +179,26 @@ const profile = () => {
         ...form,
         image: result.assets[0],
         imageSize: fileSize,
+        removeImage: false,
       });
       //setImage(result.assets[0].uri);
     }
   };
 
+  const removeImage = () => {
+    setForm({
+      ...form,
+      removeImage: true,
+      image: null,
+    });
+  };
+
   // console.log(form?.image && Object.keys(form?.image));
   return (
     <ScreenSafeWrapper useKeyboardAvoidingView={true}>
-      
-       
-        <DeferredFadeIn delay={100} style={{flex:1}}>
-         <ScrollView
-        bounces={Platform.OS === "android" ? false : true}
+      <DeferredFadeIn delay={100} style={{ flex: 1 }}>
+        <ScrollView
+          bounces={Platform.OS === "android" ? false : true}
           ref={scrollViewRef}
           style={{ flex: 1, paddingTop: 10, marginTop: 20 }}
           showsVerticalScrollIndicator={false}
@@ -202,10 +216,11 @@ const profile = () => {
               >
                 <Image
                   source={{
-                    uri:
-                      form?.image?.uri ||
-                      userInfo?.profileImage ||
-                      "https://static.vecteezy.com/system/resources/previews/036/594/092/non_2x/man-empty-avatar-photo-placeholder-for-social-networks-resumes-forums-and-dating-sites-male-and-female-no-photo-images-for-unfilled-user-profile-free-vector.jpg",
+                    uri: form?.removeImage
+                      ? "https://static.vecteezy.com/system/resources/previews/036/594/092/non_2x/man-empty-avatar-photo-placeholder-for-social-networks-resumes-forums-and-dating-sites-male-and-female-no-photo-images-for-unfilled-user-profile-free-vector.jpg"
+                      : form?.image?.uri ||
+                        userInfo?.profileImage ||
+                        "https://static.vecteezy.com/system/resources/previews/036/594/092/non_2x/man-empty-avatar-photo-placeholder-for-social-networks-resumes-forums-and-dating-sites-male-and-female-no-photo-images-for-unfilled-user-profile-free-vector.jpg",
                   }}
                   style={styles.profileImage}
                 />
@@ -227,11 +242,33 @@ const profile = () => {
                     style={{}}
                   />
                 </View>
+                {/* {(form?.removeImage===false) && (
+                <TouchableOpacity
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  //  backgroundColor: "green",
+                  //width: "50%",
+                  height: "30%",
+                  alignContent: "center",
+                  right: -10,
+                }}
+                  onPress={removeImage}
+                >
+                  <Feather
+                    name="trash-2"
+                    size={20}
+                    color={Colors.light.lightRed}
+                  />
+                 
+                </TouchableOpacity>
+              )} */}
               </TouchableOpacity>
+              
 
               <InputField
                 label={fields[0].label}
-                value={form[fields[0].key]}
+                defaultValue={form[fields[0].key]}
                 onChange={handleChange(fields[0].key)}
                 error={errors[fields[0].key]}
                 iconName={fields[0].iconName}
@@ -243,7 +280,7 @@ const profile = () => {
               <InputField
                 readOnly={true}
                 label={fields[1].label}
-                value={form[fields[1].key]}
+                defaultValue={form[fields[1].key]}
                 onChange={handleChange(fields[1].key)}
                 error={errors[fields[1].key]}
                 iconName={fields[1].iconName}
@@ -261,9 +298,7 @@ const profile = () => {
           onPress={handleSave}
           title="Save Profile"
         />
-        </DeferredFadeIn>
-     
-    
+      </DeferredFadeIn>
     </ScreenSafeWrapper>
   );
 };
@@ -313,5 +348,34 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     marginBottom: 15,
     alignSelf: "center",
+  },
+  removeButton: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+    backgroundColor: Colors.light.lightRed,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  removeButtonContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: Colors.light.lightRed + "20",
+  },
+
+  removeButtonText: {
+    marginLeft: 8,
+    color: Colors.light.lightRed,
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

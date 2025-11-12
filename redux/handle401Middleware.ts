@@ -4,6 +4,7 @@ import { clearAuthData } from "./features/authSlice";
 const handle401Middleware = (store: any) => (next: any) => (action: any) => {
   const status = action?.payload?.status;
   const errorMessage = action?.payload?.data?.error;
+console.log("action777776543236789",action);
    
   if (status === 401) {
     store.dispatch(clearAuthData());

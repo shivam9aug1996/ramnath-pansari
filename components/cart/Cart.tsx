@@ -55,7 +55,7 @@ const Cart = ({ tabBarHeight = 0 }: CartProps) => {
 
   return (
     <>
-      <ScreenSafeWrapper title="My Bag" cartItems={cartItems}>
+      <ScreenSafeWrapper title="My Bag" showCartItemsCount={true}>
         <DeferredFadeIn delay={100} style={{ flex: 1 }}>
           {isLoading ? (
             <CartPlaceholder wrapperStyle={{ paddingHorizontal: 0 }} />

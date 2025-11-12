@@ -30,6 +30,7 @@ interface CustomTextInputProps {
   onFocus?: any;
   onLayout?: any;
   numberOfLines?: any;
+  defaultValue?: string;
 }
 
 const CustomTextInput: React.FC<CustomTextInputProps> = ({
@@ -50,6 +51,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
   onFocus = () => {},
   onLayout = () => {},
   numberOfLines = 2,
+  defaultValue = "",
 }) => {
   const focusTextInput = () => {
     if (textInputRef?.current) {
@@ -192,6 +194,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             size={20}
           />
           <TextInput
+            defaultValue={defaultValue}
             numberOfLines={numberOfLines}
             onLayout={onLayout}
             onFocus={onFocus}
@@ -220,7 +223,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             autoCorrect={false}
             autoCapitalize={"none"}
           />
-          {value && (
+          {defaultValue && (
             <Ionicons
               onPress={onClear}
               style={[

@@ -33,6 +33,23 @@ const FONT_SIZES = {
   large: 12,
 };
 
+const TEXT_STYLES = {
+  small: {
+    fontSize: 10,
+    textAlign: "center",
+    paddingHorizontal: 5,
+    fontFamily: "Raleway_500Medium",
+    color: Colors.light.mediumGrey,
+  },
+  large: {
+    fontSize: 10,
+    textAlign: "center",
+    paddingHorizontal: 5,
+    fontFamily: "Raleway_600SemiBold",
+    color: "#505050",
+  },
+};
+
 const CategoryItem = ({
   item,
   index,
@@ -45,6 +62,7 @@ const CategoryItem = ({
   const imageSize = IMAGE_SIZES[variant];
   const maxWidth = MAX_WIDTHS[variant];
   const fontSize = FONT_SIZES[variant];
+  const textStyle = TEXT_STYLES[variant];
   const borderStyle = useMemo(
     () => imageBorderStyle(arrayColor, isSelected, index),
     [isSelected, index]
@@ -58,7 +76,10 @@ const CategoryItem = ({
   }, [isSelected, item, index, onSelectCategory]);
 
   return (
-    <TouchableOpacity style={[styles.container, { maxWidth }]} onPress={handlePress}>
+    <TouchableOpacity
+      style={[styles.container, { maxWidth }]}
+      onPress={handlePress}
+    >
       <View style={[styles.imageContainer, borderStyle]}>
         <Image
           source={{ uri: item.image || staticImage }}
@@ -68,7 +89,7 @@ const CategoryItem = ({
           cachePolicy="disk"
         />
       </View>
-      <ThemedText style={[styles.text, { fontSize }]}>
+      <ThemedText style={[styles.text,{ ...textStyle},{ fontSize }]}>
         {truncateText(item.name, 15)}
       </ThemedText>
     </TouchableOpacity>

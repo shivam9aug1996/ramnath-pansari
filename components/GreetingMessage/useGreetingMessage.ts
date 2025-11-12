@@ -180,7 +180,7 @@ export const useGreetingMessage = () => {
       return cleanText;
     } catch (error) {
       setMessage(FALLBACK_MESSAGE_GENERIC);
-      return null;
+      return FALLBACK_MESSAGE_GENERIC;
     } finally {
       setLoading(false);
     }
