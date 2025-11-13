@@ -32,7 +32,7 @@ const DashboardHeader = ({ userName, profileImage, onProfilePress,isGuestUser })
 /> 
 ) : (
   <Text style={styles.greetingText}>
-    {`Hey ${userName} `}
+    {`Hey ${userName} garg `}
   </Text>
 )}
 
