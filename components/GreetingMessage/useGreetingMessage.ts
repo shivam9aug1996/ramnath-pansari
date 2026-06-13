@@ -89,12 +89,13 @@ import {
 import { getTimeOfDay } from "@/utils/huggingface";
 import { RootState } from "@/types/global";
 import { buildGreetingPrompt } from "./buildGreetingPrompt";
+import { sanitizeGreeting } from "./sanitizeGreeting";
 import * as SecureStore from "expo-secure-store";
 
 const DEFAULT_WELCOME_MESSAGE = "Your one-stop shop for everything you love.";
 const FALLBACK_MESSAGE_GENERIC = "Hey there! Let’s find you something awesome today.";
 const FALLBACK_MESSAGE_AFTER_GENERATE = "Welcome back! Ready to discover something new?";
-const SECURE_CACHE_KEY = "greeting_cache_v1";
+const SECURE_CACHE_KEY = "greeting_cache_v2";
 const CACHE_EXPIRY_MINUTES = 1 * 60;
 
 export const useGreetingMessage = () => {
@@ -154,17 +155,26 @@ export const useGreetingMessage = () => {
           Date.now() - cached.timestamp < CACHE_EXPIRY_MINUTES * 60 * 1000;
 
         if (isSamePrompt && isFresh) {
-          setMessage(cached.text);
+          const cachedText = sanitizeGreeting(
+            cached.text,
+            FALLBACK_MESSAGE_AFTER_GENERATE,
+          );
+          setMessage(cachedText);
           setLoading(false);
-          return cached.text;
+          return cachedText;
         }
       }
 
       // Call API
-      const result = await fetchGreetingMessage({ body: JSON.stringify({ prompt }) }, true).unwrap();
+      const result = await fetchGreetingMessage(
+        { body: JSON.stringify({ prompt }) },
+        true,
+      ).unwrap();
 
-      const cleanText =
-        result?.text?.trim()?.replace(/^"|"$/g, "") || FALLBACK_MESSAGE_AFTER_GENERATE;
+      const cleanText = sanitizeGreeting(
+        result?.text,
+        FALLBACK_MESSAGE_AFTER_GENERATE,
+      );
 
       setMessage(cleanText);
 

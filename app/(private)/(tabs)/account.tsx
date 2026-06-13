@@ -63,6 +63,7 @@ console.log("clearAuthDataState456789099", clearAuthDataState);
       };
     }, [])
   );
+  console.log("accounttab4567890");
   return (
     <>
       <ScreenSafeWrapper title="Profile">

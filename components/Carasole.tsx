@@ -2,65 +2,89 @@ import { Image } from "expo-image";
 import React, { memo, useEffect, useRef } from "react";
 import {
   Dimensions,
+  Image as RNImage,
   Pressable,
-  Text,
-  TouchableOpacity,
   View,
 } from "react-native";
-// import Carousel from "react-native-reanimated-carousel";
 import Animated, { useSharedValue } from "react-native-reanimated";
 import Pagi from "./Pagi";
-import { router } from "expo-router";
-import { setCategoryData, useFetchCategoriesQuery } from "@/redux/features/categorySlice";
-import { useSelector } from "react-redux";
-import { RootState } from "@/types/global";
-import { staticImage } from "@/app/(private)/(category)/CategoryList/utils";
+import { router, useIsFocused } from "expo-router";
+import {
+  setCategoryData,
+  useFetchCategoriesQuery,
+} from "@/redux/features/categorySlice";
+import { useDispatch, useSelector } from "react-redux";
+import { Category, RootState } from "@/types/global";
 import Carousel from "pinar";
-import { useIsFocused } from "@react-navigation/native";
-import DeferredFadeIn from "./DeferredFadeIn";
-import { useDispatch } from "react-redux";
 
-const carouselData = [
+type CarouselItem = {
+  id: number;
+  category: Pick<Category, "_id" | "name" | "children"> | null;
+  imageUri: string;
+};
+
+const banner1Uri = RNImage.resolveAssetSource(
+  require("../assets/images/banner1.png"),
+).uri;
+
+const banner2Uri = RNImage.resolveAssetSource(
+  require("../assets/images/banner2.png"),
+).uri;
+
+const carouselData: CarouselItem[] = [
+  {
+    id: 0,
+    category: null,
+    imageUri: banner1Uri,
+  },
   {
     id: 1,
+    category: null,
+    imageUri: banner2Uri,
+  },
+  {
+    id: 2,
     category: {
       _id: "66a2498a50d9ec140942917d",
       name: "Dals & Pulses",
       children: [],
     },
-    image:
-      "https://rukminim2.flixcart.com/fk-p-flap/960/420/image/4f42398937013ef1.jpg?q=100"
+    imageUri:
+      "https://rukminim2.flixcart.com/fk-p-flap/960/420/image/4f42398937013ef1.jpg?q=100",
   },
   {
-    id: 2,
+    id: 3,
     category: {
       _id: "67a5879461d60ec5eb8b4266",
       name: "Coffee",
       children: [],
     },
-    image:
+    imageUri:
       "https://rukminim2.flixcart.com/fk-p-flap/960/420/image/61725d49f1a21828.jpeg?q=100",
   },
   {
-    id: 3,
+    id: 4,
     category: {
       _id: "67a5883461d60ec5eb8b426a",
       name: "Tea",
       children: [],
     },
-    image:
-      "https://rukminim2.flixcart.com/fk-p-flap/960/420/image/4fb35b7f555375d7.jpeg?q=100"
+    imageUri:
+      "https://rukminim2.flixcart.com/fk-p-flap/960/420/image/4fb35b7f555375d7.jpeg?q=100",
   },
- 
 ];
 
-function Carasole() {
+type CarasoleProps = {
+  onScrollToCategories?: () => void;
+};
+
+function Carasole({ onScrollToCategories }: CarasoleProps) {
   const width = Dimensions.get("window").width;
   const currentIndex = useSharedValue(0);
   const token = useSelector((state: RootState) => state?.auth?.token);
   const isFocused = useIsFocused();
-  const carouselRef = useRef<Carousel>(null);
-const dispatch = useDispatch();
+  const carouselRef = useRef<any>(null);
+  const dispatch = useDispatch();
 
   const { data: categoriesData } = useFetchCategoriesQuery(
     {},
@@ -109,35 +133,38 @@ useEffect(() => {
           height={width / 2}
 
         >
-          {carouselData?.map((item, index) => {
-            return <Pressable
-              key={item?.id}
+          {carouselData.map((item) => (
+            <Pressable
+              key={item.id}
               onPress={() => {
-               // console.log("carsole_pressed", item);
-                const selectedCategory = item?.category;
+                if (!item.category) {
+                  onScrollToCategories?.();
+                  return;
+                }
+
+                const selectedCategory = item.category;
+                const categories = (categoriesData?.categories ?? []) as Category[];
                 let selectedIndex = 0;
-                let parentCategory = null;
-                categoriesData?.categories?.forEach((item1) => {
-                  item1?.children.map((item, index) => {
-                   // console.log("65ewsdfghjkl", item?.name);
-                    if (item?._id === selectedCategory?._id) {
-                      parentCategory = item1;
-                      selectedIndex = index;
-                    }
-                  });
-                });
-                const selectedCategory1 = categoriesData?.categories.find(
-                  (item) => {
-                    return item?._id == parentCategory?._id
+                let parentCategory: Category | undefined;
+
+                for (const parent of categories) {
+                  const childIndex = parent.children.findIndex(
+                    (child: Category) => child._id === selectedCategory._id,
+                  );
+                  if (childIndex >= 0) {
+                    parentCategory = parent;
+                    selectedIndex = childIndex;
+                    break;
                   }
+                }
+
+                if (!parentCategory) return;
+
+                dispatch(setCategoryData(parentCategory));
+
+                router.push(
+                  `/(category)/${parentCategory._id}?name=${parentCategory.name}&selectedCategoryIdIndex=${selectedIndex}`,
                 );
-                dispatch(setCategoryData(selectedCategory1))
-
-              //  console.log({ selectedIndex, parentCategory });
-              router.push(`/(category)/${parentCategory?._id?.toString()}?name=${parentCategory?.name}&selectedCategoryIdIndex=${selectedIndex?.toString()}`)
-
-               
-
               }}
               style={{
                 flex: 1,
@@ -146,18 +173,17 @@ useEffect(() => {
               }}
             >
               <Image
-                source={{
-                  uri: item?.image || staticImage,
-                }}
+                source={{ uri: item.imageUri }}
                 style={{
                   height: width / 2,
                   width: width - 20,
                   borderRadius: 30,
                 }}
-                contentFit={"cover"}
+                contentFit="cover"
+                recyclingKey={`carousel-${item.id}`}
               />
             </Pressable>
-          })}
+          ))}
         </Carousel>
        
       </View>

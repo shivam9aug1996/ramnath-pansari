@@ -4,16 +4,31 @@ import { categoryListPlaceholder, imageBorderStyle } from "./utils";
 import { arrayColor } from "./constants";
 import ContentLoader, { Rect } from "react-content-loader/native";
 
-const renderImageLoader = () => {
+const IMAGE_SIZES = {
+  small: 35,
+  large: 60,
+};
+
+const MAX_WIDTHS = {
+  small: 70,
+  large: 80,
+};
+
+const IMAGE_PADDING = {
+  small: 15,
+  large: 10,
+};
+
+const renderImageLoader = (size: number) => {
   return (
     <ContentLoader
       speed={2}
-      width={35}
-      height={35}
+      width={size}
+      height={size}
       backgroundColor="#f3f3f3"
       foregroundColor="#ecebeb"
     >
-      <Rect rx={5} ry={5} width="35" height="35" />
+      <Rect rx={5} ry={5} width={size} height={size} />
     </ContentLoader>
   );
 };
@@ -36,16 +51,35 @@ const renderText = () => {
   );
 };
 
-const CategorySelectorPlaceholder = ({ contentContainerStyle = {} }) => {
+const CategorySelectorPlaceholder = ({
+  contentContainerStyle = {},
+  variant = "small",
+}: {
+  contentContainerStyle?: object;
+  variant?: "small" | "large";
+}) => {
+  const imageSize = IMAGE_SIZES[variant];
+  const maxWidth = MAX_WIDTHS[variant];
+  const imagePadding = IMAGE_PADDING[variant];
+
   const renderCategory = ({ item, index }: { item: any; index: number }) => {
     const borderStyle = imageBorderStyle(arrayColor, false, index);
     return (
       <TouchableOpacity
         key={item?._id || index}
-        style={styles.categoryContainer}
+        style={[styles.categoryContainer, { maxWidth }]}
       >
-        <View style={[styles.imageContainer, borderStyle]}>
-          {renderImageLoader()}
+        <View
+          style={[
+            styles.imageContainer,
+            borderStyle,
+            {
+              paddingVertical: imagePadding,
+              paddingHorizontal: imagePadding,
+            },
+          ]}
+        >
+          {renderImageLoader(imageSize)}
         </View>
         {renderText()}
       </TouchableOpacity>
@@ -68,15 +102,12 @@ export default memo(CategorySelectorPlaceholder);
 
 const styles = StyleSheet.create({
   categoryContainer: {
-    maxWidth: 70,
     marginTop: 15,
     marginRight: 10,
   },
   imageContainer: {
     borderRadius: 23,
     marginBottom: 8,
-    paddingVertical: 15,
-    paddingHorizontal: 15,
     borderWidth: 1,
   },
   image: {

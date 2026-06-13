@@ -85,8 +85,6 @@ const Cart = ({ tabBarHeight = 0 }: CartProps) => {
       </ScreenSafeWrapper>
       <DeferredFadeIn delay={200}>
         <Continue
-          cartData={cartData}
-          headerVisible={true}
           tabBarHeight={tabBarHeight}
           isCartProcessing={isCartProcessing}
           userId={userId}

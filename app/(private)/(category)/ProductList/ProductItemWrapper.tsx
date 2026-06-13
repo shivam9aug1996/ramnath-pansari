@@ -9,10 +9,12 @@ const ProductItemWrapper = ({
   item,
   index,
   quantity,
+  isVisible,
 }: {
   item: Product;
   index: number;
   quantity: number;
+  isVisible: boolean;
 }) => {
     
   //   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
@@ -29,7 +31,6 @@ const ProductItemWrapper = ({
   //   return map;
   // }, [cartData?.cart?.items]);
   // const cartItem = cartItemsMap[item._id];
-  console.log("quant67890987654ity---------->");
 
  
   return (
@@ -38,6 +39,7 @@ const ProductItemWrapper = ({
       item={item}
       index={index}
       quantity={quantity}
+      isVisible={isVisible}
     />
   );
 };

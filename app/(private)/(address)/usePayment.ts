@@ -120,15 +120,28 @@ const usePayment = () => {
 
       // console.log("gfhjkl;", data);
       amount = amount;
+
+
       const res: PreOrderResponse = await createPreOrder({
         isLive,
         amount,
       }).unwrap();
-      const options = getRazorpayOptions(
-        res.data.amount,
-        res.data.id,
-        userInfo
-      );
+
+
+      const options = {
+        description: "shopping",
+        currency: "INR",
+        key: getRazorpayKey(),
+        amount: isLive ? 2 : amount,
+        name: "Ramnath Kirana",
+        order_id: res.data.id,
+        prefill: {
+          email: "",
+          contact: userInfo?.mobileNumber ?? "",
+          name: userInfo?.name ?? "",
+        },
+        theme: { color: Colors.light.lightGreen },
+      }
 
       const RazorpayCheckout = (await import("react-native-razorpay")).default;
 

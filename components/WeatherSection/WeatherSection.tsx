@@ -4,9 +4,8 @@ import WeatherIcon from "./WeatherIcon";
 import { useWeatherInfo } from "./useWeatherInfo";
 import { useWeatherGreetingMessage } from "./useWeatherGreetingMessage";
 import { useGreetingMessage } from "../GreetingMessage/useGreetingMessage";
-import { router, useFocusEffect, usePathname } from "expo-router";
+import { router, useFocusEffect, useIsFocused, usePathname } from "expo-router";
 import _ from "lodash";
-import { useIsFocused } from "@react-navigation/native";
 export const arrayColor = ["#F9FAFB", "#FAF9F6", "#FBFAFF"]
 
 
@@ -61,7 +60,7 @@ const WeatherSection = () => {
   
 
   const start = async () => {
-    console.log("start4567890")
+    //console.log("start4567890")
     const weather = await fetchWeather();
     const greeting = await fetchGreeting(weather);
     const message = await fetchAndGenerateGreeting();

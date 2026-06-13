@@ -131,7 +131,7 @@ const GrientBackground = () => {
   return (
     <LinearGradient
       colors={weatherGradients.Default}
-      locations={[0, 0.6, 1]}
+      locations={[0, 1]}
       style={StyleSheet.absoluteFill}
     />
   );

@@ -8,17 +8,14 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { useSelector } from "react-redux";
-import { router } from "expo-router";
-
-import CustomTextInput from "./CustomTextInput";
-import { useFetchRecentSearchQuery } from "@/redux/features/recentSearchSlice";
+import { router, useIsFocused } from "expo-router";
 import { Colors } from "@/constants/Colors";
-import { useIsFocused } from "@react-navigation/native";
-
+import { useFetchRecentSearchQuery } from "@/redux/features/recentSearchSlice";
+import CustomTextInput from "./CustomTextInput";
 const ANIMATION_DURATION = 250;
 const PLACEHOLDER_INTERVAL = 2500;
 
-const HomeSearch = () => {
+const HomeSearch = ({ compact = false }: { compact?: boolean }) => {
   const userId = useSelector((state) => state?.auth?.userData?._id);
   const { data } = useFetchRecentSearchQuery({ userId },{skip:!userId});
   const isFocused = useIsFocused();
@@ -146,17 +143,24 @@ const HomeSearch = () => {
         onChangeText={() => {}}
         type="search"
         variant={2}
-        wrapperStyle={styles.textInputWrapper}
+        wrapperStyle={[
+          styles.textInputWrapper,
+          compact && styles.textInputWrapperCompact,
+          
+        ]}
+        
         textInputStyle={styles.textInputStyle}
         onPress={handlePress}
       />
       <Pressable
         onPress={handlePress}
-        style={{ position: "absolute", left: 75, top: 42, width: "75%" }}
+        style={[
+          { position: "absolute", left: 75, top: compact ? 22 : 42, width: "75%" },
+        ]}
       >
         <Animated.Text
           numberOfLines={1}
-          style={[styles.placeholderText, animatedStyle]}
+          style={[styles.placeholderText, animatedStyle, compact && styles.placeholderTextCompact]}
         >
           {displayedText}
         </Animated.Text>
@@ -176,6 +180,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.light.lightGrey,
   },
+  textInputWrapperCompact: {
+    marginTop: 0,
+    marginBottom: 0,
+  },
   textInputStyle: {
     fontSize: 16,
     color: Colors.light.darkGreen,
@@ -186,5 +194,8 @@ const styles = StyleSheet.create({
     fontFamily: "Montserrat_500Medium",
     fontSize: 14,
     color: "rgba(0,0,0,0.5)",
+  },
+  placeholderTextCompact: {
+    top: 12,
   },
 });

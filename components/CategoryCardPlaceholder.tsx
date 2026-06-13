@@ -1,33 +1,53 @@
 import { StyleSheet, View } from "react-native";
 import React, { memo } from "react";
-import { imageBorderStyle } from "@/app/(private)/(category)/CategoryList/utils";
-import { arrayColor } from "@/app/(private)/(category)/CategoryList/constants";
 import ContentLoader, { Rect } from "react-content-loader/native";
 import CategorySelectorPlaceholder from "@/app/(private)/(category)/CategoryList/CategorySelectorPlaceholder";
 
-const CategoryCardPlaceholder = () => {
-  const borderStyle = imageBorderStyle(arrayColor, false, Math.random());
+const LoaderBlock = ({
+  width = 100,
+  height = 16,
+}: {
+  width?: number | string;
+  height?: number;
+}) => (
+  <ContentLoader
+    speed={2}
+    width={width}
+    height={height}
+    backgroundColor="#f3f3f3"
+    foregroundColor="#ecebeb"
+  >
+    <Rect rx={5} ry={5} width={width} height={height} />
+  </ContentLoader>
+);
 
-  const renderTitleLoader = () => {
-    return (
-      <ContentLoader
-        speed={2}
-        width={100}
-        height={20}
-        backgroundColor="#f3f3f3"
-        foregroundColor="#ecebeb"
-      >
-        <Rect rx={5} ry={5} width="100" height="15" />
-      </ContentLoader>
-    );
-  };
-
+const CategoryCardPlaceholder = ({
+  index = 0,
+  length = 1,
+}: {
+  index?: number;
+  length?: number;
+}) => {
   return (
-    <View style={styles.categoryCard}>
-      <View style={[styles.categoryTitleContainer, borderStyle]}>
-        {renderTitleLoader()}
+    <View
+      style={[
+        styles.cardWrapper,
+        { marginBottom: index !== length - 1 ? 16 : 0 },
+      ]}
+    >
+      <View style={styles.categoryCard}>
+        <View style={styles.titleRow}>
+          <View style={styles.emojiSkeleton} />
+          <LoaderBlock width={100} height={16} />
+        </View>
+
+        <View style={styles.childrenContainer}>
+          <CategorySelectorPlaceholder
+            variant="large"
+            contentContainerStyle={{ paddingHorizontal: 20 }}
+          />
+        </View>
       </View>
-      <CategorySelectorPlaceholder />
     </View>
   );
 };
@@ -35,16 +55,25 @@ const CategoryCardPlaceholder = () => {
 export default memo(CategoryCardPlaceholder);
 
 const styles = StyleSheet.create({
+  cardWrapper: {},
   categoryCard: {
-    flex: 1,
-    flexDirection: "column",
-    marginBottom: 40,
+    backgroundColor: "#fff",
+    paddingVertical: 16,
   },
-  categoryTitleContainer: {
-    borderRadius: 23,
-    paddingVertical: 10,
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
     paddingHorizontal: 20,
-    borderWidth: 1,
-    alignSelf: "flex-start",
+    gap: 8,
+  },
+  emojiSkeleton: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#f3f3f3",
+  },
+  childrenContainer: {
+    marginTop: 8,
   },
 }); 

@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Keyboard } from "react-native";
-import { useRoute } from "@react-navigation/native";
+import { router, useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
-import { useVerifyOtpMutation, saveAuthData, savePushTokenToStorage } from "@/redux/features/authSlice";
-import { router } from "expo-router";
+import { useVerifyOtpMutation, saveAuthData } from "@/redux/features/authSlice";
 import { RootState } from "@/types/global";
 
 interface VerifyPasswordHook {
@@ -33,11 +32,11 @@ const useVerifyPassword = (): VerifyPasswordHook => {
   const [errorState, setErrorState] = useState<string>("");
   const [password, setPassword] = useState<string>("");
 
-  const route = useRoute();
+  const { mobileNumber, userAlreadyRegistered } = useLocalSearchParams<{
+    mobileNumber?: string;
+    userAlreadyRegistered?: string;
+  }>();
   const dispatch = useDispatch();
-
-  const { mobileNumber, userAlreadyRegistered }: RouteParams =
-    route.params as RouteParams;
 
   const [verifyOtp, { isLoading, isSuccess, data }] = useVerifyOtpMutation();
 

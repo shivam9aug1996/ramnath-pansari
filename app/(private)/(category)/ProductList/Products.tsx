@@ -63,7 +63,7 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
   const selectedSubCategory = useSelector(
     (state: RootState) => state.product.selectedSubCategoryId
   );
-  console.log("selectedSubCategory765434567890--", selectedSubCategory?._id);
+  //console.log("selectedSubCategory765434567890--", selectedSubCategory?._id);
   const selectedCategoryClicked = useSelector(
     (state: RootState) => state.product.selectedCategoryClicked
   );
@@ -79,7 +79,7 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
   });
 
   const flatListRef = useRef<FlatList>(null);
-  console.log("paginationSta45678te23456789876543", selectedSubCategory);
+  //console.log("paginationSta45678te23456789876543", selectedSubCategory);
 
   const {
     data,
@@ -256,7 +256,7 @@ const handleRefetchProducts = useCallback(async () => {
   return (
     <View style={{ flex: 1 }}>
       {isLoading ? (
-        <ProductsPlaceholder wrapperStyle={{ paddingTop: 180 }} />
+        <ProductsPlaceholder />
       ) : (
         <>
           {isProductsFetching && paginationState.page === 1 && (

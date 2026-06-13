@@ -13,7 +13,16 @@ import { ThemedText } from "../ThemedText";
 import { formatNumber, showToast } from "@/utils/utils";
 import { useDispatch } from "react-redux";
 import { router } from "expo-router";
-import { calculateTotalAmount, findCartChanges, findMaxQuantityChanges } from "./utils";
+import {
+  calculateTotalAmount,
+  calculateTotalAmountMrp,
+  findCartChanges,
+  findMaxQuantityChanges,
+} from "./utils";
+import {
+  getDeliveryFee,
+  getPayableTotalFromItems,
+} from "@/utils/deliveryFee";
 import {
   cartApi,
   setIsCartOperationProcessing,
@@ -61,9 +70,17 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
 
   const [isDisabled, setIsDisabled] = useState(false);
   const [showPriceDetails, setShowPriceDetails] = useState(false);
-  const totalAmount = useMemo(() => {
-    return calculateTotalAmount(cartData?.cart?.items)?.toFixed(2);
-  }, [cartData?.cart?.items]);
+  const subtotal = useMemo(
+    () => calculateTotalAmount(cartData?.cart?.items),
+    [cartData?.cart?.items],
+  );
+
+  const deliveryFee = useMemo(() => getDeliveryFee(subtotal), [subtotal]);
+
+  const payableTotal = useMemo(
+    () => getPayableTotalFromItems(cartData?.cart?.items),
+    [cartData?.cart?.items],
+  );
 
   const cartItems = cartData?.cart?.items?.length || 0;
 
@@ -172,12 +189,18 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
         : tabBarHeight - 60,
   };
 
-  const { totalOriginalPrice, freebieValue, freebies } = useMemo(() => {
-    return calculateSavingsAndFreebies(cartData?.cart?.items || []);
-  }, [cartData?.cart?.items]);
+  const cartItemsList = cartData?.cart?.items || [];
 
-  const regularSavings = totalOriginalPrice - parseFloat(totalAmount);
-  const totalSavings = regularSavings + freebieValue;
+  const { freebieValue, freebies } = useMemo(() => {
+    return calculateSavingsAndFreebies(cartItemsList);
+  }, [cartItemsList]);
+
+  const mrpTotal = useMemo(
+    () => calculateTotalAmountMrp(cartItemsList),
+    [cartItemsList],
+  );
+
+  const productDiscount = mrpTotal - subtotal;
 
   // useFocusEffect(
   //   // Callback should be wrapped in `React.useCallback` to avoid running the effect too often.
@@ -303,19 +326,21 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
             {showPriceDetails && (
               <View style={styles.priceDetailsContainer}>
                 <ThemedView style={styles.totalContainer}>
-                  <ThemedText style={styles.totalLabel}>{"MRP"}</ThemedText>
-                  <ThemedText style={styles.mrpAmount}>{`₹ ${formatNumber(
-                    totalOriginalPrice
+                  <ThemedText style={styles.totalLabel}>
+                    {"Total before discount"}
+                  </ThemedText>
+                  <ThemedText style={styles.baselineAmount}>{`₹ ${formatNumber(
+                    mrpTotal
                   )}`}</ThemedText>
                 </ThemedView>
 
-                {regularSavings > 0 && (
+                {productDiscount > 0 && (
                   <ThemedView style={styles.totalContainer}>
                     <ThemedText style={styles.totalLabel}>
-                      {"Regular Savings"}
+                      {"Product Discount"}
                     </ThemedText>
-                    <ThemedText style={styles.savingsAmount}>{`₹ ${formatNumber(
-                      regularSavings.toFixed(2)
+                    <ThemedText style={styles.savingsAmount}>{`- ₹ ${formatNumber(
+                      productDiscount.toFixed(2)
                     )}`}</ThemedText>
                   </ThemedView>
                 )}
@@ -326,7 +351,7 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                   >
                     <View style={styles.freebiesContainer}>
                       <ThemedText style={styles.totalLabel}>
-                        {"Freebies Value"}
+                        {"Includes Freebies"}
                       </ThemedText>
                       <View style={styles.freebiesList}>
                         {freebies.map((freebie, index) => (
@@ -355,27 +380,44 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                         ))}
                       </View>
                     </View>
-                    <ThemedText style={styles.savingsAmount}>{`₹ ${formatNumber(
-                      freebieValue.toFixed(2)
-                    )}`}</ThemedText>
+                    <View style={styles.freebiePriceColumn}>
+                      <ThemedText style={styles.freebieZeroAmount}>
+                        ₹ 0
+                      </ThemedText>
+                      <ThemedText style={styles.freebieWorthHint}>
+                        {`worth ₹${formatNumber(freebieValue)}`}
+                      </ThemedText>
+                    </View>
                   </ThemedView>
                 )}
 
-                {totalSavings > 0 && (
-                  <ThemedView
-                    style={[
-                      styles.totalContainer,
-                      styles.totalSavingsContainer,
-                    ]}
+                <ThemedView
+                  style={[styles.totalContainer, styles.subtotalContainer]}
+                >
+                  <ThemedText style={styles.subtotalLabel}>
+                    {"Item Total"}
+                  </ThemedText>
+                  <ThemedText style={styles.subtotalAmount}>{`₹ ${formatNumber(
+                    subtotal
+                  )}`}</ThemedText>
+                </ThemedView>
+
+                <ThemedView style={styles.totalContainer}>
+                  <ThemedText style={styles.totalLabel}>
+                    {"Delivery Fee"}
+                  </ThemedText>
+                  <ThemedText
+                    style={
+                      deliveryFee === 0
+                        ? styles.savingsAmount
+                        : styles.deliveryAmount
+                    }
                   >
-                    <ThemedText style={styles.totalLabel}>
-                      {"Total Savings"}
-                    </ThemedText>
-                    <ThemedText
-                      style={[styles.savingsAmount, styles.totalSavings]}
-                    >{`₹ ${formatNumber(totalSavings.toFixed(2))}`}</ThemedText>
-                  </ThemedView>
-                )}
+                    {deliveryFee === 0
+                      ? "FREE"
+                      : `₹ ${formatNumber(deliveryFee)}`}
+                  </ThemedText>
+                </ThemedView>
               </View>
             )}
 
@@ -386,7 +428,7 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                   {"Final Amount"}
                 </ThemedText>
                 <ThemedText style={styles.finalTotalAmount}>{`₹ ${formatNumber(
-                  totalAmount
+                  payableTotal
                 )}`}</ThemedText>
               </View>
 
@@ -568,16 +610,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.light.mediumGrey,
   },
-  mrpAmount: {
-    fontFamily: "Montserrat_500Medium",
+  baselineAmount: {
+    fontFamily: "Montserrat_600SemiBold",
     fontSize: 16,
-    textDecorationLine: "line-through",
-    color: Colors.light.mediumGrey,
+    color: Colors.light.darkGrey,
   },
   savingsAmount: {
     fontFamily: "Montserrat_600SemiBold",
     fontSize: 16,
     color: Colors.light.mediumGreen,
+  },
+  deliveryAmount: {
+    fontFamily: "Montserrat_600SemiBold",
+    fontSize: 16,
+    color: Colors.light.darkGrey,
+  },
+  subtotalContainer: {
+    paddingTop: 12,
+    marginTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.mediumLightGrey + "30",
+  },
+  subtotalLabel: {
+    fontFamily: "Raleway_600SemiBold",
+    fontSize: 14,
+    color: Colors.light.darkGrey,
+  },
+  subtotalAmount: {
+    fontFamily: "Montserrat_700Bold",
+    fontSize: 16,
+    color: Colors.light.darkGrey,
   },
   finalTotalContainer: {
     marginTop: 2,
@@ -705,6 +767,20 @@ const styles = StyleSheet.create({
   freebieSection: {
     paddingVertical: 12,
     backgroundColor: Colors.light.background + "50",
+  },
+  freebiePriceColumn: {
+    alignItems: "flex-end",
+    gap: 2,
+  },
+  freebieZeroAmount: {
+    fontFamily: "Montserrat_700Bold",
+    fontSize: 16,
+    color: Colors.light.lightGreen,
+  },
+  freebieWorthHint: {
+    fontFamily: "Montserrat_500Medium",
+    fontSize: 11,
+    color: Colors.light.mediumGrey,
   },
   totalSavingsContainer: {
     paddingTop: 16,

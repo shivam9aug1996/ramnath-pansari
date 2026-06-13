@@ -40,6 +40,7 @@ import { showToast } from "@/utils/utils";
 import isWithinDeliveryRadius from "./utils";
 import { setCurrentAddressData } from "@/redux/features/addressSlice";
 import GenericFetchButton from "./GenericFetchButton";
+import MapPreloaderWrapper from "./MapPreloaderWrapper";
 
 interface FormState {
   name: string;
@@ -365,6 +366,7 @@ const AddAddress: React.FC = () => {
       title={`${itemId ? "Edit" : "Add"} delivery address`}
       useKeyboardAvoidingView={true}
     >
+      <MapPreloaderWrapper />
       <DeferredFadeIn delay={100} style={{ flexShrink: 0, flex: 1 }}>
         <ScrollView
           bounces={Platform.OS === "android" ? false : true}
@@ -401,11 +403,11 @@ const AddAddress: React.FC = () => {
               maxLength={10}
               customRef={phoneRef}
             />
-             <GenericFetchButton
-                iconName="location-sharp"
-                onPress={handleSetLocation}
-                title="Set Location on Map"
-              />
+            <GenericFetchButton
+              iconName="location-sharp"
+              onPress={handleSetLocation}
+              title="Set Location on Map"
+            />
 
             <InputField
               label="Address"

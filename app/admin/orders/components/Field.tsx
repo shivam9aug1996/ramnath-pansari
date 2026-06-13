@@ -1,12 +1,15 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-const Field = ({ label, path, children }: { label: string; path?: string; children: React.ReactNode }) => (
-  <View style={{ marginBottom: 12 }}>
-    <Text style={styles.label}>
-      {label}
-      {path ? <Text style={styles.keyPath}>  ({path})</Text> : null}
-    </Text>
+const Field = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <View style={styles.wrap}>
+    <Text style={styles.label}>{label}</Text>
     {children}
   </View>
 );
@@ -14,8 +17,11 @@ const Field = ({ label, path, children }: { label: string; path?: string; childr
 export default Field;
 
 const styles = StyleSheet.create({
-  label: { fontSize: 12, color: '#666', marginBottom: 6 },
-  keyPath: { fontFamily: 'Menlo', fontSize: 11, color: '#999' },
+  wrap: { marginBottom: 12 },
+  label: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 6,
+    fontWeight: '600',
+  },
 });
-
-

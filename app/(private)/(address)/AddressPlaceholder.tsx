@@ -1,67 +1,68 @@
-import { FlatList, Platform, StyleSheet, Text, View } from "react-native";
+import { FlatList, Platform, StyleSheet, View } from "react-native";
 import React from "react";
-import { Colors } from "@/constants/Colors";
-
 import ContentLoader, { Rect } from "react-content-loader/native";
+import {
+  ADDRESS_LIST_MARGIN_TOP,
+  ADDRESS_LIST_PADDING_VERTICAL,
+  ADDRESS_SKELETON_COUNT,
+  addressCardStyles,
+} from "./addressListLayout";
 
-const renderImageLoader = () => {
-  return (
-    <ContentLoader
-      speed={1}
-      height={88}
-      width={88}
-      backgroundColor="#f3f3f3"
-      foregroundColor="#e3e3e3"
-      style={{
-        minHeight: 88,
-        minWidth: 88,
-        borderRadius: 18,
-      }}
-    >
-      <Rect rx={5} ry={5} width="88" height="88" />
-    </ContentLoader>
-  );
-};
+const cardStyles = addressCardStyles;
 
-const renderText = () => {
-  return (
-    <ContentLoader
-      speed={1}
-      width={"100%"}
-      height={20}
-      backgroundColor="#f3f3f3"
-      foregroundColor="#e3e3e3"
-    >
-      <Rect width="90%" y={0} rx={5} ry={5} height="10" />
-    </ContentLoader>
-  );
-};
+const LoaderBlock = ({
+  width = "100%",
+  height = 13,
+}: {
+  width?: number | string;
+  height?: number;
+}) => (
+  <ContentLoader
+    speed={1}
+    width={width}
+    height={height}
+    backgroundColor="#f3f3f3"
+    foregroundColor="#e3e3e3"
+  >
+    <Rect width={width} y={0} rx={5} ry={5} height={height} />
+  </ContentLoader>
+);
+
+const AddressItemSkeleton = () => (
+  <View style={cardStyles.card}>
+    <View style={[styles.iconSkeleton, styles.iconSkeletonTop]} />
+    <View style={[styles.iconSkeleton, styles.iconSkeletonBottom]} />
+
+    <View style={cardStyles.imageContainer}>
+      <View style={cardStyles.image} />
+    </View>
+
+    <View style={cardStyles.textContainer}>
+      <LoaderBlock width="70%" height={16} />
+      <View style={cardStyles.separator} />
+      <View style={cardStyles.addressLines}>
+        <LoaderBlock width="95%" height={13} />
+        <LoaderBlock width="85%" height={13} />
+      </View>
+      <LoaderBlock width="55%" height={13} />
+    </View>
+  </View>
+);
 
 const AddressPlaceholder = () => {
-  const renderAddressItem = ({ item, index }: { item: any; index: number }) => (
-    <View style={styles.card} key={item?._id || index}>
-      <View style={styles.imageContainer}>{renderImageLoader()}</View>
-      <View style={styles.textContainer}>
-        {renderText()}
-        <View style={styles.separator} />
-        {renderText()}
-        {renderText()}
-      </View>
-    </View>
-  );
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.container}>
       <FlatList
-      bounces={Platform.OS === "android" ? false : true}
-        data={[
-          { _id: "1", name: "", city: "" },
-          { _id: "2", name: "", city: "" },
-        ]}
+        bounces={Platform.OS === "android" ? false : true}
+        data={Array.from({ length: ADDRESS_SKELETON_COUNT }, (_, index) => ({
+          _id: String(index + 1),
+        }))}
         keyExtractor={(item) => item._id}
-        renderItem={renderAddressItem}
+        renderItem={() => <AddressItemSkeleton />}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
-        style={{ marginTop: 20 }}
+        style={styles.list}
+        scrollEnabled={false}
       />
     </View>
   );
@@ -70,67 +71,28 @@ const AddressPlaceholder = () => {
 export default AddressPlaceholder;
 
 const styles = StyleSheet.create({
-  listContainer: {
-    paddingVertical: 10,
-  },
-  card: {
-    backgroundColor: Colors.light.softGrey_1,
-    padding: 6,
-    borderRadius: 23,
-    marginBottom: 15,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingRight: 50,
-    paddingBottom: 15,
-  },
-  imageContainer: {
-    flex: 0.5,
-    marginRight: 20,
-    padding: 5,
-    borderRadius: 18,
-  },
-  image: {
-    borderRadius: 18,
-    // height: 88,
-    // width: 88,
-    minHeight: 88,
-    minWidth: 88,
-  },
-  textContainer: {
+  container: {
     flex: 1,
-    paddingVertical: 5,
   },
-  name: {
-    fontFamily: "Raleway_700Bold",
-    fontSize: 14,
-    color: Colors.light.darkGrey,
+  list: {
+    marginTop: ADDRESS_LIST_MARGIN_TOP,
   },
-  separator: {
-    backgroundColor: Colors.light.darkGrey,
-    height: 0.5,
-    marginVertical: 5,
-    opacity: 0.09,
+  listContainer: {
+    paddingVertical: ADDRESS_LIST_PADDING_VERTICAL,
   },
-  address: {
-    fontFamily: "Raleway_400Regular",
-    fontSize: 11,
-    color: Colors.light.mediumLightGrey,
-
-    letterSpacing: 0.8,
-    paddingBottom: 5,
-  },
-  phone: {
-    fontFamily: "Montserrat_400Regular",
-    fontSize: 12,
-    color: Colors.light.mediumLightGrey,
-    letterSpacing: 1,
-  },
-
-  iconStyle: {
+  iconSkeleton: {
     position: "absolute",
     right: 5,
-    padding: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 16,
+    backgroundColor: "#f3f3f3",
     zIndex: 10,
+  },
+  iconSkeletonTop: {
+    top: 5,
+  },
+  iconSkeletonBottom: {
+    bottom: 5,
   },
 });

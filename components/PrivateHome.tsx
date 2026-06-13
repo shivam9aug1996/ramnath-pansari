@@ -1,8 +1,18 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet, View, ScrollView, Platform, TextInput, RefreshControl } from "react-native";
-import { router, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  Platform,
+  RefreshControl,
+  useWindowDimensions,
+} from "react-native";
+import { router } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
-import { setCategoryData, useFetchCategoriesQuery } from "@/redux/features/categorySlice";
+import {
+  setCategoryData,
+  useFetchCategoriesQuery,
+} from "@/redux/features/categorySlice";
 import { RootState, Category } from "@/types/global";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import { Colors } from "@/constants/Colors";
@@ -10,32 +20,41 @@ import { truncateText } from "@/utils/utils";
 import CategoryCardPlaceholder from "./CategoryCardPlaceholder";
 import CategoryCard from "./CategoryCard";
 import DashboardHeader from "./DashboardHeader";
-import CustomTextInput from "./CustomTextInput";
-
 import store from "@/redux/store";
 import { loadRecentlyViewed } from "@/redux/features/recentlyViewedSlice";
 import DeferredFadeIn from "./DeferredFadeIn";
 import RecentlyViewedProducts from "@/app/(private)/(productDetail)/RecentlyViewedProducts";
-import GreetingMessage from "./GreetingMessage/GreetingMessage";
 import Carasole from "./Carasole";
-import GreetingMessageWrapper from "./GreetingMessage/GreetingMessageWrapper";
-import Example from "@/utils/Example";
 import WeatherSection from "./WeatherSection/WeatherSection";
 import HomeSearch from "./HomeSearch";
-import JammedUIExample from "./JammedUIExample";
-import { setSelectedSubCategoryId } from "@/redux/features/searchSlice";
-import { Text } from "react-native";
-import Products from "@/app/(private)/(category)/ProductList/Products";
+import GrientBackground from "./GrientBackground";
+import { LinearGradient } from "expo-linear-gradient";
+import { useDeliveryFloatInset } from "@/contexts/DeliveryFloatContext";
+
+const CATEGORY_PLACEHOLDER_COUNT = 3;
+const WEATHER_SECTION_HEIGHT = 100;
+const CAROUSEL_EXTRA_HEIGHT = 40;
 
 const PrivateHome = () => {
+  const { width: windowWidth } = useWindowDimensions();
+  const carouselFallbackHeight = windowWidth / 2 + CAROUSEL_EXTRA_HEIGHT;
+  const deliveryFloatInset = useDeliveryFloatInset();
   const dispatch = useDispatch();
+  const scrollRef = useRef<ScrollView>(null);
+  const categoriesRef = useRef<View>(null);
+  const categoriesScrollY = useRef(0);
+  const layoutOffsets = useRef({ top: 0, sticky: 0, categoriesInMain: 0 });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const token = useSelector((state: RootState) => state?.auth?.token);
   const userData = useSelector((state: RootState) => state?.auth?.userData);
-  const { data: categoriesData, isFetching: isCategoryFetching,refetch } =
-    useFetchCategoriesQuery({}, { skip: !token });
+  const {
+    data: categoriesData,
+    isLoading: isCategoriesLoading,
+    refetch,
+  } = useFetchCategoriesQuery({}, { skip: !token });
 
-    //console.log("categoriesData",JSON.stringify(categoriesData))
+  const showCategorySkeleton =
+    isCategoriesLoading || !categoriesData?.categories?.length;
 
   useEffect(() => {
     store.dispatch(loadRecentlyViewed());
@@ -44,107 +63,164 @@ const PrivateHome = () => {
   const handleCategorySelect = (
     selectedCategory: Category,
     parentCategory: Category,
-    index
+    _index: number,
   ) => {
     const selectedIndex = parentCategory.children.findIndex(
-      (item) => item?._id === selectedCategory?._id
+      (item) => item?._id === selectedCategory?._id,
     );
-    // const selectedCategory1 = parentCategory.children.find(
-    //   (item) => item?._id === selectedCategory?._id
-    // );
-   // console.log("selectedCategory",JSON.stringify(selectedCategory))
-   console.log("categoriesData",JSON.stringify(selectedCategory))
     const selectedCategory1 = categoriesData?.categories.find(
-      (item) => {
-        return item?._id == parentCategory?._id
-      }
+      (item) => item?._id == parentCategory?._id,
     );
-    console.log("selectedCategory1",JSON.stringify(selectedCategory1))
-    console.log("selectedIndex",JSON.stringify(selectedIndex))
-    // router.push({
-    //   pathname: `/(category)/${parentCategory?._id}`,
-    //   params: {
-    //     name: parentCategory?.name,
-    //     selectedCategoryIdIndex: selectedIndex?.toString(),
-    //     id: parentCategory?._id,
-    //   },
-    // });
-    dispatch(setCategoryData(selectedCategory1))
-    
-   // dispatch(setSelectedSubCategoryId(selectedCategory1))
-    router.push(`/(category)/${parentCategory?._id?.toString()}?name=${parentCategory?.name}&selectedCategoryIdIndex=${selectedIndex?.toString()}`)
+    dispatch(setCategoryData(selectedCategory1));
+    router.push(
+      `/(category)/${parentCategory?._id?.toString()}?name=${parentCategory?.name}&selectedCategoryIdIndex=${selectedIndex?.toString()}`,
+    );
   };
 
   const handleProfilePress = () => {
     router.navigate("/(tabs)/account");
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    refetch();
-    setIsRefreshing(false);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
+  const updateCategoriesScrollOffset = useCallback(() => {
+    const { top, sticky, categoriesInMain } = layoutOffsets.current;
+    categoriesScrollY.current = top + sticky + categoriesInMain;
+  }, []);
+
+  const scrollToCategories = useCallback(() => {
+    const scrollView = scrollRef.current;
+    const categories = categoriesRef.current;
+    if (!scrollView) return;
+
+    const stickyHeight = layoutOffsets.current.sticky;
+    const scrollToY = (measuredY: number) => {
+      const targetY = Math.max(0, measuredY - stickyHeight);
+      requestAnimationFrame(() => {
+        scrollView.scrollTo({ y: targetY, animated: true });
+      });
+    };
+
+    if (!categories) {
+      updateCategoriesScrollOffset();
+      scrollToY(categoriesScrollY.current);
+      return;
+    }
+
+    categories.measureLayout(
+      scrollView,
+      (_x, measuredY) => scrollToY(measuredY),
+      () => {
+        updateCategoriesScrollOffset();
+        scrollToY(categoriesScrollY.current);
+      },
+    );
+  }, [updateCategoriesScrollOffset]);
+
   return (
-    <>
-      <ScreenSafeWrapper
-        showBackButton={false}
-        wrapperStyle={{ paddingHorizontal: 0 }}
-        showWeatherSection={true}
-        showGradient={true}
-      >
-        <DeferredFadeIn delay={100} style={{ flex: 1 }}>
-          
-          <ScrollView
-            refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
-            bounces={Platform.OS === "android" ? false : true}
-            showsVerticalScrollIndicator={false}
+    <ScreenSafeWrapper
+      showBackButton={false}
+      wrapperStyle={{ paddingHorizontal: 0 }}
+      showWeatherSection={true}
+      showGradient={true}
+    >
+      <DeferredFadeIn delay={100} style={{ flex: 1 }}>
+        <ScrollView
+          ref={scrollRef}
+          style={{ flex: 1 }}
+          stickyHeaderIndices={[1]}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+            />
+          }
+          bounces={Platform.OS === "android" ? false : true}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: 60 + deliveryFloatInset },
+          ]}
+        >
+          <View
+            style={styles.topSection}
+            onLayout={(event) => {
+              layoutOffsets.current.top = event.nativeEvent.layout.height;
+              updateCategoriesScrollOffset();
+            }}
           >
-            <View style={styles.container}>
-              <DashboardHeader
-                userName={truncateText(userData?.name?.split(" ")[0], 10)}
-                profileImage={userData?.profileImage}
-                onProfilePress={handleProfilePress}
-                isGuestUser={userData?.isGuestUser}
-              />
+            <DashboardHeader
+              userName={truncateText(userData?.name?.split(" ")[0], 10)}
+              profileImage={userData?.profileImage}
+              onProfilePress={handleProfilePress}
+              isGuestUser={userData?.isGuestUser}
+            />
+          </View>
 
-              {/* <DeferredFadeIn
-              delay={300}
-              fallback={<View style={{height:27}}/>}
-              >
-                <GreetingMessageWrapper />
-              </DeferredFadeIn> */}
+          <View
+            style={styles.stickySearchBar}
+            onLayout={(event) => {
+              layoutOffsets.current.sticky = event.nativeEvent.layout.height;
+              updateCategoriesScrollOffset();
+            }}
+          >
+            <View
+              style={styles.stickySearchBarContent}
+            >
+               
+              <HomeSearch compact />
+            </View>
+          </View>
 
-              <View style={{ paddingHorizontal: 20 }}>
-               <HomeSearch />
-                
-              </View>
-              <DeferredFadeIn
-                delay={100}
-                fallback={<View style={{ width: 393, height: 236 }} />}
-                style={{ flex: 1 }}
-              >
-                <Carasole />
+          <View style={styles.mainContent}>
+            <DeferredFadeIn
+              delay={100}
+              fallback={
+                <View
+                  style={{
+                    width: windowWidth,
+                    height: carouselFallbackHeight,
+                  }}
+                />
+              }
+            >
+              <Carasole onScrollToCategories={scrollToCategories} />
+            </DeferredFadeIn>
+
+            <View style={styles.weatherSection}>
+              <DeferredFadeIn delay={0}>
+                <WeatherSection />
               </DeferredFadeIn>
+            </View>
 
-              <DeferredFadeIn
-                delay={0}
-                //fallback={<View style={{ minWidth: "100%", minHeight: 80 }} />}
-              >
-                <View style={{ minHeight: 80, minWidth: "100%" }}>
-                  <WeatherSection />
-                </View>
-              </DeferredFadeIn>
-
-              <DeferredFadeIn delay={200}>
-                {isCategoryFetching ? (
-                  <View style={{ paddingHorizontal: 20 }}>
-                    <CategoryCardPlaceholder />
-                    <CategoryCardPlaceholder />
-                  </View>
-                ) : (
-                  categoriesData?.categories?.map(
-                    (category: Category, index) => (
+            <View
+              ref={categoriesRef}
+              collapsable={false}
+              onLayout={(event) => {
+                layoutOffsets.current.categoriesInMain =
+                  event.nativeEvent.layout.y;
+                updateCategoriesScrollOffset();
+              }}
+            >
+              {showCategorySkeleton
+                ? Array.from({ length: CATEGORY_PLACEHOLDER_COUNT }).map(
+                    (_, index) => (
+                      <CategoryCardPlaceholder
+                        key={`category-skeleton-${index}`}
+                        index={index}
+                        length={CATEGORY_PLACEHOLDER_COUNT}
+                      />
+                    ),
+                  )
+                : categoriesData?.categories?.map(
+                    (category: Category, index: number) => (
                       <CategoryCard
                         key={category?._id?.toString()}
                         category={category}
@@ -152,72 +228,58 @@ const PrivateHome = () => {
                         onSelect={handleCategorySelect}
                         length={categoriesData?.categories?.length}
                       />
-                    )
-                  )
-                )}
-              </DeferredFadeIn>
+                    ),
+                  )}
             </View>
+
             <DeferredFadeIn delay={200}>
-              <RecentlyViewedProducts variant={"compact"} />
+              <RecentlyViewedProducts variant="compact" />
             </DeferredFadeIn>
-            <DeferredFadeIn delay={200}>
-            </DeferredFadeIn>
-       
-          </ScrollView>
-          
-        </DeferredFadeIn>
-        
-      </ScreenSafeWrapper>
-    </>
+          </View>
+        </ScrollView>
+      </DeferredFadeIn>
+    </ScreenSafeWrapper>
   );
 };
 
 export default PrivateHome;
 
 const styles = StyleSheet.create({
-  container: {
-    paddingTop: 10,
+  scrollContent: {
     paddingBottom: 60,
   },
-
-  subtitleText: {
-    fontFamily: "Raleway_500Medium",
-    fontSize: 16,
-    color: Colors.light.mediumLightGrey,
-    paddingTop: 8,
+  topSection: {
+    paddingTop: 10,
   },
-  textInputWrapper: {
-    marginTop: 20,
-    marginBottom: 30,
-    backgroundColor: Colors.light.white,
-    borderRadius: 25,
-    // shadowColor: Colors.light.darkGreen,
-    // shadowOffset: {
-    //   width: 0,
-    //   height: 4,
-    // },
-    // shadowOpacity: 0.1,
-    // shadowRadius: 8,
-    // elevation: 8,
-    borderWidth: 2,
-    borderColor: Colors.light.lightGrey,
+  stickySearchBar: {
+    // paddingHorizontal: 16,
+    // paddingTop: 12,
+    // paddingBottom: 12,
+    zIndex: 10,
+    //backgroundColor: 'rgba(179, 229, 252, 0.6)',
+    // ...Platform.select({
+    //   ios: {
+    //     shadowColor: "#000",
+    //     shadowOffset: { width: 0, height: 2 },
+    //     shadowOpacity: 0.06,
+    //     shadowRadius: 4,
+    //   },
+    //   android: {
+    //     elevation: 3,
+    //   },
+    // }),
   },
-  textInputStyle: {
-    fontFamily: "Raleway_400Regular",
-    fontSize: 12,
-    color: Colors.light.darkGreen,
-    top: 1,
-    //opacity: 0.6,
+  mainContent: {
+    paddingTop: 4,
   },
-  background1: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: "100%",
-    height: "100%",
-    zIndex: -1,
-    opacity: 1,
+  weatherSection: {
+    minHeight: WEATHER_SECTION_HEIGHT,
+    minWidth: "100%",
+  },
+  stickySearchBarContent: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    backgroundColor: "#d4f0fd",
   },
 });

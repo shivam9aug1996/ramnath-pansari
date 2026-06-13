@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Keyboard } from "react-native";
-import { useRoute } from "@react-navigation/native";
+import { router, useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import { useVerifyOtpMutation, saveAuthData } from "@/redux/features/authSlice";
-import { router } from "expo-router";
 import { RootState } from "@/types/global";
 
 interface VerifyOtpHook {
@@ -20,10 +19,6 @@ interface VerifyOtpHook {
   guestLogin: () => void;
 }
 
-interface RouteParams {
-  mobileNumber?: string;
-  userAlreadyRegistered?: string;
-}
 
 const useVerifyOtp1 = (): VerifyOtpHook => {
   const saveAuthDataState = useSelector(
@@ -34,11 +29,11 @@ const useVerifyOtp1 = (): VerifyOtpHook => {
   const [otp, setOtp] = useState<string>("");
 
 
-  const route = useRoute();
+  const { mobileNumber, userAlreadyRegistered } = useLocalSearchParams<{
+    mobileNumber?: string;
+    userAlreadyRegistered?: string;
+  }>();
   const dispatch = useDispatch();
-
-  const { mobileNumber, userAlreadyRegistered }: RouteParams =
-    route.params as RouteParams;
 
   const [verifyOtp, { isLoading, isSuccess, data }] = useVerifyOtpMutation();
 

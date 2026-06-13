@@ -120,7 +120,32 @@ export interface Product {
   image: string | null;
   discountedPrice: number;
   price: number;
+  size?: string;
+  category?: string;
   isOutOfStock: boolean;
+  brand?: string;
+  countryOfOrigin?: string;
+  articleId?: string;
+  foodType?: "veg" | "non-veg";
+}
+
+export interface ProductDetailInformation {
+  brand: string | null;
+  countryOfOrigin: string | null;
+  articleId: string | null;
+  vegNonVeg: string | null;
+}
+
+export interface ProductDetailSpecifications {
+  netQuantity: string | null;
+  productType: string | null;
+}
+
+export interface ProductDetailResponse {
+  product: Product | null;
+  productInformation?: ProductDetailInformation;
+  itemSpecifications?: ProductDetailSpecifications;
+  images?: string[];
 }
 
 export interface CartItem {
@@ -239,10 +264,166 @@ export interface AdminOrderDocument {
   totalProductCount?: number;
   orderHistory?: AdminOrderHistoryItem[];
   amountPaid?: string;
+  subtotal?: number;
+  deliveryFee?: number;
 }
 
 export interface AdminOrderListResponse {
   orders: AdminOrderDocument[];
   currentPage?: number;
   totalPages?: number;
+}
+
+export interface AdminStatsResponse {
+  total: number;
+  today: number;
+  byStatus: {
+    confirmed: number;
+    out_for_delivery: number;
+    delivered: number;
+    canceled: number;
+  };
+  products: {
+    total: number;
+    inStock: number;
+    outOfStock: number;
+    hidden: number;
+  };
+  categories: {
+    total: number;
+    root: number;
+    leaf: number;
+  };
+  users: {
+    total: number;
+    admins: number;
+    customers: number;
+    guests: number;
+  };
+}
+
+export interface AdminUserDocument {
+  _id: string;
+  mobileNumber: string;
+  name: string | null;
+  khataUrl: string | null;
+  profileImage: unknown;
+  isAdminUser: boolean;
+  isGuestUser: boolean;
+  orderCount?: number;
+  createdAt?: string;
+}
+
+export interface AdminUserListResponse {
+  users: AdminUserDocument[];
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+}
+
+export interface AdminUserInput {
+  mobileNumber: string;
+  password: string;
+  name?: string;
+  isAdminUser?: boolean;
+}
+
+export interface AdminUserUpdateInput {
+  name?: string;
+  khataUrl?: string | null;
+  isAdminUser?: boolean;
+  password?: string;
+}
+
+export interface AdminCategoryListResponse {
+  categories: Category[];
+}
+
+export interface AdminCategoryDetailResponse {
+  category: Category;
+  parentId: string | null;
+  breadcrumb: { _id: string; name: string }[];
+}
+
+export interface AdminCategoryInput {
+  name: string;
+  image?: string | null;
+  parentCategoryId?: string;
+}
+
+export interface AdminProductDocument {
+  _id: string;
+  name: string;
+  categoryPath: string[];
+  image: string | null;
+  price: number;
+  discountedPrice: number;
+  size: string;
+  category?: string;
+  maxQuantity?: number;
+  isOutOfStock: boolean;
+  brand?: string;
+  foodType?: "veg" | "non-veg";
+  skuCode?: string;
+  jiomartUid?: string;
+  createdAt?: string;
+  lastUpdated?: string;
+}
+
+export interface AdminProductListResponse {
+  products: AdminProductDocument[];
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+}
+
+export interface AdminProductInput {
+  name: string;
+  categoryPath: string[];
+  price: number;
+  discountedPrice: number;
+  size: string;
+  image?: string | null;
+  maxQuantity?: number;
+  isOutOfStock?: boolean;
+  brand?: string;
+  foodType?: "veg" | "non-veg";
+  category?: string;
+}
+
+export interface JiomartSyncCategory {
+  name: string;
+  syncAvailable: boolean;
+  vertex?: {
+    l1Category: string;
+    l2Category: string;
+    l3Category: string;
+  };
+  productCount: number;
+  storeCategoryFound: boolean;
+}
+
+export interface JiomartSyncListResponse {
+  total: number;
+  syncAvailableCount: number;
+  categories: JiomartSyncCategory[];
+}
+
+export interface JiomartSyncResultItem {
+  category: string;
+  syncedProducts?: number;
+  totalProducts?: number;
+  error?: string;
+}
+
+export interface JiomartSyncResponse {
+  message: string;
+  wipeAll: boolean;
+  requested: string[];
+  summary: {
+    requested: number;
+    succeeded: number;
+    failed: number;
+  };
+  results: JiomartSyncResultItem[];
 }

@@ -16,7 +16,7 @@ export const orderApi = createApi({
     },
     credentials: "include",
   }),
-  tagTypes: ["detailOrder", "orderList"],
+  tagTypes: ["detailOrder", "orderList", "activeDeliveries"],
 
   endpoints: (builder) => ({
     createPreOrder: builder.mutation({
@@ -46,20 +46,27 @@ export const orderApi = createApi({
         method: "GET",
         params: data,
       }),
-      keepUnusedDataFor: 0,
+     // keepUnusedDataFor: 0,
       serializeQueryArgs: ({ endpointName, queryArgs }) => {
        // console.log("jhgfhjkl3456890", endpointName, queryArgs);
         return `${endpointName}`;
       },
       merge: (currentCache, newItems, { arg: { page } }) => {
-       // console.log("jhgfdsdfghjk", currentCache, page);
-        if (page === 1) {
-          currentCache.orders = [];
-          currentCache.currentPage = 1;
+        const incomingOrders = newItems?.orders ?? [];
+
+        if (!currentCache || page === 1) {
+          return {
+            ...newItems,
+            orders: incomingOrders,
+            currentPage: newItems?.currentPage ?? page,
+          };
         }
-       // console.log("jhgfdsdfghjk after", currentCache);
-        currentCache?.orders?.push(...newItems?.orders);
-        currentCache.currentPage = newItems?.currentPage;
+
+        return {
+          ...newItems,
+          orders: [...(currentCache.orders ?? []), ...incomingOrders],
+          currentPage: newItems?.currentPage ?? currentCache.currentPage,
+        };
       },
       forceRefetch: ({ currentArg, previousArg }) => {
        // console.log("lkuytr4567890-", currentArg, previousArg);
@@ -78,6 +85,17 @@ export const orderApi = createApi({
       keepUnusedDataFor: 0,
       providesTags: (result, error, { orderId, userId }) => [
         { type: "detailOrder", id: `${orderId}-${userId}` },
+      ],
+    }),
+    fetchActiveDeliveries: builder.query({
+      query: (data) => ({
+        url: "/order/post",
+        method: "GET",
+        params: data,
+      }),
+      keepUnusedDataFor: 0,
+      providesTags: (result, error, { userId }) => [
+        { type: "activeDeliveries", id: `${userId}` },
       ],
     }),
   }),
@@ -101,6 +119,7 @@ export const {
   useVerifyPreOrderMutation,
   useFetchOrdersQuery,
   useFetchOrderDetailQuery,
+  useFetchActiveDeliveriesQuery,
   useLazyFetchOrdersQuery,
   usePlaceCodOrderMutation,
 } = orderApi;

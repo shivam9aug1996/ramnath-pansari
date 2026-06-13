@@ -54,6 +54,10 @@ import DeferredFadeIn from "@/components/DeferredFadeIn";
 import isWithinDeliveryRadius from "./utils";
 import { setIsCartOperationProcessing } from "@/redux/features/cartSlice";
 import GenericFetchButton from "./GenericFetchButton";
+import {
+  ADDRESS_LIST_MARGIN_TOP,
+  ADDRESS_LIST_PADDING_VERTICAL,
+} from "./addressListLayout";
 // import PayBottomSheet from "./PayBottomSheet";
 // const PayBottomSheet = lazy(() => import("./PayBottomSheet"));
 // const TryAgain = lazy(() => import("../(category)/CategoryList/TryAgain"));
@@ -221,7 +225,7 @@ const addressList = () => {
             </View>
           </DeferredFadeIn>
 
-          <DeferredFadeIn delay={200} style={{ flex: 1 }}>
+          <View style={styles.listSection}>
             {isLoading ? (
               <AddressPlaceholder />
             ) : error ? (
@@ -237,7 +241,7 @@ const addressList = () => {
                 renderItem={renderAddressItem}
                 contentContainerStyle={styles.listContainer}
                 showsVerticalScrollIndicator={false}
-                style={{ marginTop: 20 }}
+                style={styles.list}
               />
             ) : checkoutFlow ? (
               <NotFound
@@ -254,7 +258,7 @@ const addressList = () => {
                 style={{ flex: 0.4, marginHorizontal: 50 }}
               />
             )}
-          </DeferredFadeIn>
+          </View>
         </>
         {checkoutFlow && data?.length  ? (
           <DeferredFadeIn delay={300}>
@@ -306,8 +310,14 @@ const addressList = () => {
 export default addressList;
 
 const styles = StyleSheet.create({
+  listSection: {
+    flex: 1,
+  },
+  list: {
+    marginTop: ADDRESS_LIST_MARGIN_TOP,
+  },
   listContainer: {
-    paddingVertical: 10,
+    paddingVertical: ADDRESS_LIST_PADDING_VERTICAL,
   },
 
   loadingText: {

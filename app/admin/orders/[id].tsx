@@ -1,40 +1,59 @@
 import React from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator, Image, RefreshControl } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Linking,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import AdminScreen from '@/app/admin/components/AdminScreen';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useLocalSearchParams } from 'expo-router';
 import { showToast } from '@/utils/utils';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useGetOrderQuery, useUpdateOrderMutation } from '@/redux/features/adminOrderSlice';
 import { ORDER_STATUS_VALUES, ORDER_STATUS_COLORS } from '@/constants/Order';
+import { Colors } from '@/constants/Colors';
 import HeaderBar from '@/app/admin/components/HeaderBar';
+import StatusBadge from '@/app/admin/components/StatusBadge';
+import PaymentBreakdown from '@/app/admin/components/PaymentBreakdown';
 import DetailSection from './components/DetailSection';
 import Field from './components/Field';
 import { AdminOrderDocument } from '@/types/global';
-
-// Field moved to component
+import {
+  getCartSubtotal,
+  getDeliveryFee,
+  getPayableTotal,
+} from '@/utils/deliveryFee';
 
 const OrderDetailScreen = () => {
   const params = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
-  const { data, isFetching, isLoading, refetch } = useGetOrderQuery({ id: String(params.id) });
+  const { data, isFetching, isLoading, refetch } = useGetOrderQuery({
+    id: String(params.id),
+  });
   const [updateOrder, { isLoading: isSaving }] = useUpdateOrderMutation();
-
   const [draft, setDraft] = React.useState<AdminOrderDocument | null>(null);
 
   React.useEffect(() => {
     if (data) setDraft(JSON.parse(JSON.stringify(data)));
   }, [data]);
 
-  const onChange = (path: string[], value: any) => {
+  const onChange = (path: string[], value: unknown) => {
     setDraft((prev) => {
       if (!prev) return prev;
-      const next: any = JSON.parse(JSON.stringify(prev));
+      const next: Record<string, unknown> = JSON.parse(JSON.stringify(prev));
 
-      const isIndex = (k: any) => {
+      const isIndex = (k: string) => {
         const n = Number(k);
-        return Number.isInteger(n) && String(n) === String(k);
+        return Number.isInteger(n) && String(n) === k;
       };
 
-      let cursor: any = next;
+      let cursor: unknown = next;
       for (let i = 0; i < path.length - 1; i++) {
         const key = path[i];
         const nextKey = path[i + 1];
@@ -47,58 +66,57 @@ const OrderDetailScreen = () => {
           continue;
         }
 
-        // Ensure correct container type for the next segment
+        const obj = cursor as Record<string, unknown>;
         if (isIndex(nextKey)) {
-          // Next is an array index; keep this key as an array
-          if (!Array.isArray(cursor[key])) cursor[key] = Array.isArray(cursor[key]) ? [...cursor[key]] : [];
+          if (!Array.isArray(obj[key])) obj[key] = [];
         } else {
-          cursor[key] = { ...(cursor[key] ?? {}) };
+          obj[key] = { ...((obj[key] as object) ?? {}) };
         }
-        cursor = cursor[key];
+        cursor = obj[key];
       }
 
       const lastKey = path[path.length - 1];
       if (Array.isArray(cursor) && isIndex(lastKey)) {
-        const idx = Number(lastKey);
-        cursor[idx] = value;
+        cursor[Number(lastKey)] = value;
       } else {
-        cursor[lastKey] = value;
+        (cursor as Record<string, unknown>)[lastKey] = value;
       }
 
-      return recalcOrderDerived(next);
+      return recalcOrderDerived(next as AdminOrderDocument);
     });
   };
 
   const recalcOrderDerived = (order: AdminOrderDocument): AdminOrderDocument => {
     try {
-      const items: any[] = (order as any)?.cartData?.cart?.items || [];
-      const productCount = items.length;
-      const totalProductCount = items.reduce((sum, it) => sum + (Number(it?.quantity) || 0), 0);
-      const totalAmount = items.reduce((sum, it) => {
-        const qty = Number(it?.quantity) || 0;
-        const price = Number(it?.productDetails?.discountedPrice) || 0;
-        return sum + price * qty;
-      }, 0);
+      const items: { quantity?: number }[] =
+        (order as AdminOrderDocument & { cartData?: { cart?: { items?: unknown[] } } })
+          ?.cartData?.cart?.items || [];
+      const subtotal = getCartSubtotal(items as Parameters<typeof getCartSubtotal>[0]);
+      const deliveryFee = getDeliveryFee(subtotal);
+      const amountPaid = getPayableTotal(subtotal);
 
-      (order as any).productCount = productCount;
-      (order as any).totalProductCount = totalProductCount;
-      (order as any).transactionData = {
-        ...(order as any).transactionData,
-        amount: totalAmount.toFixed(2),
+      (order as AdminOrderDocument & { productCount?: number }).productCount = items.length;
+      (order as AdminOrderDocument & { totalProductCount?: number }).totalProductCount =
+        items.reduce((sum, it) => sum + (Number(it?.quantity) || 0), 0);
+      order.subtotal = subtotal;
+      order.deliveryFee = deliveryFee;
+      order.amountPaid = amountPaid.toFixed(2);
+      order.transactionData = {
+        ...order.transactionData,
+        amount: amountPaid.toFixed(2),
       };
-      (order as any).amountPaid = totalAmount.toFixed(2);
-    } catch (e) {}
+    } catch {
+      // keep existing totals
+    }
     return order;
   };
 
   const onRemoveItem = (index: number) => {
     setDraft((prev) => {
       if (!prev) return prev;
-      const next: any = JSON.parse(JSON.stringify(prev));
-      const items: any[] = next?.cartData?.cart?.items || [];
-      if (index >= 0 && index < items.length) {
-        items.splice(index, 1);
-      }
+      const next = JSON.parse(JSON.stringify(prev)) as AdminOrderDocument;
+      const items = next?.cartData?.cart?.items ?? [];
+      if (index >= 0 && index < items.length) items.splice(index, 1);
       next.cartData.cart.items = items;
       return recalcOrderDerived(next);
     });
@@ -107,53 +125,45 @@ const OrderDetailScreen = () => {
   const onSave = async () => {
     try {
       if (!draft) return;
-      // Validation: orderHistory must have at least one entry
-      if (!Array.isArray((draft as any).orderHistory) || (draft as any).orderHistory.length === 0) {
-        showToast({ type: 'error', text2: 'Please add at least one entry in orderHistory before saving.' });
+      if (!Array.isArray(draft.orderHistory) || draft.orderHistory.length === 0) {
+        showToast({
+          type: 'error',
+          text2: 'Please add at least one entry in order history before saving.',
+        });
         return;
       }
-      // If status changed, append to orderHistory with server-friendly timestamp
-      const body: any = JSON.parse(JSON.stringify(draft));
+      const body = JSON.parse(JSON.stringify(draft)) as AdminOrderDocument;
       if (data?.orderStatus !== draft.orderStatus) {
-        const history = Array.isArray(body.orderHistory) ? body.orderHistory : [];
+        const history = Array.isArray(body.orderHistory) ? [...body.orderHistory] : [];
         const first = history[0];
         if (!first || String(first.status) !== String(draft.orderStatus)) {
-          history.unshift({ status: draft.orderStatus, timestamp: new Date().toISOString() });
+          history.unshift({
+            status: draft.orderStatus,
+            timestamp: new Date().toISOString(),
+          });
         }
         body.orderHistory = history;
       }
-      const res = await updateOrder({ id: draft._id, body }).unwrap();
+      await updateOrder({ id: draft._id, body }).unwrap();
       Alert.alert('Saved', 'Order updated successfully');
       refetch();
-    } catch (e: any) {
-      Alert.alert('Error', e?.data?.error?.message || 'Failed to update order');
+    } catch (e: unknown) {
+      const msg =
+        (e as { data?: { error?: { message?: string } } })?.data?.error?.message ||
+        'Failed to update order';
+      Alert.alert('Error', msg);
     }
-  };
-
-  const onChangeHistory = (index: number, key: 'status' | 'timestamp', value: any) => {
-    setDraft((prev) => {
-      if (!prev) return prev;
-      const next: any = JSON.parse(JSON.stringify(prev));
-      const list: any[] = Array.isArray(next.orderHistory) ? next.orderHistory : [];
-      if (!list[index]) list[index] = {};
-      list[index][key] = value;
-      next.orderHistory = list;
-      // Sync orderStatus to the last history entry's status
-      const lastStatus = list.length ? String(list[0]?.status || '') : '';
-      if (lastStatus) next.orderStatus = lastStatus;
-      return next;
-    });
   };
 
   const onDeleteHistory = (index: number) => {
     setDraft((prev) => {
       if (!prev) return prev;
-      const next: any = JSON.parse(JSON.stringify(prev));
-      const list: any[] = Array.isArray(next.orderHistory) ? next.orderHistory : [];
+      const next = JSON.parse(JSON.stringify(prev)) as AdminOrderDocument;
+      const list = Array.isArray(next.orderHistory) ? [...next.orderHistory] : [];
       if (index >= 0 && index < list.length) list.splice(index, 1);
       next.orderHistory = list;
       const lastStatus = list.length ? String(list[0]?.status || '') : '';
-      if (lastStatus) next.orderStatus = lastStatus; else next.orderStatus = next.orderStatus; // keep as is if none
+      if (lastStatus) next.orderStatus = lastStatus;
       return next;
     });
   };
@@ -161,214 +171,310 @@ const OrderDetailScreen = () => {
   const onAddHistory = () => {
     setDraft((prev) => {
       if (!prev) return prev;
-      const next: any = JSON.parse(JSON.stringify(prev));
-      const list: any[] = Array.isArray(next.orderHistory) ? next.orderHistory : [];
-      list.unshift({ status: next.orderStatus || 'confirmed', timestamp: new Date().toISOString() });
+      const next = JSON.parse(JSON.stringify(prev)) as AdminOrderDocument;
+      const list = Array.isArray(next.orderHistory) ? [...next.orderHistory] : [];
+      list.unshift({
+        status: next.orderStatus || 'confirmed',
+        timestamp: new Date().toISOString(),
+      });
       next.orderHistory = list;
-      const lastStatus = list.length ? String(list[0]?.status || '') : '';
-      if (lastStatus) next.orderStatus = lastStatus;
       return next;
     });
   };
 
   if (isLoading || !draft) {
     return (
-      <SafeAreaView style={styles.container}> 
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" />
-          <Text style={{ marginTop: 8 }}>Loading order…</Text>
+      <AdminScreen style={styles.container}>
+        <HeaderBar title="Order" />
+        <View style={styles.centerState}>
+          <ActivityIndicator size="large" color={Colors.light.darkGreen} />
+          <Text style={styles.centerStateText}>Loading order…</Text>
         </View>
-      </SafeAreaView>
+      </AdminScreen>
     );
   }
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {isFetching && (
-         <View style={styles.loadingOverlay} pointerEvents="auto">
-         <ActivityIndicator size="large" />
-         <Text style={styles.loadingText}>Loading order…</Text>
-       </View>
-      )}
-      <HeaderBar title={`Order Detail`} />
-      <ScrollView
-      contentContainerStyle={{ padding: 12, flexGrow: 1 }}
-       
-      refreshControl={
-        <RefreshControl
-          refreshing={isFetching}
-          onRefresh={() => {
-            console.log('Refreshing...');
-            refetch();
-          }}
-        />
-      }
-      
-      >
-        <Text style={styles.title}>Order {draft.orderId}</Text>
-        <Text style={styles.subtitle}>User: {draft.userId}</Text>
+  const createdAt = draft.createdAt ? new Date(draft.createdAt) : null;
+  const placedLabel = createdAt
+    ? `${createdAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} · ${createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+    : '';
+  const cartItems = draft?.cartData?.cart?.items ?? [];
+  const phone = draft.addressData?.phone;
 
-        {/* Order Status */}
-        <DetailSection title="Order Status">
-          <Text style={styles.label}>Current <Text style={styles.keyPath}> (orderStatus)</Text></Text>
+  return (
+    <AdminScreen style={styles.container}>
+      <HeaderBar title={draft.orderId} />
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isSaving}
+            onRefresh={refetch}
+            tintColor={Colors.light.darkGreen}
+          />
+        }
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Summary */}
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryTop}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.summaryName}>
+                {draft.addressData?.name || 'Customer'}
+              </Text>
+              {placedLabel ? (
+                <Text style={styles.summaryMeta}>Placed {placedLabel}</Text>
+              ) : null}
+            </View>
+            <StatusBadge status={String(draft.orderStatus)} />
+          </View>
+
+          {phone ? (
+            <TouchableOpacity
+              style={styles.callRow}
+              onPress={() => Linking.openURL(`tel:${phone}`)}
+            >
+              <Ionicons name="call-outline" size={16} color={Colors.light.darkGreen} />
+              <Text style={styles.callText}>{phone}</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          <PaymentBreakdown
+            subtotal={draft.subtotal}
+            deliveryFee={draft.deliveryFee}
+            amountPaid={draft.amountPaid ?? draft.transactionData?.amount}
+          />
+        </View>
+
+        {/* Status */}
+        <DetailSection title="Update status">
           <View style={styles.statusPillsRow}>
             {ORDER_STATUS_VALUES.map((s) => {
               const active = String(draft.orderStatus) === s;
               return (
-                <TouchableOpacity key={s} onPress={() => setDraft((prev) => prev ? { ...prev, orderStatus: s as any } : prev)} style={[styles.statusPill, active && styles.statusPillActive]}>
-                  <Text style={[styles.statusPillText, active && styles.statusPillTextActive]}>{s.replaceAll('_',' ')}</Text>
+                <TouchableOpacity
+                  key={s}
+                  onPress={() =>
+                    setDraft((prev) => (prev ? { ...prev, orderStatus: s } : prev))
+                  }
+                  style={[styles.statusPill, active && styles.statusPillActive]}
+                >
+                  <Text
+                    style={[styles.statusPillText, active && styles.statusPillTextActive]}
+                  >
+                    {s.replaceAll('_', ' ')}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
         </DetailSection>
 
-        {/* Order History */}
-        <DetailSection title="Order History">
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View />
-            <TouchableOpacity onPress={onAddHistory} style={styles.addBtn}><Text style={styles.addText}>Add</Text></TouchableOpacity>
-          </View>
-          {(Array.isArray((draft as any).orderHistory) ? (draft as any).orderHistory : []).map((h: any, i: number) => {
-            const isLatest = i === 0; // newest at top
+        {/* History timeline */}
+        <DetailSection
+          title="Status history"
+          subtitle="Newest first · auto-updated on save when status changes"
+        >
+          <TouchableOpacity onPress={onAddHistory} style={styles.addBtn}>
+            <Ionicons name="add" size={16} color={Colors.light.darkGreen} />
+            <Text style={styles.addText}>Add entry</Text>
+          </TouchableOpacity>
+
+          {(Array.isArray(draft.orderHistory) ? draft.orderHistory : []).map((h, i) => {
+            const isLatest = i === 0;
             const statusStr = String(h?.status || '') as keyof typeof ORDER_STATUS_COLORS;
-            const color = ORDER_STATUS_COLORS[statusStr] || '#222';
+            const color = ORDER_STATUS_COLORS[statusStr] || '#94A3B8';
             const ts = h?.timestamp ? new Date(h.timestamp) : null;
-            const dateStr = ts ? ts.toLocaleDateString() : '';
-            const timeStr = ts ? ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+            const dateStr = ts
+              ? ts.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+              : '';
+            const timeStr = ts
+              ? ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : '';
+
             return (
-              <View key={`hist-${i}`} style={[styles.historyRow, isLatest && styles.historyRowLatest]}>
+              <View
+                key={`hist-${i}`}
+                style={[styles.historyRow, isLatest && styles.historyRowLatest]}
+              >
                 <View style={styles.historyHeader}>
                   <View style={[styles.statusDot, { backgroundColor: color }]} />
-                  <Text style={styles.historyStatusText}>{String(h?.status || '').replaceAll('_',' ')}</Text>
+                  <Text style={styles.historyStatusText}>
+                    {String(h?.status || '').replaceAll('_', ' ')}
+                  </Text>
                   {isLatest ? <Text style={styles.latestBadge}>Latest</Text> : null}
+                  {!isLatest ? (
+                    <TouchableOpacity
+                      onPress={() => onDeleteHistory(i)}
+                      style={styles.deleteHistoryBtn}
+                      hitSlop={8}
+                    >
+                      <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
-                <Text style={styles.historyTimestamp}>{dateStr} · {timeStr}</Text>
-
-                <View style={styles.statusPillsRow}>
-                  {ORDER_STATUS_VALUES.map((s) => {
-                    const active = String(h?.status) === s;
-                    return (
-                      <TouchableOpacity key={`${i}-${s}`} onPress={() => onChangeHistory(i, 'status', s)} style={[styles.statusPill, active && styles.statusPillActive]}>
-                        <Text style={[styles.statusPillText, active && styles.statusPillTextActive]}>{s.replaceAll('_',' ')}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                <Text style={styles.meta}>Timestamp <Text style={styles.keyPathInline}> (orderHistory[{i}].timestamp)</Text></Text>
-                <TextInput value={String(h?.timestamp ?? '')} onChangeText={(t) => onChangeHistory(i, 'timestamp', t)} style={styles.input} />
-
-                <TouchableOpacity onPress={() => onDeleteHistory(i)} style={[styles.removeBtn, { alignSelf: 'flex-start', position: 'relative', right: 0, top: 0 }]}>
-                  <Text style={styles.removeText}>Remove</Text>
-                </TouchableOpacity>
+                <Text style={styles.historyTimestamp}>
+                  {dateStr} · {timeStr}
+                </Text>
               </View>
             );
           })}
         </DetailSection>
 
-        {/* Transaction Data */}
-        <DetailSection title="Transaction">
-          <Field label="Method" path="transactionData.method">
-            <TextInput value={String(draft.transactionData?.method ?? '')} onChangeText={(t) => onChange(['transactionData','method'], t)} style={styles.input} />
+        {/* Address */}
+        <DetailSection title="Delivery address">
+          <Field label="Name">
+            <TextInput
+              value={String(draft.addressData?.name ?? '')}
+              onChangeText={(t) => onChange(['addressData', 'name'], t)}
+              style={styles.input}
+            />
           </Field>
-          <Field label="Amount (₹)" path="transactionData.amount">
-            <TextInput keyboardType="numeric" value={String(draft.transactionData?.amount ?? '')} onChangeText={(t) => onChange(['transactionData','amount'], t)} style={styles.input} />
+          <Field label="Phone">
+            <TextInput
+              keyboardType="phone-pad"
+              value={String(draft.addressData?.phone ?? '')}
+              onChangeText={(t) => onChange(['addressData', 'phone'], t)}
+              style={styles.input}
+            />
           </Field>
-          <Field label="Currency" path="transactionData.currency">
-            <TextInput value={String(draft.transactionData?.currency ?? '')} onChangeText={(t) => onChange(['transactionData','currency'], t)} style={styles.input} />
+          <Field label="Address">
+            <TextInput
+              multiline
+              value={String(draft.addressData?.address ?? '')}
+              onChangeText={(t) => onChange(['addressData', 'address'], t)}
+              style={[styles.input, styles.textArea]}
+            />
           </Field>
-        </DetailSection>
-
-        {/* Address Data */}
-        <DetailSection title="Address">
-          <Field label="Name" path="addressData.name">
-            <TextInput value={String(draft.addressData?.name ?? '')} onChangeText={(t) => onChange(['addressData','name'], t)} style={styles.input} />
-          </Field>
-          <Field label="Phone" path="addressData.phone">
-            <TextInput keyboardType="phone-pad" value={String(draft.addressData?.phone ?? '')} onChangeText={(t) => onChange(['addressData','phone'], t)} style={styles.input} />
-          </Field>
-          <Field label="Address" path="addressData.address">
-            <TextInput multiline value={String(draft.addressData?.address ?? '')} onChangeText={(t) => onChange(['addressData','address'], t)} style={[styles.input, { height: 80 }]} />
-          </Field>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={styles.row2}>
             <View style={{ flex: 1 }}>
-              <Field label="Latitude" path="addressData.latitude">
-                <TextInput keyboardType="numeric" value={String(draft.addressData?.latitude ?? '')} onChangeText={(t) => onChange(['addressData','latitude'], Number(t))} style={styles.input} />
+              <Field label="Latitude">
+                <TextInput
+                  keyboardType="numeric"
+                  value={String(draft.addressData?.latitude ?? '')}
+                  onChangeText={(t) => onChange(['addressData', 'latitude'], Number(t))}
+                  style={styles.input}
+                />
               </Field>
             </View>
             <View style={{ flex: 1 }}>
-              <Field label="Longitude" path="addressData.longitude">
-                <TextInput keyboardType="numeric" value={String(draft.addressData?.longitude ?? '')} onChangeText={(t) => onChange(['addressData','longitude'], Number(t))} style={styles.input} />
+              <Field label="Longitude">
+                <TextInput
+                  keyboardType="numeric"
+                  value={String(draft.addressData?.longitude ?? '')}
+                  onChangeText={(t) => onChange(['addressData', 'longitude'], Number(t))}
+                  style={styles.input}
+                />
               </Field>
             </View>
           </View>
         </DetailSection>
 
-        {/* Cart Data (editable quantities and prices) */}
-        <View style={styles.card}>
-          <Text style={styles.section}>Cart</Text>
-          {(Array.isArray((draft as any)?.cartData?.cart?.items) ? (draft as any).cartData.cart.items : []).map((it: any, idx: number) => {
+        {/* Cart */}
+        <DetailSection
+          title="Cart items"
+          subtitle={`${draft.totalProductCount ?? cartItems.length} items · ${cartItems.length} products`}
+        >
+          {cartItems.map((it, idx) => {
             const dPrice = Number(it.productDetails?.discountedPrice ?? 0);
             const qty = Number(it.quantity ?? 0);
             const lineTotal = (isNaN(dPrice) ? 0 : dPrice) * (isNaN(qty) ? 0 : qty);
             return (
               <View key={`${it.productId}-${idx}`} style={styles.cartItemCard}>
-                <View style={styles.headerRow}>
+                <View style={styles.cartHeader}>
                   {it.productDetails?.image ? (
-                    <Image source={{ uri: String(it.productDetails.image) }} style={styles.thumb} />
-                  ) : null}
+                    <Image
+                      source={{ uri: String(it.productDetails.image) }}
+                      style={styles.thumb}
+                    />
+                  ) : (
+                    <View style={[styles.thumb, styles.thumbPlaceholder]}>
+                      <Ionicons name="cube-outline" size={20} color="#94A3B8" />
+                    </View>
+                  )}
                   <View style={{ flex: 1 }}>
                     <Text style={styles.itemTitle}>{it.productDetails?.name}</Text>
                     <View style={styles.priceRow}>
-                      <Text style={styles.discountedPrice}>₹{it.productDetails?.discountedPrice}</Text>
-                      {typeof it.productDetails?.price === 'number' && it.productDetails?.price > (it.productDetails?.discountedPrice ?? 0) ? (
-                        <Text style={styles.originalPrice}>₹{it.productDetails?.price}</Text>
+                      <Text style={styles.discountedPrice}>
+                        ₹{it.productDetails?.discountedPrice}
+                      </Text>
+                      {typeof it.productDetails?.price === 'number' &&
+                      it.productDetails.price >
+                        (it.productDetails?.discountedPrice ?? 0) ? (
+                        <Text style={styles.originalPrice}>₹{it.productDetails.price}</Text>
                       ) : null}
                       {it.productDetails?.size ? (
-                        <Text style={styles.sizeText}> · {it.productDetails?.size}</Text>
+                        <Text style={styles.sizeText}> · {it.productDetails.size}</Text>
                       ) : null}
                     </View>
-                    <Text style={styles.lineTotal}>Line Total: ₹{lineTotal.toFixed(2)}</Text>
+                    <Text style={styles.lineTotal}>Line total: ₹{lineTotal.toFixed(2)}</Text>
                   </View>
+                  <TouchableOpacity
+                    onPress={() => onRemoveItem(idx)}
+                    style={styles.removeBtn}
+                    hitSlop={8}
+                  >
+                    <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={() => onRemoveItem(idx)} style={styles.removeBtn}>
-                  <Text style={styles.removeText}>Remove</Text>
-                </TouchableOpacity>
 
                 <View style={styles.inputsRow}>
                   <View style={styles.inputCol}>
-                    <Text style={styles.meta}>Qty <Text style={styles.keyPathInline}> (cartData.cart.items[{idx}].quantity)</Text></Text>
+                    <Text style={styles.inputLabel}>Qty</Text>
                     <TextInput
                       keyboardType="number-pad"
                       value={String(it.quantity)}
                       onChangeText={(t) => {
                         const n = Math.max(0, parseInt(t || '0', 10));
-                        onChange(['cartData','cart','items', String(idx), 'quantity'] as any, isNaN(n) ? 0 : n);
+                        onChange(
+                          ['cartData', 'cart', 'items', String(idx), 'quantity'],
+                          isNaN(n) ? 0 : n,
+                        );
                       }}
                       style={styles.input}
                     />
                   </View>
                   <View style={styles.inputCol}>
-                    <Text style={styles.meta}>Disc. Price <Text style={styles.keyPathInline}> (cartData.cart.items[{idx}].productDetails.discountedPrice)</Text></Text>
+                    <Text style={styles.inputLabel}>Disc. price</Text>
                     <TextInput
                       keyboardType="decimal-pad"
                       value={String(it.productDetails?.discountedPrice ?? '')}
                       onChangeText={(t) => {
                         const val = parseFloat(t || '0');
-                        onChange(['cartData','cart','items', String(idx), 'productDetails', 'discountedPrice'] as any, isNaN(val) ? 0 : val);
+                        onChange(
+                          [
+                            'cartData',
+                            'cart',
+                            'items',
+                            String(idx),
+                            'productDetails',
+                            'discountedPrice',
+                          ],
+                          isNaN(val) ? 0 : val,
+                        );
                       }}
                       style={styles.input}
                     />
                   </View>
                   <View style={styles.inputCol}>
-                    <Text style={styles.meta}>Price <Text style={styles.keyPathInline}> (cartData.cart.items[{idx}].productDetails.price)</Text></Text>
+                    <Text style={styles.inputLabel}>MRP</Text>
                     <TextInput
                       keyboardType="decimal-pad"
                       value={String(it.productDetails?.price ?? '')}
                       onChangeText={(t) => {
                         const val = parseFloat(t || '0');
-                        onChange(['cartData','cart','items', String(idx), 'productDetails', 'price'] as any, isNaN(val) ? 0 : val);
+                        onChange(
+                          [
+                            'cartData',
+                            'cart',
+                            'items',
+                            String(idx),
+                            'productDetails',
+                            'price',
+                          ],
+                          isNaN(val) ? 0 : val,
+                        );
                       }}
                       style={styles.input}
                     />
@@ -377,95 +483,233 @@ const OrderDetailScreen = () => {
               </View>
             );
           })}
-        </View>
+        </DetailSection>
 
-        <View style={{ height: 16 }} />
-
-        {/* Computed totals (read-only) */}
-        <View style={styles.card}>
-          <Text style={styles.section}>Computed Totals</Text>
-          <Field label="Product Count" path="productCount">
-            <Text style={styles.valueText}>{Number((draft as any)?.productCount ?? 0)}</Text>
+        {/* Payment details */}
+        <DetailSection title="Payment details">
+          <Field label="Method">
+            <TextInput
+              value={String(draft.transactionData?.method ?? '')}
+              onChangeText={(t) => onChange(['transactionData', 'method'], t)}
+              style={styles.input}
+            />
           </Field>
-          <Field label="Total Product Count" path="totalProductCount">
-            <Text style={styles.valueText}>{Number((draft as any)?.totalProductCount ?? 0)}</Text>
+          <Field label="Amount (₹)">
+            <TextInput
+              keyboardType="numeric"
+              value={String(draft.transactionData?.amount ?? '')}
+              onChangeText={(t) => onChange(['transactionData', 'amount'], t)}
+              style={styles.input}
+            />
           </Field>
-        </View>
+          <Field label="Currency">
+            <TextInput
+              value={String(draft.transactionData?.currency ?? '')}
+              onChangeText={(t) => onChange(['transactionData', 'currency'], t)}
+              style={styles.input}
+            />
+          </Field>
+        </DetailSection>
 
-        <TouchableOpacity style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]} onPress={onSave} disabled={isSaving}>
-          {isSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Save Changes</Text>}
-        </TouchableOpacity>
-
-        <View style={{ height: 40 }} />
+        <View style={{ height: 88 }} />
       </ScrollView>
-    </SafeAreaView>
+
+      <View style={styles.saveBar}>
+        <TouchableOpacity
+          style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]}
+          onPress={onSave}
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+              <Text style={styles.saveText}>Save changes</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+    </AdminScreen>
   );
 };
 
 export default OrderDetailScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 8, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  backBtn: { paddingVertical: 6, paddingRight: 8, paddingLeft: 0 },
-  backText: { fontSize: 16, color: '#007AFF', fontWeight: '600' },
-  title: { fontSize: 18, fontWeight: '700' },
-  subtitle: { marginTop: 4, color: '#444' },
-  card: { marginTop: 12, padding: 12, borderRadius: 8, backgroundColor: '#f8f8f8' },
-  section: { fontWeight: '700', marginBottom: 8 },
-  label: { fontSize: 12, color: '#666', marginBottom: 6 },
-  keyPath: { fontFamily: 'Menlo', fontSize: 11, color: '#999' },
-  keyPathInline: { fontFamily: 'Menlo', fontSize: 11, color: '#999' },
-  input: { borderWidth: 1, borderColor: '#e1e1e1', borderRadius: 8, paddingHorizontal: 10, height: 38, backgroundColor: '#fff' },
-  cartRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  cartItemCard: { borderWidth: 1, borderColor: '#eee', borderRadius: 8, padding: 10, marginBottom: 10, backgroundColor: '#fff' },
-  headerRow: { flexDirection: 'row', gap: 10 },
-  thumb: { width: 56, height: 56, borderRadius: 8, backgroundColor: '#f0f0f0' },
-  inputsRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
-  inputCol: { flex: 1 },
-  itemTitle: { fontWeight: '600' },
-  meta: { color: '#555', marginTop: 2, fontSize: 12 },
-  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
-  discountedPrice: { fontWeight: '700', color: '#111' },
-  originalPrice: { color: '#777', textDecorationLine: 'line-through' },
-  sizeText: { color: '#555' },
-  lineTotal: { marginTop: 6, fontWeight: '600', color: '#111' },
-  saveBtn: { backgroundColor: '#222', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
-  saveBtnDisabled: { opacity: 0.6 },
-  saveText: { color: '#fff', fontWeight: '700' },
-  removeBtn: { position: 'absolute', right: 10, top: 10, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6, backgroundColor: '#ffecec' },
-  removeText: { color: '#d11a2a', fontWeight: '600', fontSize: 12 },
-  valueText: { fontWeight: '700', color: '#111', fontSize: 14 },
-  statusPillsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
-  statusPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: '#f0f0f0' },
-  statusPillActive: { backgroundColor: '#222' },
-  statusPillText: { fontSize: 12, color: '#222', textTransform: 'capitalize' },
-  statusPillTextActive: { color: '#fff' },
-  historyRow: { borderWidth: 1, borderColor: '#eee', borderRadius: 8, padding: 10, marginTop: 10, backgroundColor: '#fff' },
-  addBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: '#e8f5e9' },
-  addText: { color: '#2e7d32', fontWeight: '600' },
-  historyHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  statusDot: { width: 8, height: 8, borderRadius: 999 },
-  historyStatusText: { fontWeight: '700', textTransform: 'capitalize' },
-  latestBadge: { marginLeft: 8, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: '#eef2ff', color: '#3730a3', fontSize: 11, fontWeight: '700' },
-  historyTimestamp: { marginTop: 4, color: '#666', fontSize: 12 },
-  historyRowLatest: { borderColor: '#c7d2fe', backgroundColor: '#f5f7ff' },
-  loadingOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.09)',
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  scrollContent: { padding: 16, paddingBottom: 0 },
+  centerState: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1000,
   },
-  loadingText: {
-    marginTop: 8,
-    color: '#111',
+  centerStateText: {
+    marginTop: 10,
+    color: '#64748B',
     fontWeight: '600',
   },
+  summaryCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 12,
+  },
+  summaryTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  summaryName: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  summaryMeta: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#64748B',
+  },
+  callRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+  },
+  callText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.light.darkGreen,
+  },
+  statusPillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  statusPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  statusPillActive: {
+    backgroundColor: Colors.light.darkGreen,
+    borderColor: Colors.light.darkGreen,
+  },
+  statusPillText: {
+    fontSize: 12,
+    color: '#475569',
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  statusPillTextActive: { color: '#fff' },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F0FDF4',
+    marginBottom: 8,
+  },
+  addText: {
+    color: Colors.light.darkGreen,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  historyRow: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    backgroundColor: '#F8FAFC',
+  },
+  historyRowLatest: {
+    borderColor: '#BBF7D0',
+    backgroundColor: '#F0FDF4',
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusDot: { width: 8, height: 8, borderRadius: 999 },
+  historyStatusText: {
+    fontWeight: '700',
+    textTransform: 'capitalize',
+    color: '#111827',
+    flex: 1,
+  },
+  latestBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: '#DCFCE7',
+    color: Colors.light.darkGreen,
+    fontSize: 10,
+    fontWeight: '800',
+    overflow: 'hidden',
+  },
+  historyTimestamp: { marginTop: 4, color: '#64748B', fontSize: 12 },
+  deleteHistoryBtn: { marginLeft: 'auto' },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 42,
+    backgroundColor: '#F8FAFC',
+    fontSize: 14,
+    color: '#111827',
+  },
+  textArea: { height: 80, paddingTop: 10, textAlignVertical: 'top' },
+  row2: { flexDirection: 'row', gap: 10 },
+  cartItemCard: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    backgroundColor: '#F8FAFC',
+  },
+  cartHeader: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  thumb: { width: 52, height: 52, borderRadius: 10, backgroundColor: '#E2E8F0' },
+  thumbPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  itemTitle: { fontWeight: '700', color: '#111827', fontSize: 14 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  discountedPrice: { fontWeight: '700', color: '#111827' },
+  originalPrice: { color: '#94A3B8', textDecorationLine: 'line-through', fontSize: 12 },
+  sizeText: { color: '#64748B', fontSize: 12 },
+  lineTotal: { marginTop: 4, fontWeight: '600', color: '#475569', fontSize: 12 },
+  removeBtn: { padding: 4 },
+  inputsRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  inputCol: { flex: 1 },
+  inputLabel: { fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: '600' },
+  saveBar: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 16,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  saveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.light.darkGreen,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  saveBtnDisabled: { opacity: 0.6 },
+  saveText: { color: '#fff', fontWeight: '800', fontSize: 15 },
 });
-
-

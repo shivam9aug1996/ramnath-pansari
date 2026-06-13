@@ -25,6 +25,7 @@ import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
 import Animated, {
   Easing,
+  SharedValue,
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
@@ -32,7 +33,6 @@ import WebView from "react-native-webview";
 import Toast from "react-native-toast-message";
 import { toastConfig } from "@/app/toastconfig";
 import DeferredFadeIn from "./DeferredFadeIn";
-import DeliveryNotificationBanner from "./DeliveryNotificationBanner";
 import WeatherSection from "./WeatherSection/WeatherSection";
 import { LinearGradient } from "expo-linear-gradient";
 import GrientBackground from "./GrientBackground";
@@ -48,7 +48,7 @@ interface ScreenSafeWrapperProps {
   showSearchIcon?: boolean;
   wrapperStyle?: StyleProp<ViewStyle>;
   headerStyle?: StyleProp<ViewStyle>;
-  headerVisible?: boolean;
+  headerVisible?: SharedValue<number>;
   cartItems?: number;
   showWeatherSection?: boolean;
   showGradient?: boolean;
@@ -68,7 +68,7 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
   showGradient = false,
   showCartItemsCount = false,
 }) => {
-  console.log("uytrf5698765434567890ghjk", showCartIcon);
+  //console.log("uytrf5698765434567890ghjk", showCartIcon);
   const WrapperComponent = useKeyboardAvoidingView
     ? KeyboardAvoidingView
     : View;
@@ -88,7 +88,7 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
       ],
     };
   });
-   console.log("9876trdf4567890-ghj");
+  // console.log("9876trdf4567890-ghj");
   return (
     <>
       <SafeAreaView style={[styles.container, wrapperStyle]}>
@@ -164,8 +164,6 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
           {children}
         </WrapperComponent>
       </SafeAreaView>
-      {/* <DeliveryNotificationBanner  onClose={() => {}}  /> */}
-
       {/* <GoToCart /> */}
     </>
   );

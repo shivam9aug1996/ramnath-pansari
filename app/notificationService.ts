@@ -32,5 +32,10 @@ export const setupNotifications = () => {
     }
   );
 
-  Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
+  Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK).catch((error) => {
+    console.warn(
+      "Background notification task not registered. Rebuild the native app after enabling enableBackgroundRemoteNotifications in app.json.",
+      error
+    );
+  });
 }; 

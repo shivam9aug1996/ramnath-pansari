@@ -1,5 +1,6 @@
-import { Animated, StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import React from "react";
+import { StyleSheet } from "react-native";
 import { ThemedText } from "./ThemedText";
 import { useFetchCartQuery } from "@/redux/features/cartSlice";
 import { useSelector } from "react-redux";

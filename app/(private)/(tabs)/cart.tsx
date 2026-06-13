@@ -1,7 +1,7 @@
 import { Platform, StyleSheet, Text, View } from "react-native";
 import React, { lazy, Suspense, useMemo } from "react";
 import Cart from "@/components/cart/Cart";
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { useBottomTabBarHeight } from "expo-router/build/react-navigation/bottom-tabs";
 
 const cart = () => {
   let tabBarHeight = useBottomTabBarHeight();

@@ -1,4 +1,5 @@
 import { calculateTotalAmount } from "@/components/cart/utils";
+import { getPayableTotalFromItems } from "@/utils/deliveryFee";
 import { createSlice } from "@reduxjs/toolkit";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { baseUrl } from "../constants";
@@ -278,12 +279,10 @@ const cartSlice = createSlice({
       cartApi.endpoints.fetchCart.matchFulfilled,
       (state, action) => {
         state.cartFetching = false;
-        state.totalAmount = `₹${calculateTotalAmount(
-          action?.payload?.cart?.items
-        )?.toFixed(2)}`;
-        state.totalAmountInNumber = calculateTotalAmount(
-          action?.payload?.cart?.items
-        )?.toFixed(2);
+        const items = action?.payload?.cart?.items ?? [];
+        const payableTotal = getPayableTotalFromItems(items);
+        state.totalAmount = `₹${payableTotal.toFixed(2)}`;
+        state.totalAmountInNumber = payableTotal;
       }
     );
     builder.addMatcher(

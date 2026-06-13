@@ -5,18 +5,32 @@ import {
   Text,
   TouchableOpacity,
   GestureResponderEvent,
+  ActivityIndicator,
 } from "react-native";
 import { formatNumber } from "@/utils/utils";
 import { Product, ProductItemProps } from "@/types/global";
 import { router } from "expo-router";
 import CartButton from "./CartButton";
 import ProductImage from "./ProductImage";
+import { Colors } from "@/constants/Colors";
+import {
+  getProductColumnStyle,
+  PRODUCT_CARD_HEIGHT,
+  PRODUCT_ITEM_MARGIN_BOTTOM,
+} from "./productListLayout";
 
-const ProductItem = ({ item, index, quantity }: ProductItemProps) => {
+const ProductItem = ({
+  item,
+  index,
+  quantity,
+  isVisible,
+}: ProductItemProps) => {
   const discountPercentage = useMemo(() => {
     const nDiscountP = ((item.price - item.discountedPrice) / item.price) * 100;
     return Math.round(nDiscountP);
   }, [item.price, item.discountedPrice]);
+
+   console.log("item3456785678990987654", index);
 
   const handleProductPress = useCallback(
     (e: GestureResponderEvent) => {
@@ -33,29 +47,33 @@ const ProductItem = ({ item, index, quantity }: ProductItemProps) => {
   );
 
   const containerStyle = useMemo(
-    () => [
-      styles.container,
-      {
-        marginRight: index % 2 === 0 ? 4 : 0,
-        marginLeft: index % 2 === 0 ? 0 : 4,
-      },
-    ],
+    () => [styles.container, getProductColumnStyle(index)],
     [index]
   );
-  console.log("item3456785678990987654", quantity);
+  // console.log("item3456785678990987654", quantity);
 
   return (
     <View style={containerStyle}>
       <View style={styles.productCard}>
         <View style={styles.imageContainer}>
-          <ProductImageInfo
-            item={item}
-            handleProductPress={handleProductPress}
-          />
-          <CartButton value={quantity || 0} item={item} />
+          {isVisible ? (
+            <>
+              <ProductImageInfo
+                item={item}
+                handleProductPress={handleProductPress}
+              />
+              <CartButton value={quantity || 0} item={item} />
+            </>
+          ) : (
+           <></>
+          )}
         </View>
 
-        <ProductInfo  handleProductPress={handleProductPress} item={item} discountPercentage={discountPercentage} />
+        <ProductInfo
+          handleProductPress={handleProductPress}
+          item={item}
+          discountPercentage={discountPercentage}
+        />
       </View>
     </View>
   );
@@ -71,6 +89,7 @@ const ProductImageInfo = memo(
     item: Product;
     handleProductPress: any;
   }) => {
+    console.log("item1234567890-",item)
     return (
       <TouchableOpacity
         onPress={handleProductPress}
@@ -92,7 +111,6 @@ const ProductInfo = memo(
     discountPercentage: number;
     handleProductPress: any;
   }) => {
-    
     return (
       <TouchableOpacity onPress={handleProductPress} style={styles.productInfo}>
         <Text style={styles.productName} numberOfLines={3}>
@@ -121,13 +139,15 @@ const ProductInfo = memo(
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: "50%",
+    marginBottom: PRODUCT_ITEM_MARGIN_BOTTOM,
     maxWidth: "50%",
-    marginBottom: 8,
   },
   productCard: {
     backgroundColor: "#ffffff",
     borderRadius: 12,
     overflow: "hidden",
+    height: PRODUCT_CARD_HEIGHT,
   },
   imageContainer: {
     position: "relative",

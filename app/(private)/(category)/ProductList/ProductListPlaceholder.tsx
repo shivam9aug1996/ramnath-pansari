@@ -1,77 +1,78 @@
-import { FlatList, Platform, StyleSheet, Text, View } from "react-native";
-import React, { memo, useRef } from "react";
-import { productPlaceholderData } from "./utils";
-import { Product } from "@/types/global";
-import { Colors } from "@/constants/Colors";
+import { FlatList, Platform, StyleSheet, View } from "react-native";
+import React, { memo } from "react";
 import ContentLoader, { Rect } from "react-content-loader/native";
+import {
+  getProductColumnStyle,
+  PRODUCT_CARD_HEIGHT,
+  PRODUCT_ITEM_MARGIN_BOTTOM,
+  PRODUCT_LIST_MARGIN_TOP,
+  PRODUCT_LIST_PADDING_BOTTOM,
+  PRODUCT_LIST_PADDING_TOP,
+  PRODUCT_SKELETON_COUNT,
+} from "./productListLayout";
 
-const renderImageLoader = () => {
-  return (
-    <ContentLoader
-      speed={1}
-      height={120}
-      width={"100%"}
-      backgroundColor="#f3f3f3"
-      foregroundColor="#e3e3e3"
-      style={{ marginBottom: 10 }}
-    >
-      <Rect rx={5} ry={5} width="100%" height="135" />
-    </ContentLoader>
-  );
-};
+const LoaderBlock = ({
+  width = "100%",
+  height = 13,
+}: {
+  width?: number | string;
+  height?: number;
+}) => (
+  <ContentLoader
+    speed={1}
+    width={width}
+    height={height}
+    backgroundColor="#f3f3f3"
+    foregroundColor="#e3e3e3"
+  >
+    <Rect width={width} y={0} rx={5} ry={5} height={height} />
+  </ContentLoader>
+);
 
-const renderText = () => {
-  return (
-    <ContentLoader
-      speed={1}
-      width={70}
-      height={80}
-      backgroundColor="#f3f3f3"
-      foregroundColor="#e3e3e3"
-    >
-      <Rect width="70" y={0} rx={5} ry={5} height="20" />
-      <Rect width="40" y={35} rx={5} ry={5} height="20" />
-    </ContentLoader>
-  );
-};
+const ProductItemSkeleton = ({ index }: { index: number }) => (
+  <View style={[styles.container, getProductColumnStyle(index)]}>
+    <View style={styles.productCard}>
+      <View style={styles.imageContainer}>
+        <View style={styles.imageSkeleton} />
+        <View style={styles.cartButtonSkeleton} />
+      </View>
 
-const ProductsPlaceholder = ({ wrapperStyle = {} }) => {
-  const renderProductItem = ({
-    item,
-    index,
-  }: {
-    item: Product;
-    index: number;
-  }) => {
-    return (
-      <View
-        key={index}
-        style={[
-          styles.container,
-          {
-            marginRight: index % 2 === 0 ? 17 : 0,
-          },
-        ]}
-      >
-        <View style={{ padding: 17 }}>
-          <View>
-            {renderImageLoader()}
-            {renderText()}
-          </View>
+      <View style={styles.productInfo}>
+        <View style={styles.nameSkeleton}>
+          <LoaderBlock width="95%" height={13} />
+          <LoaderBlock width="80%" height={13} />
+          <LoaderBlock width="60%" height={13} />
+        </View>
+        <LoaderBlock width="45%" height={12} />
+        <View style={styles.priceSkeleton}>
+          <LoaderBlock width="55%" height={16} />
+          <LoaderBlock width="45%" height={12} />
         </View>
       </View>
-    );
-  };
+    </View>
+  </View>
+);
 
+const ProductsPlaceholder = ({
+  wrapperStyle = {},
+  contentContainerStyle = {},
+}: {
+  wrapperStyle?: object;
+  contentContainerStyle?: object;
+}) => {
   return (
     <FlatList
-    bounces={Platform.OS === "android" ? false : true}
+      bounces={Platform.OS === "android" ? false : true}
       showsVerticalScrollIndicator={false}
       numColumns={2}
-      data={productPlaceholderData}
+      data={Array.from({ length: PRODUCT_SKELETON_COUNT }, (_, index) => ({
+        _id: String(index + 1),
+      }))}
       keyExtractor={(item) => item._id}
-      renderItem={renderProductItem}
-      style={[styles.flatList, wrapperStyle]}
+      renderItem={({ index }) => <ProductItemSkeleton index={index} />}
+      style={[styles.list, wrapperStyle]}
+      contentContainerStyle={[styles.contentContainer, contentContainerStyle]}
+      scrollEnabled={false}
     />
   );
 };
@@ -79,31 +80,58 @@ const ProductsPlaceholder = ({ wrapperStyle = {} }) => {
 export default memo(ProductsPlaceholder);
 
 const styles = StyleSheet.create({
-  flatList: {
-    overflow: "hidden",
-    //marginBottom: 60,
-    marginTop: 10,
+  list: {
+    marginTop: PRODUCT_LIST_MARGIN_TOP,
+  },
+  contentContainer: {
+    paddingTop: PRODUCT_LIST_PADDING_TOP,
+    paddingBottom: PRODUCT_LIST_PADDING_BOTTOM,
   },
   container: {
-    backgroundColor: "#F1F4F3",
-    borderRadius: 28,
-    flex: 1 / 2,
-    marginBottom: 20,
+    flex: 1,
+    width: "50%",
+    marginBottom: PRODUCT_ITEM_MARGIN_BOTTOM,
+    maxWidth: "50%",
+  },
+  productCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    overflow: "hidden",
+    height: PRODUCT_CARD_HEIGHT,
+  },
+  imageContainer: {
     position: "relative",
-    minHeight: 250,
+    aspectRatio: 1,
+    backgroundColor: "#fafafa",
   },
-  image: {
-    height: 120,
-    // marginBottom: 10,
+  imageSkeleton: {
+    flex: 1,
+    margin: 8,
+    borderRadius: 8,
+    backgroundColor: "#f3f3f3",
   },
-  productName: {
-    fontSize: 14,
-    maxWidth: 70,
+  cartButtonSkeleton: {
+    position: "absolute",
+    bottom: 8,
+    left: 8,
+    right: 8,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#f0f0f0",
   },
-  productPrice: {
-    fontSize: 14,
-    fontFamily: "Montserrat_600SemiBold",
-    color: Colors.light.lightGreen,
-    marginTop: 8,
+  productInfo: {
+    padding: 8,
+    gap: 4,
+  },
+  nameSkeleton: {
+    minHeight: 48,
+    gap: 3,
+    marginBottom: 2,
+  },
+  priceSkeleton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 2,
   },
 });

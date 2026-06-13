@@ -6,17 +6,17 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
+import Animated, { AnimatedRef, scrollTo } from "react-native-reanimated";
 import { useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import { ThemedText } from "@/components/ThemedText";
 import { Image } from "expo-image";
-import { router } from "expo-router";
+import { router, useIsFocused } from "expo-router";
 import { Colors } from "@/constants/Colors";
-import { useIsFocused } from "@react-navigation/native";
 
 type Props = {
   filterProductIds?: string[];
-  scrollRef?: React.RefObject<ScrollView>;
+  scrollRef?: React.RefObject<ScrollView | null> | AnimatedRef<Animated.ScrollView>;
   variant?: "default" | "compact";
 };
 
@@ -46,12 +46,14 @@ useEffect(()=>{
   }
 },[recentlyViewed])
 
-useEffect(()=>{
-  if(localRecentlyViewed?.length>0){
-    scrollRef?.current?.scrollTo({ y: 0, animated: true });
+useEffect(() => {
+  if (localRecentlyViewed?.length > 0) {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    if (scrollRef) {
+      scrollTo(scrollRef, 0, 0, true);
+    }
   }
-},[localRecentlyViewed])
+}, [localRecentlyViewed, scrollRef]);
 
 // useEffect(() => {
 //   if (isFocused) {
@@ -163,6 +165,7 @@ const styles = StyleSheet.create({
   },
   compactContainer: {
     marginVertical: 12,
+    paddingVertical:12,
   },
   title: {
     fontSize: 24,
@@ -175,8 +178,9 @@ const styles = StyleSheet.create({
   },
   compactTitle: {
     fontSize: 18,
-    marginBottom: 12,
+    marginBottom: 24,
     paddingHorizontal: 16,
+    marginTop:12
   },
   listContent: {
     paddingHorizontal: 16,

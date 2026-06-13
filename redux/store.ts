@@ -8,6 +8,9 @@ import khataSlice, { khataApi } from "./features/khataSlice";
 import orderSlice, { orderApi } from "./features/orderSlice";
 import productSlice, { productApi } from "./features/productSlice";
 import adminOrderSlice, { adminOrderApi } from "./features/adminOrderSlice";
+import adminCategorySlice, { adminCategoryApi } from "./features/adminCategorySlice";
+import adminProductSlice, { adminProductApi } from "./features/adminProductSlice";
+import adminUserSlice, { adminUserApi } from "./features/adminUserSlice";
 import recentSearchSlice, {
   recentSearchApi,
 } from "./features/recentSearchSlice";
@@ -39,6 +42,12 @@ const store = configureStore({
     [orderApi.reducerPath]: orderApi.reducer,
     adminOrder: adminOrderSlice,
     [adminOrderApi.reducerPath]: adminOrderApi.reducer,
+    adminCategory: adminCategorySlice,
+    [adminCategoryApi.reducerPath]: adminCategoryApi.reducer,
+    adminProduct: adminProductSlice,
+    [adminProductApi.reducerPath]: adminProductApi.reducer,
+    adminUser: adminUserSlice,
+    [adminUserApi.reducerPath]: adminUserApi.reducer,
     khata: khataSlice,
     [khataApi.reducerPath]: khataApi.reducer,
     recentlyViewed: recentlyViewedSlice,
@@ -56,6 +65,9 @@ const store = configureStore({
       .concat(addressApi.middleware)
       .concat(orderApi.middleware)
       .concat(adminOrderApi.middleware)
+      .concat(adminCategoryApi.middleware)
+      .concat(adminProductApi.middleware)
+      .concat(adminUserApi.middleware)
       .concat(khataApi.middleware)
       .concat(asyncStorageMiddleware)
       .concat(handle401Middleware)

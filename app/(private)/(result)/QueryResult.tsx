@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -39,6 +39,7 @@ import {
 import { addSearchQuery } from "@/redux/features/recentlyViewedSlice";
 import useResultStageLoad from "@/hooks/useResultStageLoad";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
+import ProductItemWrapper from "../(category)/ProductList/ProductItemWrapper";
 
 const QueryResult = ({query}:{query:string}) => {
  
@@ -47,6 +48,24 @@ const QueryResult = ({query}:{query:string}) => {
     (state: RootState) => state.product?.resetPagination
   );
   const [fetchRecentSearch] = useLazyFetchRecentSearchQuery();
+  const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
+  const visibleIdsRef = useRef(visibleIds);
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const visibleNow = new Set<string>();
+      viewableItems.forEach((v) => {
+        const id = v?.item?._id;
+        if (typeof id === "string" && id.length) visibleNow.add(id);
+      });
+      setVisibleIds(visibleNow);
+    }
+  ).current;
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 1, // consider visible when 20% is on screen
+    waitForInteraction: false,
+  }).current;
+  visibleIdsRef.current = visibleIds;
 
   const [page, setPage] = useState(1);
   const dispatch = useDispatch();
@@ -118,27 +137,57 @@ const QueryResult = ({query}:{query:string}) => {
   // Handlers
   const fetchNextPage = () => setPage((prev) => prev + 1);
 
-  const renderProductItem = ({
-    item,
-    index,
-  }: {
-    item: Product;
-    index: number;
-  }) => {
-    const cartItem = cartData?.cart?.items?.find(
-      (cartItem: CartItem) => cartItem.productId === item._id
-    );
+  const cartItemsMap = useMemo(() => {
+    // console.log("cartDatashivam---------->");
+     const map: Record<string, CartItem> = {};
+     (cartData?.cart?.items || []).forEach((it) => {
+       map[it.productId] = it;
+     });
+     return map;
+   }, [cartData?.cart?.items]);
 
-    return (
-      <ProductItem
-        key={item?._id || index}
-        index={index}
-        key={index}
-        cartItem={cartItem}
-        item={item}
-      />
-    );
-  };
+  // const renderProductItem = ({
+  //   item,
+  //   index,
+  // }: {
+  //   item: Product;
+  //   index: number;
+  // }) => {
+  //   console.log("cartData1234567890-",JSON.stringify(cartData))
+  //   // const cartItem = cartData?.cart?.items?.find(
+  //   //   (cartItem: CartItem) => cartItem?.productId === item._id
+  //   // );
+  //   const cartItem = cartItemsMap[item._id];
+  //     const isVisible = visibleIds.has(item._id);
+  //   // console.log("item1234567899870-",item)
+  //   // console.log("cartItem19876234567890-",cartItem)
+  //   return (
+  //     <ProductItem
+  //       key={item?._id || index}
+  //       index={index}
+  //       key={index}
+  //       cartItem={cartItem}
+  //       item={item}
+  //     />
+  //   );
+  // };
+
+
+  const renderProductItem = useCallback(
+    ({ item, index }: { item: Product; index: number }) => {
+      const cartItem = cartItemsMap[item._id];
+      const isVisible = visibleIds.has(item._id);
+      return (
+        <ProductItemWrapper
+          item={item}
+          index={index}
+          quantity={cartItem?.quantity ?? 0}
+          isVisible={isVisible}
+        />
+      );
+    },
+    [cartItemsMap,visibleIds] // ✅ depends on the cart mapping
+  );
 
   const renderLoader = () =>
     isFetching ? (
@@ -212,6 +261,8 @@ const QueryResult = ({query}:{query:string}) => {
                   ListEmptyComponent={listEmptyComponent}
                   ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
                   ListFooterComponentStyle={{ marginBottom: 20 }}
+                  viewabilityConfig={viewabilityConfig}
+                  onViewableItemsChanged={onViewableItemsChanged}
                 />
               </View>
             )}

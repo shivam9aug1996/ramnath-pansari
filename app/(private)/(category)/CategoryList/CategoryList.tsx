@@ -22,6 +22,7 @@ const CategoryList = ({
   contentContainerStyle,
   parentCategory
 }: CategoryListProps) => {
+  console.log("categories876543210-",categories)
   
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null
@@ -34,7 +35,7 @@ const CategoryList = ({
   const subCatFlatListRef = useRef(null);
 
   const dispatch = useDispatch();
-  console.log("selectedCategoryIdIndex234567890878-",selectedSubCategory)
+ // console.log("selectedCategoryIdIndex234567890878-",selectedSubCategory)
 
   // useEffect(() => {
   //   if (categories?.length > 0) {
@@ -98,7 +99,7 @@ const CategoryList = ({
             ...(selectedCategory.children || []),
           ];
           setSubCategories(updatedSubCategories);
-          console.log("selectedSubCategory234567890-",{selectedCategory,selectedSubCategory})
+          //console.log("selectedSubCategory234567890-",{selectedCategory,selectedSubCategory})
           setSelectedSubCategory(updatedSubCategories[0]);
           scrollToTop(subCatFlatListRef);
         // dispatch(setSubCategoryActionClicked(false));
@@ -168,7 +169,7 @@ if(previousSelectedCategory.current === selectedId?._id){
   dispatch(setSubCategoryActionClicked(false));
 }
             previousSelectedCategory.current = selectedId?._id;
-console.log("selectedId234567890-",selectedId)
+//console.log("selectedId234567890-",selectedId)
         dispatch(setSelectedSubCategoryId(selectedId));
        // dispatch(setSubCategoryActionClicked(false));
       }

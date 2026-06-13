@@ -22,6 +22,9 @@ import { Image } from "expo-image";
 import { truncateText } from "@/utils/utils";
 import { staticImage } from "../(category)/CategoryList/utils";
 import { useDispatch } from "react-redux";
+import { addressCardStyles } from "./addressListLayout";
+
+const cardStyles = addressCardStyles;
 
 interface AddressItemProps {
   item: {
@@ -88,7 +91,7 @@ const fullAddress = item?.address || ''
 
   const cardStyle: StyleProp<ViewStyle> = useMemo(() => {
     return [
-      styles.card,
+      cardStyles.card,
       {
         opacity: isLoading ? 0.5 : 1,
         pointerEvents: isLoading ? "none" : "auto",
@@ -123,17 +126,17 @@ const fullAddress = item?.address || ''
         style={[styles.iconStyle, { bottom: 5 }]}
       />
       {item.mapImage &&
-      <View style={styles.imageContainer}>
+      <View style={cardStyles.imageContainer}>
         <Image
           source={{ uri: item.mapImage || staticImage }}
-          style={styles.image}
+          style={cardStyles.image}
         />
       </View>
 }
 
-      <View style={styles.textContainer}>
+      <View style={cardStyles.textContainer}>
         <Text style={styles.name}>{truncateText(item.name, 20)}</Text>
-        <View style={styles.separator} />
+        <View style={cardStyles.separator} />
         <Text style={styles.address}>{truncateText(fullAddress, 150)}</Text>
         <Text style={styles.phone}>Phone: {item.phone}</Text>
         {/* <Text
@@ -156,62 +159,12 @@ const fullAddress = item?.address || ''
 export default memo(AddressItem);
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-    borderRadius: 25,
-    marginBottom: 18,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingRight: 40,
-    shadowColor: "#2A2A2A",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.05)",
-  },
-  imageContainer: {
-    flex: 0.5,
-    marginRight: 28,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  image: {
-    borderRadius: 20,
-    minHeight: 100,
-    minWidth: 100,
-    backgroundColor: Colors.light.softGrey_1,
-  },
-  textContainer: {
-    flex: 1,
-    paddingVertical: 10,
-  },
   name: {
     fontFamily: "Raleway_700Bold",
     fontSize: 16,
     color: "#2A2A2A",
     marginBottom: 4,
     letterSpacing: 0.3,
-  },
-  separator: {
-    backgroundColor: Colors.light.gradientGreen_2,
-    height: 2,
-    marginVertical: 8,
-    opacity: 0.2,
-    width: "100%",
-    borderRadius: 1,
   },
   address: {
     fontFamily: "Raleway_500Regular",

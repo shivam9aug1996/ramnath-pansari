@@ -1,22 +1,14 @@
-import { Platform, StyleSheet, Text, View } from "react-native";
-import React, { useEffect } from "react";
+import { StyleSheet, View } from "react-native";
+import React from "react";
 import { Stack } from "expo-router";
-import GoToCart from "./(category)/ProductList/GoToCart";
-import { Alert } from "react-native";
-import LottieMenWalking from "./(address)/LottieMenWalking";
-import DeliveryNotificationBanner from "@/components/DeliveryNotificationBanner";
+import ActiveDeliveryFloat from "@/components/ActiveDeliveryFloat";
+import { DeliveryFloatProvider } from "@/contexts/DeliveryFloatContext";
 export { ErrorBoundary } from "expo-router";
 
 const MainNavigator = () => {
-  // useEffect(() => {
-  //   setTimeout(() => {
-  //     Alert.alert("hi");
-  //   }, 5000);
-  // }, []);
- // console.log("kjhtr67890-");
   return (
-    
-   
+    <DeliveryFloatProvider>
+    <View style={styles.root}>
     <Stack>
       
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -143,11 +135,16 @@ const MainNavigator = () => {
         }}
       />
     </Stack>
-   
-    
+    <ActiveDeliveryFloat />
+    </View>
+    </DeliveryFloatProvider>
   );
 };
 
 export default MainNavigator;
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+});

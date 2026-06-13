@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import React from "react";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import { Colors } from "@/constants/Colors";
@@ -12,7 +13,10 @@ import { RootState } from "@/types/global";
 import { useFetchCartQuery } from "@/redux/features/cartSlice";
 import LottieMenWalking from "../(address)/LottieMenWalking";
 
+const TAB_BAR_CONTENT_HEIGHT = 40;
+
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   const {
     data: cartData,
@@ -36,20 +40,40 @@ export default function TabLayout() {
     <Tabs
       screenOptions={({ route }) => ({
         headerShown: false,
-        animation:"fade",
+        animation:"shift",
         tabBarStyle: {
-          height: 80,
-          paddingBottom: 25,
+          height: TAB_BAR_CONTENT_HEIGHT + insets.bottom,
+          paddingBottom: insets.bottom + 8,
           display:
             route.name === "cat" || route.name === "search" || route.name === "mapTab" ? "none" : "flex",
         },
 
         tabBarHideOnKeyboard: true,
-        tabBarButton: (props) => (
-          <TouchableOpacity {...props} activeOpacity={1} />
+        tabBarButton: ({
+          children,
+          onPress,
+          onLongPress,
+          style,
+          testID,
+          accessibilityRole,
+          accessibilityState,
+          accessibilityLabel,
+        }) => (
+          <TouchableOpacity
+            onPress={onPress}
+            onLongPress={onLongPress}
+            style={style}
+            testID={testID}
+            accessibilityRole={accessibilityRole}
+            accessibilityState={accessibilityState}
+            accessibilityLabel={accessibilityLabel}
+            activeOpacity={1}
+          >
+            {children}
+          </TouchableOpacity>
         ),
       })}
-      sceneContainerStyle={{ height: 70 }}
+      detachInactiveScreens={false}
     >
       <Tabs.Screen
         name="home"

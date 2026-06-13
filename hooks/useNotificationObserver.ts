@@ -4,68 +4,52 @@ import { router } from "expo-router";
 import { useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 
+function parseNotificationPayload(data: Record<string, unknown> | undefined) {
+  if (!data) return null;
+  const body = data.body;
+  if (!body) return data;
+  if (typeof body === "string") {
+    try {
+      return JSON.parse(body) as Record<string, unknown>;
+    } catch {
+      return data;
+    }
+  }
+  return body as Record<string, unknown>;
+}
+
 export const useNotificationObserver = () => {
   const lastNotificationResponse = Notifications.useLastNotificationResponse();
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
 
   useEffect(() => {
-    if (lastNotificationResponse && userId) {
-      //console.log(
-        "lastNotificationResponse",
-        JSON.stringify(lastNotificationResponse)
-      );
-      let notData =
-        lastNotificationResponse?.notification?.request?.content?.data;
-      if (notData?.body) {
-        notData = JSON.parse(notData?.body);
-      }
-      if (notData?.updateOrderStatus) {
-       // console.log("kjhgfdfghjkpo0987");
+    if (!lastNotificationResponse || !userId) return;
 
-        const timer = setTimeout(() => {
-          router.navigate(`/(orderDetail)/${notData.orderId}`);
-        }, 1000);
-        return () => {
-          clearTimeout(timer);
-        };
-      }
+    const notData = parseNotificationPayload(
+      lastNotificationResponse?.notification?.request?.content?.data as
+        | Record<string, unknown>
+        | undefined
+    );
+
+    if (notData?.updateOrderStatus && notData?.orderId) {
+      const timer = setTimeout(() => {
+        try {
+          router.push(`/(orderDetail)/${notData.orderId}`);
+        } catch (error) {
+          console.warn("Notification navigation failed:", error);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
     }
   }, [lastNotificationResponse, userId]);
 
   useEffect(() => {
-    let isMounted = true;
-
-    function redirect(notification: Notifications.Notification) {
-      const url = notification.request.content.data?.url;
-      if (url) {
-        // router.push(url);
-       // console.log("765redfghjk", url);
-      }
-    }
-
-    Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (!isMounted || !response?.notification) {
-        return;
-      }
-     // console.log(
-        "getLastNotificationResponseAsync 765redfghjk",
-        JSON.stringify(response)
-      );
-
-      if (userId) {
-      }
-    });
-
     const subscription = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-       // console.log("response 765redfghjk", response);
-        //redirect(response.notification);
+      () => {
+        // Handled in Push1
       }
     );
 
-    return () => {
-      isMounted = false;
-      subscription.remove();
-    };
-  }, [userId]);
+    return () => subscription.remove();
+  }, []);
 };

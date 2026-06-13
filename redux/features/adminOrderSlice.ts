@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { baseUrl } from "../constants";
-import { AdminOrderDocument, AdminOrderListResponse } from "@/types/global";
+import { AdminOrderDocument, AdminOrderListResponse, AdminStatsResponse } from "@/types/global";
 
 export const adminOrderApi = createApi({
   reducerPath: "adminOrderApi",
@@ -16,8 +16,16 @@ export const adminOrderApi = createApi({
     },
     credentials: "include",
   }),
-  tagTypes: ["adminOrderList", "adminOrderDetail"],
+  tagTypes: ["adminOrderList", "adminOrderDetail", "adminStats"],
   endpoints: (builder) => ({
+    getAdminStats: builder.query<AdminStatsResponse, void>({
+      query: () => ({
+        url: "/admin/stats",
+        method: "GET",
+      }),
+      providesTags: [{ type: "adminStats", id: "SUMMARY" }],
+    }),
+
     // List orders with pagination and optional filters
     listOrders: builder.query<
       AdminOrderListResponse,
@@ -67,6 +75,7 @@ export const adminOrderApi = createApi({
       invalidatesTags: (result, error, { id }) => [
         { type: "adminOrderDetail", id },
         { type: "adminOrderList", id: "LIST" },
+        { type: "adminStats", id: "SUMMARY" },
       ],
     }),
 
@@ -89,6 +98,7 @@ const adminOrderSlice = createSlice({
 });
 
 export const {
+  useGetAdminStatsQuery,
   useListOrdersQuery,
   useLazyListOrdersQuery,
   useGetOrderQuery,
