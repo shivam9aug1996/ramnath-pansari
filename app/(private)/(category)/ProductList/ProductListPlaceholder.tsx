@@ -53,6 +53,16 @@ const ProductItemSkeleton = ({ index }: { index: number }) => (
   </View>
 );
 
+export const ProductPaginationSkeleton = ({ count = 2 }: { count?: number }) => (
+  <View style={styles.paginationRow}>
+    {Array.from({ length: count }, (_, index) => (
+      <ProductItemSkeleton key={`pagination-skeleton-${index}`} index={index} />
+    ))}
+  </View>
+);
+
+export { ProductItemSkeleton };
+
 const ProductsPlaceholder = ({
   wrapperStyle = {},
   contentContainerStyle = {},
@@ -80,6 +90,11 @@ const ProductsPlaceholder = ({
 export default memo(ProductsPlaceholder);
 
 const styles = StyleSheet.create({
+  paginationRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    width: "100%",
+  },
   list: {
     marginTop: PRODUCT_LIST_MARGIN_TOP,
   },

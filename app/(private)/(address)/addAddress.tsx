@@ -367,13 +367,13 @@ const AddAddress: React.FC = () => {
       useKeyboardAvoidingView={true}
     >
       <MapPreloaderWrapper />
-      <DeferredFadeIn delay={100} style={{ flexShrink: 0, flex: 1 }}>
         <ScrollView
           bounces={Platform.OS === "android" ? false : true}
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          <DeferredFadeIn delay={100}>
           <ThemedView style={styles.container}>
             {!userInfo?.isGuestUser && (
               <GenericFetchButton
@@ -439,8 +439,8 @@ const AddAddress: React.FC = () => {
               title={itemId ? "Update Address" : "Save Address"}
             />
           </ThemedView>
+          </DeferredFadeIn>
         </ScrollView>
-      </DeferredFadeIn>
     </ScreenSafeWrapper>
   );
 };

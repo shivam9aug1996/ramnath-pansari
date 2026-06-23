@@ -123,6 +123,7 @@ export interface Product {
   size?: string;
   category?: string;
   isOutOfStock: boolean;
+  maxQuantity?: number;
   brand?: string;
   countryOfOrigin?: string;
   articleId?: string;

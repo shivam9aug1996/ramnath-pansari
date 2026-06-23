@@ -10,7 +10,7 @@ export const AuthenticationFlow = ({ children }: { children: React.ReactNode }) 
   const [isReady, setIsReady] = useState(false);
 
   const loadAuthDataState = useSelector((state: RootState) => state?.auth?.loadAuthData);
-  console.log("loadAuthDataState", loadAuthDataState);
+  //console.log("loadAuthDataState", loadAuthDataState);
   const clearAuthData = useSelector((state: RootState) => state?.auth?.clearAuthData);
   const token = useSelector((state: RootState) => state?.auth?.token);
 

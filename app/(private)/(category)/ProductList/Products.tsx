@@ -119,37 +119,30 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
   // }, [selectedSubCategory]);
 
   // ✅ Debounced & rAF category change handler (No flicker, smooth)
+  // useEffect(() => {
+  //   requestAnimationFrame(() => {
+  //     if (selectedSubCategory) {
+  //       scrollToTop(flatListRef);
+  //       setPaginationState((prev) => ({
+  //         ...prev,
+  //         categoryId: selectedSubCategory._id,
+  //         page: 1,
+  //       }));
+  //       dispatch(setSubCategoryActionClicked(false));
+  //     }
+  //   });
+  // }, [selectedSubCategory]);
   useEffect(() => {
-    // const handleCategoryChange = debounce(() => {
-    //   requestAnimationFrame(() => {
-    //     if (selectedSubCategory) {
-    //       scrollToTop(flatListRef);
-    //       setPaginationState((prev) => ({
-    //         ...prev,
-    //         categoryId: selectedSubCategory._id,
-    //         page: 1,
-    //       }));
-    //     }
-    //   });
-    // }, 0); // 200ms debounce
-
-    // handleCategoryChange();
-
-    // return () => {
-    //   handleCategoryChange.cancel();
-    // };
-    requestAnimationFrame(() => {
-      if (selectedSubCategory) {
-        scrollToTop(flatListRef);
-        setPaginationState((prev) => ({
-          ...prev,
-          categoryId: selectedSubCategory._id,
-          page: 1,
-        }));
-        dispatch(setSubCategoryActionClicked(false));
-      }
-    });
-  }, [selectedSubCategory]);
+    const nextId = selectedSubCategory?._id;
+    if (!nextId || nextId === "null") return;
+    scrollToTop(flatListRef);
+    setPaginationState((prev) => ({
+      ...prev,
+      categoryId: nextId,
+      page: 1,
+    }));
+    dispatch(setSubCategoryActionClicked(false));
+  }, [selectedSubCategory, dispatch]);
 
   // useEffect(()=>{
   //   if(isProductError){
@@ -247,11 +240,31 @@ const handleRefetchProducts = useCallback(async () => {
     return <TryAgain refetch={handleRefetchProducts} />;
   }
 
-  const isLoading =
-    isCategoryFetching || !paginationState.categoryId || isProductsLoading;
+  // const isLoading =
+  //   isCategoryFetching || !paginationState.categoryId || isProductsLoading;
+  // const isLoading =
+  // isCategoryFetching ||
+  // !paginationState.categoryId ||
+  // isProductsLoading ||
+  // (isProductsFetching && paginationState.page === 1 && !data?.products?.length) ||
+  // selectedSubCategory?._id !== paginationState.categoryId;
   // if(subCategoryActionClicked){
   //   return <ActivityIndicator size="large" color={Colors.light.lightGreen} />
   // }
+
+  const activeCategoryId = selectedSubCategory?._id ?? null;
+const isCategoryOutOfSync =
+  activeCategoryId != null &&
+  paginationState.categoryId !== activeCategoryId;
+  const hasProductsToShow = (data?.products?.length ?? 0) > 0;
+  const isLoading =
+    isCategoryFetching ||
+    (!hasProductsToShow &&
+      (!paginationState.categoryId ||
+        isCategoryOutOfSync ||
+        isProductsLoading ||
+        (isProductsFetching && paginationState.page === 1)));
+
 
   return (
     <View style={{ flex: 1 }}>

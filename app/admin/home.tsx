@@ -19,6 +19,10 @@ import { useGetAdminStatsQuery } from '@/redux/features/adminOrderSlice'
 import { Colors } from '@/constants/Colors'
 import { useSelector } from 'react-redux'
 import { RootState, AdminStatsResponse } from '@/types/global'
+import {
+  finalizeStartupReady,
+  markStartupCheckpoint,
+} from '@/utils/startupDiagnostics'
 
 type ActionCardProps = {
   title: string
@@ -222,8 +226,21 @@ const Home = () => {
   const adminName = useSelector(
     (state: RootState) => state?.auth?.userData?.name,
   )
-  const { data: stats, isFetching, refetch } = useGetAdminStatsQuery()
+  const token = useSelector((state: RootState) => state?.auth?.token)
+  const isAdminUser = useSelector(
+    (state: RootState) => state?.auth?.userData?.isAdminUser,
+  )
+  const { data: stats, isFetching, refetch } = useGetAdminStatsQuery(undefined, {
+    skip: !token || !isAdminUser,
+  })
   const [pullRefreshing, setPullRefreshing] = useState(false)
+
+  useEffect(() => {
+    markStartupCheckpoint('home_mounted', { screen: 'admin_home' }).catch(
+      () => {},
+    )
+    finalizeStartupReady({ screen: 'admin_home' }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (pullRefreshing && !isFetching) {

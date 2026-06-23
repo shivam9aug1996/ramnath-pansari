@@ -8,13 +8,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import OrderComp from "./OrderComp";
 import Push from "./Push";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
-import { orderApi, useFetchOrdersQuery } from "@/redux/features/orderSlice";
+import { useFetchOrdersQuery } from "@/redux/features/orderSlice";
 import { RootState } from "@/types/global";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { FlashList } from "@shopify/flash-list";
 import { Colors } from "@/constants/Colors";
 import NotFound from "../(result)/NotFound";
@@ -34,6 +34,7 @@ import DeferredFadeIn from "@/components/DeferredFadeIn";
 const Order = () => {
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   const [page, setPage] = useState(1);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const {
     data: orderData,
     isLoading: isOrderLoading,
@@ -49,9 +50,11 @@ const Order = () => {
   );
 
   const hasNextPage = orderData?.currentPage < orderData?.totalPages;
-const dispatch = useDispatch();
+
+  const isPaginationLoading = isOrderFetching && page > 1 && !isRefreshing;
+
   const renderLoader = () => {
-    return isOrderFetching ? (
+    return isPaginationLoading ? (
       <ActivityIndicator size="large" color={Colors.light.lightGreen} />
     ) : null;
   };
@@ -60,12 +63,20 @@ const dispatch = useDispatch();
     setPage((prev) => prev + 1);
   };
 
-  const onRefresh = () => {
-    //forefully fetych with page 1
-    setPage(1);
-    //dispatch(orderApi.endpoints.fetchOrders.initiate({ userId: userId, limit: 10, page: 1 }, { forceRefetch: true }) as any);
-    dispatch(orderApi.util.resetApiState());
-  };
+  const onRefresh = useCallback(() => {
+    if (!userId) return;
+    setIsRefreshing(true);
+    if (page === 1) {
+      refetchOrder();
+    } else {
+      setPage(1);
+    }
+  }, [page, refetchOrder, userId]);
+
+  useEffect(() => {
+    if (!isRefreshing || isOrderFetching) return;
+    setIsRefreshing(false);
+  }, [isRefreshing, isOrderFetching]);
 
   const renderProductItem = useCallback(
     ({ item, index }: { item: any; index: number }) => {
@@ -91,10 +102,8 @@ const dispatch = useDispatch();
                 <FlatList
                 refreshControl={
                   <RefreshControl
-                    refreshing={isOrderFetching}
-                    onRefresh={() => {
-                      onRefresh();
-                    }}
+                    refreshing={isRefreshing}
+                    onRefresh={onRefresh}
                   />
                 }
                 initialNumToRender={5}

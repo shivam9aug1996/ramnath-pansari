@@ -30,8 +30,6 @@ const ProductItem = ({
     return Math.round(nDiscountP);
   }, [item.price, item.discountedPrice]);
 
-   console.log("item3456785678990987654", index);
-
   const handleProductPress = useCallback(
     (e: GestureResponderEvent) => {
       e?.isPropagationStopped();
@@ -89,13 +87,20 @@ const ProductImageInfo = memo(
     item: Product;
     handleProductPress: any;
   }) => {
-    console.log("item1234567890-",item)
+    const isOutOfStock = item?.isOutOfStock;
     return (
       <TouchableOpacity
         onPress={handleProductPress}
         style={styles.imageWrapper}
       >
-        <ProductImage image={item?.image} />
+        <View
+          style={[
+            styles.imageContent,
+            isOutOfStock && styles.imageContentOutOfStock,
+          ]}
+        >
+          <ProductImage image={item?.image} />
+        </View>
       </TouchableOpacity>
     );
   }
@@ -113,20 +118,43 @@ const ProductInfo = memo(
   }) => {
     return (
       <TouchableOpacity onPress={handleProductPress} style={styles.productInfo}>
-        <Text style={styles.productName} numberOfLines={3}>
+        <Text
+          style={[
+            styles.productName,
+            item.isOutOfStock && styles.outOfStockMutedText,
+          ]}
+          numberOfLines={3}
+        >
           {item.name}
         </Text>
 
         {discountPercentage > 0 && (
-          <Text style={styles.discountText}>{discountPercentage}% OFF</Text>
+          <Text
+            style={[
+              styles.discountText,
+              item.isOutOfStock && styles.outOfStockMutedText,
+            ]}
+          >
+            {discountPercentage}% OFF
+          </Text>
         )}
 
         <View style={styles.priceContainer}>
-          <Text style={styles.currentPrice}>
+          <Text
+            style={[
+              styles.currentPrice,
+              item.isOutOfStock && styles.outOfStockMutedText,
+            ]}
+          >
             ₹{formatNumber(item.discountedPrice)}
           </Text>
           {discountPercentage > 0 && (
-            <Text style={styles.originalPrice}>
+            <Text
+              style={[
+                styles.originalPrice,
+                item.isOutOfStock && styles.outOfStockMutedText,
+              ]}
+            >
               MRP ₹{formatNumber(item.price)}
             </Text>
           )}
@@ -157,6 +185,15 @@ const styles = StyleSheet.create({
   imageWrapper: {
     flex: 1,
     padding: 8,
+  },
+  imageContent: {
+    flex: 1,
+  },
+  imageContentOutOfStock: {
+    opacity: 0.45,
+  },
+  outOfStockMutedText: {
+    opacity: 0.55,
   },
   heartButton: {
     position: "absolute",

@@ -25,7 +25,11 @@ import { StyleSheet, Text, View } from "react-native";
   import ProductInfoSections from "./ProductInfoSections";
   import FoodTypeBadge from "./FoodTypeBadge";
   import { ProductDetailBodySkeleton } from "./ProductDetailPlaceholder";
-  import { productDetailContentStyles } from "./productDetailLayout";
+  import {
+    productDetailContentStyles,
+    PRODUCT_DETAIL_SCROLL_PADDING_BOTTOM,
+  } from "./productDetailLayout";
+  import { useGoToCartListPadding } from "@/contexts/DeliveryFloatContext";
 
   const contentStyles = productDetailContentStyles;
   const ProductDetail = ({id,extraData}:{id:string,extraData:any}) => {
@@ -35,6 +39,7 @@ import { StyleSheet, Text, View } from "react-native";
       { skip: !id }
     );
     const scrollRef = useAnimatedRef<Animated.ScrollView>();
+    const goToCartListPadding = useGoToCartListPadding();
   
     const dispatch = useDispatch();
   
@@ -48,9 +53,6 @@ import { StyleSheet, Text, View } from "react-native";
       }
     );
     const productStaleData = JSON.parse(extraData);
-    console.log("extraData67890", JSON.parse(extraData));
-    console.log("cartData67890", JSON.stringify(cartData));
-    console.log("data4567890", JSON.stringify(data));
   
     const [showImage, setShowImage] = useState(false);
     // const isLoading = cartButtonProductId.includes(id);
@@ -118,7 +120,11 @@ import { StyleSheet, Text, View } from "react-native";
                 light: Colors.light.background,
                 dark: Colors.light.background,
               }}
-              contentContainerStyle={{ paddingBottom: 50, paddingTop: 10 }}
+              contentContainerStyle={{
+                paddingBottom:
+                  PRODUCT_DETAIL_SCROLL_PADDING_BOTTOM + goToCartListPadding,
+                paddingTop: 10,
+              }}
               contentStyle={{
                 padding: 0,
                 gap: 0,
@@ -217,15 +223,7 @@ import { StyleSheet, Text, View } from "react-native";
             isOutOfStock={data?.product?.isOutOfStock}
           />
         ) : data?.product !== null ? (
-          // <CustomSuspense>
-  
-          // <DeferredFadeIn delay={100} style={{}}>
-          //   <GoToCart />
-          // </DeferredFadeIn>
-           <DeferredFadeIn delay={100} >
-           
-           <GoToCart  />
-         </DeferredFadeIn>
+          <GoToCart />
         ) : // </CustomSuspense>
         null}
       </>

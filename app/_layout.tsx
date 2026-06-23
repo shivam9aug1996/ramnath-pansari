@@ -1,6 +1,6 @@
 import { Slot } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { Fragment } from "react";
+import { Fragment, useEffect } from "react";
 import { View } from "react-native";
 import "react-native-reanimated";
 import "react-native-get-random-values";
@@ -19,6 +19,10 @@ import SplashScreenGate from "@/components/SplashScreenGate";
 import { AuthenticationFlow } from "./AuthenticationFlow";
 import { toastConfig } from "./toastconfig";
 import { useFonts } from "./useFonts";
+import {
+  initStartupDiagnostics,
+  markStartupCheckpoint,
+} from "@/utils/startupDiagnostics";
 
 const SPLASH_BACKGROUND = "#FFFFFF";
 
@@ -42,6 +46,18 @@ export function InitialLayout() {
 
 const RootLayout = () => {
   const [fontsLoaded] = useFonts();
+
+  useEffect(() => {
+    initStartupDiagnostics().catch((error) => {
+      console.warn("[startup-diag] init failed", error);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      markStartupCheckpoint("fonts_loaded").catch(() => {});
+    }
+  }, [fontsLoaded]);
 
   return (
     <Fragment>

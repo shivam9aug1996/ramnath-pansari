@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import {
   ActiveFloatOrder,
   getOrderStatusLabel,
 } from "@/utils/activeOrderFloat";
+import DeferredFadeIn from "./DeferredFadeIn";
 
 interface ActiveDeliverySheetProps {
   orders: ActiveFloatOrder[];
@@ -29,32 +30,111 @@ function getStatusStyle(status?: string) {
   return { text: styles.statusConfirmed, row: styles.rowConfirmed };
 }
 
-const ActiveDeliverySheet: React.FC<ActiveDeliverySheetProps> = ({
-  orders,
-  onClose,
-}) => {
-  const handleSelect = (order: ActiveFloatOrder) => {
-    onClose();
-    const prevStatus =
-      order.orderStatus?.toLowerCase() ?? OrderStatus.CONFIRMED;
-    router.navigate(`/(orderDetail)/${order._id}?prevStatus=${prevStatus}`);
-  };
+function buildOrderMetaText(order: ActiveFloatOrder) {
+  const itemCount = order.totalProductCount ?? 0;
+  const itemLabel = `${itemCount} item${itemCount !== 1 ? "s" : ""}`;
+  if (order.amountPaid == null) {
+    return itemLabel;
+  }
+  return `${itemLabel} · ₹${formatNumber(order.amountPaid)}`;
+}
 
-  const deliveringCount = orders.filter(
-    (order) =>
-      order.orderStatus?.toLowerCase() === OrderStatus.OUT_FOR_DELIVERY,
-  ).length;
+type ActiveDeliveryOrderRowProps = {
+  order: ActiveFloatOrder;
+  onSelect: (order: ActiveFloatOrder) => void;
+};
 
-  const subtitle =
-    deliveringCount > 0
-      ? `${deliveringCount} delivering · ${orders.length - deliveringCount} confirmed`
-      : `${orders.length} order${orders.length > 1 ? "s" : ""} confirmed`;
+const ActiveDeliveryOrderRow = memo(function ActiveDeliveryOrderRow({
+  order,
+  onSelect,
+}: ActiveDeliveryOrderRowProps) {
+  const handlePress = useCallback(() => {
+    onSelect(order);
+  }, [onSelect, order]);
+
+  const thumb = order.imgArr?.[0];
+  const statusStyle = getStatusStyle(order.orderStatus);
+  const orderLabel = order.orderId ?? order._id?.slice(-6);
+  const metaText = useMemo(
+    () => buildOrderMetaText(order),
+    [order.amountPaid, order.totalProductCount],
+  );
+  const statusLabel = useMemo(
+    () => getOrderStatusLabel(order.orderStatus),
+    [order.orderStatus],
+  );
 
   return (
-    <BottomSheet
-      onClose={onClose}
-      wrapperStyle={{ height: "100%", zIndex: 200, elevation: 200 }}
+    <TouchableOpacity
+      style={[styles.row, statusStyle.row]}
+      onPress={handlePress}
+      activeOpacity={0.85}
     >
+      <View style={styles.thumbWrap}>
+        {thumb ? (
+          <Image
+            source={{ uri: thumb }}
+            style={styles.thumb}
+            contentFit="contain"
+          />
+        ) : (
+          <MaterialCommunityIcons
+            name="package-variant"
+            size={28}
+            color="#F57F17"
+          />
+        )}
+      </View>
+
+      <View style={styles.rowBody}>
+        <Text style={styles.orderId} numberOfLines={1}>
+          Order #{orderLabel}
+        </Text>
+        <Text style={styles.meta}>{metaText}</Text>
+        <Text style={[styles.status, statusStyle.text]}>{statusLabel}</Text>
+      </View>
+
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={22}
+        color="#F57F17"
+      />
+    </TouchableOpacity>
+  );
+});
+
+const ActiveDeliverySheet = memo(function ActiveDeliverySheet({
+  orders,
+  onClose,
+}: ActiveDeliverySheetProps) {
+  const handleSelect = useCallback(
+    (order: ActiveFloatOrder) => {
+      onClose();
+      const prevStatus =
+        order.orderStatus?.toLowerCase() ?? OrderStatus.CONFIRMED;
+      router.navigate(`/(orderDetail)/${order._id}?prevStatus=${prevStatus}`);
+    },
+    [onClose],
+  );
+
+  const deliveringCount = useMemo(
+    () =>
+      orders.filter(
+        (order) =>
+          order.orderStatus?.toLowerCase() === OrderStatus.OUT_FOR_DELIVERY,
+      ).length,
+    [orders],
+  );
+
+  const subtitle = useMemo(() => {
+    if (deliveringCount > 0) {
+      return `${deliveringCount} delivering · ${orders.length - deliveringCount} confirmed`;
+    }
+    return `${orders.length} order${orders.length > 1 ? "s" : ""} confirmed`;
+  }, [deliveringCount, orders.length]);
+
+  return (
+    <BottomSheet onClose={onClose} wrapperStyle={styles.sheetWrapper}>
       <View style={styles.header}>
         <Text style={styles.title}>Active orders</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
@@ -65,63 +145,26 @@ const ActiveDeliverySheet: React.FC<ActiveDeliverySheetProps> = ({
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
       >
-        {orders.map((order) => {
-          const thumb = order.imgArr?.[0];
-          const itemCount = order.totalProductCount ?? 0;
-          const statusStyle = getStatusStyle(order.orderStatus);
-
-          return (
-            <TouchableOpacity
+        <DeferredFadeIn delay={100}>
+          {orders.map((order) => (
+            <ActiveDeliveryOrderRow
               key={order._id}
-              style={[styles.row, statusStyle.row]}
-              onPress={() => handleSelect(order)}
-              activeOpacity={0.85}
-            >
-              <View style={styles.thumbWrap}>
-                {thumb ? (
-                  <Image
-                    source={{ uri: thumb }}
-                    style={styles.thumb}
-                    contentFit="contain"
-                  />
-                ) : (
-                  <MaterialCommunityIcons
-                    name="package-variant"
-                    size={28}
-                    color="#F57F17"
-                  />
-                )}
-              </View>
-
-              <View style={styles.rowBody}>
-                <Text style={styles.orderId} numberOfLines={1}>
-                  Order #{order.orderId ?? order._id?.slice(-6)}
-                </Text>
-                <Text style={styles.meta}>
-                  {itemCount} item{itemCount !== 1 ? "s" : ""}
-                  {order.amountPaid != null
-                    ? ` · ₹${formatNumber(order.amountPaid)}`
-                    : ""}
-                </Text>
-                <Text style={[styles.status, statusStyle.text]}>
-                  {getOrderStatusLabel(order.orderStatus)}
-                </Text>
-              </View>
-
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={22}
-                color="#F57F17"
-              />
-            </TouchableOpacity>
-          );
-        })}
+              order={order}
+              onSelect={handleSelect}
+            />
+          ))}
+        </DeferredFadeIn>
       </ScrollView>
     </BottomSheet>
   );
-};
+});
 
 const styles = StyleSheet.create({
+  sheetWrapper: {
+    height: "100%",
+    zIndex: 200,
+    elevation: 200,
+  },
   header: {
     paddingHorizontal: 20,
     paddingTop: 8,
@@ -152,6 +195,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 12,
     borderWidth: 1,
+    marginBottom: 12,
   },
   rowDelivering: {
     backgroundColor: "#FFF7CD",

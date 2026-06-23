@@ -1,232 +1,595 @@
-import React, { memo, useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useCallback, useLayoutEffect, useMemo } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
+  Platform,
 } from "react-native";
+import { Image } from "expo-image";
 import { useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Circle, G } from "react-native-svg";
 
+import { staticImage } from "../CategoryList/utils";
 import { Colors } from "@/constants/Colors";
+import { FREE_DELIVERY_MIN } from "@/constants/Delivery";
+import { calculateTotalAmountMrp } from "@/components/cart/utils";
 import { RootState } from "@/types/global";
-import {
-  useFetchCartQuery,
-} from "@/redux/features/cartSlice";
-import { SHIPPING_FEE } from "@/constants/Delivery";
+import { useFetchCartQuery } from "@/redux/features/cartSlice";
 import {
   getCartSubtotal,
-  getDeliveryFee,
   getFreeDeliveryRemaining,
+  hasFreeDelivery,
 } from "@/utils/deliveryFee";
 import { formatNumber } from "@/utils/utils";
+import { useGoToCartInsetActions } from "@/contexts/DeliveryFloatContext";
 
-const GoToCart = ({ isCart }) => {
-  const [cartHeight, setCartHeight] = useState(0);
+const SUGAR_PROMO_MIN = 1000;
+const CARD_RADIUS = 20;
+const MILESTONE_SIZE = 36;
+const RING_SIZE = 42;
 
+type GoToCartProps = {
+  isCart?: boolean;
+  /** When true, bar is positioned by GoToCartWrapper instead of floating absolutely */
+  embedded?: boolean;
+};
+
+type Milestone = {
+  id: string;
+  threshold: number;
+  icon: keyof typeof Ionicons.glyphMap;
+  rewardLabel: string;
+};
+
+const MILESTONES: Milestone[] = [
+  {
+    id: "delivery",
+    threshold: FREE_DELIVERY_MIN,
+    icon: "bicycle-outline",
+    rewardLabel: "FREE delivery",
+  },
+  {
+    id: "sugar",
+    threshold: SUGAR_PROMO_MIN,
+    icon: "gift-outline",
+    rewardLabel: "1 kg sugar free",
+  },
+];
+
+function MilestoneRing({
+  progress,
+  unlocked,
+}: {
+  progress: number;
+  unlocked: boolean;
+}) {
+  const stroke = unlocked ? Colors.light.mediumGreen : "#3B82F6";
+  const track = unlocked ? "rgba(76,187,94,0.25)" : "rgba(59,130,246,0.18)";
+  const circumference = 2 * Math.PI * 17;
+  const dashOffset = circumference * (1 - Math.min(progress, 1));
+
+  return (
+    <Svg width={RING_SIZE} height={RING_SIZE} style={styles.milestoneRing}>
+      <Circle
+        cx={RING_SIZE / 2}
+        cy={RING_SIZE / 2}
+        r={17}
+        stroke={track}
+        strokeWidth={2.5}
+        fill="transparent"
+      />
+      {!unlocked ? (
+        <G rotation={-90} origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}>
+          <Circle
+            cx={RING_SIZE / 2}
+            cy={RING_SIZE / 2}
+            r={17}
+            stroke={stroke}
+            strokeWidth={2.5}
+            fill="transparent"
+            strokeDasharray={`${circumference}`}
+            strokeDashoffset={dashOffset}
+            strokeLinecap="round"
+          />
+        </G>
+      ) : null}
+    </Svg>
+  );
+}
+
+function MilestoneTrack({ subtotal }: { subtotal: number }) {
+  const overallProgress = Math.min(subtotal / SUGAR_PROMO_MIN, 1);
+
+  return (
+    <View style={styles.milestoneRow}>
+      <View style={styles.milestoneLineTrack}>
+        <View
+          style={[styles.milestoneLineFill, { width: `${overallProgress * 100}%` }]}
+        />
+      </View>
+
+      {MILESTONES.map((milestone, index) => {
+        const unlocked = subtotal >= milestone.threshold;
+        const isNext =
+          !unlocked &&
+          (index === 0 || subtotal >= MILESTONES[index - 1].threshold);
+        const progress = Math.min(subtotal / milestone.threshold, 1);
+
+        return (
+          <View key={milestone.id} style={styles.milestoneItem}>
+            <View style={styles.milestoneIconWrap}>
+              {isNext ? (
+                <MilestoneRing progress={progress} unlocked={unlocked} />
+              ) : null}
+              <View
+                style={[
+                  styles.milestoneCircle,
+                  unlocked && styles.milestoneCircleUnlocked,
+                  isNext && styles.milestoneCircleActive,
+                ]}
+              >
+                <Ionicons
+                  name={milestone.icon}
+                  size={16}
+                  color={unlocked ? Colors.light.white : Colors.light.darkGreen}
+                />
+              </View>
+              <View
+                style={[
+                  styles.milestoneBadge,
+                  unlocked ? styles.milestoneBadgeDone : styles.milestoneBadgeLocked,
+                ]}
+              >
+                <Ionicons
+                  name={unlocked ? "checkmark" : "lock-closed"}
+                  size={9}
+                  color={Colors.light.white}
+                />
+              </View>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+function PromoIncentive({
+  subtotal,
+  compact,
+}: {
+  subtotal: number;
+  compact?: boolean;
+}) {
+  const deliveryUnlocked = hasFreeDelivery(subtotal);
+  const freeDeliveryRemaining = getFreeDeliveryRemaining(subtotal);
+  const sugarPromoRemaining = Math.max(SUGAR_PROMO_MIN - subtotal, 0);
+
+  const { remaining, rewardLabel } = useMemo(() => {
+    if (!deliveryUnlocked) {
+      return {
+        remaining: freeDeliveryRemaining,
+        rewardLabel: "FREE delivery",
+      };
+    }
+    if (sugarPromoRemaining > 0) {
+      return {
+        remaining: sugarPromoRemaining,
+        rewardLabel: "1 kg sugar free",
+      };
+    }
+    return { remaining: 0, rewardLabel: "" };
+  }, [deliveryUnlocked, freeDeliveryRemaining, sugarPromoRemaining]);
+
+  const allUnlocked = deliveryUnlocked && sugarPromoRemaining === 0;
+
+  return (
+    <View style={[styles.promoSection, compact && styles.promoSectionCompact]}>
+      <MilestoneTrack subtotal={subtotal} />
+
+      <View style={styles.promoMessageRow}>
+        {allUnlocked ? (
+          <Text style={styles.promoText}>
+            All offers unlocked on this order
+          </Text>
+        ) : (
+          <>
+            <Text style={styles.promoText}>
+              Add{" "}
+              <Text style={styles.promoAmount}>₹{formatNumber(remaining)}</Text>{" "}
+              more for
+            </Text>
+            <View style={styles.rewardBadge}>
+              <Text style={styles.rewardBadgeText}>{rewardLabel}</Text>
+            </View>
+          </>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function CartSummaryBar({
+  cartItems,
+  subtotal,
+  savings,
+  thumbnail,
+  onPress,
+}: {
+  cartItems: number;
+  subtotal: number;
+  savings: number;
+  thumbnail: string | null;
+  onPress: () => void;
+}) {
+  return (
+    <View style={styles.cartSection}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.cartSummaryPressable,
+          pressed && styles.pressed,
+        ]}
+      >
+        <Image
+          source={{ uri: thumbnail || staticImage }}
+          style={styles.thumbnail}
+          contentFit="cover"
+        />
+
+        <View style={styles.priceBlock}>
+          <View style={styles.priceRow}>
+            <Text style={styles.totalPrice}>₹{formatNumber(subtotal)}</Text>
+            {savings > 0 ? (
+              <Text style={styles.savingsText}>
+                ₹{formatNumber(savings)} saved
+              </Text>
+            ) : null}
+          </View>
+          <View style={styles.itemCountRow}>
+            <Text style={styles.itemCountText}>
+              {cartItems} {cartItems === 1 ? "item" : "items"}
+            </Text>
+            <Ionicons
+              name="chevron-up"
+              size={14}
+              color={Colors.light.mediumGrey}
+            />
+          </View>
+        </View>
+      </Pressable>
+
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.proceedButton,
+          pressed && styles.proceedButtonPressed,
+        ]}
+      >
+        <Text style={styles.proceedText}>Proceed</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const GoToCart = ({ isCart = false, embedded = false }: GoToCartProps) => {
+  const insets = useSafeAreaInsets();
+  const {
+    setGoToCartInset,
+    publishGoToCartInsetEstimate,
+    setGoToCartInsetMeasured,
+  } = useGoToCartInsetActions();
   const userId = useSelector((state: RootState) => state.auth?.userData?._id);
-  
 
-  const { data: cartData,isFetching:isCartFetching} = useFetchCartQuery({ userId }, { skip: !userId });
+  const { data: cartData } = useFetchCartQuery({ userId }, { skip: !userId });
 
-  const cartItems = cartData?.cart?.items?.length || 0;
-  const cartProducts = cartData?.cart?.items || [];
+  const cartItemCount = cartData?.cart?.items?.length ?? 0;
+  const cartProducts = cartData?.cart?.items ?? [];
 
   const subtotal = useMemo(
     () => getCartSubtotal(cartProducts),
     [cartProducts],
   );
 
-  const freeDeliveryRemaining = useMemo(
-    () => getFreeDeliveryRemaining(subtotal),
-    [subtotal],
-  );
+  const savings = useMemo(() => {
+    const mrp = calculateTotalAmountMrp(cartProducts);
+    return Math.max(mrp - subtotal, 0);
+  }, [cartProducts, subtotal]);
 
-  const deliveryFee = useMemo(() => getDeliveryFee(subtotal), [subtotal]);
+  const thumbnail = useMemo(() => {
+    const lastItem = cartProducts[cartProducts.length - 1];
+    return lastItem?.productDetails?.image ?? null;
+  }, [cartProducts]);
 
-  const sugarPromoRemaining = Math.max(1000 - subtotal, 0);
+  const navigateToCart = () => {
+    router.navigate("/(cartScreen)/cartScreen");
+  };
 
-  const offerLines = useMemo(() => {
-    const lines: {
-      text: string;
-      variant: "primary" | "secondary" | "deliveryFee";
-    }[] = [];
+  const publishFloatingInset = useCallback(() => {
+    if (isCart) return;
 
-    if (freeDeliveryRemaining > 0) {
-      lines.push({
-        text: `Add ₹${formatNumber(freeDeliveryRemaining)} more for FREE delivery`,
-        variant: "primary",
-      });
-      lines.push({
-        text: `₹${formatNumber(SHIPPING_FEE)} delivery fee on this order`,
-        variant: "secondary",
-      });
-    } else {
-      lines.push({
-        text: "FREE delivery on this order",
-        variant: "primary",
-      });
+    if (!cartItemCount) {
+      setGoToCartInset?.(0);
+      return;
     }
 
-    if (sugarPromoRemaining > 0) {
-      lines.push({
-        text: `Add ₹${formatNumber(sugarPromoRemaining)} more for 1 kg sugar free`,
-        variant: "secondary",
-      });
-    } else if (subtotal >= 1000) {
-      lines.push({
-        text: "1 kg sugar free unlocked! 🎉",
-        variant: "secondary",
-      });
-    }
+    publishGoToCartInsetEstimate?.();
+  }, [cartItemCount, isCart, publishGoToCartInsetEstimate, setGoToCartInset]);
 
-    return lines;
-  }, [freeDeliveryRemaining, subtotal, sugarPromoRemaining]);
+  useLayoutEffect(() => {
+    publishFloatingInset();
+  }, [publishFloatingInset]);
 
-  if (!cartItems) return null;
-
-  const renderOfferMessage = () => (
-    <View style={[styles.offerMessage, isCart && { borderRadius: 10 }]}>
-      {offerLines.map((line, index) => (
-        <Text
-          key={`${line.variant}-${index}`}
-          style={
-            line.variant === "primary"
-              ? styles.offerPrimary
-              : line.variant === "deliveryFee"
-                ? styles.offerDeliveryFee
-                : styles.offerSecondary
-          }
-          numberOfLines={2}
-        >
-          {line.text}
-        </Text>
-      ))}
-    </View>
+  useFocusEffect(
+    useCallback(() => {
+      publishFloatingInset();
+    }, [publishFloatingInset]),
   );
 
-  if (isCart) return renderOfferMessage();
+  const handleBarLayout = (height: number) => {
+    if (isCart || !cartItemCount || height <= 0) return;
+    setGoToCartInsetMeasured?.(height);
+  };
+
+  if (!cartItemCount) return null;
+
+  if (isCart) {
+    return (
+      <View style={styles.inlineWrapper}>
+        <PromoIncentive subtotal={subtotal} compact />
+      </View>
+    );
+  }
 
   return (
-   <View style={{paddingBottom:cartItems>0?cartHeight:0}} >
-     <TouchableOpacity
-     onLayout={(e) => {
-      setCartHeight(e.nativeEvent.layout.height - 35);
-     }}
-      onPress={() => router.navigate("/(cartScreen)/cartScreen")}
-      style={styles.cartButtonContainer}
+    <View
+      pointerEvents="box-none"
+      style={[
+        embedded ? styles.embeddedRoot : styles.floatingRoot,
+        { paddingBottom: Math.max(insets.bottom, 8) },
+      ]}
+      onLayout={(event) => handleBarLayout(event.nativeEvent.layout.height)}
     >
-      
-      {renderOfferMessage()}
-
-      <View style={styles.cartButton}>
-         <Text style={styles.cartText} numberOfLines={1}>
-            <Text style={styles.cartLabel}>{cartItems} Items | </Text>
-            <Text style={styles.cartAmount}>₹{formatNumber(subtotal)}</Text>
-            {deliveryFee > 0 ? (
-              <Text style={styles.cartDeliveryFee}>
-                {" "}
-                + ₹{formatNumber(deliveryFee)} delivery
-              </Text>
-            ) : null}
-          </Text>
-
-        <View style={styles.cartAction}>
-          <Ionicons name="bag-outline" size={18} color={Colors.light.white} />
-          <Text style={styles.cartActionText}>View Cart</Text>
-        </View>
+      <View style={styles.card}>
+        <PromoIncentive subtotal={subtotal} />
+        <CartSummaryBar
+          cartItems={cartItemCount}
+          subtotal={subtotal}
+          savings={savings}
+          thumbnail={thumbnail}
+          onPress={navigateToCart}
+        />
       </View>
-    </TouchableOpacity>
-   </View>
+    </View>
   );
 };
 
 export default memo(GoToCart);
+
+const shadow = Platform.select({
+  ios: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+  },
+  android: {
+    elevation: 12,
+  },
+  default: {},
+});
+
 const styles = StyleSheet.create({
-  cartButtonContainer: {
+  floatingRoot: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+  },
+  embeddedRoot: {
+    width: "100%",
+  },
+  inlineWrapper: {
+    marginBottom: 12,
+  },
+  card: {
+    borderTopLeftRadius: CARD_RADIUS,
+    borderTopRightRadius: CARD_RADIUS,
+    overflow: "hidden",
     backgroundColor: Colors.light.white,
-    paddingVertical: 15,
-    paddingTop: 0,
-    position:"absolute",
-    bottom:0,
-    left:0,
-    right:0,
+    ...shadow,
   },
-  offerMessage: {
-    backgroundColor: "#967c8e",
-    marginBottom: 5,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+  promoSection: {
+    backgroundColor: Colors.light.softGrey_2,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
+    gap: 8,
   },
-  offerPrimary: {
-    color: "white",
+  promoSectionCompact: {
+    borderRadius: CARD_RADIUS,
+    overflow: "hidden",
+  },
+  milestoneRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    position: "relative",
+    paddingHorizontal: 4,
+    minHeight: RING_SIZE,
+  },
+  milestoneLineTrack: {
+    position: "absolute",
+    left: 28,
+    right: 28,
+    top: MILESTONE_SIZE / 2,
+    height: 3,
+    borderRadius: 999,
+    backgroundColor: "rgba(59,130,246,0.15)",
+  },
+  milestoneLineFill: {
+    height: "100%",
+    borderRadius: 999,
+    backgroundColor: "#3B82F6",
+  },
+  milestoneItem: {
+    zIndex: 1,
+  },
+  milestoneIconWrap: {
+    width: RING_SIZE,
+    height: RING_SIZE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  milestoneRing: {
+    position: "absolute",
+  },
+  milestoneCircle: {
+    width: MILESTONE_SIZE,
+    height: MILESTONE_SIZE,
+    borderRadius: MILESTONE_SIZE / 2,
+    backgroundColor: Colors.light.white,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: Colors.light.lightGrey,
+  },
+  milestoneCircleUnlocked: {
+    backgroundColor: Colors.light.mediumGreen,
+    borderColor: Colors.light.mediumGreen,
+  },
+  milestoneCircleActive: {
+    borderColor: "#3B82F6",
+  },
+  milestoneBadge: {
+    position: "absolute",
+    bottom: 2,
+    right: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: Colors.light.white,
+  },
+  milestoneBadgeDone: {
+    backgroundColor: "#3B82F6",
+  },
+  milestoneBadgeLocked: {
+    backgroundColor: Colors.light.mediumLightGrey,
+  },
+  promoMessageRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  promoText: {
+    color: Colors.light.darkGrey,
     fontSize: 13,
     lineHeight: 18,
+    fontFamily: "Montserrat_500Medium",
+  },
+  promoAmount: {
     fontFamily: "Montserrat_700Bold",
-    textAlign: "center",
+    color: Colors.light.darkGreen,
   },
-  offerSecondary: {
-    color: "rgba(255,255,255,0.88)",
-    fontSize: 11,
-    lineHeight: 15,
-    fontFamily: "Montserrat_500Medium",
-    textAlign: "center",
-    marginTop: 2,
+  rewardBadge: {
+    backgroundColor: "#2563EB",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  offerDeliveryFee: {
-    color: "rgba(255,255,255,0.75)",
-    fontSize: 9,
-    lineHeight: 13,
-    fontFamily: "Montserrat_500Medium",
-    textAlign: "center",
-    marginTop: 1,
+  rewardBadgeText: {
+    color: Colors.light.white,
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: "Montserrat_700Bold",
   },
-  cartButton: {
-    backgroundColor: Colors.light.gradientGreen_1,
+  cartSection: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    borderRadius: 20,
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    marginHorizontal: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 10,
+    backgroundColor: Colors.light.white,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.light.lightGrey,
   },
-  cartText: {
+  cartSummaryPressable: {
     flex: 1,
-    marginRight: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    minWidth: 0,
   },
-  cartLabel: {
-    color: Colors.light.white,
-    fontSize: 15,
-    lineHeight: 20,
+  pressed: {
+    opacity: 0.85,
+  },
+  thumbnail: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: Colors.light.softGrey_1,
+  },
+  priceBlock: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  totalPrice: {
+    color: Colors.light.darkGreen,
+    fontSize: 18,
+    lineHeight: 22,
     fontFamily: "Montserrat_700Bold",
   },
-  cartAmount: {
-    color: Colors.light.white,
-    fontSize: 15,
-    lineHeight: 20,
-    fontFamily: "Montserrat_700Bold",
-  },
-  cartDeliveryFee: {
-    color: "rgba(255,255,255,1)",
+  savingsText: {
+    color: Colors.light.mediumGreen,
     fontSize: 13,
-    lineHeight: 20,
+    lineHeight: 18,
+    fontFamily: "Montserrat_600SemiBold",
+  },
+  itemCountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  itemCountText: {
+    color: Colors.light.mediumGrey,
+    fontSize: 12,
+    lineHeight: 16,
     fontFamily: "Montserrat_500Medium",
   },
-  cartAction: {
-    flexDirection: "row",
+  proceedButton: {
+    backgroundColor: Colors.light.lightYellow,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 999,
+    minWidth: 108,
     alignItems: "center",
+    justifyContent: "center",
   },
-  cartActionText: {
-    color: Colors.light.white,
-    fontSize: 16,
-    marginLeft: 5,
+  proceedButtonPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
+  },
+  proceedText: {
+    color: Colors.light.darkGreen,
+    fontSize: 15,
+    lineHeight: 20,
     fontFamily: "Raleway_700Bold",
-  },
-  cartUpdating: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
   },
 });

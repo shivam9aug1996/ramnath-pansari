@@ -1,10 +1,9 @@
-import React, { useEffect, useRef, useState, ReactNode } from "react";
-import { StyleProp, ViewStyle } from "react-native";
+import React, { ReactNode, useEffect, useState } from "react";
+import { InteractionManager, StyleProp, ViewStyle } from "react-native";
 import Animated, {
-  useSharedValue,
   useAnimatedStyle,
+  useSharedValue,
   withTiming,
-  cancelAnimation,
 } from "react-native-reanimated";
 
 interface DeferredFadeInProps {
@@ -14,55 +13,60 @@ interface DeferredFadeInProps {
   style?: StyleProp<ViewStyle>;
   fallback?: ReactNode;
 }
-const __DEV__ = false;
-const DeferredFadeIn: React.FC<DeferredFadeInProps> = ({
+let simulateProduction = false
+
+const DeferredFadeIn = ({
   children,
   delay = 0,
-  duration = 300,
-  style = { flexShrink: 1, alignSelf: "stretch" },
+  duration = 250,
+  style,
   fallback = null,
-}) => {
-  const [shouldRender, setShouldRender] = useState(__DEV__);
-  const opacity = useSharedValue(__DEV__ ? 1 : 0);
+}: DeferredFadeInProps) => {
+  const [mounted, setMounted] = useState(simulateProduction);
+  const opacity = useSharedValue(simulateProduction ? 1 : 0);
 
-  const isMounted = useRef(true);
-  const timeoutId = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const frameId = useRef<number | null>(null);
-
+  // Step 1: wait until navigation/interactions finish
   useEffect(() => {
-    if (__DEV__) {
-      return;
-    }
+    if (simulateProduction) return;
 
-    isMounted.current = true;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
 
-    frameId.current = requestAnimationFrame(() => {
-      timeoutId.current = setTimeout(() => {
-        if (isMounted.current) {
-          setShouldRender(true);
-          opacity.value = withTiming(1, { duration });
+    const task = InteractionManager.runAfterInteractions(() => {
+      timer = setTimeout(() => {
+        if (!cancelled) {
+          setMounted(true);
         }
       }, delay);
     });
 
     return () => {
-      isMounted.current = false;
-      if (timeoutId.current) clearTimeout(timeoutId.current);
-      if (frameId.current) cancelAnimationFrame(frameId.current);
-      cancelAnimation(opacity);
+      cancelled = true;
+      clearTimeout(timer);
+      task.cancel();
     };
-  }, [delay, duration, opacity]);
+  }, [delay]);
+
+  // Step 2: animate after mount
+  useEffect(() => {
+    if (!mounted) return;
+
+    opacity.value = 0;
+    opacity.value = withTiming(1, { duration });
+  }, [mounted, duration]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
   }));
 
-  if (!shouldRender) {
-    return fallback ?? null;
+  if (!mounted) {
+    return <>{fallback}</>;
   }
 
   return (
-    <Animated.View style={[animatedStyle, style]}>{children}</Animated.View>
+    <Animated.View style={[{ flexShrink: 1 }, style, animatedStyle]}>
+      {children}
+    </Animated.View>
   );
 };
 

@@ -1,74 +1,117 @@
-import { Animated, StyleSheet, View } from 'react-native'
-import React, { memo, useEffect, useRef, useState } from 'react'
-import FadeSlideIn from '@/app/components/FadeSlideIn'
-import GoToCart from './GoToCart'
-import { useSelector } from 'react-redux'
-import { RootState } from '@/types/global'
+import React, { memo, useCallback, useEffect } from "react";
+import { StyleSheet } from "react-native";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import { useDispatch, useSelector } from "react-redux";
+import { useFocusEffect } from "expo-router";
 
-const GoToCartWrapper = ({ showGoToCart,isCart }) => {
-  const [visible, setVisible] = useState(true)
+import GoToCart from "./GoToCart";
+import { GO_TO_CART_ESTIMATED_HEIGHT } from "./productListLayout";
+import {
+  useGoToCartChromeActions,
+  useGoToCartMeasuredInset,
+} from "@/contexts/DeliveryFloatContext";
+import { setProductListScrollParams } from "@/redux/features/productSlice";
+import { RootState } from "@/types/global";
 
-  const scrollParams = useSelector((state: RootState) => state.product?.productListScrollParams)
-  const translateY = useRef(new Animated.Value(0)).current
-  const scaleY = useRef(new Animated.Value(1)).current // Initially scaled to full size
-  const opacity = useRef(new Animated.Value(1)).current // Initially fully opaque
+type GoToCartWrapperProps = {
+  showGoToCart?: boolean;
+  isCart?: boolean;
+};
+
+const HIDE_DURATION = 280;
+const SHOW_DURATION = 220;
+const HIDE_EASING = Easing.bezier(0.4, 0, 0.2, 1);
+const SHOW_EASING = Easing.bezier(0, 0, 0.2, 1);
+
+const GoToCartWrapper = ({
+  showGoToCart = true,
+  isCart = false,
+}: GoToCartWrapperProps) => {
+  const dispatch = useDispatch();
+  const measuredInset = useGoToCartMeasuredInset();
+  const shouldHideChrome = useSelector(
+    (state: RootState) =>
+      state.product?.productListScrollParams?.shouldHideChrome ?? false,
+  );
+  const { setGoToCartChromeHidden } = useGoToCartChromeActions();
+
+  const barHeight = useSharedValue(GO_TO_CART_ESTIMATED_HEIGHT);
+  const visibility = useSharedValue(1);
+
   useEffect(() => {
-    if (!scrollParams) return
-    if (scrollParams.direction === "down" && scrollParams.isBeyondThreshold) {
-      // Fade and shrink before setting to false
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start()
-
-      Animated.timing(scaleY, {
-        toValue: 0, // Shrink the component
-        duration: 300,
-        useNativeDriver: true,
-      }).start()
-
-      setTimeout(() => setVisible(false), 100) // Delay setting visible to false
-    } else if (scrollParams.direction === "up") {
-      // Animate back to visible state
-      setVisible(true)
-
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }).start()
-
-      Animated.timing(scaleY, {
-        toValue: 1, // Reset scaling
-        duration: 300,
-        useNativeDriver: true,
-      }).start()
+    if (measuredInset > 0) {
+      barHeight.value = measuredInset;
     }
-  }, [scrollParams])
+  }, [barHeight, measuredInset]);
 
-  if (!showGoToCart || !visible) return null // Ensure the component is not rendered when not visible
+  const resetChrome = useCallback(() => {
+    dispatch(setProductListScrollParams({ shouldHideChrome: false }));
+    setGoToCartChromeHidden?.(false);
+    visibility.value = 1;
+  }, [dispatch, setGoToCartChromeHidden, visibility]);
+
+  useFocusEffect(
+    useCallback(() => {
+      resetChrome();
+    }, [resetChrome]),
+  );
+
+  useEffect(() => {
+    cancelAnimation(visibility);
+
+    if (shouldHideChrome) {
+      setGoToCartChromeHidden?.(true);
+      visibility.value = withTiming(0, {
+        duration: HIDE_DURATION,
+        easing: HIDE_EASING,
+      });
+      return;
+    }
+
+    setGoToCartChromeHidden?.(false);
+    visibility.value = withTiming(1, {
+      duration: SHOW_DURATION,
+      easing: SHOW_EASING,
+    });
+  }, [setGoToCartChromeHidden, shouldHideChrome, visibility]);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const hiddenOffset = barHeight.value + 32;
+    return {
+      opacity: visibility.value,
+      transform: [
+        { translateY: (1 - visibility.value) * hiddenOffset },
+        { scale: 0.94 + visibility.value * 0.06 },
+      ],
+    };
+  });
+
+  if (!showGoToCart || isCart) return null;
 
   return (
     <Animated.View
-      style={[
-        {
-          transform: [
-            { translateY },
-            { scaleY }, // Animate scaling on the Y axis
-          ],
-          opacity, // Add opacity animation for smooth transition
-        }
-      ]}
+      pointerEvents={shouldHideChrome ? "none" : "box-none"}
+      style={[styles.wrapper, animatedStyle]}
     >
-      <FadeSlideIn slide="none" fade={true} duration={500}>
-        <GoToCart isCart={isCart} />
-      </FadeSlideIn>
+      <GoToCart isCart={isCart} embedded />
     </Animated.View>
-  )
-}
+  );
+};
 
-export default memo(GoToCartWrapper)
+export default memo(GoToCartWrapper);
 
 const styles = StyleSheet.create({
-})
+  wrapper: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+  },
+});

@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 12,
-    fontFamily: "Raleway_700Bold",
+    fontFamily: "Montserrat_700Bold",
     color: Colors.light.darkGreen,
   },
   unitPrice: {

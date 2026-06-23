@@ -1,8 +1,16 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { baseUrl } from "../constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CACHE_DURATION, cleanOldProductCache } from "@/utils/utils";
+import type { Product } from "@/types/global";
+
+export type SyncedProductOverride = Partial<
+  Pick<
+    Product,
+    "maxQuantity" | "price" | "discountedPrice" | "isOutOfStock"
+  >
+>;
 
 export const productApi = createApi({
   reducerPath: "productApi",
@@ -222,11 +230,41 @@ const productSlice = createSlice({
     resetPagination: { item: null, status: false },
     selectedCategoryClicked: false,
     productListScrollParams: {
-      isBeyondThreshold: false,
-      direction: "up",
+      shouldHideChrome: false,
     },
+    /** Latest JioMart sync fields — merged in product list (all pages/categories). */
+    syncedProductOverrides: {} as Record<string, SyncedProductOverride>,
   },
   reducers: {
+    applySyncedProductOverrides: (
+      state,
+      action: PayloadAction<
+        Array<{
+          productId: string;
+          maxQuantity?: number;
+          price?: number;
+          discountedPrice?: number;
+          isOutOfStock?: boolean;
+        }>
+      >,
+    ) => {
+      for (const update of action.payload) {
+        const patch: SyncedProductOverride = {};
+        if (update.maxQuantity != null) patch.maxQuantity = update.maxQuantity;
+        if (update.price != null) patch.price = update.price;
+        if (update.discountedPrice != null) {
+          patch.discountedPrice = update.discountedPrice;
+        }
+        if (update.isOutOfStock != null) {
+          patch.isOutOfStock = update.isOutOfStock;
+        }
+        if (Object.keys(patch).length === 0) continue;
+        state.syncedProductOverrides[update.productId] = {
+          ...state.syncedProductOverrides[update.productId],
+          ...patch,
+        };
+      }
+    },
     setSelectedSubCategoryId: (state, action) => {
       if (action?.payload || action?.payload === "null") {
         state.selectedSubCategoryId = action?.payload;
@@ -256,6 +294,7 @@ export const {
   setResetPagination,
   setSelectedCategoryClicked,
   setProductListScrollParams,
+  applySyncedProductOverrides,
 } = productSlice.actions;
 
 export const {

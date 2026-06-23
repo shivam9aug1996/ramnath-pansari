@@ -17,11 +17,23 @@ import AnimatedQuantity from "../(category)/ProductList/AnimatedQuantity";
 
 const CartButton = ({ value, item }: CartButtonProps) => {
   const { quantity, handleAdd, handleRemove } = useCartOperations(item, value);
-  //console.log("cart button------>", item?._id);
   const cartButtonProductId = useSelector(
     (state: RootState) => state.cart.cartButtonProductId || []
   );
   const isLoading = cartButtonProductId.includes(item?._id);
+
+  if (item?.isOutOfStock) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.actionRow}>
+          <View style={styles.soldOutButton}>
+            <Text style={styles.soldOutText}>Sold out</Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View
@@ -161,6 +173,29 @@ const styles = StyleSheet.create({
     color: "white",
     textAlign: "center",
     width: 40,
+  },
+  actionRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    flex: 1,
+  },
+  soldOutButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 50,
+    backgroundColor: "#f3f4f6",
+    borderWidth: 1.5,
+    borderColor: "#d1d5db",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 80,
+    maxHeight: 40,
+  },
+  soldOutText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#9ca3af",
+    fontFamily: "Montserrat_600SemiBold",
   },
 });
 

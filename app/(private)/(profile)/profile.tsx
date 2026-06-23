@@ -196,7 +196,7 @@ const profile = () => {
   // console.log(form?.image && Object.keys(form?.image));
   return (
     <ScreenSafeWrapper useKeyboardAvoidingView={true}>
-      <DeferredFadeIn delay={100} style={{ flex: 1 }}>
+      
         <ScrollView
           bounces={Platform.OS === "android" ? false : true}
           ref={scrollViewRef}
@@ -298,7 +298,7 @@ const profile = () => {
           onPress={handleSave}
           title="Save Profile"
         />
-      </DeferredFadeIn>
+      
     </ScreenSafeWrapper>
   );
 };

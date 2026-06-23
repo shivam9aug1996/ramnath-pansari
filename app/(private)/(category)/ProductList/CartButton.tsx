@@ -349,7 +349,9 @@ const CartButton = ({ value, item }: CartButtonProps) => {
     return (
       <View style={styles.container}>
         <View style={styles.outOfStockButton}>
-          <Text style={styles.outOfStockText}>Out of Stock</Text>
+          <Text style={styles.outOfStockText} numberOfLines={1}>
+            Sold out
+          </Text>
         </View>
       </View>
     );
@@ -403,8 +405,6 @@ const styles = StyleSheet.create({
     bottom: 8,
     right: 8,
     zIndex: 10,
-    padding:10,
-    
   },
   animatedWrapper: {
     height: 36,
@@ -459,21 +459,20 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   outOfStockButton: {
-    backgroundColor: "#f8f9fa",
+    width: 75,
+    height: 36,
+    backgroundColor: "#f3f4f6",
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e9ecef",
-    paddingVertical: 8,
-    paddingHorizontal: 20,
+    borderWidth: 1.5,
+    borderColor: "#d1d5db",
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 70,
-    height: 36,
   },
   outOfStockText: {
-    color: "#6c757d",
-    fontSize: 12,
-    fontWeight: "600",
+    color: "#9ca3af",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 });
 

@@ -21,6 +21,7 @@ import handleLogoutMiddleware from "./handleLogoutMiddleware";
 import asyncStorageMiddleware from "./asyncStorageMiddleware";
 import weatherSlice from "./features/weatherSlice";
 import productApiMiddleware from "./productApiMiddleware";
+import startupFetchLoggerMiddleware from "./startupFetchLoggerMiddleware";
 
 const store = configureStore({
   reducer: {
@@ -72,7 +73,7 @@ const store = configureStore({
       .concat(asyncStorageMiddleware)
       .concat(handle401Middleware)
       .concat(handleLogoutMiddleware)
-      
+      .concat(startupFetchLoggerMiddleware),
 });
 
 export default store;

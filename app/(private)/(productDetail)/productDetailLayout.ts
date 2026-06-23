@@ -5,6 +5,8 @@ export const PRODUCT_DETAIL_HEADER_HEIGHT = 300;
 export const FOOD_BADGE_SIZE_MD = 20;
 export const PRODUCT_NAME_MIN_HEIGHT = 52;
 export const CART_BUTTON_SPACER_HEIGHT = 56;
+/** Extra space below scroll content, above GoToCart chrome */
+export const PRODUCT_DETAIL_SCROLL_PADDING_BOTTOM = 24;
 
 export const productDetailContentStyles = StyleSheet.create({
   textContainer: {
@@ -57,6 +59,12 @@ export const productDetailContentStyles = StyleSheet.create({
     color: Colors.light.white,
     fontFamily: "Montserrat_600SemiBold",
     fontSize: 12,
+  },
+  outOfStockMutedText: {
+    opacity: 0.55,
+  },
+  outOfStockPrice: {
+    color: Colors.light.darkGrey,
   },
   infoSectionsContainer: {
     paddingHorizontal: 10,

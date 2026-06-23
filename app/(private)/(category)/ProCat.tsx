@@ -73,11 +73,8 @@ const ProCat = ({
         
 
       </ScreenSafeWrapper>
-      
 
-      <DeferredFadeIn delay={100}>
-        <GoToCartWrapper showGoToCart={true} />
-      </DeferredFadeIn>
+      <GoToCartWrapper showGoToCart={true} />
     </>
   );
 };

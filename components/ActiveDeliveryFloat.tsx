@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -27,19 +27,100 @@ import {
 } from "@/utils/activeOrderFloat";
 import { useOrderStatusListener } from "@/hooks/useOrderStatusListener";
 import useAppState from "@/hooks/useAppState";
-import { useDeliveryFloatInsetSetter } from "@/contexts/DeliveryFloatContext";
+import {
+  useDeliveryFloatInsetSetter,
+  useGoToCartMeasuredInset,
+  useCartFooterInset,
+} from "@/contexts/DeliveryFloatContext";
+import { getCartFooterFallbackInset, getTabBarReservedHeight } from "@/utils/bottomChrome";
 import ActiveDeliverySheet from "@/components/ActiveDeliverySheet";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-const TAB_BAR_HEIGHT = 80;
 const FLOAT_GAP = 12;
 const HORIZONTAL_MARGIN = 12;
 const TAB_ROUTES = ["/home", "/account", "/cart"];
 const HOME_TAB_ROUTE = "/home";
+const CART_TAB_ROUTE = "/cart";
+const INSET_SNAP_THRESHOLD = 2;
 const SPRING_CONFIG = { damping: 22, stiffness: 220 };
 const PILL_HEIGHT = 52;
 const COMPACT_SIZE = 56;
 const FULL_PILL_WIDTH = SCREEN_WIDTH - HORIZONTAL_MARGIN * 2;
+const DEBUG_FLOAT = __DEV__;
+const LOG_PREFIX = "[active-delivery-float]";
+const TAB_FLOAT_EXTRA_PADDING = 50;
+const CART_FLOAT_EXTRA_PADDING = 40;
+const HOME_FLOAT_EXTRA_PADDING = 30;
+
+
+type BottomReservedSource =
+  | "cartFooterInset"
+  | "goToCartInset"
+  | "tabBar"
+  | "tabBar+cartCheckoutFallback"
+  | "safeArea";
+
+function logFloat(event: string, payload?: Record<string, unknown>) {
+  if (!DEBUG_FLOAT) return;
+  if (payload) {
+    console.log(LOG_PREFIX, event, payload);
+    return;
+  }
+  console.log(LOG_PREFIX, event);
+}
+
+function hasMeaningfulInsetChange(previous: number, next: number) {
+  return Math.abs(previous - next) >= INSET_SNAP_THRESHOLD;
+}
+
+function getBottomReservedMeta(
+  pathname: string,
+  cartFooterInset: number,
+  goToCartInset: number,
+  safeAreaBottom: number,
+): { reserved: number; source: BottomReservedSource } {
+  const tabBarHeight = getTabBarReservedHeight(safeAreaBottom);
+
+  if (cartFooterInset > 0) {
+    let reserved = cartFooterInset + FLOAT_GAP;
+    if (isCartTab(pathname)) {
+      const tabBar = getTabBarReservedHeight(safeAreaBottom);
+      const floor = tabBar + getCartFooterFallbackInset(0) + FLOAT_GAP;
+      reserved = Math.max(reserved, floor);
+    }
+    return { reserved, source: "cartFooterInset" };
+  }
+  if (goToCartInset > 0 && !isTabRoute(pathname)) {
+    return {
+      reserved: goToCartInset + FLOAT_GAP,
+      source: "goToCartInset",
+    };
+  }
+  if (isTabRoute(pathname)) {
+    let reserved = tabBarHeight + FLOAT_GAP + TAB_FLOAT_EXTRA_PADDING;
+    if (isHomeTab(pathname)) {
+      reserved = tabBarHeight + FLOAT_GAP + HOME_FLOAT_EXTRA_PADDING;
+    }
+    if (isCartTab(pathname)) {
+      reserved += getCartFooterFallbackInset(0) - CART_FLOAT_EXTRA_PADDING;
+      return { reserved, source: "tabBar+cartCheckoutFallback" };
+    }
+    return { reserved, source: "tabBar" };
+  }
+  return {
+    reserved: safeAreaBottom + FLOAT_GAP,
+    source: "safeArea",
+  };
+}
+
+function getRouteFlags(pathname: string) {
+  return {
+    pathname,
+    isTabRoute: isTabRoute(pathname),
+    isHomeTab: isHomeTab(pathname),
+    isCartTab: isCartTab(pathname),
+  };
+}
 
 function isTabRoute(pathname: string) {
   return TAB_ROUTES.some(
@@ -53,17 +134,42 @@ function isHomeTab(pathname: string) {
   );
 }
 
-const ActiveDeliveryFloat = () => {
-  const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
+function isCartTab(pathname: string) {
+  return pathname === CART_TAB_ROUTE || pathname.endsWith(CART_TAB_ROUTE);
+}
+
+export type ActiveDeliveryFloatHomeVariant = "full" | "compact";
+
+type ActiveDeliveryFloatProps = {
+  /** Home tab only — other screens stay compact. Default: full pill. */
+  homeVariant?: ActiveDeliveryFloatHomeVariant;
+};
+
+type ActiveDeliveryFloatPillProps = {
+  activeOrders: ActiveFloatOrder[];
+  homeVariant: ActiveDeliveryFloatHomeVariant;
+  onOpenSheet: () => void;
+};
+
+const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
+  activeOrders,
+  homeVariant,
+  onOpenSheet,
+}: ActiveDeliveryFloatPillProps) {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const appState = useAppState();
   const setBottomInset = useDeliveryFloatInsetSetter();
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const goToCartInset = useGoToCartMeasuredInset();
+  const cartFooterInset = useCartFooterInset();
   const [hasCustomPosition, setHasCustomPosition] = useState(false);
   const prevIsCompactRef = useRef<boolean | null>(null);
+  const prevPathnameRef = useRef(pathname);
+  const prevGoToCartInsetRef = useRef(goToCartInset);
+  const prevCartFooterInsetRef = useRef(cartFooterInset);
 
-  const isCompact = !isHomeTab(pathname);
+  const isCompact = isHomeTab(pathname)
+    ? homeVariant === "compact"
+    : true;
   const pillHeight = isCompact ? COMPACT_SIZE : PILL_HEIGHT;
   const pillWidth = isCompact ? COMPACT_SIZE : FULL_PILL_WIDTH;
 
@@ -76,35 +182,17 @@ const ActiveDeliveryFloat = () => {
   const maxYShared = useSharedValue(0);
   const pillWidthShared = useSharedValue(pillWidth);
 
-  useOrderStatusListener();
-
-  const { data, refetch } = useFetchActiveDeliveriesQuery(
-    {
-      userId,
-      status: ACTIVE_FLOAT_STATUS_QUERY,
-      limit: 20,
-      page: 1,
-    },
-    { skip: !userId },
+  const bottomReservedMeta = useMemo(
+    () =>
+      getBottomReservedMeta(
+        pathname,
+        cartFooterInset,
+        goToCartInset,
+        insets.bottom,
+      ),
+    [cartFooterInset, goToCartInset, insets.bottom, pathname],
   );
-
-  useEffect(() => {
-    if (appState === "active" && userId) {
-      refetch();
-    }
-  }, [appState, refetch, userId]);
-
-  const activeOrders = useMemo(
-    () => (data?.orders ?? []) as ActiveFloatOrder[],
-    [data?.orders],
-  );
-
-  const bottomReserved = useMemo(() => {
-    if (isTabRoute(pathname)) {
-      return TAB_BAR_HEIGHT + insets.bottom + FLOAT_GAP;
-    }
-    return insets.bottom + FLOAT_GAP;
-  }, [insets.bottom, pathname]);
+  const bottomReserved = bottomReservedMeta.reserved;
 
   const defaultY = SCREEN_HEIGHT - bottomReserved - pillHeight;
   const minY = insets.top + FLOAT_GAP;
@@ -120,61 +208,144 @@ const ActiveDeliveryFloat = () => {
   }, [maxY, minY, maxYShared, minYShared, pillWidth, pillWidthShared]);
 
   useEffect(() => {
+    const routeChanged = prevPathnameRef.current !== pathname;
+    prevPathnameRef.current = pathname;
+
+    const goToCartInsetChanged = hasMeaningfulInsetChange(
+      prevGoToCartInsetRef.current,
+      goToCartInset,
+    );
+    prevGoToCartInsetRef.current = goToCartInset;
+
+    const cartFooterInsetChanged = hasMeaningfulInsetChange(
+      prevCartFooterInsetRef.current,
+      cartFooterInset,
+    );
+    prevCartFooterInsetRef.current = cartFooterInset;
+
     const layoutModeChanged =
       prevIsCompactRef.current !== null &&
       prevIsCompactRef.current !== isCompact;
     prevIsCompactRef.current = isCompact;
 
-    if (layoutModeChanged) {
+    const shouldSnapToDefault =
+      layoutModeChanged ||
+      routeChanged ||
+      goToCartInsetChanged ||
+      cartFooterInsetChanged;
+
+    if (hasCustomPosition && !shouldSnapToDefault) {
+      logFloat("snap_skipped_custom_position", {
+        ...getRouteFlags(pathname),
+        goToCartInset,
+        cartFooterInset,
+        bottomReserved,
+        bottomReservedSource: bottomReservedMeta.source,
+      });
+      return;
+    }
+
+    if (shouldSnapToDefault) {
       setHasCustomPosition(false);
     }
 
-    if (hasCustomPosition && !layoutModeChanged) return;
+    logFloat("snap_to_default", {
+      ...getRouteFlags(pathname),
+      reason: {
+        routeChanged,
+        goToCartInsetChanged,
+        cartFooterInsetChanged,
+        layoutModeChanged,
+        cartTabRouteChanged: routeChanged && isCartTab(pathname),
+      },
+      goToCartInset,
+      cartFooterInset,
+      bottomReserved,
+      bottomReservedSource: bottomReservedMeta.source,
+      defaultX,
+      defaultY,
+      hasCustomPosition,
+    });
 
     posX.value = withSpring(defaultX, SPRING_CONFIG);
     posY.value = withSpring(defaultY, SPRING_CONFIG);
     dragStartX.value = defaultX;
     dragStartY.value = defaultY;
   }, [
+    cartFooterInset,
     defaultX,
     defaultY,
     dragStartX,
     dragStartY,
+    goToCartInset,
+    bottomReserved,
+    bottomReservedMeta.source,
     hasCustomPosition,
     isCompact,
+    pathname,
     posX,
     posY,
   ]);
 
-  const isHiddenOnDetail = useMemo(() => {
-    if (activeOrders.length !== 1) return false;
-    const orderId = String(activeOrders[0]?._id ?? "");
-    return orderId.length > 0 && pathname.includes(orderId);
-  }, [activeOrders, pathname]);
-
-  const isVisible =
-    !!userId && activeOrders.length > 0 && !isHiddenOnDetail && !sheetOpen;
+  useEffect(() => {
+    logFloat("route_context", {
+      ...getRouteFlags(pathname),
+      goToCartInset,
+      cartFooterInset,
+      safeAreaBottom: insets.bottom,
+      bottomReserved,
+      bottomReservedSource: bottomReservedMeta.source,
+      defaultY,
+      defaultX,
+      pillHeight,
+      isCompact,
+      isVisible: true,
+      activeOrderCount: activeOrders.length,
+      isHiddenOnDetail: false,
+      sheetOpen: false,
+      hasCustomPosition,
+    });
+  }, [
+    activeOrders.length,
+    bottomReserved,
+    bottomReservedMeta.source,
+    cartFooterInset,
+    defaultX,
+    defaultY,
+    goToCartInset,
+    hasCustomPosition,
+    insets.bottom,
+    isCompact,
+    pathname,
+    pillHeight,
+  ]);
 
   useEffect(() => {
     if (!setBottomInset) return;
 
-    if (!isVisible) {
-      setBottomInset(0);
-      return;
-    }
-
     const inset = isHomeTab(pathname)
-      ? pillHeight + FLOAT_GAP + TAB_BAR_HEIGHT + insets.bottom
+      ? pillHeight + FLOAT_GAP + getTabBarReservedHeight(insets.bottom)
       : 0;
 
-    setBottomInset(inset);
-  }, [insets.bottom, isVisible, pathname, pillHeight, setBottomInset]);
+    logFloat("home_list_inset", {
+      ...getRouteFlags(pathname),
+      isVisible: true,
+      homeListInset: inset,
+    });
 
-  const { label, action: actionLabel } = getFloatCopy(activeOrders);
+    setBottomInset(inset);
+
+    return () => {
+      setBottomInset(0);
+    };
+  }, [insets.bottom, pathname, pillHeight, setBottomInset]);
+
+  const floatCopy = useMemo(() => getFloatCopy(activeOrders), [activeOrders]);
+  const { label, action: actionLabel } = floatCopy;
 
   const openDelivery = useCallback(() => {
     if (shouldOpenSheet(activeOrders)) {
-      setSheetOpen(true);
+      onOpenSheet();
       return;
     }
 
@@ -182,7 +353,7 @@ const ActiveDeliveryFloat = () => {
     const prevStatus =
       order.orderStatus?.toLowerCase() ?? OrderStatus.CONFIRMED;
     router.navigate(`/(orderDetail)/${order._id}?prevStatus=${prevStatus}`);
-  }, [activeOrders]);
+  }, [activeOrders, onOpenSheet]);
 
   const markCustomPosition = useCallback(() => {
     setHasCustomPosition(true);
@@ -237,7 +408,18 @@ const ActiveDeliveryFloat = () => {
       });
 
     return Gesture.Exclusive(tapGesture, panGesture);
-  }, [dragStartX, dragStartY, isDragging, markCustomPosition, openDelivery]);
+  }, [
+    dragStartX,
+    dragStartY,
+    isDragging,
+    markCustomPosition,
+    minYShared,
+    maxYShared,
+    openDelivery,
+    pillWidthShared,
+    posX,
+    posY,
+  ]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     position: "absolute",
@@ -247,63 +429,121 @@ const ActiveDeliveryFloat = () => {
     transform: [{ scale: isDragging.value ? 1.02 : 1 }],
   }));
 
-  if (!userId || activeOrders.length === 0 || isHiddenOnDetail) {
+  return (
+    <GestureDetector gesture={composedGesture}>
+      <Animated.View
+        style={[
+          isCompact ? styles.compactContainer : styles.container,
+          { width: pillWidth, height: isCompact ? COMPACT_SIZE : undefined },
+          animatedStyle,
+        ]}
+      >
+        {isCompact ? (
+          <View style={styles.compactContent}>
+            <MaterialCommunityIcons
+              name="truck-delivery"
+              size={26}
+              color="#F57F17"
+            />
+            {activeOrders.length > 1 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{activeOrders.length}</Text>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={styles.content}>
+            <MaterialCommunityIcons
+              name="truck-delivery"
+              size={22}
+              color="#F57F17"
+            />
+            <Text style={styles.label} numberOfLines={1}>
+              {label}
+            </Text>
+            <View style={styles.actionPill}>
+              <Text style={styles.actionText}>{actionLabel}</Text>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={16}
+                color="#fff"
+              />
+            </View>
+          </View>
+        )}
+      </Animated.View>
+    </GestureDetector>
+  );
+});
+
+const ActiveDeliveryFloat = ({
+  homeVariant = "full",
+}: ActiveDeliveryFloatProps) => {
+  const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
+  const pathname = usePathname();
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  useOrderStatusListener();
+
+  const appState = useAppState();
+  const { data, refetch } = useFetchActiveDeliveriesQuery(
+    {
+      userId,
+      status: ACTIVE_FLOAT_STATUS_QUERY,
+      limit: 20,
+      page: 1,
+    },
+    { skip: !userId },
+  );
+
+  useEffect(() => {
+    if (appState === "active" && userId) {
+      refetch();
+    }
+  }, [appState, refetch, userId]);
+
+  const activeOrders = useMemo(
+    () => (data?.orders ?? []) as ActiveFloatOrder[],
+    [data?.orders],
+  );
+
+  const isHiddenOnDetail = useMemo(() => {
+    if (activeOrders.length !== 1) return false;
+    const orderId = String(activeOrders[0]?._id ?? "");
+    return orderId.length > 0 && pathname.includes(orderId);
+  }, [activeOrders, pathname]);
+
+  const showPill =
+    !!userId && activeOrders.length > 0 && !isHiddenOnDetail && !sheetOpen;
+
+  const openSheet = useCallback(() => {
+    setSheetOpen(true);
+  }, []);
+
+  const closeSheet = useCallback(() => {
+    setSheetOpen(false);
+  }, []);
+
+  if (!userId || activeOrders.length === 0) {
+    return null;
+  }
+
+  if (isHiddenOnDetail && !sheetOpen) {
     return null;
   }
 
   return (
     <>
-      {!sheetOpen && (
-        <GestureDetector gesture={composedGesture}>
-          <Animated.View
-            style={[
-              isCompact ? styles.compactContainer : styles.container,
-              { width: pillWidth, height: isCompact ? COMPACT_SIZE : undefined },
-              animatedStyle,
-            ]}
-          >
-            {isCompact ? (
-              <View style={styles.compactContent}>
-                <MaterialCommunityIcons
-                  name="truck-delivery"
-                  size={26}
-                  color="#F57F17"
-                />
-                {activeOrders.length > 1 && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{activeOrders.length}</Text>
-                  </View>
-                )}
-              </View>
-            ) : (
-              <View style={styles.content}>
-                <MaterialCommunityIcons
-                  name="truck-delivery"
-                  size={22}
-                  color="#F57F17"
-                />
-                <Text style={styles.label} numberOfLines={1}>
-                  {label}
-                </Text>
-                <View style={styles.actionPill}>
-                  <Text style={styles.actionText}>{actionLabel}</Text>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={16}
-                    color="#fff"
-                  />
-                </View>
-              </View>
-            )}
-          </Animated.View>
-        </GestureDetector>
+      {showPill && (
+        <ActiveDeliveryFloatPill
+          activeOrders={activeOrders}
+          homeVariant={homeVariant}
+          onOpenSheet={openSheet}
+        />
       )}
 
       {sheetOpen && (
-        <ActiveDeliverySheet
-          orders={activeOrders}
-          onClose={() => setSheetOpen(false)}
-        />
+        <ActiveDeliverySheet orders={activeOrders} onClose={closeSheet} />
       )}
     </>
   );

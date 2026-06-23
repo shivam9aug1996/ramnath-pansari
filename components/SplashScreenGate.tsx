@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { useSelector } from "react-redux";
 import { RootState } from "@/types/global";
+import { markStartupCheckpoint } from "@/utils/startupDiagnostics";
 
 type Props = {
   fontsLoaded: boolean;
@@ -27,7 +28,9 @@ export default function SplashScreenGate({ fontsLoaded }: Props) {
 
     const timer = setTimeout(() => {
       hasHidden.current = true;
-      SplashScreen.hideAsync().catch(() => {});
+      SplashScreen.hideAsync()
+        .then(() => markStartupCheckpoint("splash_hidden"))
+        .catch(() => {});
     }, 150);
 
     return () => clearTimeout(timer);

@@ -11,7 +11,6 @@ class CartDebounceManager {
     this.debouncedUpdate = debounce(
       async (cartData: any, userId: string) => {
         try {
-          console.log("cartData345678765434567890", cartData.length);
           // await SecureStore.setItemAsync(
           //   `cartData-${userId}`,
           //   JSON.stringify(cartData)
@@ -37,6 +36,10 @@ class CartDebounceManager {
 
   public updateCart(cartData: any, userId: string) {
     this.debouncedUpdate(cartData, userId);
+  }
+
+  public cancelPendingUpdate() {
+    this.debouncedUpdate.cancel();
   }
 }
 

@@ -22,7 +22,6 @@ const CategoryList = ({
   contentContainerStyle,
   parentCategory
 }: CategoryListProps) => {
-  console.log("categories876543210-",categories)
   
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null

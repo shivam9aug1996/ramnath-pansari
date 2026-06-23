@@ -40,8 +40,10 @@ import DeferredFadeIn from "@/components/DeferredFadeIn";
 
 const Account: React.FC = () => {
   const dispatch = useDispatch();
-const clearAuthDataState = useSelector((state: RootState) => state?.auth?.clearAuthData);
-console.log("clearAuthDataState456789099", clearAuthDataState);
+  const clearAuthDataState = useSelector(
+    (state: RootState) => state?.auth?.clearAuthData,
+  );
+  console.log("clearAuthDataState456789099", clearAuthDataState);
   const userInfo = useSelector((state: RootState) => state.auth.userData);
   const [logout, { isError: islogouterror, isSuccess }] = useLogoutMutation();
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -49,7 +51,7 @@ console.log("clearAuthDataState456789099", clearAuthDataState);
   const [deleteAccount, { isLoading: isAccountDeleting }] =
     useDeleteAccountMutation();
   const [isAnimating, setIsAnimating] = useState(true);
- // console.log(userInfo);
+  // console.log(userInfo);
   useFocusEffect(
     // Callback should be wrapped in `React.useCallback` to avoid running the effect too often.
     useCallback(() => {
@@ -57,61 +59,56 @@ console.log("clearAuthDataState456789099", clearAuthDataState);
 
       // Return function is invoked whenever the route gets out of focus.
       return () => {
-      //  console.log("This route is now unfocused.");
+        //  console.log("This route is now unfocused.");
         setDeleteConfirm(false);
         setLogoutConfirm(false);
       };
-    }, [])
+    }, []),
   );
   console.log("accounttab4567890");
   return (
     <>
       <ScreenSafeWrapper title="Profile">
-       <DeferredFadeIn delay={100} style={{flex:1}}>
-       {userInfo?._id ? (
-          isAccountDeleting ? (
-            <NotFound
-              title={"Deleting Account..."}
-              subtitle={"Please wait while we delete your account."}
-            />
-          ) : clearAuthDataState?.isLoading ? 
-          <NotFound
-              title={"Logging Out..."}
-              subtitle={"Please wait while we securely log you out."}
-            />
-          :
-          (
-            <>
-              
+        <DeferredFadeIn delay={100} style={{ flex: 1 }}>
+          {userInfo?._id ? (
+            isAccountDeleting ? (
+              <NotFound
+                title={"Deleting Account..."}
+                subtitle={"Please wait while we delete your account."}
+              />
+            ) : clearAuthDataState?.isLoading ? (
+              <NotFound
+                title={"Logging Out..."}
+                subtitle={"Please wait while we securely log you out."}
+              />
+            ) : (
+              <>
                 <ProfileContainer userInfo={userInfo} animate={isAnimating} />
-            
 
-              <ScrollView
-                bounces={Platform.OS === "android" ? false : true}
-                style={{ flex: 1, marginTop: 10 }}
-                contentContainerStyle={{ paddingBottom: 100 }}
-                pinchGestureEnabled={false}
-                showsVerticalScrollIndicator={false}
-              >
-                
+                <ScrollView
+                  bounces={Platform.OS === "android" ? false : true}
+                  style={{ flex: 1, marginTop: 10 }}
+                  contentContainerStyle={{ paddingBottom: 100 }}
+                  pinchGestureEnabled={false}
+                  showsVerticalScrollIndicator={false}
+                >
+                  <DeferredFadeIn delay={100}>
                   <View style={styles.optionsContainer}>
                     {userInfo?.isGuestUser && (
-                       <AccountOption
-                       onPress={() => {
-                         router.push("/login");
-                       }}
-                       icon={
-                         <MaterialCommunityIcons
-                           name="login"
-                           size={20}
-                           color={Colors.light.gradientGreen_2}
-                         />
-                       }
-                       label="Login/Signup"
-                     /> 
+                      <AccountOption
+                        onPress={() => {
+                          router.push("/login");
+                        }}
+                        icon={
+                          <MaterialCommunityIcons
+                            name="login"
+                            size={20}
+                            color={Colors.light.gradientGreen_2}
+                          />
+                        }
+                        label="Login/Signup"
+                      />
                     )}
-                    
-                    
 
                     {/* {userInfo?.khataUrl == "NA" ? null : (
                     <Suspense fallback={null}>
@@ -131,93 +128,92 @@ console.log("clearAuthDataState456789099", clearAuthDataState);
                     </Suspense>
                   )} */}
 
-                   {!userInfo?.isGuestUser && (
-                    <>
-                     <AccountOption
-                     onPress={() => {
-                       router.push("/profile");
-                     }}
-                     icon={
-                       <MaterialCommunityIcons
-                         name="account"
-                         size={20}
-                         color={Colors.light.gradientGreen_2}
-                       />
-                     }
-                     label="My Profile"
-                   /> 
-                    
+                    {!userInfo?.isGuestUser && (
+                      <>
+                        <AccountOption
+                          onPress={() => {
+                            router.push("/profile");
+                          }}
+                          icon={
+                            <MaterialCommunityIcons
+                              name="account"
+                              size={20}
+                              color={Colors.light.gradientGreen_2}
+                            />
+                          }
+                          label="My Profile"
+                        />
 
-                    <AccountOption
-                      onPress={() => {
-                        dispatch(setCheckoutFlow(false));
-                        router.push("/(order)/order");
-                      }}
-                      icon={
-                        <Feather
-                          name="package"
-                          size={20}
-                          color={Colors.light.gradientGreen_2}
+                        <AccountOption
+                          onPress={() => {
+                            dispatch(setCheckoutFlow(false));
+                            router.push("/(order)/order");
+                          }}
+                          icon={
+                            <Feather
+                              name="package"
+                              size={20}
+                              color={Colors.light.gradientGreen_2}
+                            />
+                          }
+                          label="Orders"
                         />
-                      }
-                      label="Orders"
-                    />
 
-                    <AccountOption
-                      onPress={() => {
-                        dispatch(setCheckoutFlow(false));
-                        router.push("/(address)/addressList");
-                      }}
-                      icon={
-                        <Ionicons
-                          name="location-sharp"
-                          size={20}
-                          color={Colors.light.gradientGreen_2}
+                        <AccountOption
+                          onPress={() => {
+                            dispatch(setCheckoutFlow(false));
+                            router.push("/(address)/addressList");
+                          }}
+                          icon={
+                            <Ionicons
+                              name="location-sharp"
+                              size={20}
+                              color={Colors.light.gradientGreen_2}
+                            />
+                          }
+                          label="Saved Addresses"
                         />
-                      }
-                      label="Saved Addresses"
-                    />
-                     <AccountOption
-                      onPress={() => {
-                        setLogoutConfirm(true);
-                      }}
-                      icon={
-                        <MaterialIcons
-                          name="logout"
-                          size={20}
-                          color={Colors.light.gradientRed_1}
+                        <AccountOption
+                          onPress={() => {
+                            setLogoutConfirm(true);
+                          }}
+                          icon={
+                            <MaterialIcons
+                              name="logout"
+                              size={20}
+                              color={Colors.light.gradientRed_1}
+                            />
+                          }
+                          label="Logout"
                         />
-                      }
-                      label="Logout"
-                    />
 
-                    <AccountOption
-                      onPress={async () => {
-                        setDeleteConfirm(true);
-                      }}
-                      icon={
-                        <MaterialIcons
-                          name="delete-forever"
-                          size={20}
-                          color={Colors.light.gradientRed_1}
+                        <AccountOption
+                          onPress={async () => {
+                            setDeleteConfirm(true);
+                          }}
+                          icon={
+                            <MaterialIcons
+                              name="delete-forever"
+                              size={20}
+                              color={Colors.light.gradientRed_1}
+                            />
+                          }
+                          label="Delete Account"
                         />
-                      }
-                      label="Delete Account"
-                    />
-                    </>
-                   )}
+                      </>
+                    )}
                   </View>
-                
-              </ScrollView>
-            </>
-          )
-        ) : (
-          <NotFound
-            title={"Logging Out..."}
-            subtitle={"Please wait while we securely log you out."}
-          />
-        )}
-       </DeferredFadeIn>
+                  </DeferredFadeIn>
+                </ScrollView>
+              </>
+            )
+          ) : (
+            <NotFound
+              title={"Logging Out..."}
+              subtitle={"Please wait while we securely log you out."}
+            />
+          )}
+        </DeferredFadeIn>
       </ScreenSafeWrapper>
 
       <>

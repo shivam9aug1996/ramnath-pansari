@@ -6,6 +6,22 @@ import { baseUrl } from "../constants";
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+function rebuildCartItemQuantities(
+  items: Array<{
+    productId?: unknown;
+    quantity?: number;
+    productDetails?: { _id?: string };
+  }>,
+) {
+  const next: Record<string, number> = {};
+  for (const item of items) {
+    const productId = item.productDetails?._id ?? item.productId;
+    if (productId == null) continue;
+    next[String(productId)] = item.quantity ?? 0;
+  }
+  return next;
+}
+
 export const cartApi = createApi({
   reducerPath: "cartApi",
   baseQuery: fetchBaseQuery({
@@ -41,11 +57,8 @@ export const cartApi = createApi({
         const cartData = await AsyncStorage.getItem(`cartData-${userId}`);
         const needToSync = await AsyncStorage.getItem(`cartData-${userId}-needToSync`);
 
-        console.log("needToSync", needToSync);
-        console.log("cartData", cartData);
         if(cartData && needToSync=="true"){
           const parsedCartData = JSON.parse(cartData);
-          console.log("payloa4567890d", parsedCartData);
           let payload = parsedCartData?.map((item: any) => {
             return {
               productId: item?.productDetails?._id,
@@ -283,6 +296,11 @@ const cartSlice = createSlice({
         const payableTotal = getPayableTotalFromItems(items);
         state.totalAmount = `₹${payableTotal.toFixed(2)}`;
         state.totalAmountInNumber = payableTotal;
+        state.cartItemQuantity = rebuildCartItemQuantities(items);
+        console.log("[cart-sync] cartItemQuantity:rebuilt from fetchCart", {
+          itemCount: items.length,
+          quantities: state.cartItemQuantity,
+        });
       }
     );
     builder.addMatcher(
@@ -342,6 +360,13 @@ const cartSlice = createSlice({
             cartItem.isCartLoading = false;
           }
         }
+      }
+    );
+    builder.addMatcher(
+      cartApi.endpoints.clearCart.matchFulfilled,
+      (state) => {
+        state.cartItemQuantity = {};
+        console.log("[cart-sync] cartItemQuantity:cleared on clearCart");
       }
     );
   },

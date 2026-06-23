@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Keyboard } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
-import { useVerifyOtpMutation, saveAuthData } from "@/redux/features/authSlice";
+import { useVerifyOtpMutation } from "@/redux/features/authSlice";
 import { numberOfInputs } from "@/screens/verifyOtp/util";
 import { RootState } from "@/types/global";
+import { persistAuthAndNavigate } from "@/utils/completeLogin";
 
 interface VerifyOtpHook {
   isLoading: boolean;
@@ -22,18 +23,15 @@ interface VerifyOtpHook {
   setErrorState: React.Dispatch<React.SetStateAction<string>>;
   mobileNumber: string | undefined;
 }
-interface RouteParams {
-  mobileNumber?: string;
-  userAlreadyRegistered?: string;
-}
 
 const useVerifyOtp = (): VerifyOtpHook => {
   const saveAuthDataState = useSelector(
-    (state: RootState) => state?.auth?.saveAuthData
+    (state: RootState) => state?.auth?.saveAuthData,
   );
   const [errorState, setErrorState] = useState<string>("");
+  const [isCompletingLogin, setIsCompletingLogin] = useState(false);
   const [inputValues, setInputValues] = useState<string[]>(
-    Array(numberOfInputs).fill("")
+    Array(numberOfInputs).fill(""),
   );
   const inputRef = useRef<{
     resetCurrentInputIndex: () => void;
@@ -45,26 +43,21 @@ const useVerifyOtp = (): VerifyOtpHook => {
   }>();
 
   const dispatch = useDispatch();
-  const [verifyOtp, { isLoading, isSuccess, data }] = useVerifyOtpMutation();
+  const [verifyOtp, { isLoading }] = useVerifyOtpMutation();
 
-  useEffect(() => {
-    if (isSuccess) {
-      
-      dispatch(saveAuthData(data) as any);
-    }
-  }, [isSuccess]);
-
-  useEffect(() => {
-    if (saveAuthDataState?.isSuccess) {
-      if (data) {
-        if (data?.userData?.name) {
-          router.replace("/(private)/(tabs)/home");
-        } else {
-          router.replace("/name");
-        }
+  const completeLogin = useCallback(
+    async (payload: { token: string; userData?: { name?: string; isAdminUser?: boolean } }) => {
+      setIsCompletingLogin(true);
+      try {
+        await persistAuthAndNavigate(dispatch, payload);
+      } catch {
+        setErrorState("Failed to save login session. Please try again.");
+      } finally {
+        setIsCompletingLogin(false);
       }
-    }
-  }, [saveAuthDataState?.isSuccess, data]);
+    },
+    [dispatch],
+  );
 
   const dismissKeyboard = useCallback(() => {
     Keyboard.dismiss();
@@ -83,28 +76,27 @@ const useVerifyOtp = (): VerifyOtpHook => {
     return "";
   }, []);
 
-  const handleVerifyOtp = useCallback(() => {
+  const handleVerifyOtp = useCallback(async () => {
     const otp = inputValues.join("");
     const validationError = validateOtp(otp);
     if (validationError) {
       setErrorState(validationError);
-    } else {
-      verifyOtp({
+      return;
+    }
+
+    try {
+      const result = await verifyOtp({
         mobileNumber: mobileNumber || "",
         otp,
-      });
+      }).unwrap();
+      await completeLogin(result);
+    } catch {
+      setErrorState("Incorrect OTP. Please try again.");
     }
-  }, [inputValues, mobileNumber, validateOtp, verifyOtp]);
-
-  const guestLogin = useCallback(() => {
-    verifyOtp({
-      mobileNumber: "9999999991" || "",
-      otp: "123456",
-    });
-  }, []);
+  }, [inputValues, mobileNumber, validateOtp, verifyOtp, completeLogin]);
 
   return {
-    isLoading,
+    isLoading: saveAuthDataState?.isLoading || isLoading || isCompletingLogin,
     errorState,
     inputValues,
     setInputValues,
@@ -115,7 +107,6 @@ const useVerifyOtp = (): VerifyOtpHook => {
     handleVerifyOtp,
     setErrorState,
     mobileNumber,
-    guestLogin,
   };
 };
 

@@ -7,8 +7,9 @@ import {
   Alert,
   FlatList,
   Platform,
+  ViewToken,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import {
   searchApi,
@@ -25,14 +26,26 @@ import { FlashList } from "@shopify/flash-list";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import CustomTextInput from "@/components/CustomTextInput";
 import ProductItem from "../(category)/ProductList/ProductItem";
-import ProductListPlaceholder from "../(category)/ProductList/ProductListPlaceholder";
+import ProductListPlaceholder, {
+  ProductItemSkeleton,
+} from "../(category)/ProductList/ProductListPlaceholder";
+import {
+  isProductSkeleton,
+  PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT,
+  PRODUCT_LIST_PADDING_BOTTOM,
+  ProductListRow,
+  withPaginationSkeletons,
+} from "../(category)/ProductList/productListLayout";
 import NotFound from "./NotFound";
-import GoToCart from "../(category)/ProductList/GoToCart";
+import GoToCartWrapper from "../(category)/ProductList/GoToCartWrapper";
+import { useHideOnScroll } from "@/hooks/useHideOnScroll";
+import { usePaginationSkeleton } from "@/hooks/usePaginationSkeleton";
 
 import { Colors } from "@/constants/Colors";
 import { ThemedText } from "@/components/ThemedText";
 import { RootState, CartItem, Product } from "@/types/global";
 import {
+  setProductListScrollParams,
   setResetPagination,
   useLazyFetchProductsQuery,
 } from "@/redux/features/productSlice";
@@ -40,6 +53,7 @@ import { addSearchQuery } from "@/redux/features/recentlyViewedSlice";
 import useResultStageLoad from "@/hooks/useResultStageLoad";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
 import ProductItemWrapper from "../(category)/ProductList/ProductItemWrapper";
+import { useGoToCartListPadding } from "@/contexts/DeliveryFloatContext";
 
 const QueryResult = ({query}:{query:string}) => {
  
@@ -69,6 +83,7 @@ const QueryResult = ({query}:{query:string}) => {
 
   const [page, setPage] = useState(1);
   const dispatch = useDispatch();
+  const goToCartListPadding = useGoToCartListPadding();
   const { data: cartData } = useFetchCartQuery({ userId }, { skip: !userId });
   const [fetchProductsBySearch] = useLazyFetchProductsBySearchQuery();
 
@@ -77,6 +92,43 @@ const QueryResult = ({query}:{query:string}) => {
       { query, type: "autocomplete", page, limit: 10 },
       { skip: !query }
     );
+
+  const hasNextPage = data?.currentPage < data?.totalPages;
+
+  const { showSkeleton: showPaginationSkeleton, beginPaging } =
+    usePaginationSkeleton({
+      isFetching,
+      page,
+      hasItems: (data?.results?.length ?? 0) > 0,
+      hasNextPage,
+    });
+
+  const isLoadingMoreRef = useRef(showPaginationSkeleton);
+  isLoadingMoreRef.current = showPaginationSkeleton;
+
+  const onChromeVisibilityChange = useCallback(
+    (hidden: boolean) => {
+      if (!hidden && isLoadingMoreRef.current) return;
+      dispatch(setProductListScrollParams({ shouldHideChrome: hidden }));
+    },
+    [dispatch],
+  );
+
+  const { handleScroll, reset: resetScrollChrome } = useHideOnScroll(
+    onChromeVisibilityChange,
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      resetScrollChrome();
+      return () => resetScrollChrome();
+    }, [resetScrollChrome]),
+  );
+
+  useEffect(() => {
+    setPage(1);
+    resetScrollChrome();
+  }, [query, resetScrollChrome]);
 
   const [createRecentSearch] = useCreateRecentSearchMutation();
 
@@ -173,8 +225,25 @@ const QueryResult = ({query}:{query:string}) => {
   // };
 
 
+  const listData = useMemo(
+    () => withPaginationSkeletons(data?.results, showPaginationSkeleton),
+    [data?.results, showPaginationSkeleton],
+  );
+
+  const listContentStyle = useMemo(
+    () => [
+      styles.listContent,
+      { paddingBottom: PRODUCT_LIST_PADDING_BOTTOM + goToCartListPadding },
+    ],
+    [goToCartListPadding],
+  );
+
   const renderProductItem = useCallback(
-    ({ item, index }: { item: Product; index: number }) => {
+    ({ item, index }: { item: ProductListRow; index: number }) => {
+      if (isProductSkeleton(item)) {
+        return <ProductItemSkeleton index={index} />;
+      }
+
       const cartItem = cartItemsMap[item._id];
       const isVisible = visibleIds.has(item._id);
       return (
@@ -186,16 +255,8 @@ const QueryResult = ({query}:{query:string}) => {
         />
       );
     },
-    [cartItemsMap,visibleIds] // ✅ depends on the cart mapping
+    [cartItemsMap, visibleIds],
   );
-
-  const renderLoader = () =>
-    isFetching ? (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="small" color={Colors.light.lightGreen} />
-        <Text style={styles.loaderText}>Loading more...</Text>
-      </View>
-    ) : null;
 
   const listEmptyComponent = () =>
     !isFetching ? (
@@ -213,12 +274,14 @@ const QueryResult = ({query}:{query:string}) => {
       >{`Found ${data.totalResults} Results`}</ThemedText>
     ) : null;
 
-  const hasNextPage = data?.currentPage < data?.totalPages;
+  const hasResults = (data?.results?.length ?? 0) > 0;
+  const showPlaceholder = !hasResults && (isLoading || isFetching);
 
   const handleEndReached = () => {
-    if (!isFetching && hasNextPage) fetchNextPage();
+    if (isFetching || !hasNextPage) return;
+    beginPaging();
+    fetchNextPage();
   };
-  console.log("queryResult")
 
   return (
     <>
@@ -234,35 +297,42 @@ const QueryResult = ({query}:{query:string}) => {
               wrapperStyle={styles.textInputWrapper}
               numberOfLines={1}
             />
-            {isLoading ? (
-              <ProductListPlaceholder  />
+            {showPlaceholder ? (
+              <View style={styles.container}>
+                <ProductListPlaceholder
+                  contentContainerStyle={listContentStyle}
+                />
+              </View>
             ) : error ? (
               <Text style={styles.errorText}>Error loading data</Text>
             ) : (
               <View style={styles.container}>
                 <FlatList
+                  key={query}
                   bounces={Platform.OS === "android" ? false : true}
                   //disableAutoLayout
                   initialNumToRender={6}
-                  // maxToRenderPerBatch={4}
-                  // windowSize={2}
-                  data={data?.results}
-                  extraData={cartData}
+                  maxToRenderPerBatch={showPaginationSkeleton ? 8 : 2}
+                  windowSize={showPaginationSkeleton ? 7 : 5}
+                  data={listData}
+                  extraData={{ cartData, showPaginationSkeleton }}
                   renderItem={renderProductItem}
                   keyExtractor={(item, index) => item?._id || index.toString()}
-                  // estimatedItemSize={277}
                   numColumns={2}
+                  removeClippedSubviews={false}
                   showsVerticalScrollIndicator={false}
                   onEndReached={handleEndReached}
-                  onEndReachedThreshold={0.1}
-                  ListFooterComponent={renderLoader}
-                  contentContainerStyle={styles.listContent}
+                  onEndReachedThreshold={0.35}
+                  contentContainerStyle={listContentStyle}
                   ListHeaderComponent={header}
                   ListEmptyComponent={listEmptyComponent}
-                  ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
-                  ListFooterComponentStyle={{ marginBottom: 20 }}
+                  ItemSeparatorComponent={() => (
+                    <View style={{ height: PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT }} />
+                  )}
                   viewabilityConfig={viewabilityConfig}
                   onViewableItemsChanged={onViewableItemsChanged}
+                  scrollEventThrottle={16}
+                  onScroll={handleScroll}
                 />
               </View>
             )}
@@ -270,9 +340,7 @@ const QueryResult = ({query}:{query:string}) => {
        
       </ScreenSafeWrapper>
 
-       <DeferredFadeIn delay={100} style={{}}>
-       <GoToCart />
-       </DeferredFadeIn>
+      <GoToCartWrapper />
     </>
   );
 };

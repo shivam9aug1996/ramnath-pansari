@@ -135,7 +135,7 @@ const MainNavigator = () => {
         }}
       />
     </Stack>
-    <ActiveDeliveryFloat />
+    <ActiveDeliveryFloat homeVariant="compact" />
     </View>
     </DeliveryFloatProvider>
   );

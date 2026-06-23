@@ -6,7 +6,7 @@ import {
   Image,
   Pressable,
 } from "react-native";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Colors } from "@/constants/Colors";
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
@@ -45,9 +45,17 @@ import Button from "../Button";
 import { useRenderTimer } from "@/hooks/useRenderTimer";
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { applyPostCheckoutCartUpdate } from "@/utils/applyPostCheckoutCartUpdate";
+import { removeHeldProductsFromCart } from "@/utils/removeHeldProductsFromCart";
+import { useCartFooterInsetActions } from "@/contexts/DeliveryFloatContext";
 
 const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
   useRenderTimer(`Continue`);
+  const {
+    setCartFooterInset,
+    publishCartFooterInsetEstimate,
+    setCartFooterInsetMeasured,
+  } = useCartFooterInsetActions();
   const isCartOperationProcessing = useSelector(
     (state: RootState) => state?.cart?.isCartOperationProcessing
   );
@@ -202,38 +210,33 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
 
   const productDiscount = mrpTotal - subtotal;
 
-  // useFocusEffect(
-  //   // Callback should be wrapped in `React.useCallback` to avoid running the effect too often.
-  //   useCallback(() => {
-  //     // Invoked whenever the route is focused.
-  //     console.log(`Hello, I'm focused!`,totalAmount);
-  //     (async()=>{
-  //       const payload = cartData?.cart?.items?.map((item:any)=>{
-  //         return {
-  //           productId:item?.productDetails?._id,
-  //           quantity:item?.quantity
-  //         }
-  //       })
-  //       console.log("payload",payload)
-  //       await bulkUpdateCart({
-  //         body: {
-  //           items:payload
-  //         },
-  //         params: { userId },
-  //       })?.unwrap();
-  //       await fetchCartData({ userId }, false)?.unwrap();
-  //     })()
+  useLayoutEffect(() => {
+    if (!cartItems) {
+      setCartFooterInset?.(0);
+      return;
+    }
+    publishCartFooterInsetEstimate?.();
+  }, [cartItems, publishCartFooterInsetEstimate, setCartFooterInset]);
 
-  //     // Return function is invoked whenever the route gets out of focus.
-  //     return () => {
-  //       console.log('This route is now unfocused.');
-  //     };
-  //   }, [cartData?.cart?.items,totalAmount])
-  //  );
+  useEffect(() => {
+    return () => {
+      setCartFooterInset?.(0);
+    };
+  }, [setCartFooterInset]);
+
+  const handleFooterLayout = (height: number) => {
+    if (!cartItems || height <= 0) return;
+    setCartFooterInsetMeasured?.(height);
+  };
 
   if (!cartItems) return null;
   return (
-    <View style={[styles.animatedContainer]}>
+    <View
+      style={[styles.animatedContainer]}
+      onLayout={(event) =>
+        handleFooterLayout(event.nativeEvent.layout.height)
+      }
+    >
       <>
         {cartItems ? (
           <>
@@ -459,7 +462,15 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                   dispatch(setIsCartOperationProcessing(true))
                   dispatch(setCheckoutFlow(true));
                   setIsDisabled(true);
-                  console.log("cartData", JSON.stringify(cartData));
+                  const preSyncCart = cartData;
+                  console.log("[cart-sync] checkout:start", {
+                    itemCount: preSyncCart?.cart?.items?.length ?? 0,
+                    items: (preSyncCart?.cart?.items ?? []).map((item: any) => ({
+                      productId: item?.productDetails?._id ?? item?.productId,
+                      quantity: item?.quantity,
+                      maxQuantity: item?.productDetails?.maxQuantity ?? null,
+                    })),
+                  });
                   let payload = cartData?.cart?.items?.map((item: any) => {
                     return {
                       productId: item?.productDetails?._id,
@@ -474,23 +485,122 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                  
                  
                  
-                 let data112= await updateProductsAsPerCart({
-                    body: {
-                      items: payload,
-                    },
-                    params: { userId },
-                  })?.unwrap();
-                  console.log("data112o87667890-0987",data112)
+                 let data112;
+                 try {
+                   data112 = await updateProductsAsPerCart({
+                     body: {
+                       items: payload,
+                     },
+                     params: { userId },
+                   })?.unwrap();
+                 } catch (error: any) {
+                   const status = error?.status;
+                   const errorData = error?.data ?? {};
+                   const heldProducts = errorData?.heldProducts;
+                   console.log("[product-lock] checkout:error", {
+                     userId,
+                     status,
+                     errorData,
+                     heldProducts,
+                     rawError: error,
+                   });
+                   if (Array.isArray(heldProducts) && heldProducts.length > 0) {
+                     const heldIds = heldProducts.map(
+                       (item: { productId: string }) => String(item.productId),
+                     );
+                     const removePayload = heldIds.map((productId: string) => ({
+                       productId,
+                       quantity: 0,
+                     }));
+                     console.log("[product-lock] checkout:remove-held", {
+                       userId,
+                       heldIds,
+                       removePayload,
+                     });
+                     try {
+                       await removeHeldProductsFromCart({
+                         dispatch,
+                         userId,
+                         heldProductIds: heldIds,
+                         currentCartItems: preSyncCart?.cart?.items ?? [],
+                         bulkUpdateCart,
+                         fetchCartData,
+                       });
+                       console.log("[product-lock] checkout:remove-held:done", {
+                         userId,
+                       });
+                     } catch (removeError: any) {
+                       console.log("[product-lock] checkout:remove-held:failed", {
+                         userId,
+                         heldIds,
+                         removeError: removeError?.data ?? removeError,
+                       });
+                       showToast({
+                         type: "error",
+                         text2:
+                           "Item is on hold but could not be removed from cart. Please refresh your cart.",
+                       });
+                     }
+                     const heldName =
+                       preSyncCart?.cart?.items?.find(
+                         (item: any) =>
+                           String(
+                             item?.productDetails?._id ?? item?.productId,
+                           ) === heldIds[0],
+                       )?.productDetails?.name ?? "This item";
+                     showToast({
+                       type: "info",
+                       text2:
+                         heldIds.length === 1
+                           ? `${heldName} is being fulfilled for another order and was removed from your cart.`
+                           : `${heldName} and other items are on hold and were removed from your cart.`,
+                     });
+                   } else {
+                     const fallbackMessage =
+                       errorData?.message ||
+                       errorData?.error ||
+                       "Unable to continue checkout. Please try again.";
+                     console.log("[product-lock] checkout:generic-error", {
+                       userId,
+                       status,
+                       fallbackMessage,
+                     });
+                     showToast({
+                       type: "error",
+                       text2: fallbackMessage,
+                     });
+                   }
+                     dispatch(setCheckoutFlow(false));
+                     setIsDisabled(false);
+                     dispatch(setIsCartOperationProcessing(false));
+                     return;
+                 }
+                  console.log("[cart-sync] checkout:sync response", {
+                    data: (data112?.data ?? []).map((item: any) => ({
+                      productId: item?.productId,
+                      status: item?.status,
+                      oldMaxQuantity: item?.oldMaxQuantity ?? null,
+                      newMaxQuantity: item?.newMaxQuantity ?? null,
+                      oldIsOutOfStock: item?.oldIsOutOfStock ?? null,
+                      newIsOutOfStock: item?.newIsOutOfStock ?? null,
+                      oldPrice: item?.oldDiscountedPrice ?? null,
+                      newPrice: item?.newDiscountedPrice ?? null,
+                      error: item?.error ?? null,
+                    })),
+                  });
                   let newPayload = data112?.data.filter(
                     (item: any) =>
                       item?.productId !== "676da9f75763ded56d43032d"
                   );
-                  await bulkUpdateCart({
+                  const bulkResult = await bulkUpdateCart({
                     body: {
                       items: payload,
                     },
                     params: { userId },
                   })?.unwrap();
+                  console.log("[cart-sync] checkout:bulk result", {
+                    failedItems: bulkResult?.failedItems ?? [],
+                  });
                   
                  
                   //await SecureStore.setItemAsync(`cartData-${userId}-needToSync`, "false")
@@ -505,36 +615,68 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                     { userId },
                     false
                   )?.unwrap();
+
+                  await applyPostCheckoutCartUpdate(
+                    dispatch,
+                    userId,
+                    newCartData,
+                    data112?.data,
+                  );
+
                  // dispatch(setNeedToSyncWithBackend({ status: false }));
                   //await SecureStore.deleteItemAsync(`cartData-${userId}`)
 
-                  let changes = findCartChanges(cartData, newCartData);
-                  let quantityChanges = findMaxQuantityChanges(cartData, newCartData);
-                  console.log("newCartDa567890ta8765456789",quantityChanges)
-                  console.log("changes8765456789",changes)
+                  let changes = findCartChanges(preSyncCart, newCartData);
+                  let quantityChanges = findMaxQuantityChanges(preSyncCart, newCartData);
+                  console.log("[cart-sync] checkout:comparison", {
+                    priceChanges: changes?.priceChanges ?? [],
+                    removedItems: changes?.removedItems ?? [],
+                    maxQuantityChanges: quantityChanges?.maxQuantityChanges ?? [],
+                    itemsToRemove: quantityChanges?.itemsToRemove ?? [],
+                    postSyncItems: (newCartData?.cart?.items ?? []).map((item: any) => ({
+                      productId: item?.productDetails?._id ?? item?.productId,
+                      quantity: item?.quantity,
+                      maxQuantity: item?.productDetails?.maxQuantity ?? null,
+                    })),
+                  });
                  // console.log("quantityChanges8765456789",quantityChanges)
                   if (
                     changes?.priceChanges.length > 0 ||
                     changes?.removedItems.length > 0
                   ) {
+                    const removed = changes?.removedItems ?? [];
+                    const cartNowEmpty =
+                      (newCartData?.cart?.items?.length ?? 0) === 0;
+                    console.log("[cart-sync] checkout:blocked — price/removal changes", {
+                      removedItems: removed,
+                      priceChanges: changes?.priceChanges ?? [],
+                      cartNowEmpty,
+                    });
                     showToast({
                       type: "info",
                       text2:
-                        "Product details are changed. Please review before checkout.",
+                        removed.length > 0
+                          ? cartNowEmpty
+                            ? `${removed[0].productName} is no longer available and was removed from your cart.`
+                            : `${removed[0].productName} was removed from your cart. Please review before checkout.`
+                          : "Product details are changed. Please review before checkout.",
                     });
                     setIsDisabled(false);
                     dispatch(setIsCartOperationProcessing(false))
                   }
                    else if(quantityChanges?.maxQuantityChanges.length > 0){
+                    const limitChange = quantityChanges.maxQuantityChanges[0];
+                    console.log("[cart-sync] checkout:blocked — limit change", limitChange);
                     showToast({
                       type: "info",
                       text2:
-                        "Product quantity is changed. Please review before checkout.",
+                        `Purchase limit updated (max ${limitChange.newMaxQuantity} units). Please review your cart.`,
                     });
                     setIsDisabled(false);
                     dispatch(setIsCartOperationProcessing(false))
                   }
                   else if(quantityChanges?.itemsToRemove.length > 0){
+                    console.log("[cart-sync] checkout:blocked — items to remove", quantityChanges.itemsToRemove);
                     showToast({
                       type: "info",
                       text2:
@@ -544,6 +686,7 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                     dispatch(setIsCartOperationProcessing(false))
                   }
                   else {
+                    console.log("[cart-sync] checkout:proceed → address list");
                     await fetchAddress(
                       {
                         userId: userId,

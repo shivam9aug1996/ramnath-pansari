@@ -114,18 +114,40 @@ const usePayment = () => {
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [isRazorpayOpened, setIsRazorpayOpened] = useState(false);
 
+  const extractProductIds = (cartData: any) =>
+    (cartData?.cart?.items ?? [])
+      .map(
+        (item: any) => item?.productDetails?._id ?? item?.productId,
+      )
+      .filter(
+        (productId: string) =>
+          productId && productId !== "676da9f75763ded56d43032d",
+      );
+
   const handleOnClick = async (amount: number, addressData: any) => {
     try {
       setIsPaymentProcessing(true);
 
-      // console.log("gfhjkl;", data);
       amount = amount;
 
+      const cartData = await fetchCartData({ userId }, true)?.unwrap();
+      const productIds = extractProductIds(cartData);
+      console.log("[product-lock] payment:online:start", {
+        userId,
+        productIds,
+        amount,
+      });
 
       const res: PreOrderResponse = await createPreOrder({
         isLive,
         amount,
+        userId,
+        productIds,
       }).unwrap();
+      console.log("[product-lock] payment:online:pre-order-created", {
+        userId,
+        razorpayOrderId: res.data.id,
+      });
 
 
       const options = {
@@ -147,41 +169,47 @@ const usePayment = () => {
 
       RazorpayCheckout.open(options)
         .then(async (data) => {
-          dispatch(setOrderSuccessView(true));
-          const cartData = await fetchCartData({ userId }, true)?.unwrap();
-          const verifyResponse = await verifyPreOrder({
-            ...data,
-            isLive,
-            order_id: res.data.id,
-            cartData,
-            addressData,
-            userId,
-          }).unwrap();
-          if (verifyResponse?.verified) {
-            await clearCart({
-              body: {},
-              params: { userId },
+          try {
+            dispatch(setOrderSuccessView(true));
+            const cartData = await fetchCartData({ userId }, true)?.unwrap();
+            const verifyResponse = await verifyPreOrder({
+              ...data,
+              isLive,
+              order_id: res.data.id,
+              cartData,
+              addressData,
+              userId,
             }).unwrap();
-            await fetchCartData({ userId }, false)?.unwrap();
-            if (verifyResponse?.orderId) {
-              router.dismissTo("/(tabs)/home");
-      router.push("/(order)/order");
-      router.push(`/(orderDetail)/${verifyResponse?.orderId}`);
-              // router.dismissAll();
-              // setTimeout(() => {
-              //   router.push(`/(orderDetail)/${verifyResponse?.orderId}`);
-              // }, 700);
-              //router.navigate("/home");
-              //router.dismissTo("/(address)/addressList");
-              //router.push(`/(orderDetail)/${verifyResponse?.orderId}`);
+            if (verifyResponse?.verified) {
+              await clearCart({
+                body: {},
+                params: { userId },
+              }).unwrap();
+              await fetchCartData({ userId }, false)?.unwrap();
+              if (verifyResponse?.orderId) {
+                router.dismissTo("/(tabs)/home");
+                router.push("/(order)/order");
+                router.push(`/(orderDetail)/${verifyResponse?.orderId}`);
+              } else {
+                router.dismissAll();
+              }
             } else {
-              router.dismissAll();
+              dispatch(setOrderSuccessView(false));
+              showToast({ type: "error", text2: "Payment not verified" });
             }
-
-            // create order flow
-          } else {
-            showToast({ type: "error", text2: "Payment not  verified" });
-            // create order with hold status
+          } catch (verifyError: any) {
+            dispatch(setOrderSuccessView(false));
+            console.log("[product-lock] payment:online:verify-failed", {
+              userId,
+              status: verifyError?.status,
+              data: verifyError?.data,
+            });
+            showToast({
+              type: "error",
+              text2:
+                verifyError?.data?.message ||
+                "Payment received but order could not be placed. Please contact support.",
+            });
           }
         })
         .catch((error) => {
@@ -195,10 +223,19 @@ const usePayment = () => {
           setIsPaymentProcessing(false);
           setIsRazorpayOpened(false);
         });
-    } catch (error) {
+    } catch (error: any) {
+      console.log("[product-lock] payment:online:pre-order-failed", {
+        userId,
+        status: error?.status,
+        data: error?.data,
+      });
+      const message =
+        error?.data?.message ||
+        error?.data?.error ||
+        "We're experiencing issues with online payments.";
       showToast({
         type: "error",
-        text2: "We're experiencing issues with online payments.",
+        text2: message,
       });
       console.error("Order creation failed:", error);
       setIsPaymentProcessing(false);
@@ -208,9 +245,14 @@ const usePayment = () => {
   const handleCod = async (amount: number, addressData: any) => {
     try {
       setIsPaymentProcessing(true);
-      //setIsRazorpayOpened(true);
 
       const cartData = await fetchCartData({ userId }, true)?.unwrap();
+      const productIds = extractProductIds(cartData);
+      console.log("[product-lock] payment:cod:start", {
+        userId,
+        productIds,
+        amount,
+      });
       const verifyResponse = await placeCodOrder({
         isLive,
         cartData,
@@ -228,13 +270,19 @@ const usePayment = () => {
       router.dismissTo("/(tabs)/home");
       router.push("/(order)/order");
       router.push(`/(orderDetail)/${verifyResponse?.orderId}`);
-
-      // router.dismissAll();
-      // setTimeout(() => {
-      //   router.push("/(order)/order");
-      //   router.push(`/(orderDetail)/${verifyResponse?.orderId}`);
-      // }, 700);
-    } catch (error) {
+    } catch (error: any) {
+      console.log("[product-lock] payment:cod:failed", {
+        userId,
+        status: error?.status,
+        data: error?.data,
+      });
+      const message =
+        error?.data?.message ||
+        "Unable to place order. Please review your cart and try again.";
+      showToast({
+        type: "error",
+        text2: message,
+      });
     } finally {
       setIsPaymentProcessing(false);
       // setTimeout(() => {

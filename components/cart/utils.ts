@@ -28,6 +28,9 @@ export const calculateTotalAmountMrp = (products: CartItem[] = []): number => {
   }, 0);
 };
 
+const normalizeCartProductId = (productId: unknown) =>
+  productId != null ? String(productId) : "";
+
 export const findCartChanges = (prevCart, nextCart) => {
   const priceChanges = [];
   const removedItems = [];
@@ -36,14 +39,14 @@ export const findCartChanges = (prevCart, nextCart) => {
   const prevItemsMap = new Map(
     prevCart?.cart?.items?.map((item) => {
      // console.log("87654efghjk", item);
-      return [item.productId, item];
+      return [normalizeCartProductId(item.productId), item];
     })
   );
 //  console.log("567567890890-", prevItemsMap);
 
   // Iterate over nextCart items to check for price changes
   nextCart?.cart?.items.forEach((nextItem) => {
-    const prevItem = prevItemsMap.get(nextItem.productId);
+    const prevItem = prevItemsMap.get(normalizeCartProductId(nextItem.productId));
 
     if (prevItem) {
       // Check if the discounted price has changed
@@ -60,7 +63,7 @@ export const findCartChanges = (prevCart, nextCart) => {
       }
 
       // Remove the item from the map to track remaining items
-      prevItemsMap.delete(nextItem.productId);
+      prevItemsMap.delete(normalizeCartProductId(nextItem.productId));
     }
   });
 
@@ -91,21 +94,24 @@ export const findMaxQuantityChanges = (prevCart, nextCart) => {
   // Create a map for fast lookup of previous items
   const prevItemsMap = new Map(
     prevCart?.cart?.items?.map((item) => {
-      return [item.productId, item];
+      return [normalizeCartProductId(item.productId), item];
     })
   );
 
   // Iterate over nextCart items to check for maxQuantity changes
   nextCart?.cart?.items.forEach((nextItem) => {
-    const prevItem = prevItemsMap.get(nextItem.productId);
+    const prevItem = prevItemsMap.get(normalizeCartProductId(nextItem.productId));
 
     if (prevItem) {
-      console.log("prevItem8765456789",prevItem,nextItem)
-      const prevMaxQuantity = prevItem.productDetails?.maxQuantity || 5;
-      const nextMaxQuantity = nextItem.productDetails?.maxQuantity || 5;
+      const prevMaxQuantity = prevItem.productDetails?.maxQuantity ?? 5;
+      const nextMaxQuantity = nextItem.productDetails?.maxQuantity ?? 5;
 
       // Check if maxQuantity has changed
       if (prevMaxQuantity !== nextMaxQuantity) {
+        const prevQty = prevItem.quantity ?? 0;
+        const nextQty = nextItem.quantity ?? 0;
+        const qtyWasCapped = nextQty < prevQty;
+
         // If new maxQuantity is 0, mark for removal
         if (nextMaxQuantity === 0) {
           itemsToRemove.push({
@@ -114,19 +120,39 @@ export const findMaxQuantityChanges = (prevCart, nextCart) => {
             oldMaxQuantity: prevMaxQuantity,
             newMaxQuantity: nextMaxQuantity,
           });
-        } else if (nextMaxQuantity < prevMaxQuantity) {
-          // Only show toast if new maxQuantity is less than old maxQuantity
+        } else if (
+          nextMaxQuantity < prevMaxQuantity &&
+          (prevQty > nextMaxQuantity || qtyWasCapped)
+        ) {
+          console.log("[cart-sync] maxQuantity:block checkout", {
+            productId: nextItem.productId,
+            productName: nextItem.productDetails.name,
+            prevMaxQuantity,
+            nextMaxQuantity,
+            prevQty,
+            nextQty,
+            qtyWasCapped,
+          });
           maxQuantityChanges.push({
             productId: nextItem.productId,
             productName: nextItem.productDetails.name,
             oldMaxQuantity: prevMaxQuantity,
             newMaxQuantity: nextMaxQuantity,
           });
+        } else if (nextMaxQuantity < prevMaxQuantity) {
+          console.log("[cart-sync] maxQuantity:ignored (no user impact)", {
+            productId: nextItem.productId,
+            productName: nextItem.productDetails.name,
+            prevMaxQuantity,
+            nextMaxQuantity,
+            prevQty,
+            nextQty,
+          });
         }
       }
 
       // Remove the item from the map to track remaining items
-      prevItemsMap.delete(nextItem.productId);
+      prevItemsMap.delete(normalizeCartProductId(nextItem.productId));
     }
   });
 

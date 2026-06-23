@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Keyboard } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
-import { useVerifyOtpMutation, saveAuthData } from "@/redux/features/authSlice";
+import { useVerifyOtpMutation } from "@/redux/features/authSlice";
 import { RootState } from "@/types/global";
+import { persistAuthAndNavigate } from "@/utils/completeLogin";
 
 interface VerifyPasswordHook {
   isLoading: boolean;
@@ -19,18 +20,14 @@ interface VerifyPasswordHook {
   guestLogin: () => void;
 }
 
-interface RouteParams {
-  mobileNumber?: string;
-  userAlreadyRegistered?: string;
-}
-
 const useVerifyPassword = (): VerifyPasswordHook => {
   const saveAuthDataState = useSelector(
-    (state: RootState) => state?.auth?.saveAuthData
+    (state: RootState) => state?.auth?.saveAuthData,
   );
 
   const [errorState, setErrorState] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [isCompletingLogin, setIsCompletingLogin] = useState(false);
 
   const { mobileNumber, userAlreadyRegistered } = useLocalSearchParams<{
     mobileNumber?: string;
@@ -38,33 +35,21 @@ const useVerifyPassword = (): VerifyPasswordHook => {
   }>();
   const dispatch = useDispatch();
 
-  const [verifyOtp, { isLoading, isSuccess, data }] = useVerifyOtpMutation();
+  const [verifyOtp, { isLoading }] = useVerifyOtpMutation();
 
-  // Save auth data when password is successfully verified
-  useEffect(() => {
-    if (isSuccess) {
-      console.log("iuytresghjhgfdsfghj",data)
-      dispatch(saveAuthData(data) as any);
-      // dispatch(savePushTokenToStorage("loaded") as any);
-    }
-  }, [isSuccess]);
-
-  // Navigate user after auth is saved
-  useEffect(() => {
-    if (saveAuthDataState?.isSuccess) {
-      if (data) {
-        if (data?.userData?.name) {
-          if(data?.userData?.isAdminUser){
-            router.replace("/admin/home");
-          }else{
-            router.replace("/(private)/(tabs)/home");
-          } 
-        } else {
-          router.replace("/name");
-        }
+  const completeLogin = useCallback(
+    async (payload: { token: string; userData?: { name?: string; isAdminUser?: boolean } }) => {
+      setIsCompletingLogin(true);
+      try {
+        await persistAuthAndNavigate(dispatch, payload);
+      } catch {
+        setErrorState("Failed to save login session. Please try again.");
+      } finally {
+        setIsCompletingLogin(false);
       }
-    }
-  }, [saveAuthDataState?.isSuccess, data]);
+    },
+    [dispatch],
+  );
 
   const dismissKeyboard = useCallback(() => {
     Keyboard.dismiss();
@@ -76,7 +61,6 @@ const useVerifyPassword = (): VerifyPasswordHook => {
   }, []);
 
   const validatePassword = useCallback((passwordValue: string): string => {
-    console.log("passwordValue", passwordValue);
     if (!passwordValue || passwordValue.length < 6) {
       return "Password must be at least 6 characters long";
     }
@@ -84,28 +68,37 @@ const useVerifyPassword = (): VerifyPasswordHook => {
   }, []);
 
   const handleVerifyPassword = useCallback(
-    (passwordValue: string) => {
+    async (passwordValue: string) => {
       const validationError = validatePassword(passwordValue);
       if (validationError) {
         setErrorState(validationError);
-      } else {
-        verifyOtp({
+        return;
+      }
+
+      try {
+        const result = await verifyOtp({
           mobileNumber: mobileNumber || "",
           password: passwordValue,
-        });
+        }).unwrap();
+        await completeLogin(result);
+      } catch {
+        setErrorState("Incorrect password");
       }
     },
-    [mobileNumber, validatePassword, verifyOtp]
+    [mobileNumber, validatePassword, verifyOtp, completeLogin],
   );
 
-  const guestLogin = useCallback(() => {
-    verifyOtp({
-      isGuestUser: true,
-    });
-  }, []);
+  const guestLogin = useCallback(async () => {
+    try {
+      const result = await verifyOtp({ isGuestUser: true }).unwrap();
+      await completeLogin(result);
+    } catch {
+      setErrorState("Guest login failed. Please try again.");
+    }
+  }, [verifyOtp, completeLogin]);
 
   return {
-    isLoading:saveAuthDataState?.isLoading || isLoading,
+    isLoading: saveAuthDataState?.isLoading || isLoading || isCompletingLogin,
     errorState,
     password,
     setPassword,

@@ -212,24 +212,20 @@ const OrderDetailComp = ({
     itemsOrdered,
   };
 
-  const useFullBleedWrapper = expectsLiveMap;
-
   return (
-    <ScreenSafeWrapper
-      showCartIcon
-      wrapperStyle={useFullBleedWrapper ? styles.wrapperFullBleed : undefined}
-      headerStyle={useFullBleedWrapper ? styles.headerPadded : undefined}
-    >
+    <ScreenSafeWrapper showCartIcon>
       <OrderLottie />
       <DeferredFadeIn delay={100} style={{ flex: 1 }}>
         {expectsLiveMap ? (
-          <OrderLiveTrackingScroll orderId={id}>
-            {isFetching ? (
-              <OrderDetailBodySkeleton inSheet />
-            ) : (
-              <OrderDetailBody {...bodyProps} inSheet />
-            )}
-          </OrderLiveTrackingScroll>
+          <View style={styles.liveMapBleed}>
+            <OrderLiveTrackingScroll orderId={id}>
+              {isFetching ? (
+                <OrderDetailBodySkeleton inSheet />
+              ) : (
+                <OrderDetailBody {...bodyProps} inSheet />
+              )}
+            </OrderLiveTrackingScroll>
+          </View>
         ) : (
           <ScrollView
             bounces={Platform.OS === "android" ? false : true}
@@ -251,11 +247,10 @@ const OrderDetailComp = ({
 export default memo(OrderDetailComp);
 
 const styles = StyleSheet.create({
-  wrapperFullBleed: {
-    paddingHorizontal: 0,
-  },
-  headerPadded: {
-    paddingHorizontal: 20,
+  /** Pull map to screen edges while header keeps default ScreenSafeWrapper padding. */
+  liveMapBleed: {
+    flex: 1,
+    marginHorizontal: -20,
   },
   paddedScrollContent: {
     paddingTop: 16,

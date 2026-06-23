@@ -55,21 +55,23 @@ export const useCartOperations = (item: Product, initialValue: number) => {
   const userId = userInfo?._id;
   const isGuestUser = userInfo?.isGuestUser;
 
-  const quantity = useSelector(
-    (state: RootState) => state.cart.cartItemQuantity[item._id]
+  const storedQuantity = useSelector(
+    (state: RootState) => state.cart.cartItemQuantity[item._id],
   );
+  const quantity = storedQuantity ?? initialValue ?? 0;
 
   useEffect(() => {
-    dispatch(
-      setCartItemQuantity({ productId: item._id, quantity: initialValue })
-    );
-  }, [dispatch, item._id, initialValue]);
+    if (storedQuantity !== initialValue) {
+      dispatch(
+        setCartItemQuantity({ productId: item._id, quantity: initialValue ?? 0 }),
+      );
+    }
+  }, [dispatch, item._id, initialValue, storedQuantity]);
 
 
 
   const updateCartItems = useCallback(
     async(newQuantity: number) => {
-      console.log("newQuantity765434567890",newQuantity);
       
       dispatch(setCartItemQuantity({ productId: item._id, quantity: newQuantity }));
 
@@ -118,7 +120,6 @@ export const useCartOperations = (item: Product, initialValue: number) => {
          updatedCart = updatedCart?.cart?.items || [];
   
         if (updatedCart?.length>=0) {
-          console.log("updatedCar456789t",updatedCart);
           CartDebounceManager.getInstance().updateCart(updatedCart, userId);
         }
       })
@@ -148,8 +149,7 @@ export const useCartOperations = (item: Product, initialValue: number) => {
     }
 
     hapticFeedback();
-    console.log("quantityu76543456789",item);
-    const maxQuantity = item?.maxQuantity || 5;
+    const maxQuantity = item?.maxQuantity ?? 5;
     if (quantity < maxQuantity) {
       buttonClicked.current = true;
       updateCartItems(quantity + 1);
@@ -158,9 +158,15 @@ export const useCartOperations = (item: Product, initialValue: number) => {
         type: "info",
         text2: "You have reached the maximum limit allowed for purchase of this item.",
       });
-      
     }
-  }, [isGuestUser, quantity, updateCartItems, dispatch,isCartOperationProcessing,isClearCartLoading]);
+  }, [
+    isGuestUser,
+    quantity,
+    item?.maxQuantity,
+    updateCartItems,
+    isCartOperationProcessing,
+    isClearCartLoading,
+  ]);
 
   const handleRemove = useCallback(() => {
     if(isCartOperationProcessing || isClearCartLoading){
