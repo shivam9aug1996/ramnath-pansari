@@ -15,22 +15,32 @@ import Svg, { Circle, G } from "react-native-svg";
 
 import { staticImage } from "../CategoryList/utils";
 import { Colors } from "@/constants/Colors";
-import { FREE_DELIVERY_MIN } from "@/constants/Delivery";
 import { calculateTotalAmountMrp } from "@/components/cart/utils";
 import { RootState } from "@/types/global";
 import { useFetchCartQuery } from "@/redux/features/cartSlice";
+import { useCachedOffers } from "@/hooks/useCachedOffers";
 import {
   getCartSubtotal,
-  getFreeDeliveryRemaining,
-  hasFreeDelivery,
+  getPaidCartSubtotal,
 } from "@/utils/deliveryFee";
+import {
+  buildAdminOfferMilestones,
+  buildVisibleCartMilestones,
+  getMaxMilestoneThreshold,
+  getNextMilestone,
+  getUnlockedMilestones,
+  hasDeliveryOnlyUnlocked,
+  shouldShowCartPromoIncentive,
+  type OfferMilestone,
+} from "@/utils/offerMilestones";
+import { mergeCartItemsWithOffers } from "@/utils/applyOptimisticOffers";
 import { formatNumber } from "@/utils/utils";
 import { useGoToCartInsetActions } from "@/contexts/DeliveryFloatContext";
+import { useDeliverySettings } from "@/hooks/useDeliverySettings";
 
-const SUGAR_PROMO_MIN = 1000;
 const CARD_RADIUS = 20;
-const MILESTONE_SIZE = 36;
-const RING_SIZE = 42;
+const MILESTONE_SIZE = 26;
+const RING_SIZE = 32;
 
 type GoToCartProps = {
   isCart?: boolean;
@@ -38,38 +48,12 @@ type GoToCartProps = {
   embedded?: boolean;
 };
 
-type Milestone = {
-  id: string;
-  threshold: number;
-  icon: keyof typeof Ionicons.glyphMap;
-  rewardLabel: string;
-};
-
-const MILESTONES: Milestone[] = [
-  {
-    id: "delivery",
-    threshold: FREE_DELIVERY_MIN,
-    icon: "bicycle-outline",
-    rewardLabel: "FREE delivery",
-  },
-  {
-    id: "sugar",
-    threshold: SUGAR_PROMO_MIN,
-    icon: "gift-outline",
-    rewardLabel: "1 kg sugar free",
-  },
-];
-
 function MilestoneRing({
   progress,
-  unlocked,
 }: {
   progress: number;
-  unlocked: boolean;
 }) {
-  const stroke = unlocked ? Colors.light.mediumGreen : "#3B82F6";
-  const track = unlocked ? "rgba(76,187,94,0.25)" : "rgba(59,130,246,0.18)";
-  const circumference = 2 * Math.PI * 17;
+  const circumference = 2 * Math.PI * 12;
   const dashOffset = circumference * (1 - Math.min(progress, 1));
 
   return (
@@ -77,138 +61,199 @@ function MilestoneRing({
       <Circle
         cx={RING_SIZE / 2}
         cy={RING_SIZE / 2}
-        r={17}
-        stroke={track}
-        strokeWidth={2.5}
+        r={12}
+        stroke="rgba(25,75,56,0.12)"
+        strokeWidth={2}
         fill="transparent"
       />
-      {!unlocked ? (
-        <G rotation={-90} origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}>
-          <Circle
-            cx={RING_SIZE / 2}
-            cy={RING_SIZE / 2}
-            r={17}
-            stroke={stroke}
-            strokeWidth={2.5}
-            fill="transparent"
-            strokeDasharray={`${circumference}`}
-            strokeDashoffset={dashOffset}
-            strokeLinecap="round"
-          />
-        </G>
-      ) : null}
+      <G rotation={-90} origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}>
+        <Circle
+          cx={RING_SIZE / 2}
+          cy={RING_SIZE / 2}
+          r={12}
+          stroke={Colors.light.mediumGreen}
+          strokeWidth={2}
+          fill="transparent"
+          strokeDasharray={`${circumference}`}
+          strokeDashoffset={dashOffset}
+          strokeLinecap="round"
+        />
+      </G>
     </Svg>
   );
 }
 
-function MilestoneTrack({ subtotal }: { subtotal: number }) {
-  const overallProgress = Math.min(subtotal / SUGAR_PROMO_MIN, 1);
+function MilestoneTrack({
+  subtotal,
+  milestones,
+}: {
+  subtotal: number;
+  milestones: OfferMilestone[];
+}) {
+  const maxThreshold = getMaxMilestoneThreshold(milestones);
+  const overallProgress = Math.min(subtotal / maxThreshold, 1);
 
   return (
-    <View style={styles.milestoneRow}>
-      <View style={styles.milestoneLineTrack}>
-        <View
-          style={[styles.milestoneLineFill, { width: `${overallProgress * 100}%` }]}
-        />
-      </View>
+    <View style={styles.milestoneTrackWrap}>
+      <View style={styles.milestoneRow}>
+        <View style={styles.milestoneLineTrack}>
+          <View
+            style={[
+              styles.milestoneLineFill,
+              { width: `${overallProgress * 100}%` },
+            ]}
+          />
+        </View>
 
-      {MILESTONES.map((milestone, index) => {
-        const unlocked = subtotal >= milestone.threshold;
-        const isNext =
-          !unlocked &&
-          (index === 0 || subtotal >= MILESTONES[index - 1].threshold);
-        const progress = Math.min(subtotal / milestone.threshold, 1);
+        {milestones.map((milestone, index) => {
+          const unlocked = subtotal >= milestone.threshold;
+          const isNext =
+            !unlocked &&
+            (index === 0 || subtotal >= milestones[index - 1].threshold);
+          const progress = Math.min(subtotal / milestone.threshold, 1);
 
-        return (
-          <View key={milestone.id} style={styles.milestoneItem}>
-            <View style={styles.milestoneIconWrap}>
-              {isNext ? (
-                <MilestoneRing progress={progress} unlocked={unlocked} />
-              ) : null}
-              <View
-                style={[
-                  styles.milestoneCircle,
-                  unlocked && styles.milestoneCircleUnlocked,
-                  isNext && styles.milestoneCircleActive,
-                ]}
-              >
-                <Ionicons
-                  name={milestone.icon}
-                  size={16}
-                  color={unlocked ? Colors.light.white : Colors.light.darkGreen}
-                />
-              </View>
-              <View
-                style={[
-                  styles.milestoneBadge,
-                  unlocked ? styles.milestoneBadgeDone : styles.milestoneBadgeLocked,
-                ]}
-              >
-                <Ionicons
-                  name={unlocked ? "checkmark" : "lock-closed"}
-                  size={9}
-                  color={Colors.light.white}
-                />
+          return (
+            <View key={milestone.id} style={styles.milestoneItem}>
+              <View style={styles.milestoneIconWrap}>
+                {isNext ? <MilestoneRing progress={progress} /> : null}
+                <View
+                  style={[
+                    styles.milestoneCircle,
+                    unlocked && styles.milestoneCircleUnlocked,
+                    isNext && styles.milestoneCircleActive,
+                  ]}
+                >
+                  <Ionicons
+                    name={milestone.icon}
+                    size={12}
+                    color={
+                      unlocked
+                        ? Colors.light.white
+                        : isNext
+                          ? Colors.light.darkGreen
+                          : Colors.light.mediumLightGrey
+                    }
+                  />
+                </View>
               </View>
             </View>
-          </View>
-        );
-      })}
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function BenefitChip({
+  label,
+  applied,
+}: {
+  label: string;
+  applied: boolean;
+}) {
+  return (
+    <View
+      style={[
+        styles.benefitChip,
+        applied ? styles.benefitChipApplied : styles.benefitChipPending,
+      ]}
+    >
+      {applied ? (
+        <Ionicons
+          name="checkmark"
+          size={10}
+          color={Colors.light.mediumGreen}
+          style={styles.benefitChipIcon}
+        />
+      ) : null}
+      <Text
+        style={[
+          styles.benefitChipText,
+          applied ? styles.benefitChipTextApplied : styles.benefitChipTextPending,
+        ]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
     </View>
   );
 }
 
 function PromoIncentive({
   subtotal,
+  milestones,
+  hasAdminOffers,
+  deliveryUnlocked,
   compact,
 }: {
   subtotal: number;
+  milestones: OfferMilestone[];
+  hasAdminOffers: boolean;
+  deliveryUnlocked: boolean;
   compact?: boolean;
 }) {
-  const deliveryUnlocked = hasFreeDelivery(subtotal);
-  const freeDeliveryRemaining = getFreeDeliveryRemaining(subtotal);
-  const sugarPromoRemaining = Math.max(SUGAR_PROMO_MIN - subtotal, 0);
+  const unlocked = useMemo(
+    () => getUnlockedMilestones(milestones, subtotal),
+    [milestones, subtotal],
+  );
 
-  const { remaining, rewardLabel } = useMemo(() => {
-    if (!deliveryUnlocked) {
-      return {
-        remaining: freeDeliveryRemaining,
-        rewardLabel: "FREE delivery",
-      };
-    }
-    if (sugarPromoRemaining > 0) {
-      return {
-        remaining: sugarPromoRemaining,
-        rewardLabel: "1 kg sugar free",
-      };
-    }
-    return { remaining: 0, rewardLabel: "" };
-  }, [deliveryUnlocked, freeDeliveryRemaining, sugarPromoRemaining]);
+  const next = useMemo(
+    () => getNextMilestone(milestones, subtotal),
+    [milestones, subtotal],
+  );
 
-  const allUnlocked = deliveryUnlocked && sugarPromoRemaining === 0;
+  const allUnlocked = !next && hasAdminOffers;
+
+  const benefitChips = useMemo(() => {
+    const chips: { key: string; label: string; applied: boolean }[] = [];
+
+    unlocked.forEach((milestone) => {
+      chips.push({
+        key: milestone.id,
+        label: milestone.shortLabel,
+        applied: true,
+      });
+    });
+
+    if (next && !allUnlocked) {
+      next.rewardLabels.forEach((label) => {
+        chips.push({ key: `next-${label}`, label, applied: false });
+      });
+    }
+
+    if (chips.length === 0 && deliveryUnlocked) {
+      chips.push({ key: "delivery", label: "FREE delivery", applied: true });
+    }
+
+    return chips;
+  }, [allUnlocked, deliveryUnlocked, next, unlocked]);
 
   return (
     <View style={[styles.promoSection, compact && styles.promoSectionCompact]}>
-      <MilestoneTrack subtotal={subtotal} />
-
-      <View style={styles.promoMessageRow}>
-        {allUnlocked ? (
-          <Text style={styles.promoText}>
-            All offers unlocked on this order
+      <View style={styles.promoHeader}>
+        <Text style={styles.promoTitle}>Order benefits</Text>
+        {next ? (
+          <Text style={styles.promoMeta}>
+            ₹{formatNumber(next.remaining)} to next
           </Text>
-        ) : (
-          <>
-            <Text style={styles.promoText}>
-              Add{" "}
-              <Text style={styles.promoAmount}>₹{formatNumber(remaining)}</Text>{" "}
-              more for
-            </Text>
-            <View style={styles.rewardBadge}>
-              <Text style={styles.rewardBadgeText}>{rewardLabel}</Text>
-            </View>
-          </>
-        )}
+        ) : allUnlocked || deliveryUnlocked ? (
+          <Text style={styles.promoMetaAll}>All active</Text>
+        ) : null}
       </View>
+
+      <MilestoneTrack subtotal={subtotal} milestones={milestones} />
+
+      {benefitChips.length > 0 ? (
+        <View style={styles.benefitChipRow}>
+          {benefitChips.map((chip) => (
+            <BenefitChip
+              key={chip.key}
+              label={chip.label}
+              applied={chip.applied}
+            />
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -284,15 +329,59 @@ const GoToCart = ({ isCart = false, embedded = false }: GoToCartProps) => {
     setGoToCartInsetMeasured,
   } = useGoToCartInsetActions();
   const userId = useSelector((state: RootState) => state.auth?.userData?._id);
+  const deliverySettings = useDeliverySettings();
 
   const { data: cartData } = useFetchCartQuery({ userId }, { skip: !userId });
+  const cachedOffers = useCachedOffers();
 
-  const cartItemCount = cartData?.cart?.items?.length ?? 0;
-  const cartProducts = cartData?.cart?.items ?? [];
+  const adminOfferMilestones = useMemo(
+    () => buildAdminOfferMilestones(cachedOffers),
+    [cachedOffers],
+  );
+
+  const milestones = useMemo(
+    () =>
+      buildVisibleCartMilestones(
+        cachedOffers,
+        deliverySettings.freeDeliveryMin,
+      ),
+    [cachedOffers, deliverySettings.freeDeliveryMin],
+  );
+
+  const cartProducts = useMemo(
+    () =>
+      mergeCartItemsWithOffers(
+        cartData?.cart?.items ?? [],
+        cachedOffers,
+      ),
+    [cartData?.cart?.items, cachedOffers],
+  );
+
+  const cartItemCount = cartProducts.length;
 
   const subtotal = useMemo(
     () => getCartSubtotal(cartProducts),
     [cartProducts],
+  );
+
+  const paidSubtotal = useMemo(
+    () => getPaidCartSubtotal(cartProducts),
+    [cartProducts],
+  );
+
+  const showPromoIncentive = useMemo(
+    () => shouldShowCartPromoIncentive(cachedOffers, paidSubtotal),
+    [cachedOffers, paidSubtotal],
+  );
+
+  const deliveryUnlocked = useMemo(
+    () =>
+      hasDeliveryOnlyUnlocked(
+        cachedOffers,
+        paidSubtotal,
+        deliverySettings.freeDeliveryMin,
+      ),
+    [cachedOffers, paidSubtotal, deliverySettings.freeDeliveryMin],
   );
 
   const savings = useMemo(() => {
@@ -338,9 +427,17 @@ const GoToCart = ({ isCart = false, embedded = false }: GoToCartProps) => {
   if (!cartItemCount) return null;
 
   if (isCart) {
+    if (!showPromoIncentive) return null;
+
     return (
       <View style={styles.inlineWrapper}>
-        <PromoIncentive subtotal={subtotal} compact />
+        <PromoIncentive
+          subtotal={paidSubtotal}
+          milestones={milestones}
+          hasAdminOffers={adminOfferMilestones.length > 0}
+          deliveryUnlocked={deliveryUnlocked}
+          compact
+        />
       </View>
     );
   }
@@ -355,7 +452,14 @@ const GoToCart = ({ isCart = false, embedded = false }: GoToCartProps) => {
       onLayout={(event) => handleBarLayout(event.nativeEvent.layout.height)}
     >
       <View style={styles.card}>
-        <PromoIncentive subtotal={subtotal} />
+        {showPromoIncentive ? (
+          <PromoIncentive
+            subtotal={paidSubtotal}
+            milestones={milestones}
+            hasAdminOffers={adminOfferMilestones.length > 0}
+            deliveryUnlocked={deliveryUnlocked}
+          />
+        ) : null}
         <CartSummaryBar
           cartItems={cartItemCount}
           subtotal={subtotal}
@@ -405,15 +509,46 @@ const styles = StyleSheet.create({
     ...shadow,
   },
   promoSection: {
-    backgroundColor: Colors.light.softGrey_2,
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    backgroundColor: Colors.light.white,
+    paddingHorizontal: 14,
+    paddingTop: 10,
     paddingBottom: 10,
     gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.light.lightGrey,
   },
   promoSectionCompact: {
     borderRadius: CARD_RADIUS,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.light.lightGrey,
     overflow: "hidden",
+  },
+  promoHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  promoTitle: {
+    fontFamily: "Raleway_600SemiBold",
+    fontSize: 14,
+    lineHeight: 18,
+    color: Colors.light.darkGreen,
+  },
+  promoMeta: {
+    fontFamily: "Montserrat_600SemiBold",
+    fontSize: 11,
+    lineHeight: 14,
+    color: Colors.light.mediumGreen,
+  },
+  promoMetaAll: {
+    fontFamily: "Montserrat_600SemiBold",
+    fontSize: 11,
+    lineHeight: 14,
+    color: Colors.light.mediumGreen,
+  },
+  milestoneTrackWrap: {
+    paddingVertical: 2,
   },
   milestoneRow: {
     flexDirection: "row",
@@ -425,20 +560,22 @@ const styles = StyleSheet.create({
   },
   milestoneLineTrack: {
     position: "absolute",
-    left: 28,
-    right: 28,
-    top: MILESTONE_SIZE / 2,
-    height: 3,
+    left: 20,
+    right: 20,
+    top: RING_SIZE / 2,
+    height: 2,
     borderRadius: 999,
-    backgroundColor: "rgba(59,130,246,0.15)",
+    backgroundColor: "rgba(25,75,56,0.08)",
   },
   milestoneLineFill: {
     height: "100%",
     borderRadius: 999,
-    backgroundColor: "#3B82F6",
+    backgroundColor: Colors.light.mediumGreen,
   },
   milestoneItem: {
     zIndex: 1,
+    flex: 1,
+    alignItems: "center",
   },
   milestoneIconWrap: {
     width: RING_SIZE,
@@ -464,54 +601,46 @@ const styles = StyleSheet.create({
     borderColor: Colors.light.mediumGreen,
   },
   milestoneCircleActive: {
-    borderColor: "#3B82F6",
+    borderColor: Colors.light.mediumGreen,
+    backgroundColor: "#EEF8F3",
   },
-  milestoneBadge: {
-    position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1.5,
-    borderColor: Colors.light.white,
-  },
-  milestoneBadgeDone: {
-    backgroundColor: "#3B82F6",
-  },
-  milestoneBadgeLocked: {
-    backgroundColor: Colors.light.mediumLightGrey,
-  },
-  promoMessageRow: {
+  benefitChipRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    alignItems: "center",
-    justifyContent: "center",
     gap: 6,
   },
-  promoText: {
-    color: Colors.light.darkGrey,
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: "Montserrat_500Medium",
+  benefitChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    maxWidth: "100%",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
   },
-  promoAmount: {
-    fontFamily: "Montserrat_700Bold",
+  benefitChipApplied: {
+    backgroundColor: "#EEF8F3",
+    borderWidth: 1,
+    borderColor: "rgba(42,175,127,0.25)",
+  },
+  benefitChipPending: {
+    backgroundColor: Colors.light.softGrey_1,
+    borderWidth: 1,
+    borderColor: Colors.light.lightGrey,
+  },
+  benefitChipIcon: {
+    marginRight: 3,
+  },
+  benefitChipText: {
+    flexShrink: 1,
+    fontFamily: "Montserrat_600SemiBold",
+    fontSize: 11,
+    lineHeight: 14,
+  },
+  benefitChipTextApplied: {
     color: Colors.light.darkGreen,
   },
-  rewardBadge: {
-    backgroundColor: "#2563EB",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  rewardBadgeText: {
-    color: Colors.light.white,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "Montserrat_700Bold",
+  benefitChipTextPending: {
+    color: Colors.light.mediumGrey,
   },
   cartSection: {
     flexDirection: "row",

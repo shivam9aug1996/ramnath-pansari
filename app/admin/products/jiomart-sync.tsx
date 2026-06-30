@@ -126,7 +126,7 @@ const JiomartSyncScreen = () => {
 
     const title = wipeAll ? 'Wipe & re-sync?' : 'Start JioMart sync?'
     const message = wipeAll
-      ? `This deletes ALL products and re-imports ${payload.syncAll ? 'all syncable' : count} categories. Carts will be cleared.`
+      ? `This deletes Jio products only and re-imports ${payload.syncAll ? 'all syncable' : count} categories. Manual/promo products are kept. All carts will be cleared.`
       : `Sync ${payload.syncAll ? 'all syncable' : count} categor${count === 1 ? 'y' : 'ies'} from JioMart?`
 
     Alert.alert(title, message, [

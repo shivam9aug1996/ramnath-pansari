@@ -16,24 +16,26 @@ interface Props {
   setErrorState: (val: string) => void;
   onSubmitPassword: (val: string) => void;
   placeholder?: string;
+  autoFocus?: boolean;
 }
 
-const PasswordInput: React.FC<Props> = ({ 
-  password, 
-  setPassword, 
-  setErrorState, 
+const PasswordInput: React.FC<Props> = ({
+  password,
+  setPassword,
+  setErrorState,
   onSubmitPassword,
-  placeholder = "Enter your password"
+  placeholder = "Enter your password",
+  autoFocus = true,
 }) => {
   const inputRef = useRef<TextInput>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    // Force focus when component mounts
+    if (!autoFocus) return;
     setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
-  }, []);
+  }, [autoFocus]);
 
   const handleChange = (text: string) => {
     setPassword(text);
@@ -79,7 +81,7 @@ const PasswordInput: React.FC<Props> = ({
           autoCapitalize="none"
           autoCorrect={false}
           autoComplete="password"
-          textContentType="password"
+          textContentType="oneTimeCode"
         />
 
         {/* Always render the eye icon container to prevent layout shift */}

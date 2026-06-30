@@ -20,7 +20,7 @@ export function useHideOnScroll(
 ) {
   const {
     topRevealOffset = 100,
-    directionThreshold = 12,
+    directionThreshold = 200,
     scrollEndTolerance = 8,
   } = options;
 

@@ -15,31 +15,35 @@ type ActiveOrderSnapshot = Record<
   }
 >;
 
-function showStatusToast(status?: string) {
+function showStatusToast(status?: string, orderId?: string) {
   switch (status?.toLowerCase()) {
     case "confirmed":
-      showToast({ type: "info", text2: "Your order is confirmed!" });
+      showToast({ type: "info", text2: `Order #${orderId}: confirmed!` });
       break;
     case "out_for_delivery":
-      showToast({ type: "info", text2: "Your order is out for delivery!" });
+      showToast({ type: "info", text2: `Order #${orderId}: out for delivery!` });
       break;
     case "delivered":
-      showToast({ type: "success", text2: "Your order is delivered!" });
+      showToast({ type: "success", text2: `Order #${orderId}: delivered!` });
       break;
     case "canceled":
-      showToast({ type: "error", text2: "Your order is canceled!" });
+      showToast({ type: "error", text2: `Order #${orderId}: canceled!` });
       break;
   }
 }
 
 export function useOrderStatusListener() {
+  
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
+  const isGuestUser = useSelector(
+    (state: RootState) => state?.auth?.userData?.isGuestUser,
+  );
   const dispatch = useDispatch();
   const prevOrdersRef = useRef<ActiveOrderSnapshot>({});
   const isInitialSnapshotRef = useRef(true);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || isGuestUser) return;
 
     prevOrdersRef.current = {};
     isInitialSnapshotRef.current = true;
@@ -56,25 +60,25 @@ export function useOrderStatusListener() {
       if (isInitialSnapshotRef.current) {
         isInitialSnapshotRef.current = false;
         prevOrdersRef.current = data;
-        dispatch(
-          orderApi.util.invalidateTags([
-            { type: "activeDeliveries", id: `${userId}` },
-            { type: "orderList", id: `${userId}` },
-          ]),
-        );
+        // dispatch(
+        //   orderApi.util.invalidateTags([
+        //     { type: "activeDeliveries", id: `${userId}` },
+        //     { type: "orderList", id: `${userId}` },
+        //   ]),
+        // );
         return;
       }
 
       Object.entries(data).forEach(([mongoId, order]) => {
         const prevOrder = prev[mongoId];
         if (!prevOrder) {
-          showStatusToast(order?.status);
+         // showStatusToast(order?.status, order?.orderId);
           shouldInvalidate = true;
           return;
         }
 
         if (prevOrder.status !== order?.status) {
-          showStatusToast(order?.status);
+          //showStatusToast(order?.status, order?.orderId);
           shouldInvalidate = true;
         }
       });
@@ -109,5 +113,5 @@ export function useOrderStatusListener() {
     });
 
     return () => unsubscribe();
-  }, [dispatch, userId]);
+  }, [dispatch, userId, isGuestUser]);
 }

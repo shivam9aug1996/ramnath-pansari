@@ -1,7 +1,13 @@
 import * as Location from "expo-location";
+import {
+  checkDeliveryRadius,
+  resolveDeliveryRadius,
+  type DeliveryRadiusSettings,
+} from "@/utils/storeConfig";
+import { DEFAULT_DELIVERY_RADIUS } from "@/constants/StoreConfig";
 
 export const getLatLng = (
-  locationData: Location.LocationObject
+  locationData: Location.LocationObject,
 ): {
   latitude: number;
   longitude: number;
@@ -30,48 +36,14 @@ export const fetchLocation = async () => {
   }
 };
 
-
-const getDistanceFromLatLngInKm = (point1: any, point2: any): number => {
-  const R = 6371; // Earth's radius in km
-  const toRad = (value: number) => (value * Math.PI) / 180;
-
-  const dLat = toRad(point2.latitude - point1.latitude);
-  const dLng = toRad(point2.longitude - point1.longitude);
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(point1.latitude)) *
-      Math.cos(toRad(point2.latitude)) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c;
-};
-
-function getDistanceInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const toRad = (value: number) => (value * Math.PI) / 180;
-
-  const R = 6371; // Earth's radius in kilometers
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) ** 2;
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+export function isWithinDeliveryRadius(
+  selectedLocation: { latitude: number; longitude: number },
+  deliveryRadius?: Partial<DeliveryRadiusSettings> | null,
+) {
+  return checkDeliveryRadius(
+    selectedLocation,
+    resolveDeliveryRadius(deliveryRadius ?? DEFAULT_DELIVERY_RADIUS),
+  );
 }
-
-const isWithinDeliveryRadius = (selectedLocation: any): any => {
-  console.log("selectedLocation",selectedLocation)
-  const deliveryCenter: any = { latitude: 28.713074, longitude: 77.65419 };
-  const distance = getDistanceInKm(deliveryCenter.latitude, deliveryCenter.longitude, selectedLocation.latitude, selectedLocation.longitude);
-
-  return { isWithin: distance <= 3, distance: distance.toFixed(1) };
-};
 
 export default isWithinDeliveryRadius;

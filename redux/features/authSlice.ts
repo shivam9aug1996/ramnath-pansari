@@ -10,6 +10,11 @@ import { AuthData, SaveAuthDataPayload } from "@/types/global";
 import * as SecureStore from "expo-secure-store";
 import { cartApi } from "./cartSlice";
 import { CACHE_DURATION, cleanOldProductCache } from "@/utils/utils";
+import { recentSearchApi } from "./recentSearchSlice";
+import { orderApi } from "./orderSlice";
+import { categoryApi } from "./categorySlice";
+import { resetAppSync } from "./appSyncSlice";
+import { clearRecentlyViewed } from "./recentlyViewedSlice";
 
 // const saveAuthDataToAsyncStorage = async (token: any, userData: any) => {
 //   try {
@@ -82,6 +87,14 @@ export const clearAuthData = createAsyncThunk(
       //     res("hi");
       //   }, 1000);
       // });
+      dispatch(cartApi.util.resetApiState());
+dispatch(recentSearchApi.util.resetApiState());
+dispatch(orderApi.util.resetApiState());
+dispatch(categoryApi.util.resetApiState());
+dispatch(resetAppSync());
+dispatch(clearRecentlyViewed());
+
+
       await dispatch(savePushToken1({
         isGuestUser:  true,
         _id : "68561b44fcdf732b24588202" 

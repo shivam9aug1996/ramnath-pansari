@@ -39,6 +39,8 @@ interface UserData {
   _id: string;
   name: string | null;
   profileImage?: null;
+  isAdminUser?: boolean;
+  isGuestUser?: boolean;
 }
 
 interface AsyncState<T> {
@@ -51,6 +53,12 @@ interface AsyncState<T> {
 
 interface RootState {
   auth: AuthState;
+  appSync: {
+    ready: boolean;
+    inProgress: boolean;
+    lastSyncedAt: number | null;
+    fetch: AppSyncFetchFlags | null;
+  };
   product: {
     selectedSubCategoryId: {
       _id: string;
@@ -183,8 +191,13 @@ export interface ProductDetails {
 }
 
 export interface CartItem {
-  productDetails: ProductDetails;
+  _id?: string;
+  productId?: string;
+  productDetails: ProductDetails & Partial<Product>;
   quantity: number;
+  isPromoFreebie?: boolean;
+  offerId?: string;
+  promoPrice?: number;
 }
 
 export interface CartItemProps {
@@ -288,7 +301,7 @@ export interface AdminStatsResponse {
     total: number;
     inStock: number;
     outOfStock: number;
-    hidden: number;
+    promoOnly: number;
   };
   categories: {
     total: number;
@@ -367,6 +380,8 @@ export interface AdminProductDocument {
   foodType?: "veg" | "non-veg";
   skuCode?: string;
   jiomartUid?: string;
+  promoOnly?: boolean;
+  productFromJio?: boolean;
   createdAt?: string;
   lastUpdated?: string;
 }
@@ -390,6 +405,24 @@ export interface AdminProductInput {
   brand?: string;
   foodType?: "veg" | "non-veg";
   category?: string;
+  promoOnly?: boolean;
+}
+
+export interface LiveOfferProductUsage {
+  offerId: string;
+  minOrderValue: number;
+  promoPrice: number;
+  quantity: number;
+}
+
+export interface ProductOfferUsage {
+  inLiveOffer: boolean;
+  liveOffers: LiveOfferProductUsage[];
+  canDelete: boolean;
+  blockedFields: ("promoOnly" | "delete")[];
+  safeToEdit: string[];
+  blockedEdits: { field: string; reason: string }[];
+  notes: string[];
 }
 
 export interface JiomartSyncCategory {
@@ -428,3 +461,138 @@ export interface JiomartSyncResponse {
   };
   results: JiomartSyncResultItem[];
 }
+
+export type OfferRewardType = "freebie" | "discount";
+
+export interface FreebieReward {
+  productId: string;
+  quantity: number;
+  promoPrice?: number;
+  label?: string;
+  productSnapshot?: Pick<
+    Product,
+    "_id" | "name" | "image" | "price" | "size" | "discountedPrice"
+  >;
+}
+
+export interface DiscountReward {
+  kind: "flat" | "percent";
+  value: number;
+  maxDiscount?: number;
+  label?: string;
+}
+
+export interface OfferDocument {
+  id: string;
+  enabled: boolean;
+  type: OfferRewardType;
+  minOrderValue: number;
+  sortOrder: number;
+  freebies?: FreebieReward[];
+  discount?: DiscountReward;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OffersResponse {
+  offers: OfferDocument[];
+}
+
+export type AdminOfferDocument = OfferDocument;
+
+export type AdminOfferInput = Omit<
+  OfferDocument,
+  "id" | "createdAt" | "updatedAt"
+> & { id?: string };
+
+export interface AdminOfferListResponse {
+  offers: AdminOfferDocument[];
+}
+
+export type CarouselActionType = "none" | "scroll_categories" | "category";
+
+export interface CarouselBannerDocument {
+  id: string;
+  enabled: boolean;
+  sortOrder: number;
+  imageUrl: string;
+  blurhash?: string;
+  actionType: CarouselActionType;
+  categoryId?: string;
+  categoryName?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CarouselResponse {
+  banners: CarouselBannerDocument[];
+}
+
+export type AdminCarouselDocument = CarouselBannerDocument;
+
+export type AdminCarouselInput = Omit<
+  CarouselBannerDocument,
+  "id" | "createdAt" | "updatedAt"
+> & { id?: string };
+
+export interface AdminCarouselListResponse {
+  banners: AdminCarouselDocument[];
+}
+
+export interface DeliverySettingsDocument {
+  freeDeliveryMin: number;
+  shippingFee: number;
+}
+
+export interface DeliverySettingsResponse {
+  deliverySettings: DeliverySettingsDocument;
+}
+
+export type AdminDeliverySettingsResponse = DeliverySettingsResponse;
+
+export interface StoreHoursDocument {
+  openTime: string;
+  closeTime: string;
+  timezone: string;
+}
+
+export interface DeliveryRadiusDocument {
+  radiusKm: number;
+  centerLatitude: number;
+  centerLongitude: number;
+}
+
+export interface StoreConfigDocument {
+  acceptingOrders?: boolean;
+  storeHours: StoreHoursDocument;
+  deliveryRadius: DeliveryRadiusDocument;
+}
+
+export interface StoreConfigResponse {
+  storeConfig: StoreConfigDocument;
+}
+
+export type AdminStoreConfigResponse = StoreConfigResponse;
+
+export type AppSyncServerVersions = {
+  carousel: number;
+  offers: number;
+  deliverySettings: number;
+  storeConfig: number;
+  category: number;
+};
+
+export type AppSyncClientVersions = Partial<AppSyncServerVersions>;
+
+export type AppSyncFetchFlags = {
+  carousel: boolean;
+  offers: boolean;
+  deliverySettings: boolean;
+  storeConfig: boolean;
+  category: boolean;
+};
+
+export type AppSyncResponse = {
+  server: AppSyncServerVersions;
+  fetch: AppSyncFetchFlags;
+};

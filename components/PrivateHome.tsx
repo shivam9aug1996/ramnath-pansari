@@ -8,10 +8,11 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { router } from "expo-router";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch, useSelector, shallowEqual } from "react-redux";
 import {
   setCategoryData,
   useFetchCategoriesQuery,
+  categoryApi,
 } from "@/redux/features/categorySlice";
 import { RootState, Category } from "@/types/global";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
@@ -24,7 +25,7 @@ import store from "@/redux/store";
 import { loadRecentlyViewed } from "@/redux/features/recentlyViewedSlice";
 import DeferredFadeIn from "./DeferredFadeIn";
 import RecentlyViewedProducts from "@/app/(private)/(productDetail)/RecentlyViewedProducts";
-import Carasole from "./Carasole";
+import Carasole, { getCarouselSlotHeight } from "./Carasole";
 import WeatherSection from "./WeatherSection/WeatherSection";
 import HomeSearch from "./HomeSearch";
 import GrientBackground from "./GrientBackground";
@@ -33,30 +34,76 @@ import {
   finalizeStartupReady,
   markStartupCheckpoint,
 } from "@/utils/startupDiagnostics";
+import { categoryLog } from "@/utils/categoryDebug";
 
 const CATEGORY_PLACEHOLDER_COUNT = 3;
 const WEATHER_SECTION_HEIGHT = 100;
-const CAROUSEL_EXTRA_HEIGHT = 40;
 
 const PrivateHome = () => {
   const { width: windowWidth } = useWindowDimensions();
-  const carouselFallbackHeight = windowWidth / 2 + CAROUSEL_EXTRA_HEIGHT;
-  const dispatch = useDispatch();
+  const carouselFallbackHeight = getCarouselSlotHeight(windowWidth);
+  const dispatch = useDispatch<typeof store.dispatch>();
   const scrollRef = useRef<ScrollView>(null);
   const categoriesRef = useRef<View>(null);
   const categoriesScrollY = useRef(0);
   const layoutOffsets = useRef({ top: 0, sticky: 0, categoriesInMain: 0 });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const token = useSelector((state: RootState) => state?.auth?.token);
+  const appSyncReady = useSelector((state: RootState) => state.appSync?.ready);
   const userData = useSelector((state: RootState) => state?.auth?.userData);
+  const categories = useSelector((state: RootState) => {
+    return (
+      categoryApi.endpoints.fetchCategories.select({})(state as never)?.data
+        ?.categories ?? []
+    );
+  }, shallowEqual);
+
   const {
-    data: categoriesData,
     isLoading: isCategoriesLoading,
+    isFetching: isCategoriesFetching,
+    isUninitialized: isCategoriesUninitialized,
     refetch,
-  } = useFetchCategoriesQuery({}, { skip: !token });
+  } = useFetchCategoriesQuery({}, { skip: !token || !appSyncReady });
 
   const showCategorySkeleton =
-    isCategoriesLoading || !categoriesData?.categories?.length;
+    !categories.length && (!appSyncReady || isCategoriesLoading || isCategoriesFetching);
+
+  const lastCategoryLogKey = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!__DEV__) return;
+
+    const logKey = [
+      appSyncReady,
+      isCategoriesLoading,
+      isCategoriesFetching,
+      isCategoriesUninitialized,
+      categories.length,
+      showCategorySkeleton,
+    ].join(":");
+
+    if (lastCategoryLogKey.current === logKey) return;
+    lastCategoryLogKey.current = logKey;
+
+    categoryLog("ui:read", {
+      source: "PrivateHome",
+      appSyncReady,
+      querySkipped: !token || !appSyncReady,
+      selectorCount: categories.length,
+      isLoading: isCategoriesLoading,
+      isFetching: isCategoriesFetching,
+      isUninitialized: isCategoriesUninitialized,
+      showSkeleton: showCategorySkeleton,
+    });
+  }, [
+    appSyncReady,
+    token,
+    isCategoriesLoading,
+    isCategoriesFetching,
+    isCategoriesUninitialized,
+    categories.length,
+    showCategorySkeleton,
+  ]);
 
   useEffect(() => {
     store.dispatch(loadRecentlyViewed());
@@ -75,7 +122,7 @@ const PrivateHome = () => {
     const selectedIndex = parentCategory.children.findIndex(
       (item) => item?._id === selectedCategory?._id,
     );
-    const selectedCategory1 = categoriesData?.categories.find(
+    const selectedCategory1 = categories.find(
       (item) => item?._id == parentCategory?._id,
     );
     dispatch(setCategoryData(selectedCategory1));
@@ -91,7 +138,15 @@ const PrivateHome = () => {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await refetch();
+      if (isCategoriesUninitialized) {
+        await dispatch(
+          categoryApi.endpoints.fetchCategories.initiate({}, { forceRefetch: true }),
+        ).unwrap();
+      } else {
+        await refetch();
+      }
+    } catch {
+      // optional toast
     } finally {
       setIsRefreshing(false);
     }
@@ -224,14 +279,14 @@ const PrivateHome = () => {
                         />
                       ),
                     )
-                  : categoriesData?.categories?.map(
+                  : categories.map(
                       (category: Category, index: number) => (
                         <CategoryCard
                           key={category?._id?.toString()}
                           category={category}
                           index={index}
                           onSelect={handleCategorySelect}
-                          length={categoriesData?.categories?.length}
+                          length={categories.length}
                         />
                       ),
                     )}

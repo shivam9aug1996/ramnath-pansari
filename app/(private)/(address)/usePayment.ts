@@ -15,6 +15,13 @@ import {
 } from "@/redux/features/cartSlice";
 import { router } from "expo-router";
 import { showToast } from "@/utils/utils";
+import { getLockableProductIds } from "@/utils/cartOfferUtils";
+import { useStoreConfig } from "@/hooks/useStoreConfig";
+import {
+  checkDeliveryRadius,
+  getStoreClosedMessage,
+  canAcceptOrders,
+} from "@/utils/storeConfig";
 
 interface PreOrderResponse {
   data: {
@@ -113,19 +120,41 @@ const usePayment = () => {
   ] = useVerifyPreOrderMutation();
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [isRazorpayOpened, setIsRazorpayOpened] = useState(false);
+  const storeConfig = useStoreConfig();
+
+  const validateBeforePayment = (addressData: any): string | null => {
+    if (!canAcceptOrders(storeConfig)) {
+      return getStoreClosedMessage(storeConfig);
+    }
+
+    const lat = Number(addressData?.latitude);
+    const lng = Number(addressData?.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return "Delivery address location is required.";
+    }
+
+    const { isWithin } = checkDeliveryRadius(
+      { latitude: lat, longitude: lng },
+      storeConfig.deliveryRadius,
+    );
+    if (!isWithin) {
+      return `Sorry, we only deliver within ${storeConfig.deliveryRadius.radiusKm} km of the store.`;
+    }
+
+    return null;
+  };
 
   const extractProductIds = (cartData: any) =>
-    (cartData?.cart?.items ?? [])
-      .map(
-        (item: any) => item?.productDetails?._id ?? item?.productId,
-      )
-      .filter(
-        (productId: string) =>
-          productId && productId !== "676da9f75763ded56d43032d",
-      );
+    getLockableProductIds(cartData?.cart?.items ?? []);
 
   const handleOnClick = async (amount: number, addressData: any) => {
     try {
+      const placementError = validateBeforePayment(addressData);
+      if (placementError) {
+        showToast({ type: "info", text2: placementError });
+        return;
+      }
+
       setIsPaymentProcessing(true);
 
       amount = amount;
@@ -244,6 +273,12 @@ const usePayment = () => {
 
   const handleCod = async (amount: number, addressData: any) => {
     try {
+      const placementError = validateBeforePayment(addressData);
+      if (placementError) {
+        showToast({ type: "info", text2: placementError });
+        return;
+      }
+
       setIsPaymentProcessing(true);
 
       const cartData = await fetchCartData({ userId }, true)?.unwrap();

@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import ScreenSafeWrapper from "../ScreenSafeWrapper";
 
@@ -6,16 +6,15 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import { cartApi, useFetchCartQuery } from "@/redux/features/cartSlice";
 import { Colors } from "@/constants/Colors";
-
+import { useCachedOffers } from "@/hooks/useCachedOffers";
 import CartPlaceholder from "./CartPlaceholder";
-
 import CartList from "./CartList";
 import GoToCart from "@/app/(private)/(category)/ProductList/GoToCart";
-
 import Continue from "./Continue";
 import NotFound from "@/app/(private)/(result)/NotFound";
 import TryAgain from "@/app/(private)/(category)/CategoryList/TryAgain";
 import DeferredFadeIn from "../DeferredFadeIn";
+import { mergeCartItemsWithOffers } from "@/utils/applyOptimisticOffers";
 // import { useRenderTimer } from "@/hooks/useRenderTimer";
 
 
@@ -37,7 +36,24 @@ const Cart = ({ tabBarHeight = 0 }: CartProps) => {
     refetch,
   } = useFetchCartQuery({ userId }, { skip: !userId });
 
-  const cartItems = cartData?.cart?.items?.length || 0;
+  const cachedOffers = useCachedOffers();
+
+  const displayCartData = useMemo(() => {
+    if (!cartData?.cart?.items) return cartData;
+    const merged = mergeCartItemsWithOffers(
+      cartData.cart.items,
+      cachedOffers,
+    );
+    return {
+      ...cartData,
+      cart: {
+        ...cartData.cart,
+        items: merged,
+      },
+    };
+  }, [cartData, cachedOffers]);
+
+  const cartItems = displayCartData?.cart?.items?.length || 0;
 
   const dispatch = useDispatch();
 
@@ -74,7 +90,7 @@ const Cart = ({ tabBarHeight = 0 }: CartProps) => {
 
               <DeferredFadeIn delay={0}>
                 <CartList
-                  cartData={cartData}
+                  cartData={displayCartData}
                   cartItemIndex={cartItemIndex}
                   isCartProcessing={isCartProcessing}
                 />

@@ -1,7 +1,10 @@
 import type { Middleware } from "@reduxjs/toolkit";
 import { logStartupFetch, isWithinStartupWindow } from "@/utils/startupDiagnostics";
+import { isCategoryCacheHydrating } from "@/utils/categoryDebug";
+import { isRecentSearchCacheHydrating } from "@/utils/recentSearchDebug";
 
 const pendingStarts = new Map<string, number>();
+const hydrateRequestIds = new Set<string>();
 
 const startupFetchLoggerMiddleware: Middleware = () => (next) => (action) => {
   const typedAction = action as {
@@ -19,11 +22,25 @@ const startupFetchLoggerMiddleware: Middleware = () => (next) => (action) => {
   const requestId = typedAction.meta?.requestId;
   const status = typedAction.meta?.requestStatus;
 
+  const isHydrateUpsert =
+    status === "pending" &&
+    ((endpoint === "fetchRecentSearch" && isRecentSearchCacheHydrating()) ||
+      (endpoint === "fetchCategories" && isCategoryCacheHydrating()));
+
+  if (isHydrateUpsert && requestId) {
+    hydrateRequestIds.add(requestId);
+  }
+
+  const skipHydrateLifecycle = Boolean(
+    requestId && hydrateRequestIds.has(requestId),
+  );
+
   if (
     isWithinStartupWindow() &&
     endpoint &&
     requestId &&
-    status === "pending"
+    status === "pending" &&
+    !skipHydrateLifecycle
   ) {
     pendingStarts.set(requestId, Date.now());
     void logStartupFetch("start", {
@@ -39,6 +56,10 @@ const startupFetchLoggerMiddleware: Middleware = () => (next) => (action) => {
   }
 
   if (status === "fulfilled") {
+    if (skipHydrateLifecycle) {
+      hydrateRequestIds.delete(requestId);
+      return result;
+    }
     const started = pendingStarts.get(requestId);
     pendingStarts.delete(requestId);
     void logStartupFetch("success", {
@@ -48,6 +69,10 @@ const startupFetchLoggerMiddleware: Middleware = () => (next) => (action) => {
   }
 
   if (status === "rejected") {
+    if (skipHydrateLifecycle) {
+      hydrateRequestIds.delete(requestId);
+      return result;
+    }
     const started = pendingStarts.get(requestId);
     pendingStarts.delete(requestId);
     const errorMessage = String(

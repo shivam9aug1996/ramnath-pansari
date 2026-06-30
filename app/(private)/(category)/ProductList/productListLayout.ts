@@ -2,7 +2,9 @@
 import { Product } from "@/types/global";
 
 export const PRODUCT_CARD_HEIGHT = 280;
-export const PRODUCT_LIST_PADDING_TOP = 170;
+/** Space reserved for category/subcategory chrome — keep in sync with list paddingTop */
+export const CATEGORY_CHROME_ESTIMATED_HEIGHT = 170;
+export const PRODUCT_LIST_PADDING_TOP = CATEGORY_CHROME_ESTIMATED_HEIGHT;
 export const PRODUCT_LIST_MARGIN_TOP = 20;
 export const PRODUCT_LIST_PADDING_BOTTOM = 24;
 export const PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT = 20;
@@ -45,3 +47,29 @@ export const getProductColumnStyle = (index: number) => ({
   marginRight: index % 2 === 0 ? PRODUCT_COLUMN_GAP : 0,
   marginLeft: index % 2 === 0 ? 0 : PRODUCT_COLUMN_GAP,
 });
+
+
+export function createInitialSkeletonRows(
+  count = PRODUCT_SKELETON_COUNT,
+): ProductListSkeletonItem[] {
+  return Array.from({ length: count }, (_, index) => ({
+    _id: `__initial-skeleton-${index}`,
+    isSkeleton: true as const,
+  }));
+}
+
+export function buildProductListData(
+  products: Product[] = [],
+  {
+    showInitialSkeleton = false,
+    showPaginationSkeleton = false,
+  }: {
+    showInitialSkeleton?: boolean;
+    showPaginationSkeleton?: boolean;
+  } = {},
+): ProductListRow[] {
+  if (showInitialSkeleton) {
+    return createInitialSkeletonRows();
+  }
+  return products;
+}

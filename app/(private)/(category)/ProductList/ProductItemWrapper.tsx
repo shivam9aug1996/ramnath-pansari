@@ -9,13 +9,14 @@ const ProductItemWrapper = ({
   item,
   index,
   quantity,
-  isVisible,
+  //isVisible,
 }: {
   item: Product;
   index: number;
   quantity: number;
-  isVisible: boolean;
+  //isVisible: boolean;
 }) => {
+  console.log("productitemwrapper",index, quantity);
     
   //   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   // const { data: cartData, isLoading: isCartLoading } = useFetchCartQuery(
@@ -39,7 +40,7 @@ const ProductItemWrapper = ({
       item={item}
       index={index}
       quantity={quantity}
-      isVisible={isVisible}
+     // isVisible={isVisible}
     />
   );
 };

@@ -14,6 +14,7 @@ import store from "@/redux/store";
 
 import Push1 from "@/components/Push1";
 import AppStateExample from "@/components/AppStateExample";
+import PromoConfigSync from "@/components/PromoConfigSync";
 import { setupNotifications } from "./notificationService";
 import SplashScreenGate from "@/components/SplashScreenGate";
 import { AuthenticationFlow } from "./AuthenticationFlow";
@@ -69,6 +70,7 @@ const RootLayout = () => {
               <Push1 />
               <StatusBar style="dark" />
               <AppStateExample />
+              <PromoConfigSync />
               <InitialLayout />
             </Provider>
           ) : null}

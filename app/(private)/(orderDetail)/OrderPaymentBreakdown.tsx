@@ -2,17 +2,17 @@ import React, { memo, useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Colors } from "@/constants/Colors";
 import { formatNumber } from "@/utils/utils";
-import {
-  calculateTotalAmount,
-  calculateTotalAmountMrp,
-} from "@/components/cart/utils";
 import { getDeliveryFee } from "@/utils/deliveryFee";
+import { useDeliverySettings } from "@/hooks/useDeliverySettings";
+import { useCachedOffers } from "@/hooks/useCachedOffers";
+import { getCartPriceBreakdown } from "@/utils/cartPriceBreakdown";
 import { CartItem } from "@/types/global";
 
 type OrderPaymentBreakdownProps = {
   cartItems: CartItem[];
   subtotal?: number;
   deliveryFee?: number;
+  orderDiscount?: number;
 };
 
 function BreakdownRow({
@@ -38,47 +38,83 @@ const OrderPaymentBreakdown = ({
   cartItems,
   subtotal: storedSubtotal,
   deliveryFee: storedDeliveryFee,
+  orderDiscount: storedOrderDiscount,
 }: OrderPaymentBreakdownProps) => {
-  const mrpTotal = useMemo(
-    () => calculateTotalAmountMrp(cartItems),
-    [cartItems],
-  );
-  const computedSubtotal = useMemo(
-    () => calculateTotalAmount(cartItems),
-    [cartItems],
+  const deliverySettings = useDeliverySettings();
+  const cachedOffers = useCachedOffers();
+
+  const breakdown = useMemo(
+    () =>
+      getCartPriceBreakdown(
+        cartItems,
+        cachedOffers,
+        storedOrderDiscount ?? 0,
+      ),
+    [cartItems, cachedOffers, storedOrderDiscount],
   );
 
+  const {
+    catalogSubtotal,
+    subtotal: computedSubtotal,
+    appliedOrderDiscounts,
+    totalSaved,
+    freebies,
+    hasOfferLines,
+  } = breakdown;
+
   const subtotal = storedSubtotal ?? computedSubtotal;
-  const deliveryFee = storedDeliveryFee ?? getDeliveryFee(subtotal);
-  const productDiscount = Math.max(0, mrpTotal - subtotal);
+  const deliveryFee =
+    storedDeliveryFee ?? getDeliveryFee(subtotal, deliverySettings);
+  const itemTotal = hasOfferLines ? catalogSubtotal : subtotal;
 
   return (
     <View style={styles.container}>
       <BreakdownRow
-        label="Total before discount"
-        value={`₹ ${formatNumber(mrpTotal)}`}
+        label="Item Total"
+        value={`₹ ${formatNumber(itemTotal)}`}
+        labelStyle={styles.emphasisLabel}
+        valueStyle={styles.emphasisValue}
       />
 
-      {productDiscount > 0 ? (
+      {freebies.map((freebie, index) => {
+        const lineTotal =
+          (freebie.promoPrice ?? 0) * (freebie.quantity ?? 1);
+
+        return (
+          <BreakdownRow
+            key={`${freebie.name}-${index}`}
+            label={`Offer · ${freebie.quantity}x ${freebie.name}`}
+            value={
+              lineTotal > 0 ? `₹ ${formatNumber(lineTotal)}` : "FREE"
+            }
+            labelStyle={styles.offerLineLabel}
+            valueStyle={
+              lineTotal > 0 ? styles.value : styles.discountValue
+            }
+          />
+        );
+      })}
+
+      {appliedOrderDiscounts.map((discount) => (
         <BreakdownRow
-          label="Product Discount"
-          value={`- ₹ ${formatNumber(productDiscount)}`}
+          key={discount.offerId}
+          label={discount.label}
+          value={`- ₹ ${formatNumber(discount.amount)}`}
+          valueStyle={styles.discountValue}
+        />
+      ))}
+
+      {totalSaved > 0 ? (
+        <BreakdownRow
+          label="You saved"
+          value={`₹ ${formatNumber(totalSaved)}`}
           valueStyle={styles.discountValue}
         />
       ) : null}
 
       <BreakdownRow
-        label="Item Total"
-        value={`₹ ${formatNumber(subtotal)}`}
-        labelStyle={styles.emphasisLabel}
-        valueStyle={styles.emphasisValue}
-      />
-
-      <BreakdownRow
         label="Delivery Fee"
-        value={
-          deliveryFee === 0 ? "FREE" : `₹ ${formatNumber(deliveryFee)}`
-        }
+        value={deliveryFee === 0 ? "FREE" : `₹ ${formatNumber(deliveryFee)}`}
         valueStyle={
           deliveryFee === 0 ? styles.discountValue : styles.value
         }
@@ -122,6 +158,9 @@ const styles = StyleSheet.create({
     fontFamily: "Montserrat_700Bold",
     fontSize: 14,
     color: Colors.light.darkGrey,
+  },
+  offerLineLabel: {
+    paddingLeft: 8,
   },
 });
 

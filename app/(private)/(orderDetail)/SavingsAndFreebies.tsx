@@ -67,7 +67,7 @@ const SavingsAndFreebies = ({
 
       {freebies.length > 0 && (
         <View style={styles.freebiesSection}>
-          <Text style={styles.sectionTitle}>Free Items</Text>
+          <Text style={styles.sectionTitle}>Offer items</Text>
           {freebies.map((freebie, index) => (
             <View key={index} style={styles.freeItemCard}>
               <View style={styles.freeItemContent}>
@@ -94,7 +94,7 @@ const SavingsAndFreebies = ({
                       color={Colors.light.mediumGrey}
                     />
                     <Text style={styles.valueText}>
-                      Worth ₹{formatNumber(freebie.value)}
+                      Saved ₹{formatNumber(freebie.value)}
                     </Text>
                   </View>
                 </View>

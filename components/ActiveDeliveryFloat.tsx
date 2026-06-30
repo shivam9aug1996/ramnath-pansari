@@ -1,10 +1,12 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-} from "react-native";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { View, Text, StyleSheet, Dimensions } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,7 +34,10 @@ import {
   useGoToCartMeasuredInset,
   useCartFooterInset,
 } from "@/contexts/DeliveryFloatContext";
-import { getCartFooterFallbackInset, getTabBarReservedHeight } from "@/utils/bottomChrome";
+import {
+  getCartFooterFallbackInset,
+  getTabBarReservedHeight,
+} from "@/utils/bottomChrome";
 import ActiveDeliverySheet from "@/components/ActiveDeliverySheet";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -51,7 +56,6 @@ const LOG_PREFIX = "[active-delivery-float]";
 const TAB_FLOAT_EXTRA_PADDING = 50;
 const CART_FLOAT_EXTRA_PADDING = 40;
 const HOME_FLOAT_EXTRA_PADDING = 30;
-
 
 type BottomReservedSource =
   | "cartFooterInset"
@@ -73,6 +77,24 @@ function hasMeaningfulInsetChange(previous: number, next: number) {
   return Math.abs(previous - next) >= INSET_SNAP_THRESHOLD;
 }
 
+function isTabRoute(pathname: string) {
+  return TAB_ROUTES.some(
+    (route) => pathname === route || pathname.endsWith(route),
+  );
+}
+
+function isHomeTab(pathname: string) {
+  return pathname === HOME_TAB_ROUTE || pathname.endsWith(HOME_TAB_ROUTE);
+}
+
+function isCartTab(pathname: string) {
+  return pathname === CART_TAB_ROUTE || pathname.endsWith(CART_TAB_ROUTE);
+}
+
+function isCartCheckoutRoute(pathname: string) {
+  return pathname.includes("/cartScreen") || isCartTab(pathname);
+}
+
 function getBottomReservedMeta(
   pathname: string,
   cartFooterInset: number,
@@ -80,12 +102,18 @@ function getBottomReservedMeta(
   safeAreaBottom: number,
 ): { reserved: number; source: BottomReservedSource } {
   const tabBarHeight = getTabBarReservedHeight(safeAreaBottom);
+  const isCartScreen = pathname.includes("/cartScreen");
+  const checkoutFooterInset =
+    isCartCheckoutRoute(pathname) && cartFooterInset > 0 ? cartFooterInset : 0;
 
-  if (cartFooterInset > 0) {
-    let reserved = cartFooterInset + FLOAT_GAP;
+  if (checkoutFooterInset > 0) {
+    let reserved = checkoutFooterInset + FLOAT_GAP + CART_FLOAT_EXTRA_PADDING;
+    if (isCartScreen) {
+      reserved = reserved - CART_FLOAT_EXTRA_PADDING;
+    }
     if (isCartTab(pathname)) {
       const tabBar = getTabBarReservedHeight(safeAreaBottom);
-      const floor = tabBar + getCartFooterFallbackInset(0) + FLOAT_GAP;
+      const floor = tabBar + getCartFooterFallbackInset(0) + FLOAT_GAP + 20;
       reserved = Math.max(reserved, floor);
     }
     return { reserved, source: "cartFooterInset" };
@@ -102,7 +130,9 @@ function getBottomReservedMeta(
       reserved = tabBarHeight + FLOAT_GAP + HOME_FLOAT_EXTRA_PADDING;
     }
     if (isCartTab(pathname)) {
-      reserved += getCartFooterFallbackInset(0) - CART_FLOAT_EXTRA_PADDING;
+      if (cartFooterInset <= 0) {
+        reserved += safeAreaBottom + FLOAT_GAP - CART_FLOAT_EXTRA_PADDING;
+      }
       return { reserved, source: "tabBar+cartCheckoutFallback" };
     }
     return { reserved, source: "tabBar" };
@@ -120,22 +150,6 @@ function getRouteFlags(pathname: string) {
     isHomeTab: isHomeTab(pathname),
     isCartTab: isCartTab(pathname),
   };
-}
-
-function isTabRoute(pathname: string) {
-  return TAB_ROUTES.some(
-    (route) => pathname === route || pathname.endsWith(route),
-  );
-}
-
-function isHomeTab(pathname: string) {
-  return (
-    pathname === HOME_TAB_ROUTE || pathname.endsWith(HOME_TAB_ROUTE)
-  );
-}
-
-function isCartTab(pathname: string) {
-  return pathname === CART_TAB_ROUTE || pathname.endsWith(CART_TAB_ROUTE);
 }
 
 export type ActiveDeliveryFloatHomeVariant = "full" | "compact";
@@ -167,9 +181,7 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
   const prevGoToCartInsetRef = useRef(goToCartInset);
   const prevCartFooterInsetRef = useRef(cartFooterInset);
 
-  const isCompact = isHomeTab(pathname)
-    ? homeVariant === "compact"
-    : true;
+  const isCompact = isHomeTab(pathname) ? homeVariant === "compact" : true;
   const pillHeight = isCompact ? COMPACT_SIZE : PILL_HEIGHT;
   const pillWidth = isCompact ? COMPACT_SIZE : FULL_PILL_WIDTH;
 
@@ -375,8 +387,7 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
         isDragging.value = true;
       })
       .onUpdate((event) => {
-        const maxX =
-          SCREEN_WIDTH - pillWidthShared.value - HORIZONTAL_MARGIN;
+        const maxX = SCREEN_WIDTH - pillWidthShared.value - HORIZONTAL_MARGIN;
         const nextX = dragStartX.value + event.translationX;
         const nextY = dragStartY.value + event.translationY;
 
@@ -399,10 +410,7 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
 
         posX.value = withSpring(snapX, SPRING_CONFIG);
         posY.value = withSpring(
-          Math.min(
-            Math.max(minYShared.value, posY.value),
-            maxYShared.value,
-          ),
+          Math.min(Math.max(minYShared.value, posY.value), maxYShared.value),
           SPRING_CONFIG,
         );
       });
@@ -480,12 +488,14 @@ const ActiveDeliveryFloat = ({
   homeVariant = "full",
 }: ActiveDeliveryFloatProps) => {
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
+  const isGuestUser = useSelector(
+    (state: RootState) => state?.auth?.userData?.isGuestUser,
+  );
   const pathname = usePathname();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   useOrderStatusListener();
 
-  const appState = useAppState();
   const { data, refetch } = useFetchActiveDeliveriesQuery(
     {
       userId,
@@ -493,14 +503,14 @@ const ActiveDeliveryFloat = ({
       limit: 20,
       page: 1,
     },
-    { skip: !userId },
+    { skip: !userId || isGuestUser },
   );
 
-  useEffect(() => {
-    if (appState === "active" && userId) {
-      refetch();
-    }
-  }, [appState, refetch, userId]);
+  // useEffect(() => {
+  //   if (appState === "active" && userId && !isGuestUser) {
+  //     refetch();
+  //   }
+  // }, [appState, refetch, userId, isGuestUser]);
 
   const activeOrders = useMemo(
     () => (data?.orders ?? []) as ActiveFloatOrder[],
@@ -514,7 +524,11 @@ const ActiveDeliveryFloat = ({
   }, [activeOrders, pathname]);
 
   const showPill =
-    !!userId && activeOrders.length > 0 && !isHiddenOnDetail && !sheetOpen;
+    !!userId &&
+    !isGuestUser &&
+    activeOrders.length > 0 &&
+    !isHiddenOnDetail &&
+    !sheetOpen;
 
   const openSheet = useCallback(() => {
     setSheetOpen(true);

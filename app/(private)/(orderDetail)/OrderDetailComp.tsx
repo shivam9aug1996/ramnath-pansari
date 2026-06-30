@@ -20,7 +20,8 @@ import PaymentDetailItem from "./PaymentDetailItem";
 import OrderPaymentBreakdown from "./OrderPaymentBreakdown";
 import {
   calculateTotalAmount,
-  calculateTotalAmountMrp,
+  calculateCatalogMrp,
+  calculateCatalogSubtotal,
 } from "@/components/cart/utils";
 import OrderDetailItem from "./OrderDetailItem";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
@@ -181,7 +182,7 @@ const OrderDetailComp = ({
   const orderSubtotal =
     data?.orderData?.subtotal ?? calculateTotalAmount(cartItems);
   const productDiscount =
-    calculateTotalAmountMrp(cartItems) - orderSubtotal;
+    calculateCatalogMrp(cartItems) - calculateCatalogSubtotal(cartItems);
 
   useEffect(() => {
     if (

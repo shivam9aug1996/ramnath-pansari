@@ -1,4 +1,5 @@
 import { CartItem, Product, ProductDetails } from "@/types/global";
+import { getCatalogBillItems } from "@/utils/cartOfferUtils";
 
 export const calculateTotalAmount = (products: CartItem[] = []): number => {
   return products?.reduce((total, product) => {
@@ -27,6 +28,14 @@ export const calculateTotalAmountMrp = (products: CartItem[] = []): number => {
     return parseFloat(total?.toFixed(2)) + productTotal;
   }, 0);
 };
+
+/** MRP for normal catalog lines only — excludes offer freebies. */
+export const calculateCatalogMrp = (products: CartItem[] = []): number =>
+  calculateTotalAmountMrp(getCatalogBillItems(products));
+
+/** Selling total for normal catalog lines only — excludes offer freebies. */
+export const calculateCatalogSubtotal = (products: CartItem[] = []): number =>
+  calculateTotalAmount(getCatalogBillItems(products));
 
 const normalizeCartProductId = (productId: unknown) =>
   productId != null ? String(productId) : "";

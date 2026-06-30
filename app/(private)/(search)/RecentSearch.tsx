@@ -8,15 +8,17 @@ import {
   Keyboard,
   Platform,
 } from "react-native";
-import { useSelector } from "react-redux";
-import { RootState } from "@/types/global";
-import {
-  useDeleteRecentSearchMutation,
-  useFetchRecentSearchQuery,
-} from "@/redux/features/recentSearchSlice";
+import { useDispatch, useSelector } from "react-redux";
 import { Entypo } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
-import RecentSearchPlaceholder from "./RecentSearchPlaceholder";
+import { RootState } from "@/types/global";
+import { useCachedRecentSearch } from "@/hooks/useCachedRecentSearch";
+import { useDeleteRecentSearchMutation } from "@/redux/features/recentSearchSlice";
+import {
+  removeLocalRecentSearchItem,
+  upsertRecentSearchInStore,
+  writeRecentSearchCache,
+} from "@/utils/recentSearchConfigCache";
 import { truncateText } from "@/utils/utils";
 
 interface RecentSearchProps {
@@ -24,10 +26,12 @@ interface RecentSearchProps {
 }
 
 const RecentSearch: React.FC<RecentSearchProps> = ({ onPress }) => {
+  const dispatch = useDispatch();
   const userId = useSelector((state: RootState) => state.auth.userData?._id);
-  const { data, isFetching, error, isLoading } = useFetchRecentSearchQuery({
-    userId,
-  });
+  const isGuestUser = useSelector(
+    (state: RootState) => state.auth.userData?.isGuestUser,
+  );
+  const data = useCachedRecentSearch(userId, "RecentSearch");
   const [deleteRecentSearch] = useDeleteRecentSearchMutation();
   // Sort recent searches by timestamp
   const sortedData = data
@@ -47,9 +51,17 @@ const RecentSearch: React.FC<RecentSearchProps> = ({ onPress }) => {
 
   const handleDelete = useCallback(
     async (id: string) => {
+      if (!userId) return;
+      if (isGuestUser) {
+        await removeLocalRecentSearchItem(dispatch, userId, id);
+        return;
+      }
       await deleteRecentSearch({ userId, id })?.unwrap();
+      const next = data.filter((item) => item._id !== id);
+      upsertRecentSearchInStore(dispatch, userId, next);
+      await writeRecentSearchCache(userId, next);
     },
-    [deleteRecentSearch, userId]
+    [deleteRecentSearch, userId, isGuestUser, data, dispatch],
   );
 
   // Components
@@ -91,36 +103,19 @@ const RecentSearch: React.FC<RecentSearchProps> = ({ onPress }) => {
     );
   }, []);
 
-  const renderErrorComponent = useCallback(() => {
-    return (
-      <View style={styles.error}>
-        <Text>Error fetching recent searches.</Text>
-      </View>
-    );
-  }, []);
-
-  // Conditional rendering
-  if (error) {
-    return renderErrorComponent();
-  }
-
   return (
     <View style={styles.container}>
-      {isLoading ? (
-        <RecentSearchPlaceholder />
-      ) : (
-        <FlatList
+      <FlatList
         bounces={Platform.OS === "android" ? false : true}
-          data={sortedData}
-          keyExtractor={(item) => item._id}
-          renderItem={renderItem}
-          ListHeaderComponent={renderListHeader}
-          ListEmptyComponent={renderEmptyComponent}
-          keyboardShouldPersistTaps="always"
-          onScrollBeginDrag={Keyboard.dismiss}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+        data={sortedData}
+        keyExtractor={(item) => item._id}
+        renderItem={renderItem}
+        ListHeaderComponent={renderListHeader}
+        ListEmptyComponent={renderEmptyComponent}
+        keyboardShouldPersistTaps="always"
+        onScrollBeginDrag={Keyboard.dismiss}
+        showsVerticalScrollIndicator={false}
+      />
     </View>
   );
 };

@@ -57,7 +57,7 @@ export function useWeatherGreetingMessage() {
       );
       return cleanText;
     } catch (err) {
-      console.error("Failed to fetch AI greeting", err);
+      console.log("Failed to fetch AI greeting", err);
       setGreeting(FALLBACK_MESSAGE_GENERIC);
       return FALLBACK_MESSAGE_GENERIC;
     }

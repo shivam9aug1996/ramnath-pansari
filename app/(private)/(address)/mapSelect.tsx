@@ -26,6 +26,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { debounce } from "lodash";
 import CustomSuspense from "@/components/CustomSuspense";
 import isWithinDeliveryRadius from "./utils";
+import { useStoreConfig } from "@/hooks/useStoreConfig";
 import { showToast } from "@/utils/utils";
 import { Colors } from "@/constants/Colors";
 import MapWebView from "@/components/MapWebView";
@@ -47,6 +48,8 @@ const initialRegion: Region = {
 };
 
 const MapSelect: React.FC = () => {
+  const storeConfig = useStoreConfig();
+  const deliveryRadiusKm = storeConfig.deliveryRadius.radiusKm;
   const dispatch = useDispatch();
 
   const mapRef = useRef<MapView | null>(null);
@@ -193,13 +196,13 @@ const MapSelect: React.FC = () => {
       longitude: region.longitude,
     };
 
-    if (isWithinDeliveryRadius(selectedLocation)) {
+    if (isWithinDeliveryRadius(selectedLocation, storeConfig.deliveryRadius).isWithin) {
      // console.log("Location is eligible for delivery.");
       // Proceed with the selection
     } else {
      // console.log("Location is outside the delivery radius.");
       // Show a message to the user
-      alert("Sorry, we only deliver within a 5 km radius.");
+      alert(`Sorry, we only deliver within a ${deliveryRadiusKm} km radius.`);
     }
   };
 
@@ -208,7 +211,7 @@ const MapSelect: React.FC = () => {
     latitude: region.latitude,
     longitude: region.longitude,
   };
-  const loc = isWithinDeliveryRadius(selectedLocation);
+  const loc = isWithinDeliveryRadius(selectedLocation, storeConfig.deliveryRadius);
 //console.log("uytrdsdfghjk",searchData,fetchingLocationLoading,firstMountLoading)
   return (
     <ScreenSafeWrapper
@@ -328,14 +331,14 @@ const MapSelect: React.FC = () => {
             } else {
               showToast({
                 type: "info",
-                text2: `Sorry, we only support deliveries within a 5 km radius of Pilkhuwa.`,
+                text2: `Sorry, we only support deliveries within a ${deliveryRadiusKm} km radius of Pilkhuwa.`,
               });
             }
           }}
         />
         <View style={styles.disclaimerContainer}>
           <Text style={styles.disclaimerText}>
-            We only support deliveries within a 5 km radius of Pilkhuwa.
+            We only support deliveries within a {deliveryRadiusKm} km radius of Pilkhuwa.
           </Text>
         </View>
       </CustomSuspense>

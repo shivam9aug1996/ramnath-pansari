@@ -18,7 +18,7 @@ const STOCK_FILTERS = [
   { key: undefined, label: 'All' },
   { key: 'in_stock', label: 'In stock' },
   { key: 'out_of_stock', label: 'Out of stock' },
-  { key: 'hidden', label: 'Hidden' },
+  { key: 'promo_only', label: 'Promo / freebie' },
 ] as const
 
 const AdminProductsScreen = () => {
@@ -39,7 +39,8 @@ const AdminProductsScreen = () => {
     page,
     limit: 20,
     search: debouncedSearch || undefined,
-    stock,
+    stock: stock === 'promo_only' ? undefined : stock,
+    promoOnly: stock === 'promo_only' ? 'true' : undefined,
   })
 
   React.useEffect(() => {
@@ -115,6 +116,12 @@ const AdminProductsScreen = () => {
           <ProductListItem
             item={item}
             onPress={(id) => router.push(`/admin/products/${id}`)}
+            onClone={(id) =>
+              router.push({
+                pathname: '/admin/products/create',
+                params: { cloneFrom: id },
+              })
+            }
           />
         )}
         contentContainerStyle={adminListStyles.listContent}

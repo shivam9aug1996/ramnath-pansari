@@ -42,11 +42,12 @@ function CustomCarasole() {
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const token = useSelector((state: RootState) => state?.auth?.token);
+  const appSyncReady = useSelector((state: RootState) => state.appSync?.ready);
   const viewabilityConfig = { viewAreaCoveragePercentThreshold: 50 };
 
   const { data: categoriesData } = useFetchCategoriesQuery(
     {},
-    { skip: !token }
+    { skip: !token || !appSyncReady },
   );
 
   const onViewableItemsChanged = React.useCallback(

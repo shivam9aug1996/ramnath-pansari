@@ -1,4 +1,4 @@
-import { calculateTotalAmount } from "@/components/cart/utils";
+import { getPaidCartPayload } from "@/utils/cartOfferUtils";
 import { getPayableTotalFromItems } from "@/utils/deliveryFee";
 import { createSlice } from "@reduxjs/toolkit";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
@@ -65,10 +65,7 @@ export const cartApi = createApi({
               quantity: item?.quantity,
             };
           });
-          payload = payload.filter(
-            (item: any) =>
-              item?.productId !== "676da9f75763ded56d43032d"
-          );
+          payload = getPaidCartPayload(parsedCartData);
           console.log("payload4567890", payload);
           const data1 = {
             params: {
@@ -184,6 +181,14 @@ export const cartApi = createApi({
         body: data?.body,
       }),
     }),
+    releaseCheckoutHolds: builder.mutation({
+      query: (data) => ({
+        url: "/cart/releaseCheckoutHolds",
+        method: "POST",
+        params: data?.params,
+        body: data?.body,
+      }),
+    }),
     fetchGreetingMessage: builder.query({
       query: (data) => ({
         url: "/generateGreeting",
@@ -280,6 +285,11 @@ const cartSlice = createSlice({
         status: action?.payload?.status,
       };
     },
+    setCartPayableTotals: (state, action) => {
+      const total = action.payload.total;
+      state.totalAmountInNumber = total;
+      state.totalAmount = `₹${total.toFixed(2)}`;
+    },
   },
   extraReducers: (builder) => {
     builder.addMatcher(
@@ -295,7 +305,12 @@ const cartSlice = createSlice({
         const items = action?.payload?.cart?.items ?? [];
         const payableTotal = getPayableTotalFromItems(items);
         state.totalAmount = `₹${payableTotal.toFixed(2)}`;
-        state.totalAmountInNumber = payableTotal;
+        state.totalAmountInNumber = parseFloat(
+          Math.max(
+            0,
+            payableTotal - (action?.payload?.orderDiscount ?? 0),
+          ).toFixed(2),
+        );
         state.cartItemQuantity = rebuildCartItemQuantities(items);
         console.log("[cart-sync] cartItemQuantity:rebuilt from fetchCart", {
           itemCount: items.length,
@@ -384,6 +399,7 @@ export const {
   incrementCartQueueCount,
   decrementCartQueueCount,
   setNeedToSyncWithBackend,
+  setCartPayableTotals,
 } = cartSlice.actions;
 
 export const {
@@ -395,6 +411,7 @@ export const {
   useLazyFetchGreetingMessageQuery,
   useLazyBulkUpdateCartQuery,
   useLazyUpdateProductsAsPerCartQuery,
+  useReleaseCheckoutHoldsMutation,
 } = cartApi;
 
 export default cartSlice.reducer;

@@ -1,6 +1,4 @@
-// utils/CartDebounceManager.ts
 import { debounce } from "lodash";
-import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 class CartDebounceManager {
@@ -8,23 +6,17 @@ class CartDebounceManager {
   private debouncedUpdate: (cartData: any, userId: string) => void;
 
   private constructor() {
-    this.debouncedUpdate = debounce(
-      async (cartData: any, userId: string) => {
-        try {
-          // await SecureStore.setItemAsync(
-          //   `cartData-${userId}`,
-          //   JSON.stringify(cartData)
-          // );
-          // await SecureStore.setItemAsync(`cartData-${userId}-needToSync`, "true");
-          await AsyncStorage.setItem(`cartData-${userId}`, JSON.stringify(cartData));
-          await AsyncStorage.setItem(`cartData-${userId}-needToSync`, "true");
-        } catch (error) {
-          console.error("Error updating cart in SecureStore:", error);
-        }
-      },
-      1000,
-      
-    );
+    this.debouncedUpdate = debounce(async (cartData: any, userId: string) => {
+      try {
+        await AsyncStorage.setItem(
+          `cartData-${userId}`,
+          JSON.stringify(cartData),
+        );
+        await AsyncStorage.setItem(`cartData-${userId}-needToSync`, "true");
+      } catch (error) {
+        console.error("Error updating cart in AsyncStorage:", error);
+      }
+    }, 1000);
   }
 
   public static getInstance(): CartDebounceManager {

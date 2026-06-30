@@ -6,6 +6,7 @@ import { Colors } from "@/constants/Colors";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
 import CategoryList from "./CategoryList/CategoryList";
 import Products from "./ProductList/Products";
+import CategoryListWrapper from "./ProductList/CategoryListWrapper";
 import GoToCartWrapper from "./ProductList/GoToCartWrapper";
 import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -32,7 +33,7 @@ const ProCat = ({
   useEffect(() => {
     dispatch(setSelectedSubCategoryId("null"))
   }, [])
-  //console.log("name7654345645678987657890",name,id,selectedCategoryIdIndex)
+  console.log("procat",id, name, selectedCategoryIdIndex);
   return (
     <>
       <ScreenSafeWrapper showCartIcon={true} title={name} showSearchIcon={true} wrapperStyle={{paddingBottom:0,marginBottom:0}} >
@@ -41,16 +42,7 @@ const ProCat = ({
             <TryAgain refetch={()=>{}} />
           ) : (
             <>
-              <View
-                style={{
-                  position: "absolute",
-                  top: 45,
-                  left: -30,
-                  right: -30,
-                  backgroundColor: Colors.light.background,
-                  zIndex: 999,
-                }}
-              >
+              <CategoryListWrapper>
                 <DeferredFadeIn delay={0}>
                   <CategoryList
                     contentContainerStyle={{ paddingHorizontal: 30 }}
@@ -60,7 +52,7 @@ const ProCat = ({
                     parentCategory={{ _id: id, name: name }}
                   />
                 </DeferredFadeIn>
-              </View>
+              </CategoryListWrapper>
              
 
               <DeferredFadeIn style={{ flex: 1 }} delay={200}>

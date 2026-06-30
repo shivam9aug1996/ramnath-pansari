@@ -11,6 +11,10 @@ interface VerifyPasswordHook {
   errorState: string;
   password: string;
   setPassword: React.Dispatch<React.SetStateAction<string>>;
+  otp: string;
+  setOtp: React.Dispatch<React.SetStateAction<string>>;
+  isAdminLogin: boolean;
+  otpSentTo: string | undefined;
   dismissKeyboard: () => void;
   resetInput: () => void;
   userAlreadyRegistered: string | undefined;
@@ -20,6 +24,14 @@ interface VerifyPasswordHook {
   guestLogin: () => void;
 }
 
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (error && typeof error === "object" && "data" in error) {
+    const data = (error as { data?: { error?: string; message?: string } }).data;
+    return data?.error || data?.message || fallback;
+  }
+  return fallback;
+}
+
 const useVerifyPassword = (): VerifyPasswordHook => {
   const saveAuthDataState = useSelector(
     (state: RootState) => state?.auth?.saveAuthData,
@@ -27,18 +39,26 @@ const useVerifyPassword = (): VerifyPasswordHook => {
 
   const [errorState, setErrorState] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [otp, setOtp] = useState<string>("");
   const [isCompletingLogin, setIsCompletingLogin] = useState(false);
 
-  const { mobileNumber, userAlreadyRegistered } = useLocalSearchParams<{
-    mobileNumber?: string;
-    userAlreadyRegistered?: string;
-  }>();
+  const { mobileNumber, userAlreadyRegistered, requiresEmailOtp, otpSentTo } =
+    useLocalSearchParams<{
+      mobileNumber?: string;
+      userAlreadyRegistered?: string;
+      requiresEmailOtp?: string;
+      otpSentTo?: string;
+    }>();
+  const isAdminLogin = requiresEmailOtp === "true";
   const dispatch = useDispatch();
 
   const [verifyOtp, { isLoading }] = useVerifyOtpMutation();
 
   const completeLogin = useCallback(
-    async (payload: { token: string; userData?: { name?: string; isAdminUser?: boolean } }) => {
+    async (payload: {
+      token: string;
+      userData?: { name?: string; isAdminUser?: boolean };
+    }) => {
       setIsCompletingLogin(true);
       try {
         await persistAuthAndNavigate(dispatch, payload);
@@ -57,6 +77,7 @@ const useVerifyPassword = (): VerifyPasswordHook => {
 
   const resetInput = useCallback(() => {
     setPassword("");
+    setOtp("");
     setErrorState("");
   }, []);
 
@@ -67,25 +88,51 @@ const useVerifyPassword = (): VerifyPasswordHook => {
     return "";
   }, []);
 
+  const validateOtp = useCallback((otpValue: string): string => {
+    if (!otpValue || otpValue.length !== 6) {
+      return "Please enter the 6-digit OTP sent to your email";
+    }
+    return "";
+  }, []);
+
   const handleVerifyPassword = useCallback(
     async (passwordValue: string) => {
-      const validationError = validatePassword(passwordValue);
-      if (validationError) {
-        setErrorState(validationError);
+      const passwordError = validatePassword(passwordValue);
+      if (passwordError) {
+        setErrorState(passwordError);
         return;
+      }
+
+      if (isAdminLogin) {
+        const otpError = validateOtp(otp);
+        if (otpError) {
+          setErrorState(otpError);
+          return;
+        }
       }
 
       try {
         const result = await verifyOtp({
           mobileNumber: mobileNumber || "",
           password: passwordValue,
+          ...(isAdminLogin ? { otp } : {}),
         }).unwrap();
         await completeLogin(result);
-      } catch {
-        setErrorState("Incorrect password");
+      } catch (error) {
+        setErrorState(
+          getApiErrorMessage(error, "Incorrect password"),
+        );
       }
     },
-    [mobileNumber, validatePassword, verifyOtp, completeLogin],
+    [
+      mobileNumber,
+      otp,
+      isAdminLogin,
+      validatePassword,
+      validateOtp,
+      verifyOtp,
+      completeLogin,
+    ],
   );
 
   const guestLogin = useCallback(async () => {
@@ -102,6 +149,10 @@ const useVerifyPassword = (): VerifyPasswordHook => {
     errorState,
     password,
     setPassword,
+    otp,
+    setOtp,
+    isAdminLogin,
+    otpSentTo,
     dismissKeyboard,
     resetInput,
     userAlreadyRegistered,

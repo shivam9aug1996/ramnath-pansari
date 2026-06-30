@@ -26,6 +26,7 @@ export const recentSearchApi = createApi({
         params: data,
       }),
       providesTags: ["recentSearch"],
+      refetchOnMountOrArgChange: false,
     }),
     createRecentSearch: builder.mutation({
       query: (data) => ({
@@ -33,7 +34,7 @@ export const recentSearchApi = createApi({
         method: "POST",
         body: data?.body,
       }),
-      invalidatesTags: ["recentSearch"],
+     // invalidatesTags: ["recentSearch"],
     }),
     deleteRecentSearch: builder.mutation({
       query: (data) => ({
@@ -41,7 +42,7 @@ export const recentSearchApi = createApi({
         method: "DELETE",
         params: data,
       }),
-      invalidatesTags: ["recentSearch"],
+      //invalidatesTags: ["recentSearch"],
     }),
   }),
 });

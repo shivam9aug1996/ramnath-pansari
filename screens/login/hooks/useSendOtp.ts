@@ -32,6 +32,8 @@ export const useSendOtp = (): UseSendOtpProps => {
         params: {
           mobileNumber,
           userAlreadyRegistered: data?.userAlreadyRegistered?.toString(),
+          requiresEmailOtp: data?.requiresEmailOtp ? "true" : "false",
+          otpSentTo: data?.otpSentTo ?? "",
         },
       });
       setResendTime(mobileNumber);

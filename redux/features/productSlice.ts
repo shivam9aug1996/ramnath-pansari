@@ -234,6 +234,8 @@ const productSlice = createSlice({
     },
     /** Latest JioMart sync fields — merged in product list (all pages/categories). */
     syncedProductOverrides: {} as Record<string, SyncedProductOverride>,
+    visibleIds: [],
+    queryResultVisibleIds: [],
   },
   reducers: {
     applySyncedProductOverrides: (
@@ -284,6 +286,12 @@ const productSlice = createSlice({
     setProductListScrollParams: (state, action) => {
       state.productListScrollParams = action?.payload;
     },
+    setVisibleIds: (state, action) => {
+      state.visibleIds = action?.payload;
+    },
+    setQueryResultVisibleIds: (state, action) => {
+      state.queryResultVisibleIds = action?.payload;
+    },
   },
   extraReducers: (builder) => {},
 });
@@ -295,6 +303,8 @@ export const {
   setSelectedCategoryClicked,
   setProductListScrollParams,
   applySyncedProductOverrides,
+  setVisibleIds,
+  setQueryResultVisibleIds,
 } = productSlice.actions;
 
 export const {

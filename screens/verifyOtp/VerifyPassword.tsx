@@ -1,14 +1,26 @@
 import React from "react";
-import { StyleSheet, TouchableWithoutFeedback, View } from "react-native";
-import { ThemedView } from "@/components/ThemedView";
-import { ThemedText } from "@/components/ThemedText";
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
+
 import { Colors } from "@/constants/Colors";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
 import Button from "@/components/Button";
+import DeferredFadeIn from "@/components/DeferredFadeIn";
+
 import useVerifyPassword from "./hooks/useVerifyPassword";
 import PasswordInput from "./PasswordInput";
+import OtpInput from "./OtpInput";
+import Resend from "./Resend";
 import TermsCheck from "./TermsCheck";
-import DeferredFadeIn from "@/components/DeferredFadeIn";
 
 const VerifyPassword: React.FC = () => {
   const {
@@ -16,7 +28,10 @@ const VerifyPassword: React.FC = () => {
     errorState,
     password,
     setPassword,
-    dismissKeyboard,
+    otp,
+    setOtp,
+    isAdminLogin,
+    otpSentTo,
     resetInput,
     userAlreadyRegistered,
     handleVerifyPassword,
@@ -25,76 +40,137 @@ const VerifyPassword: React.FC = () => {
   } = useVerifyPassword();
 
   const isNewUser = userAlreadyRegistered === "false";
-  
+
   return (
-    <ScreenSafeWrapper useKeyboardAvoidingView={true}>
-     <DeferredFadeIn style={{flex:1}} delay={200}>
-     <TouchableWithoutFeedback onPress={dismissKeyboard}>
-        <ThemedView style={styles.container}>
-          <View style={{ flex: 0.15, marginTop: 10 }}></View>
-          <ThemedText type="title">
-            {isNewUser ? "Create your\nPassword" : "Enter your\nPassword"}
-          </ThemedText>
+    <ScreenSafeWrapper
+      showBackButton
+      useKeyboardAvoidingView={false}
+    >
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={10}
+      >
+        <TouchableWithoutFeedback
+          onPress={Keyboard.dismiss}
+          accessible={false}
+        >
+          <DeferredFadeIn style={{ flex: 1 }} delay={200}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
+              automaticallyAdjustKeyboardInsets
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              <ThemedView style={styles.container}>
+                <View>
+                  <ThemedText type="title">
+                    {isAdminLogin
+                      ? "Admin\nLogin"
+                      : isNewUser
+                      ? "Create your\nPassword"
+                      : "Enter your\nPassword"}
+                  </ThemedText>
 
-          <ThemedText style={styles.description}>
-            {isNewUser 
-              ? "Create a strong password to\nsecure your account"
-              : "Please enter your password to\ncontinue"
-            }
-          </ThemedText>
-          
-          <PasswordInput 
-            password={password} 
-            setPassword={setPassword} 
-            setErrorState={setErrorState} 
-            onSubmitPassword={handleVerifyPassword}
-            placeholder={isNewUser ? "Create your password" : "Enter your password"}
-          />
+                  <ThemedText style={styles.description}>
+                    {isAdminLogin
+                      ? `Enter password and the OTP sent to\n${
+                          otpSentTo || "your email"
+                        }`
+                      : isNewUser
+                      ? "Create a strong password to\nsecure your account"
+                      : "Please enter your password to\ncontinue"}
+                  </ThemedText>
 
-          <View style={styles.errorContainer}>
-            {errorState && (
-              <ThemedText
-                lightColor={Colors.light.lightRed}
-                style={styles.errorText}
-              >
-                {errorState}
-              </ThemedText>
-            )}
-          </View>
+                  {isAdminLogin && (
+                    <>
+                      <OtpInput
+                        otp={otp}
+                        setOtp={setOtp}
+                        setErrorState={setErrorState}
+                      />
 
-          <Button
-            title={isNewUser ? "Create Account" : "Continue"}
-            isLoading={isLoading}
-            onPress={() => {
-              handleVerifyPassword(password);
-            }}
-          />
-          {isNewUser && <TermsCheck />}
-        </ThemedView>
-      </TouchableWithoutFeedback>
-     </DeferredFadeIn>
+                      <Resend
+                        resetInput={resetInput}
+                        mobileNum={mobileNumber}
+                      />
+                    </>
+                  )}
+
+                  <PasswordInput
+                    password={password}
+                    setPassword={setPassword}
+                    setErrorState={setErrorState}
+                    onSubmitPassword={handleVerifyPassword}
+                    placeholder={
+                      isNewUser
+                        ? "Create your password"
+                        : "Enter your password"
+                    }
+                    autoFocus={!isAdminLogin}
+                  />
+
+                  <View style={styles.errorContainer}>
+                    {!!errorState && (
+                      <ThemedText
+                        lightColor={Colors.light.lightRed}
+                        style={styles.errorText}
+                      >
+                        {errorState}
+                      </ThemedText>
+                    )}
+                  </View>
+                </View>
+
+                <View>
+                  <Button
+                    title={isNewUser ? "Create Account" : "Continue"}
+                    isLoading={isLoading}
+                    onPress={() => handleVerifyPassword(password)}
+                  />
+
+                  {isNewUser && !isAdminLogin && (
+                    <View style={{ marginTop: 16 }}>
+                      <TermsCheck />
+                    </View>
+                  )}
+                </View>
+              </ThemedView>
+            </ScrollView>
+          </DeferredFadeIn>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </ScreenSafeWrapper>
   );
 };
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    paddingTop: 20,
+    paddingBottom: 40,
+  },
+
   container: {
     flex: 1,
+    justifyContent: "space-between",
   },
+
   description: {
     color: Colors.light.mediumLightGrey,
     marginTop: 18,
-    lineHeight: 19,
+    lineHeight: 20,
+    marginBottom: 30,
   },
+
   errorContainer: {
-    minHeight: 20,
-    justifyContent: 'center',
+    minHeight: 22,
+    justifyContent: "center",
   },
+
   errorText: {
-    // Remove marginTop since it's handled by the container
-  },
-  forgotPasswordButton: {
-    marginTop: 20,
+    color: Colors.light.lightRed,
   },
 });
 

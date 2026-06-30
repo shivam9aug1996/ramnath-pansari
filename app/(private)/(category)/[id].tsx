@@ -9,6 +9,7 @@ const ProductScreen = () => {
     name?: string;
     selectedCategoryIdIndex?: string;
   }>();
+  console.log("productscreen[id]",id, name, selectedCategoryIdIndex);
 
   return (
     <>

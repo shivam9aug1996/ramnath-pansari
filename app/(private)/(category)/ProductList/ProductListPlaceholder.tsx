@@ -8,8 +8,10 @@ import {
   PRODUCT_LIST_MARGIN_TOP,
   PRODUCT_LIST_PADDING_BOTTOM,
   PRODUCT_LIST_PADDING_TOP,
+  PRODUCT_PAGINATION_SKELETON_COUNT,
   PRODUCT_SKELETON_COUNT,
 } from "./productListLayout";
+import DeferredFadeIn from "@/components/DeferredFadeIn";
 
 const LoaderBlock = ({
   width = "100%",
@@ -53,13 +55,58 @@ const ProductItemSkeleton = ({ index }: { index: number }) => (
   </View>
 );
 
-export const ProductPaginationSkeleton = ({ count = 2 }: { count?: number }) => (
+export const ProductPaginationSkeleton = memo(({ count = PRODUCT_PAGINATION_SKELETON_COUNT }) => (
   <View style={styles.paginationRow}>
     {Array.from({ length: count }, (_, index) => (
-      <ProductItemSkeleton key={`pagination-skeleton-${index}`} index={index} />
+      <ProductItemSkeletonStatic key={`pagination-skeleton-${index}`} index={index} />
     ))}
   </View>
+));
+
+const StaticBlock = ({
+  width,
+  height = 13,
+  style,
+}: {
+  width: number | `${number}%`;
+  height?: number;
+  style?: object;
+}) => (
+  <View
+    style={[
+      {
+        width,
+        height,
+        borderRadius: 5,
+        backgroundColor: "#f3f3f3",
+      },
+      style,
+    ]}
+  />
 );
+
+export const ProductItemSkeletonStatic = memo(({ index }: { index: number }) => (
+  <View style={[styles.container, getProductColumnStyle(index)]}>
+    <View style={styles.productCard}>
+      <View style={styles.imageContainer}>
+        <View style={styles.imageSkeleton} />
+        <View style={styles.cartButtonSkeleton} />
+      </View>
+      <View style={styles.productInfo}>
+        <View style={styles.nameSkeleton}>
+          <StaticBlock width="95%" />
+          <StaticBlock width="80%" />
+          <StaticBlock width="60%" />
+        </View>
+        <StaticBlock width="45%" height={12} />
+        <View style={styles.priceSkeleton}>
+          <StaticBlock width="55%" height={16} />
+          <StaticBlock width="45%" height={12} />
+        </View>
+      </View>
+    </View>
+  </View>
+));
 
 export { ProductItemSkeleton };
 
@@ -92,8 +139,9 @@ export default memo(ProductsPlaceholder);
 const styles = StyleSheet.create({
   paginationRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     width: "100%",
+    height: PRODUCT_CARD_HEIGHT + PRODUCT_ITEM_MARGIN_BOTTOM,
+    overflow: "hidden",
   },
   list: {
     marginTop: PRODUCT_LIST_MARGIN_TOP,

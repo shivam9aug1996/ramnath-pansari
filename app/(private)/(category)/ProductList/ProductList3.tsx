@@ -16,6 +16,7 @@ import { useHideOnScroll } from "@/hooks/useHideOnScroll";
 import { usePaginationSkeleton } from "@/hooks/usePaginationSkeleton";
 import {
   setProductListScrollParams,
+  setVisibleIds,
 } from "@/redux/features/productSlice";
 import { useFocusEffect } from "expo-router";
 import ProductItemWrapper from "./ProductItemWrapper";
@@ -30,8 +31,11 @@ import {
   isProductSkeleton,
   ProductListRow,
   withPaginationSkeletons,
+  PRODUCT_ITEM_MARGIN_BOTTOM,
+  buildProductListData,
 } from "./productListLayout";
-import { ProductItemSkeleton } from "./ProductListPlaceholder";
+import { ProductItemSkeleton, ProductItemSkeletonStatic, ProductPaginationSkeleton } from "./ProductListPlaceholder";
+import { clearVisibleProductIds, updateVisibleProductIds } from "./productVisibilityStore";
 
 
 const ITEM_HEIGHT = PRODUCT_CARD_HEIGHT;
@@ -69,6 +73,7 @@ interface ProductList3Props {
   isProductsFetching: boolean;
   isProductsLoading: boolean;
   paginationState: PaginationState;
+  showInitialSkeleton?: boolean;
 }
 
 interface CartData {
@@ -85,7 +90,10 @@ const ProductList3 = ({
   isProductsLoading,
   paginationState,
   refetch,
+  showInitialSkeleton = false
 }: ProductList3Props) => {
+   //const visibleIds = useSelector((state: RootState) => state.product.visibleIds);
+  // console.log("visibleIds98767890",visibleIds);
   const goToCartListPadding = useGoToCartListPadding();
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   const syncedProductOverrides = useSelector(
@@ -96,8 +104,19 @@ const ProductList3 = ({
     { skip: !userId }
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
-  const visibleIdsRef = useRef(visibleIds);
+
+  const isRefreshingFirstPage =
+  isProductsFetching && paginationState.page === 1;
+const listContentContainerStyle = useMemo(
+  () => [
+    styles.flatList,
+    isRefreshingFirstPage && styles.listRefreshing,
+    { paddingBottom: PRODUCT_LIST_PADDING_BOTTOM + goToCartListPadding },
+  ],
+  [isRefreshingFirstPage, goToCartListPadding],
+);
+  //const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
+  //const visibleIdsRef = useRef(visibleIds);
   // const onViewableItemsChanged = useRef(
   //   ({ viewableItems }: { viewableItems: ViewToken[] }) => {
   //     // Add viewable items to set so their images/components can load
@@ -114,33 +133,59 @@ const ProductList3 = ({
   //   }
   // ).current;
 
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      const visibleNow = new Set<string>();
-      viewableItems.forEach((v) => {
-        const id = v?.item?._id;
-        if (typeof id === "string" && id.length) visibleNow.add(id);
-      });
-      setVisibleIds(visibleNow);
-    }
-  ).current;
+  // const onViewableItemsChanged = useRef(
+  //   ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+  //     const visibleNow = new Set<string>();
+  //     viewableItems.forEach((v) => {
+  //       const id = v?.item?._id;
+  //       if (typeof id === "string" && id.length) visibleNow.add(id);
+  //     });
+  //     setVisibleIds(visibleNow);
+  //     dispatch(setVisibleIds(Array.from(visibleNow) as string[]));
+  //     //dispatch(setVisibleIds(visibleNow));
+  //   }
+  // ).current;
 
+//   const onViewableItemsChanged = useRef(
+//   ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+//     const ids: string[] = [];
+//     viewableItems.forEach((v) => {
+//       const id = v?.item?._id;
+//       if (typeof id === "string" && id.length) ids.push(id);
+//     });
+//     updateVisibleProductIds(ids);
+//   },
+// ).current;
+const onViewableItemsChanged = useRef(
+  ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    const ids: string[] = [];
+    for (const v of viewableItems) {
+      const id = v?.item?._id;
+      if (typeof id === "string" && id.length) ids.push(id);
+    }
+    updateVisibleProductIds(ids);
+  },
+).current;
+
+
+  
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 1, // consider visible when 20% is on screen
     waitForInteraction: false,
   }).current;
-  visibleIdsRef.current = visibleIds;
+  //visibleIdsRef.current = visibleIds;
   const dispatch = useDispatch();
 
   const hasNextPage = data?.currentPage < data?.totalPages;
 
-  const { showSkeleton: showPaginationSkeleton, beginPaging } =
-    usePaginationSkeleton({
-      isFetching: isProductsFetching,
-      page: paginationState.page,
-      hasItems: (data?.products?.length ?? 0) > 0,
-      hasNextPage,
-    });
+  const { showSkeleton: showPaginationSkeleton, beginPaging, isPagingMore } =
+  usePaginationSkeleton({
+    isFetching: isProductsFetching,
+    page: paginationState.page,
+    hasItems: (data?.products?.length ?? 0) > 0,
+    hasNextPage,
+    itemCount: data?.products?.length ?? 0,
+  });
 
   const isLoadingMoreRef = useRef(showPaginationSkeleton);
   isLoadingMoreRef.current = showPaginationSkeleton;
@@ -166,13 +211,29 @@ const ProductList3 = ({
     }, [resetScrollChrome]),
   );
 
+
+
+ 
+
   useEffect(() => {
     resetScrollChrome();
   }, [paginationState.categoryId, resetScrollChrome]);
 
+  useEffect(() => {
+    clearVisibleProductIds();
+  }, [paginationState.categoryId]);
+
+  useEffect(() => {
+    dispatch(setVisibleIds([]));
+  }, []);
+
   const listData = useMemo(
-    () => withPaginationSkeletons(data?.products, showPaginationSkeleton),
-    [data?.products, showPaginationSkeleton],
+    () =>
+      buildProductListData(data?.products, {
+        showInitialSkeleton,
+        showPaginationSkeleton,
+      }),
+    [data?.products, showInitialSkeleton, showPaginationSkeleton],
   );
 
   // const renderProductItem = useCallback(
@@ -192,40 +253,63 @@ const ProductList3 = ({
     return map;
   }, [cartData?.cart?.items]);
 
+  // const renderProductItem = useCallback(
+  //   ({ item, index }: { item: Product; index: number }) => {
+  //     const override = syncedProductOverrides[item._id];
+  //     const mergedItem = override ? { ...item, ...override } : item;
+  //     const cartItem = cartItemsMap[item._id];
+  //     return (
+  //       <ProductItemWrapper
+  //         item={mergedItem}
+  //         index={index}
+  //         quantity={cartItem?.quantity ?? 0}
+  //       />
+  //     );
+  //   },
+  //   [cartItemsMap, syncedProductOverrides],
+  // );
+
   const renderProductItem = useCallback(
     ({ item, index }: { item: ProductListRow; index: number }) => {
       if (isProductSkeleton(item)) {
-        return <ProductItemSkeleton index={index} />;
+        return <ProductItemSkeletonStatic index={index} />;
       }
-
+  
       const override = syncedProductOverrides[item._id];
       const mergedItem = override ? { ...item, ...override } : item;
       const cartItem = cartItemsMap[item._id];
-      const isVisible = visibleIds.has(item._id);
+  
       return (
         <ProductItemWrapper
           item={mergedItem}
           index={index}
           quantity={cartItem?.quantity ?? 0}
-          isVisible={isVisible}
         />
       );
     },
-    [cartItemsMap, visibleIds, syncedProductOverrides],
+    [cartItemsMap, syncedProductOverrides],
   );
+
+  const renderListFooter = useCallback(() => {
+    if (showInitialSkeleton || !showPaginationSkeleton) return null;
+    return <ProductPaginationSkeleton />;
+  }, [showInitialSkeleton, showPaginationSkeleton]);
 
   const renderEmptyComponent = useCallback(() => {
     if (
+      showInitialSkeleton ||
       isProductsLoading ||
-      (isProductsFetching && data?.products?.length === 0)
-    )
+      (isProductsFetching && (data?.products?.length ?? 0) === 0)
+    ) {
       return null;
+    }
+  
     return (
       <View
         style={{
-          opacity: isProductsFetching && paginationState?.page === 1 ? 0.6 : 1,
+          opacity: isProductsFetching && paginationState.page === 1 ? 0.6 : 1,
           pointerEvents:
-            isProductsFetching && paginationState?.page === 1 ? "none" : "auto",
+            isProductsFetching && paginationState.page === 1 ? "none" : "auto",
         }}
       >
         <NotFound
@@ -235,10 +319,11 @@ const ProductList3 = ({
       </View>
     );
   }, [
+    showInitialSkeleton,
     isProductsFetching,
     isProductsLoading,
     data?.products?.length,
-    paginationState?.page,
+    paginationState.page,
   ]);
 
   const fetchNextPage = useCallback(() => {
@@ -247,6 +332,23 @@ const ProductList3 = ({
       page: prevState.page + 1,
     }));
   }, [setPaginationState]);
+
+  const handleEndReached = useCallback(() => {
+    if (showInitialSkeleton) return;
+    if (!hasNextPage) return;
+    if (isProductsFetching) return;
+    if (showPaginationSkeleton || isPagingMore) return;
+    beginPaging();
+    fetchNextPage();
+  }, [
+    hasNextPage,
+    isProductsFetching,
+    showPaginationSkeleton,
+    isPagingMore,
+    beginPaging,
+    fetchNextPage,
+  ]);
+
 
   // const refreshProducts = useCallback(async() => {
   //   const key = `products-${paginationState.categoryId}-`
@@ -275,7 +377,19 @@ const ProductList3 = ({
     await refetch()
     setIsRefreshing(false);
   };
-  
+
+  console.log("productlist3");
+  // const ESTIMATED_ITEM_HEIGHT = ITEM_HEIGHT + PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT; // 280 + 20 = 300 ❌
+  // const ROW_HEIGHT =
+  // PRODUCT_CARD_HEIGHT + PRODUCT_ITEM_MARGIN_BOTTOM; 
+  // const getItemLayout = (_: unknown, index: number) => {
+  //   const row = Math.floor(index / 2);
+  //   return {
+  //     length: index % 2 === 0 ? ROW_HEIGHT : 0,
+  //     offset: row * ROW_HEIGHT,
+  //     index,
+  //   };
+  // };
 
   return (
     <FlatList
@@ -284,42 +398,31 @@ const ProductList3 = ({
 
       // onRefresh={refetch}
       // refreshing={isRefreshing}
-    //getItemLayout={getItemLayout} // Disabled: causes glitches with numColumns due to variable item heights
+   // getItemLayout={getItemLayout} // Disabled: causes glitches with numColumns due to variable item heights
       bounces={Platform.OS === "android" ? false : true}
       initialNumToRender={6}
-      maxToRenderPerBatch={showPaginationSkeleton ? 8 : 2}
-      windowSize={showPaginationSkeleton ? 7 : 5}
-      updateCellsBatchingPeriod={100}  // ms between rendering batches (higher = smoother)
+       // maxToRenderPerBatch={6}
+      // windowSize={ 5}
+     // updateCellsBatchingPeriod={100}  // ms between rendering batches (higher = smoother)
       numColumns={2}
       removeClippedSubviews={false}
-      ItemSeparatorComponent={ItemSeparator}
+     //ItemSeparatorComponent={ItemSeparator}
       ref={flatListRef}
       showsVerticalScrollIndicator={false}
-      
+      scrollEnabled={!showInitialSkeleton}
+
       data={listData}
-      extraData={showPaginationSkeleton}
+      ListFooterComponent={renderListFooter}
+      extraData={{ showInitialSkeleton, showPaginationSkeleton, cartItemsMap }}
       keyExtractor={(item) => item._id}
       renderItem={renderProductItem}
       ListEmptyComponent={renderEmptyComponent}
-      contentContainerStyle={[
-        styles.flatList,
-        {
-          opacity: isProductsFetching && paginationState?.page === 1 ? 0.6 : 1,
-          pointerEvents:
-            isProductsFetching && paginationState?.page === 1 ? "none" : "auto",
-          paddingBottom:
-            PRODUCT_LIST_PADDING_BOTTOM + goToCartListPadding,
-        },
-      ]}
-      onEndReached={() => {
-        if (isProductsFetching || !hasNextPage) return;
-        beginPaging();
-        fetchNextPage();
-      }}
+      contentContainerStyle={listContentContainerStyle}
+      onEndReached={showInitialSkeleton ? undefined : handleEndReached}
       onEndReachedThreshold={0.35}
-      viewabilityConfig={viewabilityConfig}
-      onViewableItemsChanged={onViewableItemsChanged}
-      scrollEventThrottle={16}
+      // viewabilityConfig={viewabilityConfig}
+      // onViewableItemsChanged={onViewableItemsChanged}
+      scrollEventThrottle={50}
       onScroll={handleScroll}
       style={{ marginTop: PRODUCT_LIST_MARGIN_TOP }}
     />
@@ -331,5 +434,9 @@ export default memo(ProductList3);
 const styles = StyleSheet.create({
   flatList: {
     paddingTop: PRODUCT_LIST_PADDING_TOP,
+  },
+  listRefreshing: {
+    opacity: 0.6,
+    pointerEvents: "none",
   },
 });

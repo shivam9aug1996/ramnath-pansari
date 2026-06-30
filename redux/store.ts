@@ -11,10 +11,19 @@ import adminOrderSlice, { adminOrderApi } from "./features/adminOrderSlice";
 import adminCategorySlice, { adminCategoryApi } from "./features/adminCategorySlice";
 import adminProductSlice, { adminProductApi } from "./features/adminProductSlice";
 import adminUserSlice, { adminUserApi } from "./features/adminUserSlice";
+import adminOfferSlice, { adminOfferApi } from "./features/adminOfferSlice";
+import adminCarouselSlice, { adminCarouselApi } from "./features/adminCarouselSlice";
+import offerSlice, { offerApi } from "./features/offerSlice";
+import carouselSlice, { carouselApi } from "./features/carouselSlice";
+import deliverySettingsSlice, { deliverySettingsApi } from "./features/deliverySettingsSlice";
+import adminDeliverySettingsSlice, { adminDeliverySettingsApi } from "./features/adminDeliverySettingsSlice";
+import storeConfigSlice, { storeConfigApi } from "./features/storeConfigSlice";
+import adminStoreConfigSlice, { adminStoreConfigApi } from "./features/adminStoreConfigSlice";
 import recentSearchSlice, {
   recentSearchApi,
 } from "./features/recentSearchSlice";
 import recentlyViewedSlice from "./features/recentlyViewedSlice";
+import appSyncSlice from "./features/appSyncSlice";
 import searchSlice, { searchApi } from "./features/searchSlice";
 import handle401Middleware from "./handle401Middleware";
 import handleLogoutMiddleware from "./handleLogoutMiddleware";
@@ -49,10 +58,27 @@ const store = configureStore({
     [adminProductApi.reducerPath]: adminProductApi.reducer,
     adminUser: adminUserSlice,
     [adminUserApi.reducerPath]: adminUserApi.reducer,
+    adminOffer: adminOfferSlice,
+    [adminOfferApi.reducerPath]: adminOfferApi.reducer,
+    adminCarousel: adminCarouselSlice,
+    [adminCarouselApi.reducerPath]: adminCarouselApi.reducer,
+    offer: offerSlice,
+    [offerApi.reducerPath]: offerApi.reducer,
+    carousel: carouselSlice,
+    [carouselApi.reducerPath]: carouselApi.reducer,
+    deliverySettings: deliverySettingsSlice,
+    [deliverySettingsApi.reducerPath]: deliverySettingsApi.reducer,
+    adminDeliverySettings: adminDeliverySettingsSlice,
+    [adminDeliverySettingsApi.reducerPath]: adminDeliverySettingsApi.reducer,
+    storeConfig: storeConfigSlice,
+    [storeConfigApi.reducerPath]: storeConfigApi.reducer,
+    adminStoreConfig: adminStoreConfigSlice,
+    [adminStoreConfigApi.reducerPath]: adminStoreConfigApi.reducer,
     khata: khataSlice,
     [khataApi.reducerPath]: khataApi.reducer,
     recentlyViewed: recentlyViewedSlice,
     weather: weatherSlice,
+    appSync: appSyncSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -69,6 +95,14 @@ const store = configureStore({
       .concat(adminCategoryApi.middleware)
       .concat(adminProductApi.middleware)
       .concat(adminUserApi.middleware)
+      .concat(adminOfferApi.middleware)
+      .concat(adminCarouselApi.middleware)
+      .concat(offerApi.middleware)
+      .concat(carouselApi.middleware)
+      .concat(deliverySettingsApi.middleware)
+      .concat(adminDeliverySettingsApi.middleware)
+      .concat(storeConfigApi.middleware)
+      .concat(adminStoreConfigApi.middleware)
       .concat(khataApi.middleware)
       .concat(asyncStorageMiddleware)
       .concat(handle401Middleware)

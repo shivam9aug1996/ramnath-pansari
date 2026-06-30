@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import AdminScreen from '@/app/admin/components/AdminScreen';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -10,7 +11,10 @@ import {
 import { useListAdminCategoriesQuery } from '@/redux/features/adminCategorySlice';
 import { Colors } from '@/constants/Colors';
 import HeaderBar from '@/app/admin/components/HeaderBar';
-import ProductFormList, { buildInitialFormValues } from './components/ProductFormList';
+import ProductFormList, {
+  buildInitialFormValues,
+  productToFormValues,
+} from './components/ProductFormList';
 import { findCategoryBreadcrumb } from '../categories/utils';
 import { consumePendingCategorySelection } from './categorySelection';
 
@@ -32,19 +36,7 @@ const ProductDetailScreen = () => {
       categoryId && categoriesData?.categories
         ? findCategoryBreadcrumb(categoriesData.categories, categoryId)
         : undefined;
-    return buildInitialFormValues({
-      name: p.name,
-      size: p.size,
-      price: String(p.price),
-      discountedPrice: String(p.discountedPrice),
-      image: p.image ?? '',
-      brand: p.brand ?? '',
-      category: p.category ?? '',
-      maxQuantity: p.maxQuantity != null ? String(p.maxQuantity) : '',
-      isOutOfStock: p.isOutOfStock,
-      categoryId,
-      categoryLabel: categoryLabel ?? undefined,
-    });
+    return productToFormValues(p, { categoryLabel });
   }, [data?.product, categoriesData?.categories]);
 
   const [formValues, setFormValues] = useState(buildInitialFormValues());
@@ -54,6 +46,12 @@ const ProductDetailScreen = () => {
       setFormValues(loadedValues);
     }
   }, [loadedValues, data?.product]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch]),
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -68,7 +66,18 @@ const ProductDetailScreen = () => {
     }, []),
   );
 
+  const offerUsage = data?.offerUsage;
+
   const onDelete = () => {
+    if (offerUsage && !offerUsage.canDelete) {
+      Alert.alert(
+        'Cannot delete',
+        offerUsage.blockedEdits.find((b) => b.field === 'delete')?.reason ??
+          'Disable live offers using this product first.',
+      );
+      return;
+    }
+
     Alert.alert(
       'Delete product',
       'This will hide the product from the store. Continue?',
@@ -107,7 +116,24 @@ const ProductDetailScreen = () => {
 
   return (
     <AdminScreen style={styles.container}>
-      <HeaderBar title="Edit product" />
+      <HeaderBar
+        title="Edit product"
+        right={
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: '/admin/products/create',
+                params: { cloneFrom: id },
+              })
+            }
+            hitSlop={8}
+            style={styles.cloneBtn}
+            accessibilityLabel="Clone product"
+          >
+            <Ionicons name="copy-outline" size={20} color="#2563EB" />
+          </TouchableOpacity>
+        }
+      />
 
       {data.product.jiomartUid || data.product.skuCode ? (
         <View style={styles.syncBanner}>
@@ -123,6 +149,9 @@ const ProductDetailScreen = () => {
         onChange={setFormValues}
         submitLabel="Save changes"
         isSubmitting={isSaving}
+        productFromJio={Boolean(data.product.productFromJio)}
+        offerUsage={offerUsage}
+        onOpenOffer={(offerId) => router.push(`/admin/offers/${offerId}`)}
         onDelete={onDelete}
         isDeleting={isDeleting}
         onPickCategory={() =>
@@ -163,4 +192,14 @@ const styles = StyleSheet.create({
     borderBottomColor: '#DBEAFE',
   },
   syncText: { fontSize: 11, color: '#475569', fontWeight: '600' },
+  cloneBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { AdminProductInput } from '@/types/global';
+import { AdminProductDocument, AdminProductInput, ProductOfferUsage } from '@/types/global';
 import { Colors } from '@/constants/Colors';
 
 export type ProductFormValues = {
@@ -25,6 +25,7 @@ export type ProductFormValues = {
   category: string;
   maxQuantity: string;
   isOutOfStock: boolean;
+  promoOnly: boolean;
   categoryId?: string;
   categoryLabel?: string;
 };
@@ -42,9 +43,32 @@ export function buildInitialFormValues(
     category: partial?.category ?? '',
     maxQuantity: partial?.maxQuantity ?? '',
     isOutOfStock: partial?.isOutOfStock ?? false,
+    promoOnly: partial?.promoOnly ?? false,
     categoryId: partial?.categoryId,
     categoryLabel: partial?.categoryLabel,
   };
+}
+
+export function productToFormValues(
+  product: AdminProductDocument,
+  options?: { categoryLabel?: string; clone?: boolean },
+): ProductFormValues {
+  const categoryId = product.categoryPath?.at(-1);
+  const name = options?.clone ? `${product.name} (Copy)` : product.name;
+  return buildInitialFormValues({
+    name,
+    size: product.size,
+    price: String(product.price),
+    discountedPrice: String(product.discountedPrice),
+    image: product.image ?? '',
+    brand: product.brand ?? '',
+    category: product.category ?? '',
+    maxQuantity: product.maxQuantity != null ? String(product.maxQuantity) : '',
+    isOutOfStock: product.isOutOfStock,
+    promoOnly: product.promoOnly ?? false,
+    categoryId,
+    categoryLabel: options?.categoryLabel,
+  });
 }
 
 export function formValuesToPayload(values: ProductFormValues): AdminProductInput | null {
@@ -67,6 +91,7 @@ export function formValuesToPayload(values: ProductFormValues): AdminProductInpu
     category: values.category.trim() || undefined,
     maxQuantity: values.maxQuantity ? Number(values.maxQuantity) : undefined,
     isOutOfStock: values.isOutOfStock,
+    promoOnly: values.promoOnly,
   };
 }
 
@@ -79,6 +104,9 @@ type Props = {
   onPickCategory: () => void;
   onDelete?: () => void;
   isDeleting?: boolean;
+  productFromJio?: boolean;
+  offerUsage?: ProductOfferUsage;
+  onOpenOffer?: (offerId: string) => void;
 };
 
 export default function ProductFormList({
@@ -90,7 +118,13 @@ export default function ProductFormList({
   onPickCategory,
   onDelete,
   isDeleting = false,
+  productFromJio = false,
+  offerUsage,
+  onOpenOffer,
 }: Props) {
+  const promoOnlyLocked = offerUsage?.blockedFields.includes('promoOnly') ?? false;
+  const deleteBlocked = offerUsage?.blockedFields.includes('delete') ?? false;
+
   const setField = <K extends keyof ProductFormValues>(
     key: K,
     value: ProductFormValues[K],
@@ -113,6 +147,58 @@ export default function ProductFormList({
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
+      {offerUsage?.inLiveOffer ? (
+        <View style={styles.offerBanner}>
+          <View style={styles.offerBannerHeader}>
+            <Ionicons name="gift-outline" size={20} color="#BE185D" />
+            <Text style={styles.offerBannerTitle}>Used in live offer</Text>
+          </View>
+          {offerUsage.liveOffers.map((offer) => (
+            <TouchableOpacity
+              key={offer.offerId}
+              style={styles.offerRow}
+              onPress={() => onOpenOffer?.(offer.offerId)}
+              disabled={!onOpenOffer}
+              activeOpacity={onOpenOffer ? 0.7 : 1}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.offerRowTitle}>
+                  Min ₹{offer.minOrderValue} · gift at ₹{offer.promoPrice}
+                </Text>
+                <Text style={styles.offerRowHint}>
+                  {onOpenOffer ? 'Tap to open offer' : `Offer ${offer.offerId.slice(0, 8)}…`}
+                </Text>
+              </View>
+              {onOpenOffer ? (
+                <Ionicons name="chevron-forward" size={16} color="#BE185D" />
+              ) : null}
+            </TouchableOpacity>
+          ))}
+
+          <Text style={styles.offerSectionLabel}>Safe to edit</Text>
+          {offerUsage.safeToEdit.map((line) => (
+            <View key={line} style={styles.offerBulletRow}>
+              <Ionicons name="checkmark-circle" size={14} color="#16A34A" />
+              <Text style={styles.offerBulletText}>{line}</Text>
+            </View>
+          ))}
+
+          <Text style={[styles.offerSectionLabel, { marginTop: 10 }]}>Blocked while offer is live</Text>
+          {offerUsage.blockedEdits.map((item) => (
+            <View key={item.field} style={styles.offerBulletRow}>
+              <Ionicons name="close-circle" size={14} color="#DC2626" />
+              <Text style={styles.offerBulletText}>{item.reason}</Text>
+            </View>
+          ))}
+
+          {offerUsage.notes.map((note) => (
+            <Text key={note} style={styles.offerNote}>
+              {note}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+
       <Text style={styles.label}>Store category</Text>
       <TouchableOpacity style={styles.categoryCard} onPress={onPickCategory} activeOpacity={0.7}>
         <View style={styles.categoryCardIcon}>
@@ -172,9 +258,48 @@ export default function ProductFormList({
             style={styles.input}
             keyboardType="decimal-pad"
           />
+          {offerUsage?.inLiveOffer ? (
+            <Text style={styles.hint}>Does not change offer promo price</Text>
+          ) : null}
         </View>
       </View>
-      <Text style={styles.hint}>Set selling price to 0 to hide from customer listings</Text>
+      <Text style={styles.hint}>
+        Promo products are hidden from customer browse and can only appear via offers
+      </Text>
+
+      <View style={styles.switchRow}>
+        <View style={{ flex: 1, paddingRight: 12 }}>
+          <Text style={styles.switchLabel}>Promo / freebie product only</Text>
+          <Text style={styles.hint}>Not listed for normal shopping</Text>
+        </View>
+        <Switch
+          value={values.promoOnly}
+          onValueChange={(promoOnly) => {
+            if (promoOnlyLocked && !promoOnly) {
+              Alert.alert(
+                'Blocked',
+                offerUsage?.blockedEdits.find((b) => b.field === 'promoOnly')?.reason ??
+                  'Disable live offers using this product first.',
+              );
+              return;
+            }
+            setField('promoOnly', promoOnly);
+          }}
+          disabled={promoOnlyLocked && values.promoOnly}
+          trackColor={{ true: Colors.light.darkGreen }}
+        />
+      </View>
+      {promoOnlyLocked ? (
+        <Text style={styles.hint}>
+          Promo / freebie stays on while a live offer uses this product
+        </Text>
+      ) : null}
+
+      {productFromJio ? (
+        <View style={styles.jioBadge}>
+          <Text style={styles.jioBadgeText}>Synced from JioMart</Text>
+        </View>
+      ) : null}
 
       <Text style={styles.label}>Image URL</Text>
       <TextInput
@@ -234,8 +359,21 @@ export default function ProductFormList({
 
       {onDelete ? (
         <TouchableOpacity
-          style={[styles.deleteBtn, isDeleting && styles.saveBtnDisabled]}
-          onPress={onDelete}
+          style={[
+            styles.deleteBtn,
+            (isDeleting || deleteBlocked) && styles.saveBtnDisabled,
+          ]}
+          onPress={() => {
+            if (deleteBlocked) {
+              Alert.alert(
+                'Cannot delete',
+                offerUsage?.blockedEdits.find((b) => b.field === 'delete')?.reason ??
+                  'Disable live offers using this product first.',
+              );
+              return;
+            }
+            onDelete();
+          }}
           disabled={isDeleting}
         >
           {isDeleting ? (
@@ -344,4 +482,81 @@ const styles = StyleSheet.create({
     borderColor: '#FECACA',
   },
   deleteText: { color: Colors.light.gradientRed_1, fontWeight: '700' },
+  jioBadge: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  jioBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2563EB',
+  },
+  offerBanner: {
+    marginBottom: 4,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+  },
+  offerBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  offerBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#BE185D',
+  },
+  offerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#FECDD3',
+  },
+  offerRowTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#881337',
+  },
+  offerRowHint: {
+    marginTop: 2,
+    fontSize: 11,
+    color: '#BE185D',
+  },
+  offerSectionLabel: {
+    marginTop: 10,
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#9F1239',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  offerBulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginTop: 6,
+  },
+  offerBulletText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+    color: '#881337',
+  },
+  offerNote: {
+    marginTop: 10,
+    fontSize: 11,
+    lineHeight: 16,
+    color: '#9F1239',
+    fontStyle: 'italic',
+  },
 });

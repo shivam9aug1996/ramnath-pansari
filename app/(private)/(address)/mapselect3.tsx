@@ -24,6 +24,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { debounce } from "lodash";
 import CustomSuspense from "@/components/CustomSuspense";
 import isWithinDeliveryRadius from "./utils";
+import { useStoreConfig } from "@/hooks/useStoreConfig";
 import { showToast } from "@/utils/utils";
 import { Colors } from "@/constants/Colors";
 import MapWebView from "@/components/MapWebView";
@@ -45,6 +46,8 @@ const initialRegion: Region = {
 };
 
 const MapSelect3: React.FC = () => {
+  const storeConfig = useStoreConfig();
+  const deliveryRadiusKm = storeConfig.deliveryRadius.radiusKm;
   const dispatch = useDispatch();
   const mapRef = useRef<any>(null);
   
@@ -140,10 +143,13 @@ const MapSelect3: React.FC = () => {
   }, [region, isMapInteractionEnabled, debouncedFetchLocation]);
 
   // Determine if the selected location is within delivery radius
-  const locationStatus = isWithinDeliveryRadius({
-    latitude: region.latitude,
-    longitude: region.longitude,
-  });
+  const locationStatus = isWithinDeliveryRadius(
+    {
+      latitude: region.latitude,
+      longitude: region.longitude,
+    },
+    storeConfig.deliveryRadius,
+  );
 
   const handleMyLocationPress = () => {
     setIsMapInteractionEnabled(false);
@@ -172,7 +178,7 @@ const MapSelect3: React.FC = () => {
     } else if (!locationStatus.isWithin) {
       showToast({
         type: "info",
-        text2: "Sorry, we only support deliveries within a 5 km radius of Pilkhuwa.",
+        text2: `Sorry, we only support deliveries within a ${deliveryRadiusKm} km radius of Pilkhuwa.`,
       });
     }
   };
@@ -239,7 +245,7 @@ const MapSelect3: React.FC = () => {
         
         <View style={styles.disclaimerContainer}>
           <Text style={styles.disclaimerText}>
-            We only support deliveries within a 5 km radius of Pilkhuwa.
+            We only support deliveries within a {deliveryRadiusKm} km radius of Pilkhuwa.
           </Text>
         </View>
       </CustomSuspense>

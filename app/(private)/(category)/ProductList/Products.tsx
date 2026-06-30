@@ -6,7 +6,7 @@ import React, {
   useState,
   useTransition,
 } from "react";
-import { ActivityIndicator, View, FlatList } from "react-native";
+import { ActivityIndicator, View, FlatList, StyleSheet } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import {
   productApi,
@@ -265,101 +265,151 @@ const isCategoryOutOfSync =
         isProductsLoading ||
         (isProductsFetching && paginationState.page === 1)));
 
+  console.log("products",isLoading);
 
+  const showInitialSkeleton =
+  isCategoryFetching ||
+  !paginationState.categoryId ||
+  isCategoryOutOfSync ||
+  (!hasProductsToShow &&
+    (isProductsLoading ||
+      (isProductsFetching && paginationState.page === 1)));
+      const showOverlaySpinner =
+      subCategoryActionClicked ||
+      (isProductsFetching &&
+        paginationState.page === 1 &&
+        hasProductsToShow &&
+        !showInitialSkeleton);
   return (
-    <View style={{ flex: 1 }}>
-      {isLoading ? (
-        <ProductsPlaceholder />
-      ) : (
-        <>
-          {isProductsFetching && paginationState.page === 1 && (
-            <View
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                top: 0,
-                bottom: 0,
-                justifyContent: "center",
-                alignItems: "center",
-                zIndex: 10,
-              }}
-            >
-              <ActivityIndicator size="large" color={Colors.light.lightGreen} />
-            </View>
-          )}
-          {subCategoryActionClicked && (
-            <View
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                top: 0,
-                bottom: 0,
-                justifyContent: "center",
-                alignItems: "center",
-                zIndex: 10,
-              }}
-            >
-              <ActivityIndicator size="large" color={Colors.light.lightGreen} />
-            </View>
-          )}
-          {/* {(paginationState.page === 1 && isProductsFetching) ||
-          subCategoryActionClicked ? (
-            <View
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                top: 0,
-                bottom: 0,
-                justifyContent: "center",
-                alignItems: "center",
-                zIndex: 10,
-              }}
-            >
-              <ActivityIndicator size="large" color={Colors.light.lightRed} />
-            </View>
-          ) : ( */}
-          <ProductList3
-          refetch={handleRefetchProducts}
-            // refetch={async()=>{
-            //   await cleanAllProductCache()
-            //   dispatch(
-            //     productApi.util.updateQueryData("fetchProducts", { categoryId: selectedSubCategory?._id, page: 1, limit: 10 }, (draft) => {
-            //       draft.products = [];
-            //     })
-            //   )
-            //   setPaginationState((prev) => ({
-            //     ...prev,
-            //     page: 1,
-            //   }));
 
-            //   await fetchProducts(
-            //     {
-            //       categoryId: selectedSubCategory?._id,
-            //       page: 1,
-            //       limit: 10,
-            //     },
-            //     false
-            //   )?.unwrap()
-            // }}
-            flatListRef={flatListRef}
-            data={data}
-            setPaginationState={setPaginationState}
-            isProductsFetching={
-              isProductsFetching ||
-              selectedCategoryClicked ||
-              subCategoryActionClicked
-            }
-            isProductsLoading={isProductsLoading}
-            paginationState={paginationState}
-          />
-          {/* )} */}
-        </>
-      )}
-    </View>
+    
+      <View style={styles.container}>
+        {showOverlaySpinner && (
+          <View style={styles.overlay}>
+            <ActivityIndicator size="large" color={Colors.light.lightGreen} />
+          </View>
+        )}
+        <ProductList3
+          refetch={handleRefetchProducts}
+          flatListRef={flatListRef}
+          data={data}
+          setPaginationState={setPaginationState}
+          isProductsFetching={
+            isProductsFetching ||
+            selectedCategoryClicked ||
+            subCategoryActionClicked
+          }
+          isProductsLoading={isProductsLoading}
+          paginationState={paginationState}
+          showInitialSkeleton={showInitialSkeleton}
+        />
+      </View>
+  
+
+    // <View style={{ flex: 1 }}>
+    //   {isLoading ? (
+    //     <ProductsPlaceholder />
+    //   ) : (
+    //     <>
+    //       {isProductsFetching && paginationState.page === 1 && (
+    //         <View
+    //           style={{
+    //             position: "absolute",
+    //             left: 0,
+    //             right: 0,
+    //             top: 0,
+    //             bottom: 0,
+    //             justifyContent: "center",
+    //             alignItems: "center",
+    //             zIndex: 10,
+    //           }}
+    //         >
+    //           <ActivityIndicator size="large" color={Colors.light.lightGreen} />
+    //         </View>
+    //       )}
+    //       {subCategoryActionClicked && (
+    //         <View
+    //           style={{
+    //             position: "absolute",
+    //             left: 0,
+    //             right: 0,
+    //             top: 0,
+    //             bottom: 0,
+    //             justifyContent: "center",
+    //             alignItems: "center",
+    //             zIndex: 10,
+    //           }}
+    //         >
+    //           <ActivityIndicator size="large" color={Colors.light.lightGreen} />
+    //         </View>
+    //       )}
+    //       {/* {(paginationState.page === 1 && isProductsFetching) ||
+    //       subCategoryActionClicked ? (
+    //         <View
+    //           style={{
+    //             position: "absolute",
+    //             left: 0,
+    //             right: 0,
+    //             top: 0,
+    //             bottom: 0,
+    //             justifyContent: "center",
+    //             alignItems: "center",
+    //             zIndex: 10,
+    //           }}
+    //         >
+    //           <ActivityIndicator size="large" color={Colors.light.lightRed} />
+    //         </View>
+    //       ) : ( */}
+    //       <ProductList3
+    //       refetch={handleRefetchProducts}
+    //         // refetch={async()=>{
+    //         //   await cleanAllProductCache()
+    //         //   dispatch(
+    //         //     productApi.util.updateQueryData("fetchProducts", { categoryId: selectedSubCategory?._id, page: 1, limit: 10 }, (draft) => {
+    //         //       draft.products = [];
+    //         //     })
+    //         //   )
+    //         //   setPaginationState((prev) => ({
+    //         //     ...prev,
+    //         //     page: 1,
+    //         //   }));
+
+    //         //   await fetchProducts(
+    //         //     {
+    //         //       categoryId: selectedSubCategory?._id,
+    //         //       page: 1,
+    //         //       limit: 10,
+    //         //     },
+    //         //     false
+    //         //   )?.unwrap()
+    //         // }}
+    //         flatListRef={flatListRef}
+    //         data={data}
+    //         setPaginationState={setPaginationState}
+    //         isProductsFetching={
+    //           isProductsFetching ||
+    //           selectedCategoryClicked ||
+    //           subCategoryActionClicked
+    //         }
+    //         isProductsLoading={isProductsLoading}
+    //         paginationState={paginationState}
+    //       />
+    //       {/* )} */}
+    //     </>
+    //   )}
+    // </View>
   );
 };
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFill,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+  },
+});
 export default memo(Products);

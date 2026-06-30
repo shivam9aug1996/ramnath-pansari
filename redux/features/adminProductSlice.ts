@@ -49,6 +49,7 @@ export const adminProductApi = createApi({
         search?: string;
         categoryId?: string;
         stock?: string;
+        promoOnly?: string;
       }
     >({
       query: (params) => ({
@@ -61,7 +62,11 @@ export const adminProductApi = createApi({
     }),
 
     getAdminProduct: builder.query<
-      { product: AdminProductDocument; detail?: ProductDetailResponse | null },
+      {
+        product: AdminProductDocument;
+        detail?: ProductDetailResponse | null;
+        offerUsage?: ProductOfferUsage;
+      },
       { id: string }
     >({
       query: ({ id }) => ({
@@ -71,6 +76,7 @@ export const adminProductApi = createApi({
       keepUnusedDataFor: 60,
       providesTags: (result, error, { id }) => [
         { type: "adminProductDetail", id },
+        { type: "adminProductDetail", id: "LIST" },
       ],
     }),
 

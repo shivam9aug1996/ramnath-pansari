@@ -1,30 +1,23 @@
 import {
   Platform,
   StyleSheet,
-  Text,
   View,
-  Image,
   Pressable,
 } from "react-native";
-import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Colors } from "@/constants/Colors";
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
 import { formatNumber, showToast } from "@/utils/utils";
 import { useDispatch } from "react-redux";
-import { router } from "expo-router";
-import {
-  calculateTotalAmount,
-  calculateTotalAmountMrp,
-  findCartChanges,
-  findMaxQuantityChanges,
-} from "./utils";
+import { router, useFocusEffect } from "expo-router";
 import {
   getDeliveryFee,
   getPayableTotalFromItems,
 } from "@/utils/deliveryFee";
 import {
   cartApi,
+  setCartPayableTotals,
   setIsCartOperationProcessing,
   setIsClearCartLoading,
   setNeedToSyncWithBackend,
@@ -33,12 +26,17 @@ import {
   useLazyBulkUpdateCartQuery,
   useLazyFetchCartQuery,
   useLazyUpdateProductsAsPerCartQuery,
+  useReleaseCheckoutHoldsMutation,
   useSyncCartMutation,
 } from "@/redux/features/cartSlice";
 
 import { useLazyFetchAddressQuery } from "@/redux/features/addressSlice";
 import { setCheckoutFlow } from "@/redux/features/orderSlice";
-import { calculateSavingsAndFreebies } from "@/app/(private)/(orderDetail)/utils";
+import { getCartPriceBreakdown } from "@/utils/cartPriceBreakdown";
+import { mergeCartItemsWithOffers } from "@/utils/applyOptimisticOffers";
+import { useCachedOffers } from "@/hooks/useCachedOffers";
+import { offerApi } from "@/redux/features/offerSlice";
+import { deliverySettingsApi } from "@/redux/features/deliverySettingsSlice";
 import { useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import Button from "../Button";
@@ -48,6 +46,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { applyPostCheckoutCartUpdate } from "@/utils/applyPostCheckoutCartUpdate";
 import { removeHeldProductsFromCart } from "@/utils/removeHeldProductsFromCart";
 import { useCartFooterInsetActions } from "@/contexts/DeliveryFloatContext";
+import { useDeliverySettings } from "@/hooks/useDeliverySettings";
+import { useStoreConfig } from "@/hooks/useStoreConfig";
+import { persistPromoConfigCache } from "@/utils/promoConfigCache";
+import { persistStoreConfigCache } from "@/utils/storeConfigCache";
+import { storeConfigApi } from "@/redux/features/storeConfigSlice";
+import { getStoreClosedCacheHint } from "@/utils/storeConfig";
+import { syncStoreConfig } from "@/utils/storeConfigCache";
+import { runCheckoutFlow } from "@/utils/runCheckoutFlow";
 
 const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
   useRenderTimer(`Continue`);
@@ -56,10 +62,26 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
     publishCartFooterInsetEstimate,
     setCartFooterInsetMeasured,
   } = useCartFooterInsetActions();
+  const deliverySettings = useDeliverySettings();
+  const storeConfig = useStoreConfig();
+  const storeClosedCacheHint = useMemo(
+    () => getStoreClosedCacheHint(storeConfig),
+    [storeConfig],
+  );
   const isCartOperationProcessing = useSelector(
     (state: RootState) => state?.cart?.isCartOperationProcessing
   );
+  const cachedOffers = useCachedOffers();
   const { data: cartData } = useFetchCartQuery({ userId }, { skip: !userId });
+
+  const mergedCartItems = useMemo(
+    () =>
+      mergeCartItemsWithOffers(
+        cartData?.cart?.items ?? [],
+        cachedOffers,
+      ),
+    [cartData?.cart?.items, cachedOffers],
+  );
   const isClearCartLoading = useSelector(
     (state: RootState) => state.cart.isClearCartLoading
   );
@@ -70,6 +92,7 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
   const [bulkUpdateCart] = useLazyBulkUpdateCartQuery();
   const [updateProductsAsPerCart] = useLazyUpdateProductsAsPerCartQuery();
   const [syncCart, { isLoading: isSyncCartLoading }] = useSyncCartMutation();
+  const [releaseCheckoutHolds] = useReleaseCheckoutHoldsMutation();
   const [clearCart] = useClearCartMutation();
   const needToSyncWithBackend = useSelector(
     (state: RootState) => state?.cart?.needToSyncWithBackend
@@ -78,19 +101,37 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
 
   const [isDisabled, setIsDisabled] = useState(false);
   const [showPriceDetails, setShowPriceDetails] = useState(false);
-  const subtotal = useMemo(
-    () => calculateTotalAmount(cartData?.cart?.items),
-    [cartData?.cart?.items],
+  const priceBreakdown = useMemo(
+    () =>
+      getCartPriceBreakdown(
+        mergedCartItems,
+        cachedOffers,
+        cartData?.orderDiscount ?? 0,
+      ),
+    [mergedCartItems, cachedOffers, cartData?.orderDiscount],
   );
 
-  const deliveryFee = useMemo(() => getDeliveryFee(subtotal), [subtotal]);
+  const {
+    catalogSubtotal,
+    subtotal,
+    appliedOrderDiscounts,
+    orderDiscount,
+    totalSaved,
+    freebies,
+    hasOfferLines,
+  } = priceBreakdown;
 
-  const payableTotal = useMemo(
-    () => getPayableTotalFromItems(cartData?.cart?.items),
-    [cartData?.cart?.items],
+  const deliveryFee = useMemo(
+    () => getDeliveryFee(subtotal, deliverySettings),
+    [subtotal, deliverySettings],
   );
 
-  const cartItems = cartData?.cart?.items?.length || 0;
+  const payableTotal = useMemo(() => {
+    const base = getPayableTotalFromItems(mergedCartItems, deliverySettings);
+    return parseFloat(Math.max(0, base - orderDiscount).toFixed(2));
+  }, [mergedCartItems, orderDiscount, deliverySettings]);
+
+  const cartItems = mergedCartItems.length || 0;
 
   const dispatch = useDispatch();
 
@@ -197,19 +238,6 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
         : tabBarHeight - 60,
   };
 
-  const cartItemsList = cartData?.cart?.items || [];
-
-  const { freebieValue, freebies } = useMemo(() => {
-    return calculateSavingsAndFreebies(cartItemsList);
-  }, [cartItemsList]);
-
-  const mrpTotal = useMemo(
-    () => calculateTotalAmountMrp(cartItemsList),
-    [cartItemsList],
-  );
-
-  const productDiscount = mrpTotal - subtotal;
-
   useLayoutEffect(() => {
     if (!cartItems) {
       setCartFooterInset?.(0);
@@ -218,11 +246,22 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
     publishCartFooterInsetEstimate?.();
   }, [cartItems, publishCartFooterInsetEstimate, setCartFooterInset]);
 
-  useEffect(() => {
-    return () => {
-      setCartFooterInset?.(0);
-    };
-  }, [setCartFooterInset]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return;
+      syncStoreConfig(dispatch, { force: true }).catch(() => {});
+    }, [dispatch, userId]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!cartItems) {
+        setCartFooterInset?.(0);
+        return;
+      }
+      publishCartFooterInsetEstimate?.();
+    }, [cartItems, publishCartFooterInsetEstimate, setCartFooterInset]),
+  );
 
   const handleFooterLayout = (height: number) => {
     if (!cartItems || height <= 0) return;
@@ -328,72 +367,6 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
             {/* Collapsible Price Details */}
             {showPriceDetails && (
               <View style={styles.priceDetailsContainer}>
-                <ThemedView style={styles.totalContainer}>
-                  <ThemedText style={styles.totalLabel}>
-                    {"Total before discount"}
-                  </ThemedText>
-                  <ThemedText style={styles.baselineAmount}>{`₹ ${formatNumber(
-                    mrpTotal
-                  )}`}</ThemedText>
-                </ThemedView>
-
-                {productDiscount > 0 && (
-                  <ThemedView style={styles.totalContainer}>
-                    <ThemedText style={styles.totalLabel}>
-                      {"Product Discount"}
-                    </ThemedText>
-                    <ThemedText style={styles.savingsAmount}>{`- ₹ ${formatNumber(
-                      productDiscount.toFixed(2)
-                    )}`}</ThemedText>
-                  </ThemedView>
-                )}
-
-                {freebieValue > 0 && (
-                  <ThemedView
-                    style={[styles.totalContainer, styles.freebieSection]}
-                  >
-                    <View style={styles.freebiesContainer}>
-                      <ThemedText style={styles.totalLabel}>
-                        {"Includes Freebies"}
-                      </ThemedText>
-                      <View style={styles.freebiesList}>
-                        {freebies.map((freebie, index) => (
-                          <View key={index} style={styles.freebieItem}>
-                            {freebie.image && (
-                              <Image
-                                source={{ uri: freebie.image }}
-                                style={styles.freebieImage}
-                                resizeMode="contain"
-                              />
-                            )}
-                            <View style={styles.freebieDetails}>
-                              <View style={styles.quantityBadge}>
-                                <Text style={styles.quantityText}>
-                                  {freebie.quantity}x
-                                </Text>
-                              </View>
-                              <Text
-                                style={styles.freebieName}
-                                numberOfLines={1}
-                              >
-                                {freebie.name}
-                              </Text>
-                            </View>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                    <View style={styles.freebiePriceColumn}>
-                      <ThemedText style={styles.freebieZeroAmount}>
-                        ₹ 0
-                      </ThemedText>
-                      <ThemedText style={styles.freebieWorthHint}>
-                        {`worth ₹${formatNumber(freebieValue)}`}
-                      </ThemedText>
-                    </View>
-                  </ThemedView>
-                )}
-
                 <ThemedView
                   style={[styles.totalContainer, styles.subtotalContainer]}
                 >
@@ -401,9 +374,58 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                     {"Item Total"}
                   </ThemedText>
                   <ThemedText style={styles.subtotalAmount}>{`₹ ${formatNumber(
-                    subtotal
+                    hasOfferLines ? catalogSubtotal : subtotal,
                   )}`}</ThemedText>
                 </ThemedView>
+
+                {freebies.map((freebie, index) => {
+                  const lineTotal =
+                    (freebie.promoPrice ?? 0) * (freebie.quantity ?? 1);
+
+                  return (
+                    <ThemedView key={index} style={styles.totalContainer}>
+                      <ThemedText style={styles.offerLineLabel}>
+                        {`Offer · ${freebie.quantity}x ${freebie.name}`}
+                      </ThemedText>
+                      <ThemedText
+                        style={
+                          lineTotal > 0
+                            ? styles.offerLineAmount
+                            : styles.savingsAmount
+                        }
+                      >
+                        {lineTotal > 0
+                          ? `₹ ${formatNumber(lineTotal)}`
+                          : "FREE"}
+                      </ThemedText>
+                    </ThemedView>
+                  );
+                })}
+
+                {appliedOrderDiscounts.map((discount) => (
+                  <ThemedView
+                    key={discount.offerId}
+                    style={styles.totalContainer}
+                  >
+                    <ThemedText style={styles.totalLabel}>
+                      {discount.label}
+                    </ThemedText>
+                    <ThemedText style={styles.savingsAmount}>{`- ₹ ${formatNumber(
+                      discount.amount,
+                    )}`}</ThemedText>
+                  </ThemedView>
+                ))}
+
+                {totalSaved > 0 && (
+                  <ThemedView style={styles.totalContainer}>
+                    <ThemedText style={styles.totalLabel}>
+                      {"You saved"}
+                    </ThemedText>
+                    <ThemedText style={styles.savingsAmount}>{`₹ ${formatNumber(
+                      totalSaved,
+                    )}`}</ThemedText>
+                  </ThemedView>
+                )}
 
                 <ThemedView style={styles.totalContainer}>
                   <ThemedText style={styles.totalLabel}>
@@ -423,6 +445,12 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                 </ThemedView>
               </View>
             )}
+
+            {storeClosedCacheHint ? (
+              <ThemedText style={styles.storeClosedNotice}>
+                {storeClosedCacheHint}
+              </ThemedText>
+            ) : null}
 
             {/* Final amount and button row */}
             <ThemedView style={styles.checkoutContainer}>
@@ -459,248 +487,144 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                   isClearCartLoading
                 }
                 onPress={async () => {
-                  dispatch(setIsCartOperationProcessing(true))
+                  dispatch(setIsCartOperationProcessing(true));
                   dispatch(setCheckoutFlow(true));
                   setIsDisabled(true);
-                  const preSyncCart = cartData;
-                  console.log("[cart-sync] checkout:start", {
-                    itemCount: preSyncCart?.cart?.items?.length ?? 0,
-                    items: (preSyncCart?.cart?.items ?? []).map((item: any) => ({
-                      productId: item?.productDetails?._id ?? item?.productId,
-                      quantity: item?.quantity,
-                      maxQuantity: item?.productDetails?.maxQuantity ?? null,
-                    })),
-                  });
-                  let payload = cartData?.cart?.items?.map((item: any) => {
-                    return {
-                      productId: item?.productDetails?._id,
-                      quantity: item?.quantity,
-                    };
-                  });
-                  payload = payload.filter(
-                    (item: any) =>
-                      item?.productId !== "676da9f75763ded56d43032d"
-                  );
-                  console.log("payload", payload);
-                 
-                 
-                 
-                 let data112;
-                 try {
-                   data112 = await updateProductsAsPerCart({
-                     body: {
-                       items: payload,
-                     },
-                     params: { userId },
-                   })?.unwrap();
-                 } catch (error: any) {
-                   const status = error?.status;
-                   const errorData = error?.data ?? {};
-                   const heldProducts = errorData?.heldProducts;
-                   console.log("[product-lock] checkout:error", {
-                     userId,
-                     status,
-                     errorData,
-                     heldProducts,
-                     rawError: error,
-                   });
-                   if (Array.isArray(heldProducts) && heldProducts.length > 0) {
-                     const heldIds = heldProducts.map(
-                       (item: { productId: string }) => String(item.productId),
-                     );
-                     const removePayload = heldIds.map((productId: string) => ({
-                       productId,
-                       quantity: 0,
-                     }));
-                     console.log("[product-lock] checkout:remove-held", {
-                       userId,
-                       heldIds,
-                       removePayload,
-                     });
-                     try {
-                       await removeHeldProductsFromCart({
-                         dispatch,
-                         userId,
-                         heldProductIds: heldIds,
-                         currentCartItems: preSyncCart?.cart?.items ?? [],
-                         bulkUpdateCart,
-                         fetchCartData,
-                       });
-                       console.log("[product-lock] checkout:remove-held:done", {
-                         userId,
-                       });
-                     } catch (removeError: any) {
-                       console.log("[product-lock] checkout:remove-held:failed", {
-                         userId,
-                         heldIds,
-                         removeError: removeError?.data ?? removeError,
-                       });
-                       showToast({
-                         type: "error",
-                         text2:
-                           "Item is on hold but could not be removed from cart. Please refresh your cart.",
-                       });
-                     }
-                     const heldName =
-                       preSyncCart?.cart?.items?.find(
-                         (item: any) =>
-                           String(
-                             item?.productDetails?._id ?? item?.productId,
-                           ) === heldIds[0],
-                       )?.productDetails?.name ?? "This item";
-                     showToast({
-                       type: "info",
-                       text2:
-                         heldIds.length === 1
-                           ? `${heldName} is being fulfilled for another order and was removed from your cart.`
-                           : `${heldName} and other items are on hold and were removed from your cart.`,
-                     });
-                   } else {
-                     const fallbackMessage =
-                       errorData?.message ||
-                       errorData?.error ||
-                       "Unable to continue checkout. Please try again.";
-                     console.log("[product-lock] checkout:generic-error", {
-                       userId,
-                       status,
-                       fallbackMessage,
-                     });
-                     showToast({
-                       type: "error",
-                       text2: fallbackMessage,
-                     });
-                   }
-                     dispatch(setCheckoutFlow(false));
-                     setIsDisabled(false);
-                     dispatch(setIsCartOperationProcessing(false));
-                     return;
-                 }
-                  console.log("[cart-sync] checkout:sync response", {
-                    data: (data112?.data ?? []).map((item: any) => ({
-                      productId: item?.productId,
-                      status: item?.status,
-                      oldMaxQuantity: item?.oldMaxQuantity ?? null,
-                      newMaxQuantity: item?.newMaxQuantity ?? null,
-                      oldIsOutOfStock: item?.oldIsOutOfStock ?? null,
-                      newIsOutOfStock: item?.newIsOutOfStock ?? null,
-                      oldPrice: item?.oldDiscountedPrice ?? null,
-                      newPrice: item?.newDiscountedPrice ?? null,
-                      error: item?.error ?? null,
-                    })),
-                  });
-                  let newPayload = data112?.data.filter(
-                    (item: any) =>
-                      item?.productId !== "676da9f75763ded56d43032d"
-                  );
-                  const bulkResult = await bulkUpdateCart({
-                    body: {
-                      items: payload,
-                    },
-                    params: { userId },
-                  })?.unwrap();
-                  console.log("[cart-sync] checkout:bulk result", {
-                    failedItems: bulkResult?.failedItems ?? [],
-                  });
-                  
-                 
-                  //await SecureStore.setItemAsync(`cartData-${userId}-needToSync`, "false")
-                  await AsyncStorage.setItem(`cartData-${userId}-needToSync`, "false")
 
-
-                  // await syncCart({
-                  //   body: {},
-                  //   params: { userId: userId },
-                  // })?.unwrap();
-                  const newCartData = await fetchCartData(
-                    { userId },
-                    false
-                  )?.unwrap();
-
-                  await applyPostCheckoutCartUpdate(
-                    dispatch,
-                    userId,
-                    newCartData,
-                    data112?.data,
-                  );
-
-                 // dispatch(setNeedToSyncWithBackend({ status: false }));
-                  //await SecureStore.deleteItemAsync(`cartData-${userId}`)
-
-                  let changes = findCartChanges(preSyncCart, newCartData);
-                  let quantityChanges = findMaxQuantityChanges(preSyncCart, newCartData);
-                  console.log("[cart-sync] checkout:comparison", {
-                    priceChanges: changes?.priceChanges ?? [],
-                    removedItems: changes?.removedItems ?? [],
-                    maxQuantityChanges: quantityChanges?.maxQuantityChanges ?? [],
-                    itemsToRemove: quantityChanges?.itemsToRemove ?? [],
-                    postSyncItems: (newCartData?.cart?.items ?? []).map((item: any) => ({
-                      productId: item?.productDetails?._id ?? item?.productId,
-                      quantity: item?.quantity,
-                      maxQuantity: item?.productDetails?.maxQuantity ?? null,
-                    })),
-                  });
-                 // console.log("quantityChanges8765456789",quantityChanges)
-                  if (
-                    changes?.priceChanges.length > 0 ||
-                    changes?.removedItems.length > 0
-                  ) {
-                    const removed = changes?.removedItems ?? [];
-                    const cartNowEmpty =
-                      (newCartData?.cart?.items?.length ?? 0) === 0;
-                    console.log("[cart-sync] checkout:blocked — price/removal changes", {
-                      removedItems: removed,
-                      priceChanges: changes?.priceChanges ?? [],
-                      cartNowEmpty,
-                    });
-                    showToast({
-                      type: "info",
-                      text2:
-                        removed.length > 0
-                          ? cartNowEmpty
-                            ? `${removed[0].productName} is no longer available and was removed from your cart.`
-                            : `${removed[0].productName} was removed from your cart. Please review before checkout.`
-                          : "Product details are changed. Please review before checkout.",
-                    });
+                  const abortCheckout = () => {
                     setIsDisabled(false);
-                    dispatch(setIsCartOperationProcessing(false))
-                  }
-                   else if(quantityChanges?.maxQuantityChanges.length > 0){
-                    const limitChange = quantityChanges.maxQuantityChanges[0];
-                    console.log("[cart-sync] checkout:blocked — limit change", limitChange);
-                    showToast({
-                      type: "info",
-                      text2:
-                        `Purchase limit updated (max ${limitChange.newMaxQuantity} units). Please review your cart.`,
-                    });
+                    dispatch(setIsCartOperationProcessing(false));
+                    dispatch(setCheckoutFlow(false));
+                  };
+
+                  const stopCheckoutSpinner = () => {
                     setIsDisabled(false);
-                    dispatch(setIsCartOperationProcessing(false))
-                  }
-                  else if(quantityChanges?.itemsToRemove.length > 0){
-                    console.log("[cart-sync] checkout:blocked — items to remove", quantityChanges.itemsToRemove);
-                    showToast({
-                      type: "info",
-                      text2:
-                        "Product is removed from cart. Please review before checkout.",
-                    });
-                    setIsDisabled(false);
-                    dispatch(setIsCartOperationProcessing(false))
-                  }
-                  else {
-                    console.log("[cart-sync] checkout:proceed → address list");
-                    await fetchAddress(
-                      {
-                        userId: userId,
+                    dispatch(setIsCartOperationProcessing(false));
+                  };
+
+                  try {
+                    const result = await runCheckoutFlow({
+                      userId,
+                      cartData,
+                      cachedOffers,
+                      deliverySettings,
+                      storeConfig,
+                      orderDiscount,
+                      fetchOffers: async () =>
+                        dispatch(
+                          offerApi.endpoints.fetchOffers.initiate(undefined, {
+                            forceRefetch: true,
+                          }),
+                        ).unwrap(),
+                      fetchDeliverySettings: async () =>
+                        dispatch(
+                          deliverySettingsApi.endpoints.fetchDeliverySettings.initiate(
+                            undefined,
+                            { forceRefetch: true },
+                          ),
+                        ).unwrap(),
+                      fetchStoreConfig: async () =>
+                        dispatch(
+                          storeConfigApi.endpoints.fetchStoreConfig.initiate(
+                            undefined,
+                            { forceRefetch: true },
+                          ),
+                        ).unwrap(),
+                      onPromoConfigPersisted: (offers, delivery) => {
+                        persistPromoConfigCache(offers, delivery).catch(() => {});
                       },
-                      true
-                    )?.unwrap();
-                    setIsDisabled(false);
-                    router.push({
-                      pathname: "/(address)/addressList",
+                      onStoreConfigPersisted: (config) => {
+                        persistStoreConfigCache(config).catch(() => {});
+                      },
+                      updateProductsAsPerCart: async ({ items }) =>
+                        updateProductsAsPerCart({
+                          body: { items },
+                          params: { userId },
+                        })?.unwrap(),
+                      bulkUpdateCart: async ({ items }) =>
+                        bulkUpdateCart({
+                          body: { items },
+                          params: { userId },
+                        })?.unwrap(),
+                      fetchCart: async () =>
+                        fetchCartData({ userId }, false)?.unwrap(),
+                      applyPostCheckoutCartUpdate: async (newCartData, synced) =>
+                        applyPostCheckoutCartUpdate(
+                          dispatch,
+                          userId,
+                          newCartData,
+                          synced,
+                        ),
+                      removeHeldProductsFromCart: async ({
+                        heldProductIds,
+                        currentCartItems,
+                      }) =>
+                        removeHeldProductsFromCart({
+                          dispatch,
+                          userId,
+                          heldProductIds,
+                          currentCartItems,
+                          bulkUpdateCart,
+                          fetchCartData,
+                        }),
+                      markCartSynced: async () => {
+                        await AsyncStorage.setItem(
+                          `cartData-${userId}-needToSync`,
+                          "false",
+                        );
+                      },
+                      releaseCheckoutHolds: async (productIds) => {
+                        if (!productIds.length) return;
+                        await releaseCheckoutHolds({
+                          params: { userId },
+                          body: { productIds },
+                        }).unwrap();
+                      },
+                      mergeCartItemsWithOffers,
                     });
+
+                    if (result.status === "proceed") {
+                      dispatch(
+                        setCartPayableTotals({ total: result.payableTotal }),
+                      );
+                      try {
+                        await fetchAddress({ userId }, true)?.unwrap();
+                        stopCheckoutSpinner();
+                        router.push({ pathname: "/(address)/addressList" });
+                      } catch {
+                        await releaseCheckoutHolds({
+                          params: { userId },
+                          body: { productIds: result.heldProductIds },
+                        }).unwrap().catch(() => {});
+                        showToast({
+                          type: "error",
+                          text2:
+                            "Checkout could not continue. Please try again.",
+                        });
+                        abortCheckout();
+                      }
+                      return;
+                    }
+
+                    showToast({
+                      type: result.toastType,
+                      text2: result.message,
+                    });
+                    abortCheckout();
+                  } catch (error) {
+                    console.log("[cart-sync] checkout:failed", error);
+                    showToast({
+                      type: "error",
+                      text2: "Checkout could not continue. Please try again.",
+                    });
+                    abortCheckout();
                   }
-                  
                 }}
-                title={isCartProcessing ? "Processing..." : `Checkout`}
+                title={
+                  isCartProcessing || isCartOperationProcessing || isDisabled
+                    ? "Processing..."
+                    : "Checkout"
+                }
               />
             </ThemedView>
           </>
@@ -749,7 +673,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   totalLabel: {
-    fontFamily: "Raleway_500Medium",
+    fontFamily: "Montserrat_500Medium",
     fontSize: 14,
     color: Colors.light.mediumGrey,
   },
@@ -829,47 +753,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Montserrat_700Bold",
   },
-  freebiesContainer: {
+  offerLineLabel: {
     flex: 1,
-    marginRight: 16,
-  },
-  freebiesList: {
-    marginTop: 4,
-    gap: 6,
-  },
-  freebieItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  freebieImage: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    backgroundColor: Colors.light.lightGrey + "20",
-  },
-  freebieDetails: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  quantityBadge: {
-    backgroundColor: Colors.light.lightGreen + "20",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  quantityText: {
-    fontFamily: "Montserrat_600SemiBold",
-    fontSize: 10,
-    color: Colors.light.lightGreen,
-  },
-  freebieName: {
     fontFamily: "Raleway_500Medium",
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.light.mediumGrey,
-    flex: 1,
+    paddingLeft: 8,
+  },
+  offerLineAmount: {
+    fontFamily: "Montserrat_600SemiBold",
+    fontSize: 14,
+    color: Colors.light.darkGrey,
   },
   priceDetailsButton: {
     paddingHorizontal: 34,
@@ -891,6 +785,14 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.light.lightGrey,
     marginTop: 4,
   },
+  storeClosedNotice: {
+    paddingHorizontal: 34,
+    paddingTop: 8,
+    fontFamily: "Montserrat_500Medium",
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#C2410C",
+  },
   amountContainer: {
     flex: 1,
     marginRight: 16,
@@ -906,24 +808,6 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     borderTopWidth: 1,
     borderTopColor: Colors.light.mediumLightGrey + "10",
-  },
-  freebieSection: {
-    paddingVertical: 12,
-    backgroundColor: Colors.light.background + "50",
-  },
-  freebiePriceColumn: {
-    alignItems: "flex-end",
-    gap: 2,
-  },
-  freebieZeroAmount: {
-    fontFamily: "Montserrat_700Bold",
-    fontSize: 16,
-    color: Colors.light.lightGreen,
-  },
-  freebieWorthHint: {
-    fontFamily: "Montserrat_500Medium",
-    fontSize: 11,
-    color: Colors.light.mediumGrey,
   },
   totalSavingsContainer: {
     paddingTop: 16,

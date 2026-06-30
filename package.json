@@ -8,16 +8,28 @@
     "android": "expo run:android",
     "android:release": "expo run:android --variant release  --device",
     "android:debug": "expo run:android --variant debug  --device",
+    "android:apk": "cd android && ./gradlew assembleDebug",
+    "android:clean-native": "rm -rf android/app/.cxx android/app/build android/build android/app/build/generated",
     "ios": "expo run:ios --device \"iPhone 17 Pro\"",
     "ios:release": "expo run:ios --configuration Release --device \"iPhone 17 Pro\"",
     "ios:debug": "expo run:ios --configuration Debug --device \"iPhone 17 Pro\"",
     "web": "expo start --web",
     "test": "jest --watchAll",
+    "test:ci": "jest --ci --coverage",
     "lint": "expo lint",
     "postinstall": "patch-package"
   },
   "jest": {
-    "preset": "jest-expo"
+    "testEnvironment": "node",
+    "transform": {
+      "^.+\\.(js|jsx|ts|tsx)$": "babel-jest"
+    },
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1"
+    },
+    "testMatch": [
+      "**/__tests__/**/*.test.(ts|tsx)"
+    ]
   },
   "dependencies": {
     "@expo-google-fonts/montserrat": "^0.2.3",

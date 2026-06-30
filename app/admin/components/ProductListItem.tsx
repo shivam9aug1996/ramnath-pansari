@@ -7,11 +7,13 @@ import { adminListStyles, adminTheme } from '@/app/admin/theme'
 const ProductListItem = ({
   item,
   onPress,
+  onClone,
 }: {
   item: AdminProductDocument
   onPress: (id: string) => void
+  onClone?: (id: string) => void
 }) => {
-  const isHidden = item.discountedPrice === 0
+  const isPromoOnly = Boolean(item.promoOnly)
   const hasDiscount = item.price > item.discountedPrice && item.discountedPrice > 0
 
   return (
@@ -37,9 +39,7 @@ const ProductListItem = ({
           {item.brand ? ` · ${item.brand}` : ''}
         </Text>
         <View style={styles.priceRow}>
-          <Text style={[styles.sellingPrice, isHidden && styles.hiddenPrice]}>
-            {isHidden ? 'Hidden' : `₹${item.discountedPrice}`}
-          </Text>
+          <Text style={styles.sellingPrice}>₹{item.discountedPrice}</Text>
           {hasDiscount ? <Text style={styles.mrp}>₹{item.price}</Text> : null}
         </View>
         <View style={styles.badges}>
@@ -52,13 +52,29 @@ const ProductListItem = ({
               <Text style={styles.badgeTextGreen}>In stock</Text>
             </View>
           )}
-          {isHidden ? (
-            <View style={[styles.badge, styles.badgeGray]}>
-              <Text style={styles.badgeTextGray}>Not listed</Text>
+          {isPromoOnly ? (
+            <View style={[styles.badge, styles.badgePromo]}>
+              <Text style={styles.badgeTextPromo}>Promo / freebie</Text>
+            </View>
+          ) : null}
+          {item.productFromJio ? (
+            <View style={[styles.badge, styles.badgeJio]}>
+              <Text style={styles.badgeTextJio}>Jio</Text>
             </View>
           ) : null}
         </View>
       </View>
+
+      {onClone ? (
+        <TouchableOpacity
+          onPress={() => onClone(item._id)}
+          hitSlop={8}
+          style={styles.cloneBtn}
+          accessibilityLabel={`Clone ${item.name}`}
+        >
+          <Ionicons name="copy-outline" size={18} color="#2563EB" />
+        </TouchableOpacity>
+      ) : null}
 
       <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
     </TouchableOpacity>
@@ -111,9 +127,6 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: adminTheme.textPrimary,
   },
-  hiddenPrice: {
-    color: adminTheme.textMuted,
-  },
   mrp: {
     fontSize: 12,
     color: adminTheme.textMuted,
@@ -133,7 +146,8 @@ const styles = StyleSheet.create({
   },
   badgeRed: { backgroundColor: '#FEE2E2' },
   badgeGreen: { backgroundColor: '#DCFCE7' },
-  badgeGray: { backgroundColor: '#F1F5F9' },
+  badgePromo: { backgroundColor: '#FCE7F3' },
+  badgeJio: { backgroundColor: '#EFF6FF' },
   badgeTextRed: {
     fontSize: 10,
     fontWeight: '800',
@@ -144,9 +158,24 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: adminTheme.accent,
   },
-  badgeTextGray: {
+  badgeTextPromo: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#475569',
+    color: '#BE185D',
+  },
+  badgeTextJio: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#2563EB',
+  },
+  cloneBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 })

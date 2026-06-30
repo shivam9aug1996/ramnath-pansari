@@ -24,6 +24,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { debounce } from "lodash";
 import CustomSuspense from "@/components/CustomSuspense";
 import isWithinDeliveryRadius from "./utils";
+import { useStoreConfig } from "@/hooks/useStoreConfig";
 import { showToast } from "@/utils/utils";
 import { Colors } from "@/constants/Colors";
 import MapWebView from "@/components/MapWebView";
@@ -46,6 +47,8 @@ const initialRegion: Region = {
 
 const MapSelect: React.FC = () => {
   const dispatch = useDispatch();
+  const storeConfig = useStoreConfig();
+  const deliveryRadiusKm = storeConfig.deliveryRadius.radiusKm;
   const mapRef = useRef(null);
   const [region, setRegion] = useState<Region>(initialRegion);
   const [data, setData] = useState<LocationData>({
@@ -148,10 +151,13 @@ const MapSelect: React.FC = () => {
   }, []);
 
   // Check if location is within delivery radius
-  const locationStatus = isWithinDeliveryRadius({
-    latitude: region.latitude,
-    longitude: region.longitude,
-  });
+  const locationStatus = isWithinDeliveryRadius(
+    {
+      latitude: region.latitude,
+      longitude: region.longitude,
+    },
+    storeConfig.deliveryRadius,
+  );
   
   // Determine if button should be disabled
   const isButtonDisabled = locationLoading || isFirstLoad;
@@ -240,14 +246,14 @@ const MapSelect: React.FC = () => {
             } else if (!locationStatus.isWithin) {
               showToast({
                 type: "info",
-                text2: `Sorry, we only support deliveries within a 5 km radius of Pilkhuwa.`,
+                text2: `Sorry, we only support deliveries within a ${deliveryRadiusKm} km radius of Pilkhuwa.`,
               });
             }
           }}
         />
         <View style={styles.disclaimerContainer}>
           <Text style={styles.disclaimerText}>
-            We only support deliveries within a 5 km radius of Pilkhuwa.
+            We only support deliveries within a {deliveryRadiusKm} km radius of Pilkhuwa.
           </Text>
         </View>
       </CustomSuspense>

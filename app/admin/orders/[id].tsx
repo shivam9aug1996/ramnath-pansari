@@ -30,9 +30,11 @@ import {
   getDeliveryFee,
   getPayableTotal,
 } from '@/utils/deliveryFee';
+import { useDeliverySettings } from '@/hooks/useDeliverySettings';
 
 const OrderDetailScreen = () => {
   const params = useLocalSearchParams<{ id: string }>();
+  const deliverySettings = useDeliverySettings({ fetch: true });
   const { data, isFetching, isLoading, refetch } = useGetOrderQuery({
     id: String(params.id),
   });
@@ -92,8 +94,8 @@ const OrderDetailScreen = () => {
         (order as AdminOrderDocument & { cartData?: { cart?: { items?: unknown[] } } })
           ?.cartData?.cart?.items || [];
       const subtotal = getCartSubtotal(items as Parameters<typeof getCartSubtotal>[0]);
-      const deliveryFee = getDeliveryFee(subtotal);
-      const amountPaid = getPayableTotal(subtotal);
+      const deliveryFee = getDeliveryFee(subtotal, deliverySettings);
+      const amountPaid = getPayableTotal(subtotal, deliverySettings);
 
       (order as AdminOrderDocument & { productCount?: number }).productCount = items.length;
       (order as AdminOrderDocument & { totalProductCount?: number }).totalProductCount =

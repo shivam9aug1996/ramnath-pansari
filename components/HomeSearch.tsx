@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, View } from "react-native";
-import React, { useEffect, useState, useRef, memo } from "react";
+import React, { useEffect, useMemo, useState, useRef, memo } from "react";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -9,25 +9,35 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSelector } from "react-redux";
 import { router, useIsFocused } from "expo-router";
+import { RootState } from "@/types/global";
 import { Colors } from "@/constants/Colors";
-import { useFetchRecentSearchQuery } from "@/redux/features/recentSearchSlice";
+import { useCachedRecentSearch } from "@/hooks/useCachedRecentSearch";
 import CustomTextInput from "./CustomTextInput";
 const ANIMATION_DURATION = 250;
 const PLACEHOLDER_INTERVAL = 2500;
 
 const HomeSearch = ({ compact = false }: { compact?: boolean }) => {
-  const userId = useSelector((state) => state?.auth?.userData?._id);
-  const { data } = useFetchRecentSearchQuery({ userId },{skip:!userId});
+  const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
+  const data = useCachedRecentSearch(userId, "HomeSearch");
   const isFocused = useIsFocused();
 
-  const recentQueries = data
-    ? [...data]
-        .sort(
-          (a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        )
-        ?.map((item) => item?.query)
-    : [];
+  const dataKey = data.length
+    ? data
+        .map((item) => `${item._id}:${item.timestamp}:${item.query}`)
+        .join("|")
+    : "";
+
+  const recentQueries = useMemo(() => {
+    if (!dataKey) return [];
+    return [...data]
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      )
+      .map((item) => item?.query)
+      .filter(Boolean);
+  }, [dataKey, data]);
+  const recentQueriesKey = recentQueries.join("|");
 
   const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = useState(0);
   const [displayedText, setDisplayedText] = useState("");
@@ -58,7 +68,6 @@ const HomeSearch = ({ compact = false }: { compact?: boolean }) => {
 
   useEffect(() => {
     if (!isFocused) {
-      // Clear interval when not focused
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -67,21 +76,20 @@ const HomeSearch = ({ compact = false }: { compact?: boolean }) => {
     }
 
     if (!recentQueries.length) {
-      setDisplayedText("Search...");
+      initialTextSet.current = false;
+      setDisplayedText((prev) => (prev === "Search..." ? prev : "Search..."));
       return;
     }
 
     if (!initialTextSet.current) {
-      setDisplayedText(recentQueries[0]);
       initialTextSet.current = true;
+      setDisplayedText(recentQueries[0]);
     }
 
-    // Clear existing interval
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
 
-    // Set up new interval only when focused
     intervalRef.current = setInterval(() => {
       setCurrentPlaceholderIndex((prev) => (prev + 1) % recentQueries.length);
     }, PLACEHOLDER_INTERVAL);
@@ -92,7 +100,12 @@ const HomeSearch = ({ compact = false }: { compact?: boolean }) => {
         intervalRef.current = null;
       }
     };
-  }, [recentQueries, isFocused]);
+  }, [recentQueriesKey, isFocused, recentQueries]);
+
+  useEffect(() => {
+    initialTextSet.current = false;
+    setCurrentPlaceholderIndex(0);
+  }, [recentQueriesKey]);
 
   // Animate placeholder change
   useEffect(() => {
@@ -126,7 +139,7 @@ const HomeSearch = ({ compact = false }: { compact?: boolean }) => {
         }
       }
     );
-  }, [currentPlaceholderIndex, recentQueries,isFocused]);
+  }, [currentPlaceholderIndex, recentQueriesKey, isFocused, displayedText, recentQueries]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],

@@ -38,6 +38,7 @@ import { router, useFocusEffect } from "expo-router";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
 import { showToast } from "@/utils/utils";
 import isWithinDeliveryRadius from "./utils";
+import { useStoreConfig } from "@/hooks/useStoreConfig";
 import { setCurrentAddressData } from "@/redux/features/addressSlice";
 import GenericFetchButton from "./GenericFetchButton";
 import MapPreloaderWrapper from "./MapPreloaderWrapper";
@@ -153,6 +154,7 @@ function areEqual(prevProps: any, nextProps: any) {
 
 const AddAddress: React.FC = () => {
   const dispatch = useDispatch();
+  const storeConfig = useStoreConfig();
   const currentAddressData = useSelector(
     (state: RootState) => state?.address?.currentAddressData
   );
@@ -226,13 +228,16 @@ const AddAddress: React.FC = () => {
 
   const deliveryRadiusInfo = useMemo(() => {
     if (formRef.current?.latitude && formRef.current?.longitude) {
-      return isWithinDeliveryRadius({
-        latitude: parseFloat(formRef.current.latitude),
-        longitude: parseFloat(formRef.current.longitude),
-      });
+      return isWithinDeliveryRadius(
+        {
+          latitude: parseFloat(formRef.current.latitude),
+          longitude: parseFloat(formRef.current.longitude),
+        },
+        storeConfig.deliveryRadius,
+      );
     }
-    return { isWithin: false, distance: 0 };
-  }, [formRef.current?.latitude, formRef.current?.longitude]);
+    return { isWithin: false, distance: "0" };
+  }, [formRef.current?.latitude, formRef.current?.longitude, storeConfig.deliveryRadius]);
 
   // Memoize helper text
   const addressHelperText = useMemo(() => {

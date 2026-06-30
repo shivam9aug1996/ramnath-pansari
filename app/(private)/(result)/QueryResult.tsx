@@ -20,6 +20,10 @@ import {
   useCreateRecentSearchMutation,
   useLazyFetchRecentSearchQuery,
 } from "@/redux/features/recentSearchSlice";
+import {
+  saveLocalRecentSearchItem,
+  writeRecentSearchCache,
+} from "@/utils/recentSearchConfigCache";
 import { useFetchCartQuery } from "@/redux/features/cartSlice";
 import { FlashList } from "@shopify/flash-list";
 
@@ -46,7 +50,9 @@ import { ThemedText } from "@/components/ThemedText";
 import { RootState, CartItem, Product } from "@/types/global";
 import {
   setProductListScrollParams,
+  setQueryResultVisibleIds,
   setResetPagination,
+  setVisibleIds,
   useLazyFetchProductsQuery,
 } from "@/redux/features/productSlice";
 import { addSearchQuery } from "@/redux/features/recentlyViewedSlice";
@@ -54,32 +60,36 @@ import useResultStageLoad from "@/hooks/useResultStageLoad";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
 import ProductItemWrapper from "../(category)/ProductList/ProductItemWrapper";
 import { useGoToCartListPadding } from "@/contexts/DeliveryFloatContext";
+import { clearVisibleProductIds, updateVisibleProductIds } from "../(category)/ProductList/productVisibilityStore";
 
 const QueryResult = ({query}:{query:string}) => {
  
   const userId = useSelector((state: RootState) => state.auth?.userData?._id);
+  const isGuestUser = useSelector(
+    (state: RootState) => state.auth?.userData?.isGuestUser,
+  );
   const resetPagination = useSelector(
     (state: RootState) => state.product?.resetPagination
   );
   const [fetchRecentSearch] = useLazyFetchRecentSearchQuery();
-  const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
-  const visibleIdsRef = useRef(visibleIds);
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      const visibleNow = new Set<string>();
-      viewableItems.forEach((v) => {
-        const id = v?.item?._id;
-        if (typeof id === "string" && id.length) visibleNow.add(id);
-      });
-      setVisibleIds(visibleNow);
-    }
-  ).current;
+  // const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
+  // const visibleIdsRef = useRef(visibleIds);
+  // const onViewableItemsChanged = useRef(
+  //   ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+  //     const visibleNow = new Set<string>();
+  //     viewableItems.forEach((v) => {
+  //       const id = v?.item?._id;
+  //       if (typeof id === "string" && id.length) visibleNow.add(id);
+  //     });
+  //     dispatch(setVisibleIds(Array.from(visibleNow) as string[]));
+  //   }
+  // ).current;
 
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 1, // consider visible when 20% is on screen
     waitForInteraction: false,
   }).current;
-  visibleIdsRef.current = visibleIds;
+ // visibleIdsRef.current = visibleIds;
 
   const [page, setPage] = useState(1);
   const dispatch = useDispatch();
@@ -114,6 +124,18 @@ const QueryResult = ({query}:{query:string}) => {
     [dispatch],
   );
 
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const ids: string[] = [];
+      for (const v of viewableItems) {
+        const item = v.item as ProductListRow | undefined;
+        if (!item || isProductSkeleton(item)) continue;
+        ids.push(item._id);
+      }
+      updateVisibleProductIds(ids);
+    },
+  ).current;
+
   const { handleScroll, reset: resetScrollChrome } = useHideOnScroll(
     onChromeVisibilityChange,
   );
@@ -125,10 +147,16 @@ const QueryResult = ({query}:{query:string}) => {
     }, [resetScrollChrome]),
   );
 
+
+
   useEffect(() => {
     setPage(1);
     resetScrollChrome();
   }, [query, resetScrollChrome]);
+
+  useEffect(() => {
+    clearVisibleProductIds();
+  }, []);
 
   const [createRecentSearch] = useCreateRecentSearchMutation();
 
@@ -140,8 +168,20 @@ const QueryResult = ({query}:{query:string}) => {
   }, [isSuccess, query, userId]);
 
   const createAndFetchRecentSearch = async () => {
-    await createRecentSearch({ body: { query, userId } })?.unwrap();
-    await fetchRecentSearch({ userId }, false)?.unwrap();
+    if (!userId || !query) return;
+    try {
+      if (isGuestUser) {
+        await saveLocalRecentSearchItem(dispatch, userId, query);
+        return;
+      }
+      await createRecentSearch({ body: { query, userId } })?.unwrap();
+      const data = await fetchRecentSearch({ userId }, false)?.unwrap();
+      if (data) {
+        await writeRecentSearchCache(userId, data);
+      }
+    } catch {
+      // ignore save failures
+    }
   };
 
   useEffect(() => {
@@ -245,17 +285,15 @@ const QueryResult = ({query}:{query:string}) => {
       }
 
       const cartItem = cartItemsMap[item._id];
-      const isVisible = visibleIds.has(item._id);
       return (
         <ProductItemWrapper
           item={item}
           index={index}
           quantity={cartItem?.quantity ?? 0}
-          isVisible={isVisible}
         />
       );
     },
-    [cartItemsMap, visibleIds],
+    [cartItemsMap],
   );
 
   const listEmptyComponent = () =>

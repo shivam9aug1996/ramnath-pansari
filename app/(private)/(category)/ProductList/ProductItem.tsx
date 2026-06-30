@@ -18,13 +18,25 @@ import {
   PRODUCT_CARD_HEIGHT,
   PRODUCT_ITEM_MARGIN_BOTTOM,
 } from "./productListLayout";
+import { useSelector } from "react-redux";
+import { useProductVisibility } from "./useProductVisibility";
+import DeferredFadeIn from "@/components/DeferredFadeIn";
 
 const ProductItem = ({
   item,
   index,
   quantity,
-  isVisible,
+  //isVisible,
 }: ProductItemProps) => {
+//   const visibleIds = useSelector((state: any) => state.product.visibleIds);
+//  //1 const isVisible = true
+//  const isVisible = visibleIds.includes(item._id);
+// const isVisible = useSelector(
+//   (state: any) => state.product.visibleIds.includes(item._id)
+// );
+//const isVisible = useProductVisibility(item._id);
+
+const isVisible = true;
   const discountPercentage = useMemo(() => {
     const nDiscountP = ((item.price - item.discountedPrice) / item.price) * 100;
     return Math.round(nDiscountP);
@@ -48,9 +60,9 @@ const ProductItem = ({
     () => [styles.container, getProductColumnStyle(index)],
     [index]
   );
-  // console.log("item3456785678990987654", quantity);
-
+console.log("productitem", index, quantity, isVisible);
   return (
+    
     <View style={containerStyle}>
       <View style={styles.productCard}>
         <View style={styles.imageContainer}>
@@ -61,7 +73,7 @@ const ProductItem = ({
                 handleProductPress={handleProductPress}
               />
               <CartButton value={quantity || 0} item={item} />
-            </>
+              </>
           ) : (
            <></>
           )}
@@ -74,6 +86,7 @@ const ProductItem = ({
         />
       </View>
     </View>
+  
   );
 };
 

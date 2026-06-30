@@ -1,36 +1,40 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-/**
- * Shows pagination skeletons immediately when the user hits the list end,
- * before RTK Query flips isFetching / page state.
- */
 export function usePaginationSkeleton({
   isFetching,
   page,
   hasItems,
   hasNextPage,
+  itemCount,
 }: {
   isFetching: boolean;
   page: number;
   hasItems: boolean;
   hasNextPage: boolean;
+  itemCount: number;
 }) {
   const [isPagingMore, setIsPagingMore] = useState(false);
+  const countAtPagingStart = useRef(0);
 
   useEffect(() => {
-    if (!isFetching) {
+    if (!isFetching && isPagingMore) {
       setIsPagingMore(false);
     }
-  }, [isFetching]);
+  }, [isFetching, isPagingMore]);
 
   const beginPaging = useCallback(() => {
     if (!hasNextPage) return;
+    countAtPagingStart.current = itemCount;
     setIsPagingMore(true);
-  }, [hasNextPage]);
+  }, [hasNextPage, itemCount]);
+
+  const hasNewItems =
+    isPagingMore && itemCount > countAtPagingStart.current;
 
   const showSkeleton =
     hasNextPage &&
-    (isPagingMore || (isFetching && page > 1 && hasItems));
+    (isPagingMore || (isFetching && page > 1 && hasItems)) &&
+    !hasNewItems;
 
   return { showSkeleton, beginPaging, isPagingMore };
 }

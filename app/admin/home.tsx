@@ -176,7 +176,7 @@ const StoreSnapshot = ({
         metrics={[
           { label: 'In stock', value: stats?.products?.inStock ?? 0 },
           { label: 'Out', value: stats?.products?.outOfStock ?? 0 },
-          { label: 'Hidden', value: stats?.products?.hidden ?? 0 },
+          { label: 'Promo', value: stats?.products?.promoOnly ?? 0 },
         ]}
       />
       <SnapshotCard
@@ -361,6 +361,38 @@ const Home = () => {
               subtitle="Accounts & access"
               href="/admin/users"
               icon="people-outline"
+              tint="#7C3AED"
+              iconBg="#EDE9FE"
+            />
+            <ActionCard
+              title="Offers"
+              subtitle="Promos & milestones"
+              href="/admin/offers"
+              icon="gift-outline"
+              tint="#BE185D"
+              iconBg="#FCE7F3"
+            />
+            <ActionCard
+              title="Carousel"
+              subtitle="Home banner slides"
+              href="/admin/carousel"
+              icon="images-outline"
+              tint="#0F766E"
+              iconBg="#CCFBF1"
+            />
+            <ActionCard
+              title="Delivery"
+              subtitle="Shipping & free delivery"
+              href="/admin/delivery-settings"
+              icon="bicycle-outline"
+              tint="#2563EB"
+              iconBg="#DBEAFE"
+            />
+            <ActionCard
+              title="Store"
+              subtitle="Hours & delivery radius"
+              href="/admin/store-settings"
+              icon="time-outline"
               tint="#7C3AED"
               iconBg="#EDE9FE"
             />
