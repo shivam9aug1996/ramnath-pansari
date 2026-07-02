@@ -1,4 +1,4 @@
-import { Dimensions, Image, StyleSheet, View } from "react-native";
+import { Dimensions, Image, Platform, StyleSheet, View } from "react-native";
 import React, { lazy, memo, Suspense } from "react";
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
@@ -37,7 +37,7 @@ const OnboardingItem = ({
           </ThemedText>
           <ThemedText style={styles.text}>{item.text}</ThemedText>
         </ThemedView>
-        <ThemedView style={{ flex: 0.5 }}>
+        <ThemedView style={{ flex: Platform.OS === "web" ? 1 : 0.5 }}>
           <Button handlePress={handlePress} isLoadingVerifyOtp={isLoadingVerifyOtp}/>
         </ThemedView>
       </ThemedView>
