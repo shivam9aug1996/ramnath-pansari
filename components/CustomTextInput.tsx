@@ -124,6 +124,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                 fontSize: 14,
                 color: Colors.light.darkGreen,
               },
+              Platform.OS === "web" && {marginLeft:60}
             ]}
             maxLength={50}
             placeholder={"Search"}
@@ -171,6 +172,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                 // backgroundColor: "red",
               },
               textInputStyle,
+              Platform.OS === "web" && {marginLeft:60}
             ]}
             maxLength={50}
             onPress={(e) => {
@@ -215,6 +217,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                 // backgroundColor: "red",
               },
               textInputStyle,
+              Platform.OS === "web" && {marginLeft:60}
             ]}
             maxLength={50}
             placeholder={"Search"}
