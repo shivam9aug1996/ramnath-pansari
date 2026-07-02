@@ -118,5 +118,8 @@
     "react-test-renderer": "^19.2.3",
     "typescript": "~6.0.3"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "uuid": "^11.1.0"
+  }
 }

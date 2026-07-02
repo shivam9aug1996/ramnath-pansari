@@ -19,7 +19,22 @@ const IMAGE_PADDING = {
   large: 10,
 };
 
+const SKELETON_BG = "#f3f3f3";
+
+
 const renderImageLoader = (size: number) => {
+  if (Platform.OS === "web") {
+    return (
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: 5,
+          backgroundColor: SKELETON_BG,
+        }}
+      />
+    );
+  }
   return (
     <ContentLoader
       speed={2}
@@ -34,6 +49,28 @@ const renderImageLoader = (size: number) => {
 };
 
 const renderText = () => {
+  if (Platform.OS === "web") {
+    return (
+      <View style={{ alignSelf: "center", gap: 4 }}>
+        <View
+          style={{
+            width: 67,
+            height: 10,
+            borderRadius: 5,
+            backgroundColor: SKELETON_BG,
+          }}
+        />
+        <View
+          style={{
+            width: 67,
+            height: 10,
+            borderRadius: 5,
+            backgroundColor: SKELETON_BG,
+          }}
+        />
+      </View>
+    );
+  }
   return (
     <ContentLoader
       speed={2}

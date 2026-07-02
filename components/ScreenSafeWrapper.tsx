@@ -118,7 +118,7 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
               ]}
             >
               {showBackButton && <HeaderBackButton />}
-              {title && (
+              {!!title && (
                 <Animated.View
                   style={[
                     {

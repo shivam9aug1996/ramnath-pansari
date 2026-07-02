@@ -1,11 +1,7 @@
 import { Button, Platform, StyleSheet, Text, View } from "react-native";
 import React, { useEffect, useRef, useState } from "react";
-import MapView, {
-  PROVIDER_GOOGLE,
-  Marker,
-  Polyline,
-  PROVIDER_DEFAULT,
-} from "react-native-maps";
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE, PROVIDER_DEFAULT } from "../(address)/AppMapView";
+
 import { Dimensions } from "react-native";
 import polyline from "@mapbox/polyline";
 import usePusher from "./usePusher";

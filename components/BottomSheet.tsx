@@ -1,14 +1,25 @@
 import React, { useEffect, useMemo } from "react";
-import { Dimensions, Platform, Pressable, StyleSheet, ViewStyle } from "react-native";
+import {
+  Dimensions,
+  Platform,
+  Pressable,
+  StyleSheet,
+  ViewStyle,
+} from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
   runOnJS,
 } from "react-native-reanimated";
-import { Gesture, GestureDetector, ScrollView } from "react-native-gesture-handler";
+import {
+  Gesture,
+  GestureDetector,
+  ScrollView,
+} from "react-native-gesture-handler";
 import { BlurView } from "expo-blur";
 import { ThemedView } from "@/components/ThemedView";
+import { View } from "react-native";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -50,7 +61,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             translateY.value = withSpring(0);
           }
         }),
-    [animation, onClose]
+    [animation, onClose],
   );
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -81,12 +92,17 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             <ThemedView style={styles.ellipse} />
           </ThemedView>
           <ThemedView style={{ flex: 1 }}>
-            <ScrollView
-              bounces={Platform.OS === "android" ? false : true}
-              style={{ height: "30%" }}
-            >
-              {children}
-            </ScrollView>
+            {Platform.OS === "web" ? (
+              <View style={{ flex: 1, minHeight: 0 }}>{children}</View>
+            ) : (
+              <ScrollView
+                bounces={Platform.OS === "android" ? false : true}
+                style={{ height: "30%" }}
+              >
+                {children}
+              </ScrollView>
+            )}
+
             {staticContent}
           </ThemedView>
         </Animated.View>

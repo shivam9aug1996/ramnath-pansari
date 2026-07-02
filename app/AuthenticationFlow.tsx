@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import { loadAuthData } from "@/redux/features/authSlice";
 import { RootState } from "@/types/global";
+import { getAppHomeRoute } from "@/utils/authRoles";
 
 export const AuthenticationFlow = ({ children }: { children: React.ReactNode }) => {
   const dispatch = useDispatch();
@@ -28,11 +29,12 @@ export const AuthenticationFlow = ({ children }: { children: React.ReactNode }) 
     if (!isReady) return;
     if (loadAuthDataState?.isSuccess) {
       if (loadAuthDataState?.data?.token && loadAuthDataState?.data?.userData?.name) {
-        if(loadAuthDataState?.data?.userData?.isAdminUser){
-          router.replace("/admin/home");
-        }else{
-          router.replace("/(private)/(tabs)/home");
-        }
+        router.replace(
+          getAppHomeRoute(
+            loadAuthDataState.data.userData,
+            loadAuthDataState.data.token,
+          ) as Parameters<typeof router.replace>[0],
+        );
       } else if (loadAuthDataState?.data?.token && loadAuthDataState?.data?.userData?.userAlreadyRegistered === false) {
         setIsLoggedIn(2);
       } else {

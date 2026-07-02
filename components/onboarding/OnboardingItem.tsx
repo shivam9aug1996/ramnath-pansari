@@ -50,6 +50,7 @@ export default memo(OnboardingItem);
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "red",
   },
   imageContainer: {
     flex: 1,

@@ -99,7 +99,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
            onChangeText={onChangeText}
            ref={textInputRef}
            keyboardType="phone-pad"
-           style={styles.textInput}
+           style={[styles.textInput, Platform.OS === "web" && styles.phoneInputWeb]}
            autoComplete="tel"
            textContentType="telephoneNumber"
            autoCorrect={false}
@@ -265,6 +265,9 @@ const styles = StyleSheet.create({
     left: 60,
     color: Colors.light.darkGrey,
   },
+  phoneInputWeb: {
+    marginLeft: 60,
+  } as any,
   iconStyle: {
     top: Platform.OS === "android" ? 20 : 19,
     fontWeight: "900",

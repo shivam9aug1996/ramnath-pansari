@@ -55,7 +55,23 @@ function MilestoneRing({
 }) {
   const circumference = 2 * Math.PI * 12;
   const dashOffset = circumference * (1 - Math.min(progress, 1));
-
+  if (Platform.OS === "web") {
+    return (
+      <View
+        style={[
+          styles.milestoneRing,
+          {
+            width: RING_SIZE,
+            height: RING_SIZE,
+            borderRadius: RING_SIZE / 2,
+            borderWidth: 2,
+            borderColor: Colors.light.mediumGreen,
+            opacity: 0.35 + progress * 0.65,
+          },
+        ]}
+      />
+    );
+  }
   return (
     <Svg width={RING_SIZE} height={RING_SIZE} style={styles.milestoneRing}>
       <Circle
@@ -66,7 +82,7 @@ function MilestoneRing({
         strokeWidth={2}
         fill="transparent"
       />
-      <G rotation={-90} origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}>
+      <G rotation={-90} originX={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}>
         <Circle
           cx={RING_SIZE / 2}
           cy={RING_SIZE / 2}

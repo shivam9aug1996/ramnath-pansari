@@ -16,7 +16,7 @@ import AdminScreen from '@/app/admin/components/AdminScreen';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { showToast } from '@/utils/utils';
-import { useGetOrderQuery, useUpdateOrderMutation } from '@/redux/features/adminOrderSlice';
+import { useGetOrderQuery, useUpdateOrderMutation, useListAdminDriversQuery, useAssignDriverToOrderMutation } from '@/redux/features/adminOrderSlice';
 import { ORDER_STATUS_VALUES, ORDER_STATUS_COLORS } from '@/constants/Order';
 import { Colors } from '@/constants/Colors';
 import HeaderBar from '@/app/admin/components/HeaderBar';
@@ -39,7 +39,11 @@ const OrderDetailScreen = () => {
     id: String(params.id),
   });
   const [updateOrder, { isLoading: isSaving }] = useUpdateOrderMutation();
+  const [assignDriver, { isLoading: isAssigning }] = useAssignDriverToOrderMutation();
   const [draft, setDraft] = React.useState<AdminOrderDocument | null>(null);
+  const { data: driversData } = useListAdminDriversQuery(undefined, {
+    skip: !draft,
+  });
 
   React.useEffect(() => {
     if (data) setDraft(JSON.parse(JSON.stringify(data)));
@@ -184,6 +188,31 @@ const OrderDetailScreen = () => {
     });
   };
 
+  const onAssignDriver = async (driverUserId: string) => {
+    if (!draft) return;
+    try {
+      const result = await assignDriver({
+        orderId: draft._id,
+        driverUserId,
+      }).unwrap();
+      setDraft((prev) =>
+        prev
+          ? {
+              ...prev,
+              assignedDriver: result.assignedDriver ?? prev.assignedDriver,
+            }
+          : prev,
+      );
+      showToast({ type: 'success', text2: 'Driver assigned' });
+      refetch();
+    } catch (e: unknown) {
+      const msg =
+        (e as { data?: { error?: { message?: string } } })?.data?.error?.message ||
+        'Failed to assign driver';
+      Alert.alert('Error', msg);
+    }
+  };
+
   if (isLoading || !draft) {
     return (
       <AdminScreen style={styles.container}>
@@ -271,6 +300,53 @@ const OrderDetailScreen = () => {
               );
             })}
           </View>
+        </DetailSection>
+
+        <DetailSection
+          title="Delivery driver"
+          subtitle="Assign before the driver starts delivery from the driver app"
+        >
+          {draft.assignedDriver ? (
+            <View style={styles.driverAssignedCard}>
+              <Text style={styles.driverAssignedName}>{draft.assignedDriver.name}</Text>
+              <Text style={styles.driverAssignedMeta}>
+                {draft.assignedDriver.phone}
+                {draft.driverTrackingStatus
+                  ? ` · ${String(draft.driverTrackingStatus).replaceAll('_', ' ')}`
+                  : ''}
+              </Text>
+            </View>
+          ) : (
+            <Text style={styles.driverEmptyText}>No driver assigned yet</Text>
+          )}
+
+          {(driversData?.drivers ?? []).map((driver) => {
+            const isCurrent = draft.assignedDriver?.driverId === driver.driverId;
+            return (
+              <TouchableOpacity
+                key={driver._id}
+                style={[styles.driverPickRow, isCurrent && styles.driverPickRowActive]}
+                disabled={isAssigning || isCurrent}
+                onPress={() => onAssignDriver(driver._id)}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.driverPickName}>{driver.name}</Text>
+                  <Text style={styles.driverPickMeta}>{driver.mobileNumber}</Text>
+                </View>
+                {isCurrent ? (
+                  <Text style={styles.driverPickBadge}>Assigned</Text>
+                ) : (
+                  <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+                )}
+              </TouchableOpacity>
+            );
+          })}
+
+          {!driversData?.drivers?.length ? (
+            <Text style={styles.driverEmptyText}>
+              Create a driver user in Admin → Users with driver access enabled.
+            </Text>
+          ) : null}
         </DetailSection>
 
         {/* History timeline */}
@@ -695,6 +771,35 @@ const styles = StyleSheet.create({
   inputsRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
   inputCol: { flex: 1 },
   inputLabel: { fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: '600' },
+  driverAssignedCard: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    marginBottom: 10,
+  },
+  driverAssignedName: { fontSize: 14, fontWeight: '800', color: '#111827' },
+  driverAssignedMeta: { marginTop: 4, fontSize: 12, color: '#475569', fontWeight: '600' },
+  driverEmptyText: { fontSize: 12, color: '#64748B', marginBottom: 8 },
+  driverPickRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#fff',
+    marginTop: 8,
+  },
+  driverPickRowActive: {
+    borderColor: '#BFDBFE',
+    backgroundColor: '#F8FBFF',
+  },
+  driverPickName: { fontSize: 14, fontWeight: '700', color: '#111827' },
+  driverPickMeta: { marginTop: 2, fontSize: 12, color: '#64748B' },
+  driverPickBadge: { fontSize: 11, fontWeight: '800', color: '#2563EB' },
   saveBar: {
     paddingHorizontal: 16,
     paddingTop: 10,

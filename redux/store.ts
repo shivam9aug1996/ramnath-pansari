@@ -7,6 +7,7 @@ import categorySlice, { categoryApi } from "./features/categorySlice";
 import khataSlice, { khataApi } from "./features/khataSlice";
 import orderSlice, { orderApi } from "./features/orderSlice";
 import productSlice, { productApi } from "./features/productSlice";
+import searchSlice, { searchApi } from "./features/searchSlice";
 import adminOrderSlice, { adminOrderApi } from "./features/adminOrderSlice";
 import adminCategorySlice, { adminCategoryApi } from "./features/adminCategorySlice";
 import adminProductSlice, { adminProductApi } from "./features/adminProductSlice";
@@ -24,7 +25,7 @@ import recentSearchSlice, {
 } from "./features/recentSearchSlice";
 import recentlyViewedSlice from "./features/recentlyViewedSlice";
 import appSyncSlice from "./features/appSyncSlice";
-import searchSlice, { searchApi } from "./features/searchSlice";
+import driverOrderSlice, { driverOrderApi } from "./features/driverOrderSlice";
 import handle401Middleware from "./handle401Middleware";
 import handleLogoutMiddleware from "./handleLogoutMiddleware";
 import asyncStorageMiddleware from "./asyncStorageMiddleware";
@@ -79,6 +80,8 @@ const store = configureStore({
     recentlyViewed: recentlyViewedSlice,
     weather: weatherSlice,
     appSync: appSyncSlice,
+    driverOrder: driverOrderSlice,
+    [driverOrderApi.reducerPath]: driverOrderApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -103,6 +106,7 @@ const store = configureStore({
       .concat(adminDeliverySettingsApi.middleware)
       .concat(storeConfigApi.middleware)
       .concat(adminStoreConfigApi.middleware)
+      .concat(driverOrderApi.middleware)
       .concat(khataApi.middleware)
       .concat(asyncStorageMiddleware)
       .concat(handle401Middleware)

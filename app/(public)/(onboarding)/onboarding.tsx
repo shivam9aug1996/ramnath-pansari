@@ -9,6 +9,7 @@ import useVerifyOtp1 from "@/screens/verifyOtp/hooks/sdfg";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
 import { useSelector } from "react-redux";
 import { RootState } from "@/types/global";
+import { Platform, View } from "react-native";
 
 const Onboarding = () => {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -17,23 +18,25 @@ const Onboarding = () => {
   const [isPending, startTransition] = useTransition();
   const { guestLogin, isLoading: isLoadingVerifyOtp } = useVerifyOtp1();
   const saveAuthDataState = useSelector(
-    (state: RootState) => state?.auth?.saveAuthData
+    (state: RootState) => state?.auth?.saveAuthData,
   );
   const renderItem = useCallback(
     ({ item }: any) => {
       const debouncePress = debounce(handlePress, 500, true);
       return (
-       <DeferredFadeIn delay={100} style={{flex:1}}>
-        <OnboardingItem
-          activeSlide={activeSlide}
-          handlePress={debouncePress}
-          item={item}
-          isLoadingVerifyOtp={isLoadingVerifyOtp || saveAuthDataState?.isLoading}
-        />
-       </DeferredFadeIn>
+        <DeferredFadeIn delay={100} style={{ flex: 1 }}>
+          <OnboardingItem
+            activeSlide={activeSlide}
+            handlePress={debouncePress}
+            item={item}
+            isLoadingVerifyOtp={
+              isLoadingVerifyOtp || saveAuthDataState?.isLoading
+            }
+          />
+        </DeferredFadeIn>
       );
     },
-    [activeSlide, isLoadingVerifyOtp, saveAuthDataState?.isLoading]
+    [activeSlide, isLoadingVerifyOtp, saveAuthDataState?.isLoading],
   );
 
   const onSlideChange = (index: number) => {
@@ -44,6 +47,7 @@ const Onboarding = () => {
 
   const handlePress = useCallback(() => {
     let totalSlides = onboardingSlides.length;
+
     if (activeSlide === totalSlides - 1) {
       guestLogin();
     } else {
@@ -51,6 +55,24 @@ const Onboarding = () => {
       onSlideChange(activeSlide + 1);
     }
   }, [activeSlide]);
+
+  if (Platform.OS === "web") {
+    return (
+      <View style={{ flex: 1, minHeight: "100vh", height: "100vh" }}>
+
+        <AppIntroSlider
+             testID="onboarding-slider"
+             style={{ flex: 1, height: "100%", minHeight: "100vh" }}
+          renderItem={renderItem}
+         
+          data={onboardingSlides}
+          onSlideChange={onSlideChange}
+          ref={sliderRef}
+          renderPagination={() => null}
+        />
+      </View>
+    );
+  }
 
   return (
     <AppIntroSlider

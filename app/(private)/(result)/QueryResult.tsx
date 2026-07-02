@@ -32,10 +32,14 @@ import CustomTextInput from "@/components/CustomTextInput";
 import ProductItem from "../(category)/ProductList/ProductItem";
 import ProductListPlaceholder, {
   ProductItemSkeleton,
+  ProductItemSkeletonStatic,
+  ProductPaginationSkeleton,
 } from "../(category)/ProductList/ProductListPlaceholder";
 import {
+  buildProductListData,
   isProductSkeleton,
   PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT,
+  PRODUCT_LIST_MARGIN_TOP,
   PRODUCT_LIST_PADDING_BOTTOM,
   ProductListRow,
   withPaginationSkeletons,
@@ -105,13 +109,18 @@ const QueryResult = ({query}:{query:string}) => {
 
   const hasNextPage = data?.currentPage < data?.totalPages;
 
-  const { showSkeleton: showPaginationSkeleton, beginPaging } =
-    usePaginationSkeleton({
-      isFetching,
-      page,
-      hasItems: (data?.results?.length ?? 0) > 0,
-      hasNextPage,
-    });
+const { showSkeleton: showPaginationSkeleton, beginPaging, isPagingMore } =
+  usePaginationSkeleton({
+    isFetching,
+    page,
+    hasItems: (data?.results?.length ?? 0) > 0,
+    hasNextPage,
+    itemCount: data?.results?.length ?? 0,
+  });
+  const hasResults = (data?.results?.length ?? 0) > 0;
+
+  const showInitialSkeleton = !hasResults && (isLoading || isFetching);
+
 
   const isLoadingMoreRef = useRef(showPaginationSkeleton);
   isLoadingMoreRef.current = showPaginationSkeleton;
@@ -195,6 +204,10 @@ const QueryResult = ({query}:{query:string}) => {
   }, [query]);
 
   useEffect(() => {
+    clearVisibleProductIds();
+  }, [query]); 
+
+  useEffect(() => {
     if (resetPagination?.status) {
       let id = resetPagination?.item?._id;
       let index = data?.results?.findIndex((item: any) => {
@@ -229,14 +242,23 @@ const QueryResult = ({query}:{query:string}) => {
   // Handlers
   const fetchNextPage = () => setPage((prev) => prev + 1);
 
+  // const cartItemsMap = useMemo(() => {
+  //   // console.log("cartDatashivam---------->");
+  //    const map: Record<string, CartItem> = {};
+  //    (cartData?.cart?.items || []).forEach((it) => {
+  //      map[it.productId] = it;
+  //    });
+  //    return map;
+  //  }, [cartData?.cart?.items]);
+
   const cartItemsMap = useMemo(() => {
-    // console.log("cartDatashivam---------->");
-     const map: Record<string, CartItem> = {};
-     (cartData?.cart?.items || []).forEach((it) => {
-       map[it.productId] = it;
-     });
-     return map;
-   }, [cartData?.cart?.items]);
+    const map: Record<string, CartItem> = {};
+    (cartData?.cart?.items || []).forEach((it) => {
+      const id = String(it.productDetails?._id ?? it.productId ?? "");
+      if (id) map[id] = it;
+    });
+    return map;
+  }, [cartData?.cart?.items]);
 
   // const renderProductItem = ({
   //   item,
@@ -265,10 +287,28 @@ const QueryResult = ({query}:{query:string}) => {
   // };
 
 
+  // const listData = useMemo(
+  //   () => withPaginationSkeletons(data?.results, showPaginationSkeleton),
+  //   [data?.results, showPaginationSkeleton],
+  // );
   const listData = useMemo(
-    () => withPaginationSkeletons(data?.results, showPaginationSkeleton),
-    [data?.results, showPaginationSkeleton],
+    () =>
+      buildProductListData(data?.results, {
+        showInitialSkeleton,
+        showPaginationSkeleton,
+      }),
+    [data?.results, showInitialSkeleton, showPaginationSkeleton],
   );
+
+  const isRefreshingFirstPage = isFetching && page === 1;
+const listContentContainerStyle = useMemo(
+  () => [
+    styles.listContent,
+    isRefreshingFirstPage && styles.listRefreshing,
+    { paddingBottom: PRODUCT_LIST_PADDING_BOTTOM + goToCartListPadding },
+  ],
+  [isRefreshingFirstPage, goToCartListPadding],
+);
 
   const listContentStyle = useMemo(
     () => [
@@ -278,13 +318,33 @@ const QueryResult = ({query}:{query:string}) => {
     [goToCartListPadding],
   );
 
+  // const renderProductItem = useCallback(
+  //   ({ item, index }: { item: ProductListRow; index: number }) => {
+  //     if (isProductSkeleton(item)) {
+  //       return <ProductItemSkeleton index={index} />;
+  //     }
+
+  //     const cartItem = cartItemsMap[item._id];
+  //     return (
+  //       <ProductItemWrapper
+  //         item={item}
+  //         index={index}
+  //         quantity={cartItem?.quantity ?? 0}
+  //       />
+  //     );
+  //   },
+  //   [cartItemsMap],
+  // );
+
   const renderProductItem = useCallback(
     ({ item, index }: { item: ProductListRow; index: number }) => {
       if (isProductSkeleton(item)) {
-        return <ProductItemSkeleton index={index} />;
+        return <ProductItemSkeletonStatic index={index} />;
       }
-
+  
+     
       const cartItem = cartItemsMap[item._id];
+  
       return (
         <ProductItemWrapper
           item={item}
@@ -295,6 +355,34 @@ const QueryResult = ({query}:{query:string}) => {
     },
     [cartItemsMap],
   );
+
+  const renderListFooter = useCallback(() => {
+    if (showInitialSkeleton || !showPaginationSkeleton) return null;
+    return <ProductPaginationSkeleton />;
+  }, [showInitialSkeleton, showPaginationSkeleton]);
+  
+  const renderEmptyComponent = useCallback(() => {
+    if (
+      showInitialSkeleton ||
+      isLoading ||
+      (isFetching && (data?.results?.length ?? 0) === 0)
+    ) {
+      return null;
+    }
+    return (
+      <View
+        style={{
+          opacity: isFetching && page === 1 ? 0.6 : 1,
+          pointerEvents: isFetching && page === 1 ? "none" : "auto",
+        }}
+      >
+        <NotFound
+          title="Item not Found"
+          subtitle="Try search with a different keyword"
+        />
+      </View>
+    );
+  }, [showInitialSkeleton, isFetching, isLoading, data?.results?.length, page]);
 
   const listEmptyComponent = () =>
     !isFetching ? (
@@ -312,14 +400,24 @@ const QueryResult = ({query}:{query:string}) => {
       >{`Found ${data.totalResults} Results`}</ThemedText>
     ) : null;
 
-  const hasResults = (data?.results?.length ?? 0) > 0;
   const showPlaceholder = !hasResults && (isLoading || isFetching);
 
-  const handleEndReached = () => {
-    if (isFetching || !hasNextPage) return;
+  const handleEndReached = useCallback(() => {
+    if (showInitialSkeleton) return;
+    if (!hasNextPage) return;
+    if (isFetching) return;
+    if (showPaginationSkeleton || isPagingMore) return;
     beginPaging();
     fetchNextPage();
-  };
+  }, [
+    showInitialSkeleton,
+    hasNextPage,
+    isFetching,
+    showPaginationSkeleton,
+    isPagingMore,
+    beginPaging,
+    fetchNextPage,
+  ]);
 
   return (
     <>
@@ -353,24 +451,28 @@ const QueryResult = ({query}:{query:string}) => {
                   maxToRenderPerBatch={showPaginationSkeleton ? 8 : 2}
                   windowSize={showPaginationSkeleton ? 7 : 5}
                   data={listData}
-                  extraData={{ cartData, showPaginationSkeleton }}
+                  extraData={{ showInitialSkeleton, showPaginationSkeleton, cartItemsMap }}
                   renderItem={renderProductItem}
                   keyExtractor={(item, index) => item?._id || index.toString()}
                   numColumns={2}
                   removeClippedSubviews={false}
                   showsVerticalScrollIndicator={false}
+                  scrollEnabled={!showInitialSkeleton}
                   onEndReached={handleEndReached}
                   onEndReachedThreshold={0.35}
-                  contentContainerStyle={listContentStyle}
+                  contentContainerStyle={listContentContainerStyle}
                   ListHeaderComponent={header}
-                  ListEmptyComponent={listEmptyComponent}
-                  ItemSeparatorComponent={() => (
-                    <View style={{ height: PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT }} />
-                  )}
-                  viewabilityConfig={viewabilityConfig}
-                  onViewableItemsChanged={onViewableItemsChanged}
-                  scrollEventThrottle={16}
+                  ListEmptyComponent={renderEmptyComponent}
+                  ListFooterComponent={renderListFooter}
+
+                  // ItemSeparatorComponent={() => (
+                  //   <View style={{ height: PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT }} />
+                  // )}
+                  // viewabilityConfig={viewabilityConfig}
+                  // onViewableItemsChanged={onViewableItemsChanged}
+                  scrollEventThrottle={50}
                   onScroll={handleScroll}
+
                 />
               </View>
             )}
@@ -417,5 +519,9 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
     color: Colors.light.lightGreen,
+  },
+  listRefreshing: {
+    opacity: 0.6,
+    pointerEvents: "none",
   },
 });

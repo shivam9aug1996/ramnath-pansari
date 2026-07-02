@@ -36,4 +36,14 @@ body {
   body {
     background-color: #000;
   }
-}`;
+}
+[data-testid="onboarding-slider"] > div > div {
+  display: contents !important;
+} 
+  input:focus {
+  outline: none;
+} 
+
+
+`;
+

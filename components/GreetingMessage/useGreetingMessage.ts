@@ -91,6 +91,8 @@ import { RootState } from "@/types/global";
 import { buildGreetingPrompt } from "./buildGreetingPrompt";
 import { sanitizeGreeting } from "./sanitizeGreeting";
 import * as SecureStore from "expo-secure-store";
+import { storage } from "@/utils/storage";
+import { StorageKeys } from "@/utils/storageKeys";
 
 const DEFAULT_WELCOME_MESSAGE = "Your one-stop shop for everything you love.";
 const FALLBACK_MESSAGE_GENERIC = "Hey there! Let’s find you something awesome today.";
@@ -147,7 +149,8 @@ export const useGreetingMessage = () => {
       const promptHash = hashPrompt(prompt);
 
       // Read from SecureStore
-      const cachedString = await SecureStore.getItemAsync(SECURE_CACHE_KEY);
+      const cachedString = await storage.getItem(StorageKeys.greetingCacheV2);
+
       if (cachedString) {
         const cached = JSON.parse(cachedString);
         const isSamePrompt = cached.promptHash === promptHash;
@@ -179,14 +182,21 @@ export const useGreetingMessage = () => {
       setMessage(cleanText);
 
       // Save to SecureStore
-      await SecureStore.setItemAsync(
-        SECURE_CACHE_KEY,
-        JSON.stringify({
-          promptHash,
-          text: cleanText,
-          timestamp: Date.now(),
-        })
-      );
+      // await SecureStore.setItemAsync(
+      //   SECURE_CACHE_KEY,
+      //   JSON.stringify({
+      //     promptHash,
+      //     text: cleanText,
+      //     timestamp: Date.now(),
+      //   })
+      // );
+    
+      await storage.setItem(SECURE_CACHE_KEY, JSON.stringify({
+        promptHash,
+        text: cleanText,
+        timestamp: Date.now(),
+      }));
+
       return cleanText;
     } catch (error) {
       setMessage(FALLBACK_MESSAGE_GENERIC);

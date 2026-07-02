@@ -17,6 +17,7 @@ import { useCachedCarouselBanners } from "@/hooks/useCachedCarousel";
 import { useDispatch, useSelector } from "react-redux";
 import { CarouselBannerDocument, Category, RootState } from "@/types/global";
 import Carousel from "pinar";
+import { Platform } from "react-native";
 
 /** Pagi minHeight (20) + carousel/pagi marginBottom (10 + 10). */
 export const CAROUSEL_PAGI_SLOT_HEIGHT = 40;
@@ -37,14 +38,46 @@ function CarouselSlotPlaceholder({ width }: { width: number }) {
   const imageWidth = width - 30;
   const imageHeight = width / 2;
 
+  if (Platform.OS === "web") {
+    return (
+      <View style={{ flex: 1, marginLeft: 15 }}>
+        <View
+          style={{
+            width: imageWidth,
+            height: imageHeight,
+            borderRadius: 30,
+            backgroundColor: SKELETON_BG,
+            marginBottom: 10,
+            marginRight: 10,
+          }}
+        />
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            gap: 8,
+            marginBottom: 10,
+          }}
+        >
+          {[0, 1, 2].map((i) => (
+            <View
+              key={i}
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: SKELETON_FG,
+              }}
+            />
+          ))}
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <View style={{ flex: 1, marginLeft:15}}>
-      <View
-        style={{
-          marginBottom: 10,
-          marginRight: 10,
-        }}
-      >
+    <View style={{ flex: 1, marginLeft: 15 }}>
+      <View style={{ marginBottom: 10, marginRight: 10 }}>
         <ContentLoader
           speed={2}
           width={imageWidth}
@@ -80,6 +113,7 @@ function CarouselSlotPlaceholder({ width }: { width: number }) {
 
 function Carasole({ onScrollToCategories }: CarasoleProps) {
   const width = Dimensions.get("window").width;
+  
   const currentIndex = useSharedValue(0);
   const token = useSelector((state: RootState) => state?.auth?.token);
   const appSyncReady = useSelector((state: RootState) => state.appSync?.ready);
@@ -150,6 +184,7 @@ function Carasole({ onScrollToCategories }: CarasoleProps) {
           overflow: "hidden",
           marginBottom: 10,
           marginRight: 10,
+          alignItems:"center"
         }}
       >
         <Carousel

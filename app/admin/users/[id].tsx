@@ -32,6 +32,7 @@ const UserDetailScreen = () => {
   const [name, setName] = useState('');
   const [khataUrl, setKhataUrl] = useState('');
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const [isDriverUser, setIsDriverUser] = useState(false);
   const [password, setPassword] = useState('');
 
   useEffect(() => {
@@ -39,6 +40,7 @@ const UserDetailScreen = () => {
       setName(data.user.name ?? '');
       setKhataUrl(data.user.khataUrl ?? '');
       setIsAdminUser(data.user.isAdminUser);
+      setIsDriverUser(Boolean(data.user.isDriverUser));
     }
   }, [data?.user]);
 
@@ -56,6 +58,7 @@ const UserDetailScreen = () => {
           name: trimmedName,
           khataUrl: khataUrl.trim() || null,
           isAdminUser,
+          isDriverUser,
           ...(password.trim() ? { password: password.trim() } : {}),
         },
       }).unwrap();
@@ -168,6 +171,19 @@ const UserDetailScreen = () => {
             value={isAdminUser}
             onValueChange={setIsAdminUser}
             trackColor={{ false: '#E2E8F0', true: Colors.light.gradientGreen_2 }}
+            thumbColor="#fff"
+          />
+        </View>
+
+        <View style={styles.switchRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.switchLabel}>Driver access</Text>
+            <Text style={styles.switchHint}>Can open the driver delivery app</Text>
+          </View>
+          <Switch
+            value={isDriverUser}
+            onValueChange={setIsDriverUser}
+            trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
             thumbColor="#fff"
           />
         </View>

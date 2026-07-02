@@ -3,9 +3,12 @@ import React from "react";
 import { Stack } from "expo-router";
 import ActiveDeliveryFloat from "@/components/ActiveDeliveryFloat";
 import { DeliveryFloatProvider } from "@/contexts/DeliveryFloatContext";
+import { useRoleRouteGuard } from "@/hooks/useRoleRouteGuard";
 export { ErrorBoundary } from "expo-router";
 
 const MainNavigator = () => {
+  useRoleRouteGuard("customer");
+
   return (
     <DeliveryFloatProvider>
     <View style={styles.root}>
@@ -64,14 +67,6 @@ const MainNavigator = () => {
       />
       <Stack.Screen
         name="(address)/addAddress"
-        options={{
-          headerShown: false,
-          animation: "ios_from_right",
-          animationDuration: 0,
-        }}
-      />
-      <Stack.Screen
-        name="(address)/mapSelect"
         options={{
           headerShown: false,
           animation: "ios_from_right",

@@ -21,12 +21,17 @@ const HeaderBackButton: React.FC<Props> = ({ onPress }) => {
       debouncedPress(() => {
         onPress?.();
       });
-    } else {
-      debouncedPress(() => {
-        router?.back();
-      });
+      return;
     }
+    if (!router.canGoBack()) return;
+    debouncedPress(() => {
+      router.back();
+    });
   };
+
+  if (!onPress && !router.canGoBack()) {
+    return null;
+  }
 
   return (
     <TouchableOpacity onPress={handleBack} style={{ alignSelf: "flex-start" }}>

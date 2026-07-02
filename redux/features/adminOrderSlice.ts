@@ -87,6 +87,31 @@ export const adminOrderApi = createApi({
       }),
       invalidatesTags: [{ type: "adminOrderList", id: "LIST" }],
     }),
+
+    listAdminDrivers: builder.query<
+      { drivers: import("@/types/global").AdminDriverOption[] },
+      void
+    >({
+      query: () => ({
+        url: "/admin/drivers",
+        method: "GET",
+      }),
+    }),
+
+    assignDriverToOrder: builder.mutation<
+      { message: string; assignedDriver: AdminOrderDocument["assignedDriver"] },
+      { orderId: string; driverUserId: string }
+    >({
+      query: ({ orderId, driverUserId }) => ({
+        url: `/admin/orders/${orderId}/assign-driver`,
+        method: "POST",
+        body: { driverUserId },
+      }),
+      invalidatesTags: (result, error, { orderId }) => [
+        { type: "adminOrderDetail", id: orderId },
+        { type: "adminOrderList", id: "LIST" },
+      ],
+    }),
   }),
 });
 
@@ -105,6 +130,8 @@ export const {
   useCreateOrderMutation,
   useUpdateOrderMutation,
   useDeleteOrderMutation,
+  useListAdminDriversQuery,
+  useAssignDriverToOrderMutation,
 } = adminOrderApi;
 
 export default adminOrderSlice.reducer;

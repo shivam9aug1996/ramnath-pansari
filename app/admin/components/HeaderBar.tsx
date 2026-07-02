@@ -8,22 +8,37 @@ const HeaderBar = ({
   title,
   subtitle,
   right,
+  showBack,
 }: {
   title?: string
   subtitle?: string
   right?: React.ReactNode
+  showBack?: boolean
 }) => {
   const router = useRouter()
+  const canGoBack = router.canGoBack()
+  const showBackButton = showBack ?? canGoBack
+
+  const onBack = () => {
+    if (router.canGoBack()) {
+      router.back()
+    }
+  }
+
   return (
     <View style={styles.header}>
-      <TouchableOpacity
-        onPress={() => router.back()}
-        style={styles.backBtn}
-        accessibilityLabel="Back"
-        activeOpacity={0.7}
-      >
-        <Ionicons name="chevron-back" size={22} color={adminTheme.textPrimary} />
-      </TouchableOpacity>
+      {showBackButton ? (
+        <TouchableOpacity
+          onPress={onBack}
+          style={styles.backBtn}
+          accessibilityLabel="Back"
+          activeOpacity={0.7}
+        >
+          <Ionicons name="chevron-back" size={22} color={adminTheme.textPrimary} />
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.backBtnPlaceholder} />
+      )}
 
       <View style={styles.titleWrap}>
         <Text style={styles.title} numberOfLines={1}>
@@ -52,6 +67,10 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: adminTheme.screenBg,
     gap: 8,
+  },
+  backBtnPlaceholder: {
+    width: 40,
+    height: 40,
   },
   backBtn: {
     width: 40,

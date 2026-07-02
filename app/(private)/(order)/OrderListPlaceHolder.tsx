@@ -2,8 +2,23 @@ import { FlatList, Platform, StyleSheet, Text, View } from "react-native";
 import React, { memo } from "react";
 import { Colors } from "@/constants/Colors";
 import ContentLoader, { Rect } from "react-content-loader/native";
+const SKELETON_BG = "#f3f3f3";
 
 const renderImageLoader = () => {
+  if (Platform.OS === "web") {
+    return (
+      <View
+        style={{
+          width: 70,
+          height: 72,
+          borderRadius: 5,
+          backgroundColor: SKELETON_BG,
+          marginBottom: 10,
+        }}
+      />
+    );
+  }
+
   return (
     <ContentLoader
       speed={1}
@@ -19,6 +34,28 @@ const renderImageLoader = () => {
 };
 
 const renderText = () => {
+  if (Platform.OS === "web") {
+    return (
+      <View style={{ flex: 1, gap: 15 }}>
+        <View
+          style={{
+            width: "100%",
+            height: 20,
+            borderRadius: 5,
+            backgroundColor: SKELETON_BG,
+          }}
+        />
+        <View
+          style={{
+            width: "100%",
+            height: 20,
+            borderRadius: 5,
+            backgroundColor: SKELETON_BG,
+          }}
+        />
+      </View>
+    );
+  }
   return (
     <ContentLoader
       speed={1}

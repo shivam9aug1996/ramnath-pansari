@@ -41,7 +41,7 @@ const Login: React.FC = () => {
             textInputRef={textInputRef}
             type={"phone"}
           />
-          {errorState && (
+          {!!errorState && (
             <ThemedText
               lightColor={Colors.light.lightRed}
               style={styles.errorText}

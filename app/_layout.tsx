@@ -24,6 +24,7 @@ import {
   initStartupDiagnostics,
   markStartupCheckpoint,
 } from "@/utils/startupDiagnostics";
+import "@/utils/driverLocationTask";
 
 const SPLASH_BACKGROUND = "#FFFFFF";
 

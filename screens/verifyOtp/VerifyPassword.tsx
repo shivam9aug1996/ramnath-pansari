@@ -31,6 +31,8 @@ const VerifyPassword: React.FC = () => {
     otp,
     setOtp,
     isAdminLogin,
+    isDriverLogin,
+    requiresEmailOtp,
     otpSentTo,
     resetInput,
     userAlreadyRegistered,
@@ -68,22 +70,24 @@ const VerifyPassword: React.FC = () => {
                   <ThemedText type="title">
                     {isAdminLogin
                       ? "Admin\nLogin"
-                      : isNewUser
-                      ? "Create your\nPassword"
-                      : "Enter your\nPassword"}
+                      : isDriverLogin
+                        ? "Driver\nLogin"
+                        : isNewUser
+                          ? "Create your\nPassword"
+                          : "Enter your\nPassword"}
                   </ThemedText>
 
                   <ThemedText style={styles.description}>
-                    {isAdminLogin
+                    {requiresEmailOtp
                       ? `Enter password and the OTP sent to\n${
                           otpSentTo || "your email"
                         }`
                       : isNewUser
-                      ? "Create a strong password to\nsecure your account"
-                      : "Please enter your password to\ncontinue"}
+                        ? "Create a strong password to\nsecure your account"
+                        : "Please enter your password to\ncontinue"}
                   </ThemedText>
 
-                  {isAdminLogin && (
+                  {requiresEmailOtp && (
                     <>
                       <OtpInput
                         otp={otp}
@@ -108,7 +112,7 @@ const VerifyPassword: React.FC = () => {
                         ? "Create your password"
                         : "Enter your password"
                     }
-                    autoFocus={!isAdminLogin}
+                    autoFocus={!requiresEmailOtp}
                   />
 
                   <View style={styles.errorContainer}>
@@ -130,7 +134,7 @@ const VerifyPassword: React.FC = () => {
                     onPress={() => handleVerifyPassword(password)}
                   />
 
-                  {isNewUser && !isAdminLogin && (
+                  {isNewUser && !requiresEmailOtp && (
                     <View style={{ marginTop: 16 }}>
                       <TermsCheck />
                     </View>

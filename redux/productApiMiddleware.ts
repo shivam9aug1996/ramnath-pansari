@@ -1,6 +1,7 @@
 import { showToast } from "@/utils/utils";
 import { clearAuthData } from "./features/authSlice";
 import * as SecureStore from "expo-secure-store";
+import { storage } from "@/utils/storage";
 
 const PRODUCT_CACHE_PREFIX = "PRODUCT_CACHE_";
 const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
@@ -34,7 +35,8 @@ const productApiMiddleware = (store: any) => (next: any) => async (action: any) 
             limit: limit || "10"
           };
           
-          await SecureStore.setItemAsync(cacheKey, JSON.stringify(cacheData));
+          // await SecureStore.setItemAsync(cacheKey, JSON.stringify(cacheData));
+          await storage.setItem(cacheKey, JSON.stringify(cacheData));
           console.log(`✅ Cached products for category ${categoryId}, page 1`);
         }
         console.log("1234567890123456876547890",action.type);
@@ -43,7 +45,8 @@ const productApiMiddleware = (store: any) => (next: any) => async (action: any) 
         if (action.type?.includes("pending")) {
             console.log("1234567890");
           // Try to get cached data first
-          const cachedString = await SecureStore.getItemAsync(cacheKey);
+         //const cachedString = await SecureStore.getItemAsync(cacheKey);
+         const cachedString = await storage.getItem(cacheKey);
           if (cachedString) {
             console.log("12345678904567890");
             const cached = JSON.parse(cachedString);
@@ -75,7 +78,8 @@ const productApiMiddleware = (store: any) => (next: any) => async (action: any) 
             } else {
               console.log(`⏰ Cache expired for category ${categoryId}, page 1`);
               // Remove expired cache
-              await SecureStore.deleteItemAsync(cacheKey);
+              //await SecureStore.deleteItemAsync(cacheKey);
+              await storage.removeItem(cacheKey);
             }
           }
         }

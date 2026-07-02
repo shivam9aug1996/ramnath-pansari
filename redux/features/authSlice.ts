@@ -15,6 +15,8 @@ import { orderApi } from "./orderSlice";
 import { categoryApi } from "./categorySlice";
 import { resetAppSync } from "./appSyncSlice";
 import { clearRecentlyViewed } from "./recentlyViewedSlice";
+import { storage } from "@/utils/storage";
+import { StorageKeys } from "@/utils/storageKeys";
 
 // const saveAuthDataToAsyncStorage = async (token: any, userData: any) => {
 //   try {
@@ -30,7 +32,8 @@ export const saveAuthData = createAsyncThunk(
   async (data: SaveAuthDataPayload, { rejectWithValue }) => {
     const { token, userData } = data;
     try {
-      await SecureStore.setItemAsync("token", token);
+     // await SecureStore.setItemAsync("token", token);
+      await storage.setItem("token", token);
       // await AsyncStorage.setItem("token", token);
       await AsyncStorage.setItem("userData", JSON.stringify(userData));
       return { token, userData };
@@ -57,7 +60,8 @@ export const loadAuthData = createAsyncThunk(
       // await SecureStore.deleteItemAsync("GREETING_CACHE_KEY");
       // const token = await AsyncStorage?.getItem("token");
       
-      const token = await SecureStore.getItemAsync("token");
+      //const token = await SecureStore.getItemAsync("token");
+      const token = await storage.getItem("token");
       
       let userData = await AsyncStorage?.getItem("userData");
       await cleanOldProductCache(CACHE_DURATION);
@@ -99,7 +103,8 @@ dispatch(clearRecentlyViewed());
         isGuestUser:  true,
         _id : "68561b44fcdf732b24588202" 
       }) as any);
-      await SecureStore.deleteItemAsync("token");
+      //await SecureStore.deleteItemAsync("token");
+      await storage.removeItem("token");
       await AsyncStorage?.clear();
 
       const token = null;
@@ -118,7 +123,8 @@ export const loadPushToken = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       // use secure store to get the last saved push token
-      const lastSavedToken = await SecureStore.getItemAsync("lastSavedPushToken");
+     // const lastSavedToken = await SecureStore.getItemAsync("lastSavedPushToken");
+     const lastSavedToken = await storage.getItem("lastSavedPushToken");
       return lastSavedToken === null ? "loaded" : lastSavedToken;
     } catch (error) {
       return rejectWithValue("error in loadPushToken: " + JSON.stringify(error));
@@ -130,7 +136,8 @@ export const savePushTokenToStorage = createAsyncThunk(
   "auth/savePushTokenToStorage",
   async (token: string, { rejectWithValue }) => {
     try {
-      await SecureStore.setItemAsync("lastSavedPushToken", token);
+     // await SecureStore.setItemAsync("lastSavedPushToken", token);
+      await storage.setItem("lastSavedPushToken", token);
       return token;
     } catch (error) {
       return rejectWithValue("error in savePushTokenToStorage: " + JSON.stringify(error));

@@ -1,3 +1,5 @@
+import { storage } from "@/utils/storage";
+import { StorageKeys } from "@/utils/storageKeys";
 import * as Location from "expo-location";
 import * as SecureStore from "expo-secure-store";
 
@@ -16,7 +18,8 @@ export const fetchLocation = async () => {
     const now = Date.now();
 
     // Check SecureStore for cached location
-    const cached = await SecureStore.getItemAsync(LOCATION_CACHE_KEY);
+    // const cached = await SecureStore.getItemAsync(LOCATION_CACHE_KEY);
+    const cached = await storage.getItem(LOCATION_CACHE_KEY);
     if (cached) {
       const { timestamp, latitude, longitude } = JSON.parse(cached);
       const age = now - timestamp;
@@ -44,15 +47,12 @@ export const fetchLocation = async () => {
       await Location.getCurrentPositionAsync({});
     const { latitude, longitude } = getLatLng(location);
 
-    // Cache new location
-    await SecureStore.setItemAsync(
-      LOCATION_CACHE_KEY,
-      JSON.stringify({
-        timestamp: now,
-        latitude,
-        longitude,
-      })
-    );
+  
+    await storage.setItem(StorageKeys.locationCache, JSON.stringify({
+      timestamp: now,
+      latitude,
+      longitude,
+    }));
 
     //console.log("📍 New location fetched and cached");
     return { latitude, longitude };

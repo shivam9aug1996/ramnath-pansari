@@ -1,11 +1,15 @@
 import { router } from "expo-router";
 import { saveAuthData } from "@/redux/features/authSlice";
+import { getAppHomeRoute } from "@/utils/authRoles";
 
 type LoginPayload = {
   token: string;
   userData?: {
     name?: string;
+    mobileNumber?: string;
     isAdminUser?: boolean;
+    isDriverUser?: boolean;
+    driverId?: string;
   };
 };
 
@@ -16,11 +20,9 @@ export async function persistAuthAndNavigate(
   await dispatch(saveAuthData(data) as any).unwrap();
 
   if (data.userData?.name) {
-    if (data.userData.isAdminUser) {
-      router.replace("/admin/home");
-    } else {
-      router.replace("/(private)/(tabs)/home");
-    }
+    router.replace(
+      getAppHomeRoute(data.userData, data.token) as Parameters<typeof router.replace>[0],
+    );
     return;
   }
 

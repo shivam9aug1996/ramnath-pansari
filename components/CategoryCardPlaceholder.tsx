@@ -2,6 +2,7 @@ import { StyleSheet, View } from "react-native";
 import React, { memo } from "react";
 import ContentLoader, { Rect } from "react-content-loader/native";
 import CategorySelectorPlaceholder from "@/app/(private)/(category)/CategoryList/CategorySelectorPlaceholder";
+import { Platform } from "react-native";
 
 const LoaderBlock = ({
   width = 100,
@@ -9,17 +10,31 @@ const LoaderBlock = ({
 }: {
   width?: number | string;
   height?: number;
-}) => (
-  <ContentLoader
-    speed={2}
-    width={width}
-    height={height}
-    backgroundColor="#f3f3f3"
-    foregroundColor="#ecebeb"
-  >
-    <Rect rx={5} ry={5} width={width} height={height} />
-  </ContentLoader>
-);
+}) => {
+  if (Platform.OS === "web") {
+    return (
+      <View
+        style={{
+          width: typeof width === "number" ? width : 100,
+          height,
+          borderRadius: 5,
+          backgroundColor: "#f3f3f3",
+        }}
+      />
+    );
+  }
+  return (
+    <ContentLoader
+      speed={2}
+      width={width}
+      height={height}
+      backgroundColor="#f3f3f3"
+      foregroundColor="#ecebeb"
+    >
+      <Rect rx={5} ry={5} width={width} height={height} />
+    </ContentLoader>
+  );
+};
 
 const CategoryCardPlaceholder = ({
   index = 0,
@@ -76,4 +91,4 @@ const styles = StyleSheet.create({
   childrenContainer: {
     marginTop: 8,
   },
-}); 
+});

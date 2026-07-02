@@ -4,6 +4,8 @@ import { useLazyFetchGreetingMessageQuery } from "@/redux/features/cartSlice";
 import { getTimeOfDay } from "@/utils/huggingface";
 import { buildWeatherGreetingPrompt } from "../GreetingMessage/buildGreetingPrompt";
 import { sanitizeGreeting } from "../GreetingMessage/sanitizeGreeting";
+import { storage } from "@/utils/storage";
+import { StorageKeys } from "@/utils/storageKeys";
 
 const CACHE_DURATION = 60 * 60 * 1000;
 const FALLBACK_MESSAGE_GENERIC =
@@ -23,8 +25,8 @@ export function useWeatherGreetingMessage() {
   const fetchGreeting = async (weather: Weather) => {
     try {
       const now = Date.now();
-      const cached = await SecureStore.getItemAsync(key);
-
+      //const cached = await SecureStore.getItemAsync(key);
+const cached = await storage.getItem(key);
       if (cached) {
         const { text, timestamp } = JSON.parse(cached);
         const age = now - timestamp;
@@ -51,10 +53,15 @@ export function useWeatherGreetingMessage() {
 
       setGreeting(cleanText);
 
-      await SecureStore.setItemAsync(
-        key,
-        JSON.stringify({ text: cleanText, timestamp: now }),
-      );
+      // await SecureStore.setItemAsync(
+      //   key,
+      //   JSON.stringify({ text: cleanText, timestamp: now }),
+      // );
+
+      await storage.setItem(key, JSON.stringify({
+        text: cleanText,
+        timestamp: now,
+      }));
       return cleanText;
     } catch (err) {
       console.log("Failed to fetch AI greeting", err);

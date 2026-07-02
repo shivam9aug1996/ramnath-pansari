@@ -41,6 +41,8 @@ interface UserData {
   profileImage?: null;
   isAdminUser?: boolean;
   isGuestUser?: boolean;
+  isDriverUser?: boolean;
+  driverId?: string;
 }
 
 interface AsyncState<T> {
@@ -280,6 +282,14 @@ export interface AdminOrderDocument {
   amountPaid?: string;
   subtotal?: number;
   deliveryFee?: number;
+  assignedDriver?: {
+    driverId: string;
+    driverUserId?: string;
+    name: string;
+    phone: string;
+    assignedAt?: string;
+  } | null;
+  driverTrackingStatus?: string | null;
 }
 
 export interface AdminOrderListResponse {
@@ -324,6 +334,8 @@ export interface AdminUserDocument {
   profileImage: unknown;
   isAdminUser: boolean;
   isGuestUser: boolean;
+  isDriverUser: boolean;
+  driverId?: string;
   orderCount?: number;
   createdAt?: string;
 }
@@ -340,13 +352,52 @@ export interface AdminUserInput {
   password: string;
   name?: string;
   isAdminUser?: boolean;
+  isDriverUser?: boolean;
 }
 
 export interface AdminUserUpdateInput {
   name?: string;
   khataUrl?: string | null;
   isAdminUser?: boolean;
+  isDriverUser?: boolean;
   password?: string;
+}
+
+export interface DriverOrderSummary {
+  _id: string;
+  orderId: string;
+  orderStatus: string;
+  driverTrackingStatus?: string | null;
+  customerName: string;
+  customerPhone: string;
+  deliveryAddress: string;
+  latitude: number | null;
+  longitude: number | null;
+  amountPaid?: string;
+  totalProductCount?: number;
+  itemCount: number;
+  imgArr: string[];
+  assignedDriver?: {
+    driverId: string;
+    name: string;
+    phone: string;
+    assignedAt?: string;
+  } | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DriverOrdersResponse {
+  orders: DriverOrderSummary[];
+  activeDeliveryOrderId: string | null;
+  driverId: string;
+}
+
+export interface AdminDriverOption {
+  _id: string;
+  driverId: string;
+  name: string;
+  mobileNumber: string;
 }
 
 export interface AdminCategoryListResponse {

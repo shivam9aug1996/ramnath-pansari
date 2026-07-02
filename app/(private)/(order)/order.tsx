@@ -9,7 +9,6 @@ import {
   View,
 } from "react-native";
 import React, { useCallback, useEffect, useState } from "react";
-import OrderComp from "./OrderComp";
 import Push from "./Push";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import { useFetchOrdersQuery } from "@/redux/features/orderSlice";

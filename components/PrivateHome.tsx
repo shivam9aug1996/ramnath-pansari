@@ -66,7 +66,8 @@ const PrivateHome = () => {
   } = useFetchCategoriesQuery({}, { skip: !token || !appSyncReady });
 
   const showCategorySkeleton =
-    !categories.length && (!appSyncReady || isCategoriesLoading || isCategoriesFetching);
+    !categories.length &&
+    (!appSyncReady || isCategoriesLoading || isCategoriesFetching);
 
   const lastCategoryLogKey = useRef<string | null>(null);
 
@@ -140,7 +141,10 @@ const PrivateHome = () => {
     try {
       if (isCategoriesUninitialized) {
         await dispatch(
-          categoryApi.endpoints.fetchCategories.initiate({}, { forceRefetch: true }),
+          categoryApi.endpoints.fetchCategories.initiate(
+            {},
+            { forceRefetch: true },
+          ),
         ).unwrap();
       } else {
         await refetch();
@@ -193,53 +197,47 @@ const PrivateHome = () => {
       showWeatherSection={true}
       showGradient={true}
     >
-      
-        <ScrollView
-          ref={scrollRef}
-          style={{ flex: 1 }}
-          stickyHeaderIndices={[1]}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
+      <ScrollView
+        ref={scrollRef}
+        style={{ flex: 1 }}
+        stickyHeaderIndices={[1]}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+        }
+        bounces={Platform.OS === "android" ? false : true}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 60 }]}
+      >
+        <DeferredFadeIn delay={100}>
+          <View
+            style={styles.topSection}
+            onLayout={(event) => {
+              layoutOffsets.current.top = event.nativeEvent.layout.height;
+              updateCategoriesScrollOffset();
+            }}
+          >
+            <DashboardHeader
+              userName={truncateText(userData?.name?.split(" ")[0], 10)}
+              profileImage={userData?.profileImage}
+              onProfilePress={handleProfilePress}
+              isGuestUser={userData?.isGuestUser}
             />
-          }
-          bounces={Platform.OS === "android" ? false : true}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: 60 },
-          ]}
-        >
-          <DeferredFadeIn delay={100}>
-            <View
-              style={styles.topSection}
-              onLayout={(event) => {
-                layoutOffsets.current.top = event.nativeEvent.layout.height;
-                updateCategoriesScrollOffset();
-              }}
-            >
-              <DashboardHeader
-                userName={truncateText(userData?.name?.split(" ")[0], 10)}
-                profileImage={userData?.profileImage}
-                onProfilePress={handleProfilePress}
-                isGuestUser={userData?.isGuestUser}
-              />
-            </View>
+          </View>
 
-            <View
-              style={styles.stickySearchBar}
-              onLayout={(event) => {
-                layoutOffsets.current.sticky = event.nativeEvent.layout.height;
-                updateCategoriesScrollOffset();
-              }}
-            >
-              <View style={styles.stickySearchBarContent}>
-                <HomeSearch compact />
-              </View>
+          <View
+            style={styles.stickySearchBar}
+            onLayout={(event) => {
+              layoutOffsets.current.sticky = event.nativeEvent.layout.height;
+              updateCategoriesScrollOffset();
+            }}
+          >
+            <View style={styles.stickySearchBarContent}>
+              <HomeSearch compact />
             </View>
+          </View>
 
-            <View style={styles.mainContent}>
+          <View style={styles.mainContent}>
+            {Platform.OS !== "web" && (
               <DeferredFadeIn
                 delay={100}
                 fallback={
@@ -253,51 +251,50 @@ const PrivateHome = () => {
               >
                 <Carasole onScrollToCategories={scrollToCategories} />
               </DeferredFadeIn>
+            )}
 
-              <View style={styles.weatherSection}>
-                <DeferredFadeIn delay={0}>
-                  <WeatherSection />
-                </DeferredFadeIn>
-              </View>
-
-              <View
-                ref={categoriesRef}
-                collapsable={false}
-                onLayout={(event) => {
-                  layoutOffsets.current.categoriesInMain =
-                    event.nativeEvent.layout.y;
-                  updateCategoriesScrollOffset();
-                }}
-              >
-                {showCategorySkeleton
-                  ? Array.from({ length: CATEGORY_PLACEHOLDER_COUNT }).map(
-                      (_, index) => (
-                        <CategoryCardPlaceholder
-                          key={`category-skeleton-${index}`}
-                          index={index}
-                          length={CATEGORY_PLACEHOLDER_COUNT}
-                        />
-                      ),
-                    )
-                  : categories.map(
-                      (category: Category, index: number) => (
-                        <CategoryCard
-                          key={category?._id?.toString()}
-                          category={category}
-                          index={index}
-                          onSelect={handleCategorySelect}
-                          length={categories.length}
-                        />
-                      ),
-                    )}
-              </View>
-
-              <DeferredFadeIn delay={500}>
-                <RecentlyViewedProducts variant="compact" />
+            <View style={styles.weatherSection}>
+              <DeferredFadeIn delay={0}>
+                <WeatherSection />
               </DeferredFadeIn>
             </View>
-          </DeferredFadeIn>
-        </ScrollView>
+
+            <View
+              ref={categoriesRef}
+              collapsable={false}
+              onLayout={(event) => {
+                layoutOffsets.current.categoriesInMain =
+                  event.nativeEvent.layout.y;
+                updateCategoriesScrollOffset();
+              }}
+            >
+              {showCategorySkeleton
+                ? Array.from({ length: CATEGORY_PLACEHOLDER_COUNT }).map(
+                    (_, index) => (
+                      <CategoryCardPlaceholder
+                        key={`category-skeleton-${index}`}
+                        index={index}
+                        length={CATEGORY_PLACEHOLDER_COUNT}
+                      />
+                    ),
+                  )
+                : categories.map((category: Category, index: number) => (
+                    <CategoryCard
+                      key={category?._id?.toString()}
+                      category={category}
+                      index={index}
+                      onSelect={handleCategorySelect}
+                      length={categories.length}
+                    />
+                  ))}
+            </View>
+
+            <DeferredFadeIn delay={500}>
+              <RecentlyViewedProducts variant="compact" />
+            </DeferredFadeIn>
+          </View>
+        </DeferredFadeIn>
+      </ScrollView>
     </ScreenSafeWrapper>
   );
 };

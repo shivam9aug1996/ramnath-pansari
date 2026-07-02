@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center", // Center the content within the card
+    justifyContent: "center", 
   },
   icon: {
     width: 60, // Slightly larger icon if used
@@ -217,7 +217,9 @@ const styles = StyleSheet.create({
     marginRight: 10, // Space between icon and text
   },
   textWrapper: {
-    // No specific styles needed here, as text will naturally center
+    flex: 1,
+  flexShrink: 1,
+  minWidth: 0,   
   },
   greetingText: {
     fontSize: 13, // Slightly larger font size

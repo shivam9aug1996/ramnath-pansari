@@ -24,6 +24,7 @@ const CreateUserScreen = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const [isDriverUser, setIsDriverUser] = useState(false);
 
   const onSubmit = async () => {
     const mobile = mobileNumber.trim();
@@ -42,6 +43,7 @@ const CreateUserScreen = () => {
         password,
         name: name.trim() || undefined,
         isAdminUser,
+        isDriverUser,
       }).unwrap();
       Alert.alert('Created', 'User added successfully');
       router.back();
@@ -97,6 +99,19 @@ const CreateUserScreen = () => {
             value={isAdminUser}
             onValueChange={setIsAdminUser}
             trackColor={{ false: '#E2E8F0', true: Colors.light.gradientGreen_2 }}
+            thumbColor="#fff"
+          />
+        </View>
+
+        <View style={styles.switchRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.switchLabel}>Driver access</Text>
+            <Text style={styles.switchHint}>Can open the driver delivery app</Text>
+          </View>
+          <Switch
+            value={isDriverUser}
+            onValueChange={setIsDriverUser}
+            trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
             thumbColor="#fff"
           />
         </View>

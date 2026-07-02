@@ -4,6 +4,8 @@ import { fetchLocation } from "./fetchLocation";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import { setError, setHour, setLoading, setWeather } from "@/redux/features/weatherSlice";
+import { storage } from "@/utils/storage";
+import { StorageKeys } from "@/utils/storageKeys";
 
 const OPENWEATHER_API_KEY = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
 const WEATHER_CACHE_KEY = "WEATHER_CACHE";
@@ -25,7 +27,8 @@ export function useWeatherInfo() {
       const now = Date.now();
 
       // 1. Check for cached weather
-      const cached = await SecureStore.getItemAsync(WEATHER_CACHE_KEY);
+      //const cached = await SecureStore.getItemAsync(WEATHER_CACHE_KEY);
+      const cached = await storage.getItem(WEATHER_CACHE_KEY);
       if (cached) {
         const { timestamp, weather: cachedWeather } = JSON.parse(cached);
         const age = now - timestamp;
@@ -63,13 +66,18 @@ export function useWeatherInfo() {
       dispatch(setHour(new Date().getHours()));
 
       // 5. Save to cache
-      await SecureStore.setItemAsync(
-        WEATHER_CACHE_KEY,
-        JSON.stringify({
-          timestamp: now,
-          weather: currentWeather,
-        })
-      );
+      // await SecureStore.setItemAsync(
+      //   WEATHER_CACHE_KEY,
+      //   JSON.stringify({
+      //     timestamp: now,
+      //     weather: currentWeather,
+      //   })
+      // );
+
+      await storage.setItem(WEATHER_CACHE_KEY, JSON.stringify({
+        timestamp: now,
+        weather: currentWeather,
+      }));
       return currentWeather;
       //console.log("💾 Weather cached successfully");
     } catch (err: any) {

@@ -33,6 +33,7 @@ export const useSendOtp = (): UseSendOtpProps => {
           mobileNumber,
           userAlreadyRegistered: data?.userAlreadyRegistered?.toString(),
           requiresEmailOtp: data?.requiresEmailOtp ? "true" : "false",
+          loginRole: data?.loginRole ?? "",
           otpSentTo: data?.otpSentTo ?? "",
         },
       });

@@ -1,6 +1,12 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
@@ -15,8 +21,10 @@ import LottieMenWalking from "../(address)/LottieMenWalking";
 
 const TAB_BAR_CONTENT_HEIGHT = 40;
 
+const tabBarContentHeight = Platform.OS === "web" ? 64 : TAB_BAR_CONTENT_HEIGHT;
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const tabBarBottomInset = Platform.OS === "web" ? 16 : insets.bottom;
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   const {
     data: cartData,
@@ -29,23 +37,25 @@ export default function TabLayout() {
     },
     {
       skip: !userId,
-    }
+    },
   );
 
   const cartItems = cartData?.cart?.items?.length || 0;
 
   return (
-   
-   
     <Tabs
       screenOptions={({ route }) => ({
         headerShown: false,
-        animation:"shift",
+        animation: "shift",
         tabBarStyle: {
-          height: TAB_BAR_CONTENT_HEIGHT + insets.bottom,
-          paddingBottom: insets.bottom + 8,
+          height: tabBarContentHeight + tabBarBottomInset,
+          paddingBottom: tabBarBottomInset + 8,
           display:
-            route.name === "cat" || route.name === "search" || route.name === "mapTab" ? "none" : "flex",
+            route.name === "cat" ||
+            route.name === "search" ||
+            route.name === "mapTab"
+              ? "none"
+              : "flex",
         },
 
         tabBarHideOnKeyboard: true,
@@ -121,15 +131,20 @@ export default function TabLayout() {
                         position: "absolute",
                         // right: 12,
                         // top: 12,
-                        right:15,
-                        top:20,
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        right: 15,
+                        top: 20,
+                        alignItems: "center",
+                        justifyContent: "center",
                         paddingHorizontal: 2,
-                        zIndex:1
+                        zIndex: 1,
                       }}
                     >
-                      <Text style={{ color: 'white', fontSize: Platform.OS === "android" ? 8 : 10 }}>
+                      <Text
+                        style={{
+                          color: "white",
+                          fontSize: Platform.OS === "android" ? 8 : 10,
+                        }}
+                      >
                         {cartItems}
                       </Text>
                     </View>
@@ -149,13 +164,18 @@ export default function TabLayout() {
                       position: "absolute",
                       top: 0,
                       right: -2,
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      alignItems: "center",
+                      justifyContent: "center",
                       paddingHorizontal: 2,
-                      zIndex:1
+                      zIndex: 1,
                     }}
                   >
-                    <Text style={{ color: 'white', fontSize: Platform.OS === "android" ? 8 : 10 }}>
+                    <Text
+                      style={{
+                        color: "white",
+                        fontSize: Platform.OS === "android" ? 8 : 10,
+                      }}
+                    >
                       {cartItems}
                     </Text>
                   </View>
@@ -219,7 +239,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
-    
   );
 }
 

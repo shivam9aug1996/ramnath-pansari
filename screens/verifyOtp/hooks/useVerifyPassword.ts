@@ -5,6 +5,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { useVerifyOtpMutation } from "@/redux/features/authSlice";
 import { RootState } from "@/types/global";
 import { persistAuthAndNavigate } from "@/utils/completeLogin";
+import {
+  ADMIN_LOGIN_MOBILE,
+  DRIVER_LOGIN_MOBILE,
+} from "@/constants/AuthLogin";
 
 interface VerifyPasswordHook {
   isLoading: boolean;
@@ -14,6 +18,8 @@ interface VerifyPasswordHook {
   otp: string;
   setOtp: React.Dispatch<React.SetStateAction<string>>;
   isAdminLogin: boolean;
+  isDriverLogin: boolean;
+  requiresEmailOtp: boolean;
   otpSentTo: string | undefined;
   dismissKeyboard: () => void;
   resetInput: () => void;
@@ -42,14 +48,19 @@ const useVerifyPassword = (): VerifyPasswordHook => {
   const [otp, setOtp] = useState<string>("");
   const [isCompletingLogin, setIsCompletingLogin] = useState(false);
 
-  const { mobileNumber, userAlreadyRegistered, requiresEmailOtp, otpSentTo } =
+  const { mobileNumber, userAlreadyRegistered, requiresEmailOtp, otpSentTo, loginRole } =
     useLocalSearchParams<{
       mobileNumber?: string;
       userAlreadyRegistered?: string;
       requiresEmailOtp?: string;
       otpSentTo?: string;
+      loginRole?: string;
     }>();
-  const isAdminLogin = requiresEmailOtp === "true";
+  const requiresEmailOtpLogin = requiresEmailOtp === "true";
+  const isAdminLogin =
+    loginRole === "admin" || mobileNumber === ADMIN_LOGIN_MOBILE;
+  const isDriverLogin =
+    loginRole === "driver" || mobileNumber === DRIVER_LOGIN_MOBILE;
   const dispatch = useDispatch();
 
   const [verifyOtp, { isLoading }] = useVerifyOtpMutation();
@@ -57,7 +68,12 @@ const useVerifyPassword = (): VerifyPasswordHook => {
   const completeLogin = useCallback(
     async (payload: {
       token: string;
-      userData?: { name?: string; isAdminUser?: boolean };
+      userData?: {
+        name?: string;
+        isAdminUser?: boolean;
+        isDriverUser?: boolean;
+        driverId?: string;
+      };
     }) => {
       setIsCompletingLogin(true);
       try {
@@ -103,7 +119,7 @@ const useVerifyPassword = (): VerifyPasswordHook => {
         return;
       }
 
-      if (isAdminLogin) {
+      if (requiresEmailOtpLogin) {
         const otpError = validateOtp(otp);
         if (otpError) {
           setErrorState(otpError);
@@ -115,7 +131,7 @@ const useVerifyPassword = (): VerifyPasswordHook => {
         const result = await verifyOtp({
           mobileNumber: mobileNumber || "",
           password: passwordValue,
-          ...(isAdminLogin ? { otp } : {}),
+          ...(requiresEmailOtpLogin ? { otp } : {}),
         }).unwrap();
         await completeLogin(result);
       } catch (error) {
@@ -127,7 +143,7 @@ const useVerifyPassword = (): VerifyPasswordHook => {
     [
       mobileNumber,
       otp,
-      isAdminLogin,
+      requiresEmailOtpLogin,
       validatePassword,
       validateOtp,
       verifyOtp,
@@ -152,6 +168,8 @@ const useVerifyPassword = (): VerifyPasswordHook => {
     otp,
     setOtp,
     isAdminLogin,
+    isDriverLogin,
+    requiresEmailOtp: requiresEmailOtpLogin,
     otpSentTo,
     dismissKeyboard,
     resetInput,

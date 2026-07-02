@@ -12,17 +12,20 @@ export default function PromoConfigSync() {
   const isAdminUser = useSelector(
     (state: RootState) => state.auth?.userData?.isAdminUser,
   );
+  const isDriverUser = useSelector(
+    (state: RootState) => state.auth?.userData?.isDriverUser,
+  );
   const isGuestUser = useSelector(
     (state: RootState) => state.auth?.userData?.isGuestUser,
   );
 
   useEffect(() => {
-    if (!userId || isAdminUser) return;
+    if (!userId || isAdminUser || isDriverUser) return;
     syncAppState(dispatch, { token, userId, isGuestUser }).catch(() => {});
-  }, [dispatch, token, userId, isAdminUser, isGuestUser]);
+  }, [dispatch, token, userId, isAdminUser, isDriverUser, isGuestUser]);
 
   useEffect(() => {
-    if (!userId || isAdminUser) return;
+    if (!userId || isAdminUser || isDriverUser) return;
 
     const subscription = AppState.addEventListener("change", (nextState) => {
       if (nextState === "active") {
@@ -31,7 +34,7 @@ export default function PromoConfigSync() {
     });
 
     return () => subscription.remove();
-  }, [dispatch, token, userId, isAdminUser, isGuestUser]);
+  }, [dispatch, token, userId, isAdminUser, isDriverUser, isGuestUser]);
 
   return null;
 }

@@ -215,7 +215,7 @@ const OrderDetailComp = ({
 
   return (
     <ScreenSafeWrapper showCartIcon>
-      <OrderLottie />
+      {Platform.OS !== "web" && <OrderLottie />}
       <DeferredFadeIn delay={100} style={{ flex: 1 }}>
         {expectsLiveMap ? (
           <View style={styles.liveMapBleed}>
