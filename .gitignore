@@ -22,3 +22,5 @@ web-build/
 expo-env.d.ts
 # @end expo-cli
 # android/app/google-services.jsonramnath-pansari-6aea0-firebase-adminsdk-5919t-57966b725e.json
+*-firebase-adminsdk-*.json
+ramnath-pansari-6aea0-firebase-adminsdk-5919t-57966b725e.json
