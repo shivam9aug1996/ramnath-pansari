@@ -17,7 +17,8 @@
     "test": "jest --watchAll",
     "test:ci": "jest --ci --coverage",
     "lint": "expo lint",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "build:web": "expo export -p web"
   },
   "jest": {
     "testEnvironment": "node",
