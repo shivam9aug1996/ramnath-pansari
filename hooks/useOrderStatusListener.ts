@@ -38,12 +38,15 @@ export function useOrderStatusListener() {
   const isGuestUser = useSelector(
     (state: RootState) => state?.auth?.userData?.isGuestUser,
   );
+  const isAdminUser = useSelector(
+    (state: RootState) => state?.auth?.userData?.isAdminUser,
+  );
   const dispatch = useDispatch();
   const prevOrdersRef = useRef<ActiveOrderSnapshot>({});
   const isInitialSnapshotRef = useRef(true);
 
   useEffect(() => {
-    if (!userId || isGuestUser) return;
+    if (!userId || isGuestUser || isAdminUser) return;
 
     prevOrdersRef.current = {};
     isInitialSnapshotRef.current = true;
