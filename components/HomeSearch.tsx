@@ -13,6 +13,8 @@ import { RootState } from "@/types/global";
 import { Colors } from "@/constants/Colors";
 import { useCachedRecentSearch } from "@/hooks/useCachedRecentSearch";
 import CustomTextInput from "./CustomTextInput";
+import { setCurrentSearchQuery } from "@/redux/features/searchSlice";
+import { useDispatch } from "react-redux";
 const ANIMATION_DURATION = 250;
 const PLACEHOLDER_INTERVAL = 2500;
 
@@ -20,6 +22,7 @@ const HomeSearch = ({ compact = false }: { compact?: boolean }) => {
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   const data = useCachedRecentSearch(userId, "HomeSearch");
   const isFocused = useIsFocused();
+  const dispatch = useDispatch();
 
   const dataKey = data.length
     ? data
@@ -147,6 +150,7 @@ const HomeSearch = ({ compact = false }: { compact?: boolean }) => {
   }));
 
   const handlePress = () => {
+    dispatch(setCurrentSearchQuery(''));
     router.push("/(search)/search");
   };
 

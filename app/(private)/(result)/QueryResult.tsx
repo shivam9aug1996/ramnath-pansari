@@ -13,6 +13,7 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import {
   searchApi,
+  setCurrentSearchQuery,
   useFetchProductsBySearchQuery,
   useLazyFetchProductsBySearchQuery,
 } from "@/redux/features/searchSlice";
@@ -429,7 +430,11 @@ const listContentContainerStyle = useMemo(
               value={query}
               type="search"
               variant={2}
-              onPress={() => router.back()}
+              onPress={() => {
+                dispatch(setCurrentSearchQuery(query));
+                router.back();
+                router.navigate("/(search)/search");
+              }}
               wrapperStyle={styles.textInputWrapper}
               numberOfLines={1}
             />

@@ -61,11 +61,13 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
 
   return (
     <Pressable
-      onPress={() => {
+      onPress={(e) => {
         onPress?.();
         if (type === "search" && variant === 2) {
         } else {
-          focusTextInput();
+          if(Platform.OS !== "web"){
+            focusTextInput();
+          }
         }
       }}
       style={[styles.inputContainer, wrapperStyle]}
@@ -226,7 +228,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             autoCorrect={false}
             autoCapitalize={"none"}
           />
-          {defaultValue && (
+          {defaultValue && Platform.OS !== "web" && (
             <Ionicons
               onPress={onClear}
               style={[

@@ -3,7 +3,7 @@
     "name": "Ramnath Pansari",
     "slug": "ramnath-pansari-v1",
     "description": "Ramnath Pansari's app delivers groceries, herbal products, pooja items, wedding essentials, and chemicals quickly to your doorstep. It's your one-stop shop for daily and special needs, offering convenience and fast service.",
-    "version": "1.0.26",
+    "version": "1.0.27",
     "orientation": "portrait",
     "icon": "./assets/images/icon2.png",
     "scheme": "myapp",
@@ -57,7 +57,9 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to share your location during deliveries.",
+          "locationWhenInUsePermission": "$(PRODUCT_NAME) uses your location to set delivery addresses on the map and show local weather near you. For example, when you save a home or work address, your coordinates place the map pin so we can route your grocery order to the correct doorstep.",
+          "locationAlwaysAndWhenInUsePermission": "$(PRODUCT_NAME) uses your location to share live delivery progress with customers when you are an active delivery partner. For example, after you tap Start Delivery, your GPS updates on the map so the customer can track their order until it arrives.",
+          "locationAlwaysPermission": "$(PRODUCT_NAME) uses your location in the background during active deliveries to share live driver position with customers. For example, while you navigate to the customer, your location updates on the order tracking map until the delivery is complete.",
           "isAndroidForegroundServiceEnabled": true,
           "isIosBackgroundLocationEnabled": true
         }
@@ -94,7 +96,8 @@
         {
           "enableBackgroundRemoteNotifications": true
         }
-      ]
+      ],
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true
@@ -108,6 +111,6 @@
       }
     },
     "owner": "shivam9aug1996",
-    "runtimeVersion": "1.0.26"
+    "runtimeVersion": "1.0.27"
   }
 }

@@ -19,7 +19,7 @@
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.26</string>
+    <string>1.0.27</string>
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundleURLTypes</key>
@@ -66,11 +66,11 @@
     <key>NSLocalNetworkUsageDescription</key>
     <string>Expo Dev Launcher uses the local network to discover and connect to development servers running on your computer.</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to share your location during deliveries.</string>
+    <string>$(PRODUCT_NAME) uses your location to share live delivery progress with customers when you are an active delivery partner. For example, after you tap Start Delivery, your GPS updates on the map so the customer can track their order until it arrives.</string>
     <key>NSLocationAlwaysUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your location</string>
+    <string>$(PRODUCT_NAME) uses your location in the background during active deliveries to share live driver position with customers. For example, while you navigate to the customer, your location updates on the order tracking map until the delivery is complete.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your location</string>
+    <string>$(PRODUCT_NAME) uses your location to set delivery addresses on the map and show local weather near you. For example, when you save a home or work address, your coordinates place the map pin so we can route your grocery order to the correct doorstep.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your microphone</string>
     <key>NSMotionUsageDescription</key>

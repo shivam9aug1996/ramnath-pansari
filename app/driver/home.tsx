@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -24,6 +23,7 @@ import {
   stopDriverLocationTracking,
 } from "@/utils/driverLocationTask";
 import StatusBadge from "@/app/admin/components/StatusBadge";
+import { confirmAction } from "@/utils/platformAlert";
 
 const DriverHomeScreen = () => {
   const router = useRouter();
@@ -52,22 +52,20 @@ const DriverHomeScreen = () => {
     refetch();
   }, [refetch]);
 
-  const onLogoutPress = useCallback(() => {
-    Alert.alert("Log out", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Log out",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await stopDriverLocationTracking();
-            await logout({}).unwrap();
-          } catch {
-            // Auth middleware still clears local session on failure
-          }
-        },
-      },
-    ]);
+  const onLogoutPress = useCallback(async () => {
+    const confirmed = await confirmAction(
+      "Log out",
+      "Are you sure you want to log out?",
+      "Log out",
+    );
+    if (!confirmed) return;
+
+    try {
+      await stopDriverLocationTracking();
+      await logout({}).unwrap();
+    } catch {
+      // Auth middleware still clears local session on failure
+    }
   }, [logout]);
 
   const orders = data?.orders ?? [];

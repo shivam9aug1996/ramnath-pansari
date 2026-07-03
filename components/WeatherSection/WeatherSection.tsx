@@ -93,7 +93,7 @@ const WeatherSection = () => {
       setCurrentMessage(nextMessage);
     }, 5000);
   };
-
+console.log("currentMessage",currentMessage)
 
   return (
     <View >

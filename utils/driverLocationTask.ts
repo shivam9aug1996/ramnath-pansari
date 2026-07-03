@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
-import * as TaskManager from "expo-task-manager";
+import { Platform } from "react-native";
 import { push, ref } from "firebase/database";
 import { database } from "@/firebase";
 
@@ -23,6 +23,8 @@ type LocationSendSource = "background-task" | "initial-fix" | "interval";
 let foregroundInterval: ReturnType<typeof setInterval> | null = null;
 let lastLocationSendAt = 0;
 let sendInFlight = false;
+
+const isWeb = Platform.OS === "web";
 
 function shouldSkipSend(source: LocationSendSource) {
   if (source === "initial-fix") return false;
@@ -95,26 +97,7 @@ function clearForegroundInterval() {
   foregroundInterval = null;
 }
 
-TaskManager.defineTask(DRIVER_LOCATION_TASK, async ({ data, error }) => {
-  if (error) return;
-
-  const locations = (data as { locations?: Location.LocationObject[] })?.locations;
-  if (!locations?.length) return;
-
-  const latest = locations[locations.length - 1];
-
-  try {
-    await pushLocationFromCoords(
-      latest.coords.latitude,
-      latest.coords.longitude,
-      "background-task",
-    );
-  } catch {
-    // ignore transient firebase/network errors; next tick will retry
-  }
-});
-
-async function ensurePermissions() {
+async function ensureNativePermissions() {
   const fg = await Location.requestForegroundPermissionsAsync();
   if (fg.status !== "granted") {
     throw new Error("Location permission is required for live delivery tracking");
@@ -126,16 +109,30 @@ async function ensurePermissions() {
   }
 }
 
-export async function startDriverLocationTracking(
-  orderId: string,
-  driverId: string,
-) {
-  await ensurePermissions();
-  await AsyncStorage.setItem(ACTIVE_DRIVER_ORDER_KEY, orderId);
-  await AsyncStorage.setItem(ACTIVE_DRIVER_ID_KEY, driverId);
+/** Web: foreground geolocation only (no background / TaskManager). */
+async function ensureWebPermissions() {
+  try {
+    const fg = await Location.requestForegroundPermissionsAsync();
+    if (fg.status === "granted") return;
+    if (fg.status === "denied") {
+      throw new Error("Location permission is required for live delivery tracking");
+    }
+  } catch {
+    // Some browsers lack navigator.permissions.query — fall through to geolocation prompt.
+  }
 
-  clearForegroundInterval();
+  try {
+    await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced,
+    });
+  } catch {
+    throw new Error(
+      "Location permission is required. Allow location access in your browser to share live delivery updates.",
+    );
+  }
+}
 
+async function startNativeBackgroundTracking() {
   const started = await Location.hasStartedLocationUpdatesAsync(DRIVER_LOCATION_TASK);
   if (started) {
     await Location.stopLocationUpdatesAsync(DRIVER_LOCATION_TASK);
@@ -152,22 +149,54 @@ export async function startDriverLocationTracking(
       notificationColor: "#194B38",
     },
   });
+}
 
+async function stopNativeBackgroundTracking() {
+  const started = await Location.hasStartedLocationUpdatesAsync(DRIVER_LOCATION_TASK);
+  if (started) {
+    await Location.stopLocationUpdatesAsync(DRIVER_LOCATION_TASK);
+  }
+}
+
+async function startForegroundTrackingLoop() {
   startForegroundInterval();
 
   try {
     await tickSendCurrentLocation("initial-fix");
   } catch {
-    // initial fix is best-effort; interval + background task will retry
+    // initial fix is best-effort; interval will retry
   }
+}
+
+export async function startDriverLocationTracking(
+  orderId: string,
+  driverId: string,
+) {
+  if (isWeb) {
+    await ensureWebPermissions();
+  } else {
+    await ensureNativePermissions();
+  }
+
+  await AsyncStorage.setItem(ACTIVE_DRIVER_ORDER_KEY, orderId);
+  await AsyncStorage.setItem(ACTIVE_DRIVER_ID_KEY, driverId);
+
+  clearForegroundInterval();
+
+  if (!isWeb) {
+    await startNativeBackgroundTracking();
+  }
+
+  await startForegroundTrackingLoop();
 }
 
 export async function stopDriverLocationTracking() {
   clearForegroundInterval();
-  const started = await Location.hasStartedLocationUpdatesAsync(DRIVER_LOCATION_TASK);
-  if (started) {
-    await Location.stopLocationUpdatesAsync(DRIVER_LOCATION_TASK);
+
+  if (!isWeb) {
+    await stopNativeBackgroundTracking();
   }
+
   await AsyncStorage.multiRemove([
     ACTIVE_DRIVER_ORDER_KEY,
     ACTIVE_DRIVER_ID_KEY,
@@ -183,6 +212,13 @@ export async function resumeDriverLocationTrackingIfNeeded(driverId: string) {
   const orderId = await getActiveDriverOrderId();
   if (!orderId) return null;
 
+  if (isWeb) {
+    await AsyncStorage.setItem(ACTIVE_DRIVER_ID_KEY, driverId);
+    startForegroundInterval();
+    tickSendCurrentLocation("initial-fix").catch(() => {});
+    return orderId;
+  }
+
   const started = await Location.hasStartedLocationUpdatesAsync(DRIVER_LOCATION_TASK);
   if (!started) {
     await startDriverLocationTracking(orderId, driverId);
@@ -190,4 +226,29 @@ export async function resumeDriverLocationTrackingIfNeeded(driverId: string) {
     startForegroundInterval();
   }
   return orderId;
+}
+
+// Background task registration is native-only; expo-task-manager is unavailable on web.
+if (!isWeb) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const TaskManager = require("expo-task-manager") as typeof import("expo-task-manager");
+
+  TaskManager.defineTask(DRIVER_LOCATION_TASK, async ({ data, error }) => {
+    if (error) return;
+
+    const locations = (data as { locations?: Location.LocationObject[] })?.locations;
+    if (!locations?.length) return;
+
+    const latest = locations[locations.length - 1];
+
+    try {
+      await pushLocationFromCoords(
+        latest.coords.latitude,
+        latest.coords.longitude,
+        "background-task",
+      );
+    } catch {
+      // ignore transient firebase/network errors; next tick will retry
+    }
+  });
 }

@@ -176,7 +176,7 @@ function Carasole({ onScrollToCategories }: CarasoleProps) {
   }
 
   return (
-    <View style={{ flex: 1, marginHorizontal: 5 }}>
+    <View style={{ flex: 1, marginHorizontal: 5, left:5 }}>
       <View
         style={{
           flex: 1,

@@ -1,8 +1,8 @@
 import React, { useMemo } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Linking,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -30,6 +30,7 @@ import {
   stopDriverLocationTracking,
 } from "@/utils/driverLocationTask";
 import { getDriverErrorMessage } from "@/utils/driverDebug";
+import { confirmAction, showAlert } from "@/utils/platformAlert";
 
 const DriverOrderDetailScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -67,7 +68,7 @@ const DriverOrderDetailScreen = () => {
 
   const onNavigate = () => {
     if (!hasCoords || order?.latitude == null || order?.longitude == null) {
-      Alert.alert("Missing location", "This order has no delivery coordinates.");
+      showAlert("Missing location", "This order has no delivery coordinates.");
       return;
     }
     openGoogleMapsNavigation(order.latitude, order.longitude);
@@ -80,40 +81,46 @@ const DriverOrderDetailScreen = () => {
         result.orderId,
         String(effectiveDriverId),
       );
-      if (hasCoords && order?.latitude != null && order?.longitude != null) {
+      if (
+        Platform.OS !== "web" &&
+        hasCoords &&
+        order?.latitude != null &&
+        order?.longitude != null
+      ) {
         openGoogleMapsNavigation(order.latitude, order.longitude);
       }
-      Alert.alert("Started", "Delivery is live. Location is being shared.");
+      showAlert(
+        "Started",
+        Platform.OS === "web"
+          ? "Delivery is live. Keep this browser tab open to share your location. Use Navigate to open Google Maps."
+          : "Delivery is live. Location is being shared.",
+      );
       refetch();
     } catch (e: unknown) {
-      Alert.alert("Error", getDriverErrorMessage(e, "Could not start delivery"));
+      showAlert("Error", getDriverErrorMessage(e, "Could not start delivery"));
     }
   };
 
-  const onMarkDelivered = () => {
-    Alert.alert("Mark delivered", "Confirm that this order was delivered?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delivered",
-        onPress: async () => {
-          try {
-            await markDelivered({ id: orderMongoId }).unwrap();
-            await stopDriverLocationTracking();
-            Alert.alert("Done", "Order marked as delivered");
-            if (router.canGoBack()) {
-              router.back();
-            } else {
-              router.replace("/driver/home");
-            }
-          } catch (e: unknown) {
-            Alert.alert(
-              "Error",
-              getDriverErrorMessage(e, "Could not mark delivered"),
-            );
-          }
-        },
-      },
-    ]);
+  const onMarkDelivered = async () => {
+    const confirmed = await confirmAction(
+      "Mark delivered",
+      "Confirm that this order was delivered?",
+      "Delivered",
+    );
+    if (!confirmed) return;
+
+    try {
+      await markDelivered({ id: orderMongoId }).unwrap();
+      await stopDriverLocationTracking();
+      showAlert("Done", "Order marked as delivered");
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/driver/home");
+      }
+    } catch (e: unknown) {
+      showAlert("Error", getDriverErrorMessage(e, "Could not mark delivered"));
+    }
   };
 
   if (isLoading || !order) {
@@ -165,7 +172,9 @@ const DriverOrderDetailScreen = () => {
           <View style={styles.liveBanner}>
             <Ionicons name="radio-outline" size={18} color="#1D4ED8" />
             <Text style={styles.liveBannerText}>
-              Live location is being shared with customer and admin
+              {Platform.OS === "web"
+                ? "Live location is shared while this tab stays open. Return here after using Google Maps."
+                : "Live location is being shared with customer and admin"}
             </Text>
           </View>
         ) : null}

@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useCallback, useRef, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   Button,
   Keyboard,
@@ -21,10 +21,17 @@ import useSearchStageLioad from "@/hooks/useSearchStageLioad";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
 import { showToast } from "@/utils/utils";
 import _ from "lodash";
+import { useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
+import { RootState } from "@/types/global";
+import { setCurrentSearchQuery } from "@/redux/features/searchSlice";
 // const QueryData = lazy(() => import("./QueryData"));
 // const RecentSearch = lazy(() => import("./RecentSearch"));
 
 const Search = () => {
+  const dispatch = useDispatch();
+  const currentSearchQuery = useSelector((state: RootState) => state.search.currentSearchQuery);
+  console.log("currentSearchQuery", currentSearchQuery);
   const { showQueryData, showRecentSearch, showWrapper } =
     useSearchStageLioad();
     const queryRef = useRef("");
@@ -32,6 +39,11 @@ const Search = () => {
   const [typeLoading, setTypeLoading] = useState(false);
   const [isInputBoxFocused, setInputBoxFocused] = useState(true);
   const textInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    setQuery(currentSearchQuery);
+    queryRef.current = currentSearchQuery;
+  }, [currentSearchQuery]);
   useFocusEffect(
     useCallback(() => {
       setInputBoxFocused(true);
@@ -63,8 +75,11 @@ const Search = () => {
   };
 
   const handleClear = () => {
+    console.log("handleClear");
     queryRef.current = "";
     setQuery("");
+    dispatch(setCurrentSearchQuery(''));
+    textInputRef.current?.focus();
   }
 
   const handleCancel = () => {
@@ -73,14 +88,16 @@ const Search = () => {
   };
 
   const onPress = useCallback((query: string) => {
-    let timeoutId = setTimeout(() => {
-      setQuery(query);
-    }, 500);
+    // let timeoutId = setTimeout(() => {
+    //   //setQuery(query);
+    //   dispatch(setCurrentSearchQuery(query));
+    // }, 500);
+    
    // console.log("ytdfghjkjhgfd", query);
     router.push(`/(result)/${encodeURIComponent(query)}`);
 
     return () => {
-      clearTimeout(timeoutId); // Clear the timeout if the component unmounts or the function is re-triggered
+     // clearTimeout(timeoutId); // Clear the timeout if the component unmounts or the function is re-triggered
     };
   }, []);
   return (

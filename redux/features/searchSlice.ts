@@ -131,6 +131,7 @@ const searchSlice = createSlice({
   name: "searchSlice",
   initialState: {
     selectedSubCategoryId: null,
+    currentSearchQuery: '',
   },
   reducers: {
     setSelectedSubCategoryId: (state, action) => {
@@ -138,11 +139,14 @@ const searchSlice = createSlice({
         state.selectedSubCategoryId = action?.payload;
       }
     },
+    setCurrentSearchQuery: (state, action) => {
+        state.currentSearchQuery = action?.payload;
+    },
   },
   extraReducers: (builder) => {},
 });
 
-export const { setSelectedSubCategoryId } = searchSlice.actions;
+export const { setSelectedSubCategoryId, setCurrentSearchQuery } = searchSlice.actions;
 
 export const {
   useFetchProductsBySearchQuery,
