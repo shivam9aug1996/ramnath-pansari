@@ -37,7 +37,7 @@ const OnboardingItem = ({
           </ThemedText>
           <ThemedText style={styles.text}>{item.text}</ThemedText>
         </ThemedView>
-        <ThemedView style={{ flex: Platform.OS === "web" ? 1 : 0.5 }}>
+        <ThemedView style={{ flex: Platform.OS === "web" ? 1.5 : 0.5 }}>
           <Button handlePress={handlePress} isLoadingVerifyOtp={isLoadingVerifyOtp}/>
         </ThemedView>
       </ThemedView>

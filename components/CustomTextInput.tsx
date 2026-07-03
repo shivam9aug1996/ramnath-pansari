@@ -65,7 +65,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
         onPress?.();
         if (type === "search" && variant === 2) {
         } else {
-          if(Platform.OS !== "web"){
+          if (Platform.OS !== "web") {
             focusTextInput();
           }
         }
@@ -84,7 +84,10 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             value={value}
             onChangeText={onChangeText}
             ref={textInputRef}
-            style={styles.textInput}
+            style={[
+              styles.textInput,
+              Platform.OS === "web" && { marginLeft: 60 },
+            ]}
             maxLength={30}
             enterKeyHint={"enter"}
           />
@@ -94,18 +97,21 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
         <>
           <ThemedText style={styles.prefix}>+91</ThemedText>
           <TextInput
-           enterKeyHint="done"
-           maxLength={10}
-           autoFocus={true}
-           value={value}
-           onChangeText={onChangeText}
-           ref={textInputRef}
-           keyboardType="phone-pad"
-           style={[styles.textInput, Platform.OS === "web" && styles.phoneInputWeb]}
-           autoComplete="tel"
-           textContentType="telephoneNumber"
-           autoCorrect={false}
-           autoCapitalize="none"
+            enterKeyHint="done"
+            maxLength={10}
+            autoFocus={true}
+            value={value}
+            onChangeText={onChangeText}
+            ref={textInputRef}
+            keyboardType="phone-pad"
+            style={[
+              styles.textInput,
+              Platform.OS === "web" && styles.phoneInputWeb,
+            ]}
+            autoComplete="tel"
+            textContentType="telephoneNumber"
+            autoCorrect={false}
+            autoCapitalize="none"
           />
         </>
       )}
@@ -126,7 +132,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                 fontSize: 14,
                 color: Colors.light.darkGreen,
               },
-              Platform.OS === "web" && {marginLeft:60}
+              Platform.OS === "web" && { marginLeft: 60 },
             ]}
             maxLength={50}
             placeholder={"Search"}
@@ -174,7 +180,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                 // backgroundColor: "red",
               },
               textInputStyle,
-              Platform.OS === "web" && {marginLeft:60}
+              Platform.OS === "web" && { marginLeft: 60 },
             ]}
             maxLength={50}
             onPress={(e) => {
@@ -219,7 +225,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                 // backgroundColor: "red",
               },
               textInputStyle,
-              Platform.OS === "web" && {marginLeft:60}
+              Platform.OS === "web" && { marginLeft: 60 },
             ]}
             maxLength={50}
             placeholder={"Search"}

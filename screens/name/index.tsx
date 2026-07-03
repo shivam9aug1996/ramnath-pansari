@@ -66,7 +66,7 @@ const Name = () => {
               textInputRef={textInputRef}
               type={"name"}
             />
-            {errorState && (
+            {!!errorState && (
               <ThemedText
                 lightColor={Colors.light.lightRed}
                 style={styles.errorText}

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React from "react";
 import { ThemedView } from "./ThemedView";
 import { ThemedText } from "./ThemedText";
@@ -21,7 +21,7 @@ const StaticContent = () => {
   return (
     <ThemedView
       style={{
-        flex: 1,
+        flex: Platform.OS === "web" ? 0.5 : 1,
         paddingHorizontal: 30,
       }}
     >

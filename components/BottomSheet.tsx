@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     width: "100%",
-    height: "100%",
+    height: Platform.OS === "web" ? "120%" : "100%",
   },
   ellipseContainer: {
     position: "absolute",
