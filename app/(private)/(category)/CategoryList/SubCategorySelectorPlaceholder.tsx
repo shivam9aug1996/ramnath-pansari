@@ -1,21 +1,39 @@
-import { FlatList, Platform, StyleSheet } from "react-native";
+import { FlatList, Platform, StyleSheet, View } from "react-native";
 import React, { memo } from "react";
 import ContentLoader, { Rect } from "react-content-loader/native";
 import { categoryListPlaceholder } from "./utils";
 
 const SubCategorySelectorPlaceholder = ({ contentContainerStyle }) => {
   const renderLoader = (index: number) => {
+    const width = index === 0 ? 50 : 84;
+
+    if (Platform.OS === "web") {
+      return (
+        <View
+          key={index}
+          style={[
+            styles.loaderStyle,
+            {
+              width,
+              height: 36.7,
+              backgroundColor: "#f3f3f3",
+            },
+          ]}
+        />
+      );
+    }
+
     return (
       <ContentLoader
         key={index}
         speed={2}
-        width={index == 0 ? 50 : 84}
+        width={width}
         height={36.7}
         backgroundColor="#f3f3f3"
         foregroundColor="#ecebeb"
         style={styles.loaderStyle}
       >
-        {index == 0 ? (
+        {index === 0 ? (
           <Rect rx={20} ry={20} width="50" height="36.7" />
         ) : (
           <Rect rx={20} ry={20} width="84" height="36.7" />

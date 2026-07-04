@@ -113,7 +113,7 @@ export const InputField: React.FC<InputFieldProps> = memo(
             // value={value}
             defaultValue={defaultValue}
             onChangeText={onChange}
-            style={[styles.textInput, { left: !prefix && !iconName ? 25 : 60 }]}
+            style={[styles.textInput, { left: !prefix && !iconName ? 25 : 60 }, Platform.OS === "web" && { marginLeft: 60 }]}
             keyboardType={keyboardType}
             maxLength={maxLength}
             multiline={multiLine}

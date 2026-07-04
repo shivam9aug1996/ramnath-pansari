@@ -17,16 +17,20 @@ const PLACEHOLDER_DATA = Array.from({ length: 5 }, (_, index) => ({
 const RecentSearchPlaceholder = () => {
   const renderItem = ({ index }: { index: number }) => (
     <TouchableOpacity style={styles.item} key={index}>
-      <ContentLoader
-        speed={2}
-        width="100%"
-        height={30}
-        backgroundColor="#f3f3f3"
-        foregroundColor="#ecebeb"
-        style={styles.loaderContent}
-      >
-        <Rect rx={5} ry={5} width="100%" height={40} />
-      </ContentLoader>
+      {Platform.OS === "web" ? (
+        <View style={styles.webSkeleton} />
+      ) : (
+        <ContentLoader
+          speed={2}
+          width="100%"
+          height={30}
+          backgroundColor="#f3f3f3"
+          foregroundColor="#ecebeb"
+          style={styles.loaderContent}
+        >
+          <Rect rx={5} ry={5} width="100%" height={40} />
+        </ContentLoader>
+      )}
     </TouchableOpacity>
   );
 
@@ -61,5 +65,11 @@ const styles = StyleSheet.create({
   },
   loaderContent: {
     width: "100%",
+  },
+  webSkeleton: {
+    width: "100%",
+    height: 40,
+    borderRadius: 5,
+    backgroundColor: "#f3f3f3",
   },
 });

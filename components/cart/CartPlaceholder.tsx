@@ -1,10 +1,23 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import React from "react";
 import { Colors } from "@/constants/Colors";
 import { ThemedView } from "../ThemedView";
 import ContentLoader, { Rect } from "react-content-loader/native";
 
 const renderImageLoader = () => {
+  if (Platform.OS === "web") {
+    return (
+      <View
+        style={{
+          minHeight: 50,
+          minWidth: 50,
+          borderRadius: 18,
+          backgroundColor: "#f3f3f3",
+        }}
+      />
+    );
+  }
+
   return (
     <ContentLoader
       speed={1}
@@ -24,6 +37,16 @@ const renderImageLoader = () => {
 };
 
 const renderText = () => {
+  if (Platform.OS === "web") {
+    return (
+      <View style={{ gap: 15 }}>
+        <View style={styles.webTextLine} />
+        <View style={[styles.webTextLine, { width: "50%" }]} />
+        <View style={[styles.webTextLine, { width: "50%" }]} />
+      </View>
+    );
+  }
+
   return (
     <ContentLoader
       speed={1}
@@ -75,5 +98,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-evenly",
     flex: 1,
     marginLeft: 12,
+  },
+  webTextLine: {
+    width: "90%",
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#f3f3f3",
   },
 });

@@ -10,23 +10,56 @@ import {
 
 const cardStyles = addressCardStyles;
 
+const StaticBlock = ({
+  width,
+  height = 13,
+  style,
+}: {
+  width: number | `${number}%`;
+  height?: number;
+  style?: object;
+}) => (
+  <View
+    style={[
+      {
+        width,
+        height,
+        borderRadius: 5,
+        backgroundColor: "#f3f3f3",
+      },
+      style,
+    ]}
+  />
+);
+
 const LoaderBlock = ({
   width = "100%",
   height = 13,
 }: {
   width?: number | string;
   height?: number;
-}) => (
-  <ContentLoader
-    speed={1}
-    width={width}
-    height={height}
-    backgroundColor="#f3f3f3"
-    foregroundColor="#e3e3e3"
-  >
-    <Rect width={width} y={0} rx={5} ry={5} height={height} />
-  </ContentLoader>
-);
+}) => {
+  if (Platform.OS === "web") {
+    return (
+      <StaticBlock
+        width={width as number | `${number}%`}
+        height={height}
+      />
+    );
+  }
+
+  return (
+    <ContentLoader
+      speed={1}
+      width={width}
+      height={height}
+      backgroundColor="#f3f3f3"
+      foregroundColor="#e3e3e3"
+    >
+      <Rect width={width} y={0} rx={5} ry={5} height={height} />
+    </ContentLoader>
+  );
+};
 
 const AddressItemSkeleton = () => (
   <View style={cardStyles.card}>
