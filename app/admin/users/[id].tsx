@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Switch,
@@ -19,6 +18,7 @@ import {
 } from '@/redux/features/adminUserSlice';
 import { Colors } from '@/constants/Colors';
 import HeaderBar from '@/app/admin/components/HeaderBar';
+import { confirmAction, showAlert } from '@/utils/platformAlert';
 
 const UserDetailScreen = () => {
   const params = useLocalSearchParams<{ id: string }>();
@@ -47,7 +47,7 @@ const UserDetailScreen = () => {
   const onSave = async () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      Alert.alert('Validation', 'Name is required');
+      showAlert('Validation', 'Name is required');
       return;
     }
 
@@ -63,40 +63,34 @@ const UserDetailScreen = () => {
         },
       }).unwrap();
       setPassword('');
-      Alert.alert('Saved', 'User updated successfully');
+      showAlert('Saved', 'User updated successfully');
       refetch();
     } catch (e: unknown) {
       const msg =
         (e as { data?: { error?: { message?: string } } })?.data?.error?.message ||
         'Failed to update user';
-      Alert.alert('Error', msg);
+      showAlert('Error', msg);
     }
   };
 
-  const onDelete = () => {
-    Alert.alert(
+  const onDelete = async () => {
+    const confirmed = await confirmAction(
       'Delete user',
       'This permanently removes the user and their orders, cart, and addresses. Continue?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteUser({ id }).unwrap();
-              Alert.alert('Deleted', 'User removed');
-              router.back();
-            } catch (e: unknown) {
-              const msg =
-                (e as { data?: { error?: { message?: string } } })?.data?.error?.message ||
-                'Failed to delete user';
-              Alert.alert('Error', msg);
-            }
-          },
-        },
-      ],
+      'Delete',
     );
+    if (!confirmed) return;
+
+    try {
+      await deleteUser({ id }).unwrap();
+      showAlert('Deleted', 'User removed');
+      router.back();
+    } catch (e: unknown) {
+      const msg =
+        (e as { data?: { error?: { message?: string } } })?.data?.error?.message ||
+        'Failed to delete user';
+      showAlert('Error', msg);
+    }
   };
 
   if (isLoading || !data?.user) {

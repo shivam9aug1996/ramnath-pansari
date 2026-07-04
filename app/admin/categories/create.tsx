@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   StyleSheet,
@@ -21,6 +20,7 @@ import { Colors } from '@/constants/Colors';
 import HeaderBar from '@/app/admin/components/HeaderBar';
 import useDebounce from '@/hooks/useDebounce';
 import { flattenCategories } from './utils';
+import { showAlert } from '@/utils/platformAlert';
 
 type ParentOption = {
   _id: string | undefined;
@@ -71,7 +71,7 @@ const CreateCategoryScreen = () => {
   const onSubmit = async () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      Alert.alert('Validation', 'Category name is required');
+      showAlert('Validation', 'Category name is required');
       return;
     }
 
@@ -81,13 +81,13 @@ const CreateCategoryScreen = () => {
         image: image.trim() || null,
         parentCategoryId: parentId,
       }).unwrap();
-      Alert.alert('Created', 'Category added successfully');
+      showAlert('Created', 'Category added successfully');
       router.back();
     } catch (e: unknown) {
       const msg =
         (e as { data?: { error?: { message?: string } } })?.data?.error?.message ||
         'Failed to create category';
-      Alert.alert('Error', msg);
+      showAlert('Error', msg);
     }
   };
 

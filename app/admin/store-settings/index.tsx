@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Switch,
@@ -17,6 +16,7 @@ import {
   useGetAdminStoreConfigQuery,
   useUpdateAdminStoreConfigMutation,
 } from "@/redux/features/adminStoreConfigSlice";
+import { showAlert } from "@/utils/platformAlert";
 
 const AdminStoreSettingsScreen = () => {
   const { data, isLoading } = useGetAdminStoreConfigQuery();
@@ -49,7 +49,7 @@ const AdminStoreSettingsScreen = () => {
       await updateSettings({ acceptingOrders: value }).unwrap();
     } catch (error: any) {
       setAcceptingOrders(previous);
-      Alert.alert(
+      showAlert(
         "Could not update",
         error?.data?.error?.message ?? "Please try again.",
       );
@@ -73,9 +73,9 @@ const AdminStoreSettingsScreen = () => {
 
     try {
       await updateSettings(body).unwrap();
-      Alert.alert("Saved", "Store settings updated.");
+      showAlert("Saved", "Store settings updated.");
     } catch (error: any) {
-      Alert.alert(
+      showAlert(
         "Could not save",
         error?.data?.error?.message ?? "Please check the values and try again.",
       );

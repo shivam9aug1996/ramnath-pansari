@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Linking,
   RefreshControl,
@@ -31,6 +30,7 @@ import {
   getPayableTotal,
 } from '@/utils/deliveryFee';
 import { useDeliverySettings } from '@/hooks/useDeliverySettings';
+import { showAlert } from '@/utils/platformAlert';
 
 const OrderDetailScreen = () => {
   const params = useLocalSearchParams<{ id: string }>();
@@ -151,13 +151,13 @@ const OrderDetailScreen = () => {
         body.orderHistory = history;
       }
       await updateOrder({ id: draft._id, body }).unwrap();
-      Alert.alert('Saved', 'Order updated successfully');
+      showAlert('Saved', 'Order updated successfully');
       refetch();
     } catch (e: unknown) {
       const msg =
         (e as { data?: { error?: { message?: string } } })?.data?.error?.message ||
         'Failed to update order';
-      Alert.alert('Error', msg);
+      showAlert('Error', msg);
     }
   };
 
@@ -209,7 +209,7 @@ const OrderDetailScreen = () => {
       const msg =
         (e as { data?: { error?: { message?: string } } })?.data?.error?.message ||
         'Failed to assign driver';
-      Alert.alert('Error', msg);
+      showAlert('Error', msg);
     }
   };
 

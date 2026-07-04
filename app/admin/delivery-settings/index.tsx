@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,6 +15,7 @@ import {
   useGetAdminDeliverySettingsQuery,
   useUpdateAdminDeliverySettingsMutation,
 } from "@/redux/features/adminDeliverySettingsSlice";
+import { showAlert } from "@/utils/platformAlert";
 
 const AdminDeliverySettingsScreen = () => {
   const { data, isLoading } = useGetAdminDeliverySettingsQuery();
@@ -39,9 +39,9 @@ const AdminDeliverySettingsScreen = () => {
 
     try {
       await updateSettings(body).unwrap();
-      Alert.alert("Saved", "Delivery settings updated.");
+      showAlert("Saved", "Delivery settings updated.");
     } catch (error: any) {
-      Alert.alert(
+      showAlert(
         "Could not save",
         error?.data?.error?.message ?? "Please check the values and try again.",
       );

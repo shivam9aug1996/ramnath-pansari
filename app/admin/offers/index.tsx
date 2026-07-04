@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -24,6 +23,7 @@ import {
 } from "@/redux/features/adminOfferSlice";
 import { AdminOfferDocument } from "@/types/global";
 import { getOfferLabel } from "@/utils/offerMilestones";
+import { confirmAction } from "@/utils/platformAlert";
 
 const AdminOffersScreen = () => {
   const router = useRouter();
@@ -50,19 +50,15 @@ const AdminOffersScreen = () => {
     });
   };
 
-  const confirmDelete = (offer: AdminOfferDocument) => {
-    Alert.alert(
+  const confirmDelete = async (offer: AdminOfferDocument) => {
+    const confirmed = await confirmAction(
       "Delete offer",
       `Remove "${getOfferLabel(offer)}"? This cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => deleteOffer(offer.id),
-        },
-      ],
+      "Delete",
     );
+    if (confirmed) {
+      await deleteOffer(offer.id);
+    }
   };
 
   const renderItem = ({ item }: { item: AdminOfferDocument }) => (

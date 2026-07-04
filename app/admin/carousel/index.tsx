@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   RefreshControl,
@@ -26,6 +25,7 @@ import {
 } from "@/redux/features/adminCarouselSlice";
 import { AdminCarouselDocument } from "@/types/global";
 import { staticImage } from "@/app/(private)/(category)/CategoryList/utils";
+import { confirmAction, showAlert } from "@/utils/platformAlert";
 
 function getActionLabel(banner: AdminCarouselDocument) {
   if (banner.actionType === "scroll_categories") {
@@ -66,46 +66,37 @@ const AdminCarouselScreen = () => {
     });
   };
 
-  const confirmBackfillBlurhash = () => {
-    Alert.alert(
+  const confirmBackfillBlurhash = async () => {
+    const confirmed = await confirmAction(
       "Generate blur placeholders",
       "Create blurhash placeholders for banners that do not have one yet?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Run",
-          onPress: async () => {
-            try {
-              const result = await backfillBlurhash().unwrap();
-              Alert.alert(
-                "Done",
-                `Updated ${result.updated} of ${result.total} banners.`,
-              );
-            } catch (error: any) {
-              Alert.alert(
-                "Failed",
-                error?.data?.error?.message ?? "Please try again.",
-              );
-            }
-          },
-        },
-      ],
+      "Run",
     );
+    if (!confirmed) return;
+
+    try {
+      const result = await backfillBlurhash().unwrap();
+      showAlert(
+        "Done",
+        `Updated ${result.updated} of ${result.total} banners.`,
+      );
+    } catch (error: any) {
+      showAlert(
+        "Failed",
+        error?.data?.error?.message ?? "Please try again.",
+      );
+    }
   };
 
-  const confirmDelete = (banner: AdminCarouselDocument) => {
-    Alert.alert(
+  const confirmDelete = async (banner: AdminCarouselDocument) => {
+    const confirmed = await confirmAction(
       "Delete banner",
       "Remove this carousel banner? This cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => deleteBanner(banner.id),
-        },
-      ],
+      "Delete",
     );
+    if (confirmed) {
+      await deleteBanner(banner.id);
+    }
   };
 
   const renderItem = ({ item }: { item: AdminCarouselDocument }) => (

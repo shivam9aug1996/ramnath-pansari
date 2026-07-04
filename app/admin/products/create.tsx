@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import AdminScreen from '@/app/admin/components/AdminScreen';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -15,6 +15,7 @@ import ProductFormList, {
 } from './components/ProductFormList';
 import { findCategoryBreadcrumb } from '../categories/utils';
 import { consumePendingCategorySelection } from './categorySelection';
+import { showAlert } from '@/utils/platformAlert';
 
 const CreateProductScreen = () => {
   const router = useRouter();
@@ -131,13 +132,13 @@ const CreateProductScreen = () => {
         onSubmit={async (payload) => {
           try {
             await createProduct(payload).unwrap();
-            Alert.alert('Created', 'Product added successfully');
+            showAlert('Created', 'Product added successfully');
             router.back();
           } catch (e: unknown) {
             const msg =
               (e as { data?: { error?: { message?: string } } })?.data?.error?.message ||
               'Failed to create product';
-            Alert.alert('Error', msg);
+            showAlert('Error', msg);
           }
         }}
       />

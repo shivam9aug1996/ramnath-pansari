@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -21,6 +20,7 @@ import {
 import { JiomartSyncCategory, JiomartSyncResponse } from '@/types/global'
 import { adminListStyles, adminTheme } from '@/app/admin/theme'
 import useDebounce from '@/hooks/useDebounce'
+import { confirmAction, showAlert } from '@/utils/platformAlert'
 
 const isSelectable = (item: JiomartSyncCategory) =>
   item.syncAvailable && item.storeCategoryFound
@@ -74,22 +74,38 @@ const JiomartSyncScreen = () => {
   const clearSelection = () => setSelected(new Set())
 
   const showSyncResult = (result: JiomartSyncResponse) => {
-    const lines = result.results.map((row) => {
-      if (row.error) return `• ${row.category}: ${row.error}`
-      return `• ${row.category}: ${row.syncedProducts} synced (${row.totalProducts} total)`
-    })
-    Alert.alert(
-      result.summary.failed > 0 ? 'Sync completed with errors' : 'Sync completed',
-      [
-        `Succeeded: ${result.summary.succeeded}`,
-        `Failed: ${result.summary.failed}`,
+    const { succeeded, failed, requested } = result.summary
+    const failedRows = result.results.filter((row) => row.error)
+    const okLines = result.results
+      .filter((row) => !row.error)
+      .map(
+        (row) =>
+          `• ${row.category}: ${row.syncedProducts} synced (${row.totalProducts} total)`,
+      )
+
+    const title = `Sync completed (${succeeded}/${requested})`
+    const body: string[] = []
+
+    if (failed > 0) {
+      body.push(
+        `${failed} categor${failed === 1 ? 'y' : 'ies'} could not be synced:`,
         '',
-        ...lines.slice(0, 12),
-        lines.length > 12 ? `…and ${lines.length - 12} more` : '',
-      ]
-        .filter(Boolean)
-        .join('\n'),
-    )
+        ...failedRows.map((row) => `• ${row.category}: ${row.error}`),
+      )
+      if (okLines.length > 0) {
+        body.push('', 'Successful categories:', ...okLines.slice(0, 8))
+        if (okLines.length > 8) {
+          body.push(`…and ${okLines.length - 8} more`)
+        }
+      }
+    } else {
+      body.push('All categories synced successfully.', '', ...okLines.slice(0, 12))
+      if (okLines.length > 12) {
+        body.push(`…and ${okLines.length - 12} more`)
+      }
+    }
+
+    showAlert(title, body.filter(Boolean).join('\n'))
   }
 
   const runSync = async (payload: {
@@ -110,17 +126,20 @@ const JiomartSyncScreen = () => {
         data?: { error?: { message?: string }; results?: JiomartSyncResponse['results'] }
       }
       const msg = err?.data?.error?.message ?? 'Sync failed'
-      Alert.alert('Sync failed', msg)
+      showAlert('Sync failed', msg)
     }
   }
 
-  const confirmAndSync = (payload: { categories?: string[]; syncAll?: boolean }) => {
+  const confirmAndSync = async (payload: {
+    categories?: string[]
+    syncAll?: boolean
+  }) => {
     const count = payload.syncAll
       ? selectableCategories.length
       : payload.categories?.length ?? 0
 
     if (!payload.syncAll && count === 0) {
-      Alert.alert('Nothing selected', 'Pick at least one category to sync.')
+      showAlert('Nothing selected', 'Pick at least one category to sync.')
       return
     }
 
@@ -129,14 +148,14 @@ const JiomartSyncScreen = () => {
       ? `This deletes Jio products only and re-imports ${payload.syncAll ? 'all syncable' : count} categories. Manual/promo products are kept. All carts will be cleared.`
       : `Sync ${payload.syncAll ? 'all syncable' : count} categor${count === 1 ? 'y' : 'ies'} from JioMart?`
 
-    Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: wipeAll ? 'Wipe & sync' : 'Sync',
-        style: wipeAll ? 'destructive' : 'default',
-        onPress: () => runSync(payload),
-      },
-    ])
+    const confirmed = await confirmAction(
+      title,
+      message,
+      wipeAll ? 'Wipe & sync' : 'Sync',
+    )
+    if (confirmed) {
+      await runSync(payload)
+    }
   }
 
   const renderItem = ({ item }: { item: JiomartSyncCategory }) => {
@@ -248,7 +267,11 @@ const JiomartSyncScreen = () => {
       {lastResult ? (
         <View style={styles.resultBanner}>
           <Text style={styles.resultBannerText}>
-            Last sync: {lastResult.summary.succeeded} ok · {lastResult.summary.failed} failed
+            Last sync: {lastResult.summary.succeeded}/{lastResult.summary.requested}{' '}
+            categories synced
+            {lastResult.summary.failed > 0
+              ? ` · ${lastResult.summary.failed} skipped`
+              : ''}
           </Text>
         </View>
       ) : null}

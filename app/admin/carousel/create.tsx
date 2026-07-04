@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from "react";
 import {
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -18,6 +17,7 @@ import { useCreateAdminCarouselMutation } from "@/redux/features/adminCarouselSl
 import { AdminCarouselInput, CarouselActionType } from "@/types/global";
 import { consumePendingCategorySelection } from "@/app/admin/products/categorySelection";
 import { staticImage } from "@/app/(private)/(category)/CategoryList/utils";
+import { showAlert } from "@/utils/platformAlert";
 
 const ACTION_OPTIONS: { value: CarouselActionType; label: string }[] = [
   { value: "none", label: "None" },
@@ -59,7 +59,7 @@ const AdminCarouselCreateScreen = () => {
 
     if (actionType === "category") {
       if (!selectedCategory?.id) {
-        Alert.alert("Choose category", "Select a category for this banner.");
+        showAlert("Choose category", "Select a category for this banner.");
         return;
       }
       body.categoryId = selectedCategory.id;
@@ -70,7 +70,7 @@ const AdminCarouselCreateScreen = () => {
       await createBanner(body).unwrap();
       router.back();
     } catch (error: any) {
-      Alert.alert(
+      showAlert(
         "Could not create banner",
         error?.data?.error?.message ?? "Please check the form and try again.",
       );

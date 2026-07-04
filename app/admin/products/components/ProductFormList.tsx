@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { AdminProductDocument, AdminProductInput, ProductOfferUsage } from '@/types/global';
 import { Colors } from '@/constants/Colors';
+import { showAlert } from '@/utils/platformAlert';
 
 export type ProductFormValues = {
   name: string;
@@ -135,7 +135,7 @@ export default function ProductFormList({
   const handleSubmit = async () => {
     const payload = formValuesToPayload(values);
     if (!payload) {
-      Alert.alert('Validation', 'Fill name, size, prices, and choose a store category');
+      showAlert('Validation', 'Fill name, size, prices, and choose a store category');
       return;
     }
     await onSubmit(payload);
@@ -276,7 +276,7 @@ export default function ProductFormList({
           value={values.promoOnly}
           onValueChange={(promoOnly) => {
             if (promoOnlyLocked && !promoOnly) {
-              Alert.alert(
+              showAlert(
                 'Blocked',
                 offerUsage?.blockedEdits.find((b) => b.field === 'promoOnly')?.reason ??
                   'Disable live offers using this product first.',
@@ -365,7 +365,7 @@ export default function ProductFormList({
           ]}
           onPress={() => {
             if (deleteBlocked) {
-              Alert.alert(
+              showAlert(
                 'Cannot delete',
                 offerUsage?.blockedEdits.find((b) => b.field === 'delete')?.reason ??
                   'Disable live offers using this product first.',

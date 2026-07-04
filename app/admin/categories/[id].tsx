@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -20,6 +19,7 @@ import {
 } from '@/redux/features/adminCategorySlice';
 import { Colors } from '@/constants/Colors';
 import HeaderBar from '@/app/admin/components/HeaderBar';
+import { confirmAction, showAlert } from '@/utils/platformAlert';
 
 const CategoryDetailScreen = () => {
   const params = useLocalSearchParams<{ id: string }>();
@@ -43,7 +43,7 @@ const CategoryDetailScreen = () => {
   const onSave = async () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      Alert.alert('Validation', 'Category name is required');
+      showAlert('Validation', 'Category name is required');
       return;
     }
 
@@ -55,40 +55,34 @@ const CategoryDetailScreen = () => {
           image: image.trim() || null,
         },
       }).unwrap();
-      Alert.alert('Saved', 'Category updated successfully');
+      showAlert('Saved', 'Category updated successfully');
       refetch();
     } catch (e: unknown) {
       const msg =
         (e as { data?: { error?: { message?: string } } })?.data?.error?.message ||
         'Failed to update category';
-      Alert.alert('Error', msg);
+      showAlert('Error', msg);
     }
   };
 
-  const onDelete = () => {
-    Alert.alert(
+  const onDelete = async () => {
+    const confirmed = await confirmAction(
       'Delete category',
       'This cannot be undone. Subcategories and linked products must be removed first.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteCategory({ id }).unwrap();
-              Alert.alert('Deleted', 'Category removed');
-              router.back();
-            } catch (e: unknown) {
-              const msg =
-                (e as { data?: { error?: { message?: string } } })?.data?.error?.message ||
-                'Failed to delete category';
-              Alert.alert('Error', msg);
-            }
-          },
-        },
-      ],
+      'Delete',
     );
+    if (!confirmed) return;
+
+    try {
+      await deleteCategory({ id }).unwrap();
+      showAlert('Deleted', 'Category removed');
+      router.back();
+    } catch (e: unknown) {
+      const msg =
+        (e as { data?: { error?: { message?: string } } })?.data?.error?.message ||
+        'Failed to delete category';
+      showAlert('Error', msg);
+    }
   };
 
   if (isLoading || !data?.category) {

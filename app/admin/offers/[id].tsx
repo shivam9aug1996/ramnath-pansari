@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -28,6 +27,7 @@ import {
 import { staticImage } from "@/app/(private)/(category)/CategoryList/utils";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors } from "@/constants/Colors";
+import { confirmAction, showAlert } from "@/utils/platformAlert";
 
 const AdminOfferEditScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -83,7 +83,7 @@ const AdminOfferEditScreen = () => {
   const onSave = async () => {
     if (!offer) return;
     if (offer.type === "freebie" && !selectedProduct?.id) {
-      Alert.alert("Choose product", "Select a promo / freebie product first.");
+      showAlert("Choose product", "Select a promo / freebie product first.");
       return;
     }
     try {
@@ -109,25 +109,23 @@ const AdminOfferEditScreen = () => {
       }).unwrap();
       router.back();
     } catch (error: any) {
-      Alert.alert(
+      showAlert(
         "Update failed",
         error?.data?.error?.message ?? "Could not save offer.",
       );
     }
   };
 
-  const onDelete = () => {
-    Alert.alert("Delete offer", "This cannot be undone.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          await deleteOffer(offer!.id);
-          router.back();
-        },
-      },
-    ]);
+  const onDelete = async () => {
+    const confirmed = await confirmAction(
+      "Delete offer",
+      "This cannot be undone.",
+      "Delete",
+    );
+    if (!confirmed) return;
+
+    await deleteOffer(offer!.id);
+    router.back();
   };
 
   if (isLoading || !offer) {

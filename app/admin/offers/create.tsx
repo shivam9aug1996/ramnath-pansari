@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from "react";
 import {
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -21,6 +20,7 @@ import {
   type PendingProductSelection,
 } from "./productSelection";
 import { staticImage } from "@/app/(private)/(category)/CategoryList/utils";
+import { showAlert } from "@/utils/platformAlert";
 
 const AdminOfferCreateScreen = () => {
   const router = useRouter();
@@ -59,7 +59,7 @@ const AdminOfferCreateScreen = () => {
 
     if (type === "freebie") {
       if (!selectedProduct?.id) {
-        Alert.alert("Choose product", "Select a promo / freebie product first.");
+        showAlert("Choose product", "Select a promo / freebie product first.");
         return;
       }
       body.freebies = [
@@ -85,7 +85,7 @@ const AdminOfferCreateScreen = () => {
       await createOffer(body).unwrap();
       router.back();
     } catch (error: any) {
-      Alert.alert(
+      showAlert(
         "Could not create offer",
         error?.data?.error?.message ?? "Please check the form and try again.",
       );

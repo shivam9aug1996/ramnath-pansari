@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AdminScreen from '@/app/admin/components/AdminScreen';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
@@ -17,6 +17,7 @@ import ProductFormList, {
 } from './components/ProductFormList';
 import { findCategoryBreadcrumb } from '../categories/utils';
 import { consumePendingCategorySelection } from './categorySelection';
+import { confirmAction, showAlert } from '@/utils/platformAlert';
 
 const ProductDetailScreen = () => {
   const params = useLocalSearchParams<{ id: string }>();
@@ -68,9 +69,9 @@ const ProductDetailScreen = () => {
 
   const offerUsage = data?.offerUsage;
 
-  const onDelete = () => {
+  const onDelete = async () => {
     if (offerUsage && !offerUsage.canDelete) {
-      Alert.alert(
+      showAlert(
         'Cannot delete',
         offerUsage.blockedEdits.find((b) => b.field === 'delete')?.reason ??
           'Disable live offers using this product first.',
@@ -78,29 +79,23 @@ const ProductDetailScreen = () => {
       return;
     }
 
-    Alert.alert(
+    const confirmed = await confirmAction(
       'Delete product',
       'This will hide the product from the store. Continue?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteProduct({ id }).unwrap();
-              Alert.alert('Deleted', 'Product removed');
-              router.back();
-            } catch (e: unknown) {
-              const msg =
-                (e as { data?: { error?: { message?: string } } })?.data?.error?.message ||
-                'Failed to delete product';
-              Alert.alert('Error', msg);
-            }
-          },
-        },
-      ],
+      'Delete',
     );
+    if (!confirmed) return;
+
+    try {
+      await deleteProduct({ id }).unwrap();
+      showAlert('Deleted', 'Product removed');
+      router.back();
+    } catch (e: unknown) {
+      const msg =
+        (e as { data?: { error?: { message?: string } } })?.data?.error?.message ||
+        'Failed to delete product';
+      showAlert('Error', msg);
+    }
   };
 
   if (isLoading || !data?.product) {
@@ -165,13 +160,13 @@ const ProductDetailScreen = () => {
         onSubmit={async (payload) => {
           try {
             await updateProduct({ id, body: payload }).unwrap();
-            Alert.alert('Saved', 'Product updated successfully');
+            showAlert('Saved', 'Product updated successfully');
             refetch();
           } catch (e: unknown) {
             const msg =
               (e as { data?: { error?: { message?: string } } })?.data?.error?.message ||
               'Failed to update product';
-            Alert.alert('Error', msg);
+            showAlert('Error', msg);
           }
         }}
       />

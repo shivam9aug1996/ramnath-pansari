@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -25,6 +24,7 @@ import { consumePendingCategorySelection } from "@/app/admin/products/categorySe
 import { staticImage } from "@/app/(private)/(category)/CategoryList/utils";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors } from "@/constants/Colors";
+import { confirmAction, showAlert } from "@/utils/platformAlert";
 
 const ACTION_OPTIONS: { value: CarouselActionType; label: string }[] = [
   { value: "none", label: "None" },
@@ -96,7 +96,7 @@ const AdminCarouselEditScreen = () => {
 
     if (actionType === "category") {
       if (!selectedCategory?.id) {
-        Alert.alert("Choose category", "Select a category for this banner.");
+        showAlert("Choose category", "Select a category for this banner.");
         return;
       }
       body.categoryId = selectedCategory.id;
@@ -107,37 +107,32 @@ const AdminCarouselEditScreen = () => {
       await updateBanner({ id: banner.id, body }).unwrap();
       router.back();
     } catch (error: any) {
-      Alert.alert(
+      showAlert(
         "Could not save banner",
         error?.data?.error?.message ?? "Please check the form and try again.",
       );
     }
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!banner) return;
-    Alert.alert(
+
+    const confirmed = await confirmAction(
       "Delete banner",
       "Remove this carousel banner? This cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteBanner(banner.id).unwrap();
-              router.back();
-            } catch (error: any) {
-              Alert.alert(
-                "Could not delete",
-                error?.data?.error?.message ?? "Please try again.",
-              );
-            }
-          },
-        },
-      ],
+      "Delete",
     );
+    if (!confirmed) return;
+
+    try {
+      await deleteBanner(banner.id).unwrap();
+      router.back();
+    } catch (error: any) {
+      showAlert(
+        "Could not delete",
+        error?.data?.error?.message ?? "Please try again.",
+      );
+    }
   };
 
   if (isLoading && !banner) {

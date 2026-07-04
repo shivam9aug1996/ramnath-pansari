@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Switch,
@@ -15,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { useCreateAdminUserMutation } from '@/redux/features/adminUserSlice';
 import { Colors } from '@/constants/Colors';
 import HeaderBar from '@/app/admin/components/HeaderBar';
+import { showAlert } from '@/utils/platformAlert';
 
 const CreateUserScreen = () => {
   const router = useRouter();
@@ -29,11 +29,11 @@ const CreateUserScreen = () => {
   const onSubmit = async () => {
     const mobile = mobileNumber.trim();
     if (!/^\d{10}$/.test(mobile)) {
-      Alert.alert('Validation', 'Enter a valid 10-digit mobile number');
+      showAlert('Validation', 'Enter a valid 10-digit mobile number');
       return;
     }
     if (password.length < 4) {
-      Alert.alert('Validation', 'Password must be at least 4 characters');
+      showAlert('Validation', 'Password must be at least 4 characters');
       return;
     }
 
@@ -45,13 +45,13 @@ const CreateUserScreen = () => {
         isAdminUser,
         isDriverUser,
       }).unwrap();
-      Alert.alert('Created', 'User added successfully');
+      showAlert('Created', 'User added successfully');
       router.back();
     } catch (e: unknown) {
       const msg =
         (e as { data?: { error?: { message?: string } } })?.data?.error?.message ||
         'Failed to create user';
-      Alert.alert('Error', msg);
+      showAlert('Error', msg);
     }
   };
 
