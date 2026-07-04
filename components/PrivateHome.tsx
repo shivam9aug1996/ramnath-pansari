@@ -35,6 +35,7 @@ import {
   markStartupCheckpoint,
 } from "@/utils/startupDiagnostics";
 import { categoryLog } from "@/utils/categoryDebug";
+import { syncCarouselConfig } from "@/utils/carouselConfigCache";
 
 const CATEGORY_PLACEHOLDER_COUNT = 3;
 const WEATHER_SECTION_HEIGHT = 100;
@@ -139,16 +140,17 @@ const PrivateHome = () => {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      if (isCategoriesUninitialized) {
-        await dispatch(
-          categoryApi.endpoints.fetchCategories.initiate(
-            {},
-            { forceRefetch: true },
-          ),
-        ).unwrap();
-      } else {
-        await refetch();
-      }
+      await Promise.all([
+        isCategoriesUninitialized
+          ? dispatch(
+              categoryApi.endpoints.fetchCategories.initiate(
+                {},
+                { forceRefetch: true },
+              ),
+            ).unwrap()
+          : refetch(),
+        syncCarouselConfig(dispatch, { force: true }),
+      ]);
     } catch {
       // optional toast
     } finally {

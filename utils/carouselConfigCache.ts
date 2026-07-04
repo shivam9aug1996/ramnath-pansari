@@ -14,6 +14,16 @@ export type CarouselConfigCache = {
   carousel: CarouselResponse;
 };
 
+/** True when cached carousel cannot render home banners (empty or no usable image URLs). */
+export function isBadCarouselCache(cache: CarouselConfigCache | null): boolean {
+  if (!cache?.carousel) return true;
+
+  const banners = cache.carousel.banners ?? [];
+  if (banners.length === 0) return true;
+
+  return banners.every((banner) => !banner.imageUrl?.trim());
+}
+
 type AppDispatch = typeof store.dispatch;
 
 export function isCarouselConfigStale(
@@ -77,6 +87,7 @@ export async function syncCarouselConfig(
     const shouldFetch =
       options?.force ||
       !cached ||
+      isBadCarouselCache(cached) ||
       isCarouselConfigStale(cached.fetchedAt);
 
     if (!shouldFetch) return;

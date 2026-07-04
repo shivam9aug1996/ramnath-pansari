@@ -16,6 +16,12 @@ export type CategoryConfigCache = {
   categories: Category[];
 };
 
+/** True when cached categories cannot populate the home category list. */
+export function isBadCategoryCache(cache: CategoryConfigCache | null): boolean {
+  if (!cache?.categories) return true;
+  return cache.categories.length === 0;
+}
+
 type AppDispatch = typeof store.dispatch;
 
 export function isCategoryConfigStale(

@@ -24,17 +24,17 @@ export default function PromoConfigSync() {
     syncAppState(dispatch, { token, userId, isGuestUser }).catch(() => {});
   }, [dispatch, token, userId, isAdminUser, isDriverUser, isGuestUser]);
 
-  useEffect(() => {
-    if (!userId || isAdminUser || isDriverUser) return;
+  // useEffect(() => {
+  //   if (!userId || isAdminUser || isDriverUser) return;
 
-    const subscription = AppState.addEventListener("change", (nextState) => {
-      if (nextState === "active") {
-        syncAppState(dispatch, { token, userId, isGuestUser }).catch(() => {});
-      }
-    });
+  //   const subscription = AppState.addEventListener("change", (nextState) => {
+  //     if (nextState === "active") {
+  //       syncAppState(dispatch, { token, userId, isGuestUser }).catch(() => {});
+  //     }
+  //   });
 
-    return () => subscription.remove();
-  }, [dispatch, token, userId, isAdminUser, isDriverUser, isGuestUser]);
+  //   return () => subscription.remove();
+  // }, [dispatch, token, userId, isAdminUser, isDriverUser, isGuestUser]);
 
   return null;
 }

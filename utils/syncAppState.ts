@@ -26,6 +26,7 @@ import {
 } from "@/utils/promoConfigCache";
 import {
   hydrateCarouselConfigCache,
+  isBadCarouselCache,
   readCarouselConfigCache,
   writeCarouselConfigCache,
 } from "@/utils/carouselConfigCache";
@@ -36,6 +37,7 @@ import {
 } from "@/utils/storeConfigCache";
 import {
   hydrateCategoryConfigCache,
+  isBadCategoryCache,
   isCategoryConfigStale,
   readCategoryConfigCache,
   writeCategoryConfigCache,
@@ -137,6 +139,20 @@ function filterFetchForGuest(fetch: AppSyncFetchFlags): AppSyncFetchFlags {
   };
 }
 
+async function resolveCarouselFetch(
+  fetch: AppSyncFetchFlags,
+): Promise<AppSyncFetchFlags> {
+  if (fetch.carousel) return fetch;
+
+  const carouselCache = await readCarouselConfigCache();
+  if (!isBadCarouselCache(carouselCache)) return fetch;
+
+  syncLog("carousel:bad-cache", {
+    bannerCount: carouselCache?.carousel?.banners?.length ?? 0,
+  });
+  return { ...fetch, carousel: true };
+}
+
 async function resolveCategoryFetch(
   fetch: AppSyncFetchFlags,
   clientVersions: AppSyncClientVersions,
@@ -152,7 +168,12 @@ async function resolveCategoryFetch(
 
   let shouldFetchCategory = fetch.category;
 
-  if (!shouldFetchCategory) {
+  if (isBadCategoryCache(categoryCache)) {
+    categoryLog("sync:bad-cache", {
+      count: categoryCache?.categories?.length ?? 0,
+    });
+    shouldFetchCategory = true;
+  } else if (!shouldFetchCategory) {
     const ttlStale =
       !categoryCache || isCategoryConfigStale(categoryCache.fetchedAt);
     if (ttlStale) {
@@ -363,6 +384,7 @@ export async function syncAppState(
         clientVersions,
         syncResponse.server.category,
       );
+      effectiveFetch = await resolveCarouselFetch(effectiveFetch);
 
       syncLog("effectiveFetch", effectiveFetch);
 
