@@ -210,57 +210,61 @@ const PrivateHome = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 60 }]}
       >
-        <DeferredFadeIn delay={100}>
-          <View
-            style={styles.topSection}
-            onLayout={(event) => {
-              layoutOffsets.current.top = event.nativeEvent.layout.height;
-              updateCategoriesScrollOffset();
-            }}
-          >
+        <View
+          style={styles.topSection}
+          onLayout={(event) => {
+            layoutOffsets.current.top = event.nativeEvent.layout.height;
+            updateCategoriesScrollOffset();
+          }}
+        >
+          <DeferredFadeIn delay={100}>
             <DashboardHeader
               userName={truncateText(userData?.name?.split(" ")[0], 10)}
               profileImage={userData?.profileImage}
               onProfilePress={handleProfilePress}
               isGuestUser={userData?.isGuestUser}
             />
-          </View>
+          </DeferredFadeIn>
+        </View>
 
-          <View
-            style={styles.stickySearchBar}
-            onLayout={(event) => {
-              layoutOffsets.current.sticky = event.nativeEvent.layout.height;
-              updateCategoriesScrollOffset();
-            }}
-          >
+        <View
+          style={styles.stickySearchBar}
+          onLayout={(event) => {
+            layoutOffsets.current.sticky = event.nativeEvent.layout.height;
+            updateCategoriesScrollOffset();
+          }}
+        >
+          <DeferredFadeIn delay={100}>
             <View style={styles.stickySearchBarContent}>
               <HomeSearch compact />
             </View>
+          </DeferredFadeIn>
+        </View>
+
+        <View style={styles.mainContent}>
+          {Platform.OS !== "web" && (
+            <DeferredFadeIn
+              delay={100}
+              fallback={
+                <View
+                  style={{
+                    width: windowWidth,
+                    height: carouselFallbackHeight,
+                  }}
+                />
+              }
+            >
+              <Carasole onScrollToCategories={scrollToCategories} />
+            </DeferredFadeIn>
+          )}
+
+          <View style={styles.weatherSection}>
+            <DeferredFadeIn delay={100}>
+              <WeatherSection />
+            </DeferredFadeIn>
           </View>
 
-          <View style={styles.mainContent}>
-            {Platform.OS !== "web" && (
-              <DeferredFadeIn
-                delay={100}
-                fallback={
-                  <View
-                    style={{
-                      width: windowWidth,
-                      height: carouselFallbackHeight,
-                    }}
-                  />
-                }
-              >
-                <Carasole onScrollToCategories={scrollToCategories} />
-              </DeferredFadeIn>
-            )}
-
-            <View style={styles.weatherSection}>
-              <DeferredFadeIn delay={0}>
-                <WeatherSection />
-              </DeferredFadeIn>
-            </View>
-
+          <DeferredFadeIn delay={200}>
             <View
               ref={categoriesRef}
               collapsable={false}
@@ -290,12 +294,12 @@ const PrivateHome = () => {
                     />
                   ))}
             </View>
+          </DeferredFadeIn>
 
-            <DeferredFadeIn delay={500}>
-              <RecentlyViewedProducts variant="compact" />
-            </DeferredFadeIn>
-          </View>
-        </DeferredFadeIn>
+          <DeferredFadeIn delay={500}>
+            <RecentlyViewedProducts variant="compact" />
+          </DeferredFadeIn>
+        </View>
       </ScrollView>
     </ScreenSafeWrapper>
   );

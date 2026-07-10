@@ -1,5 +1,3 @@
-import * as SecureStore from "expo-secure-store";
-import { useEffect, useState } from "react";
 import { fetchLocation } from "./fetchLocation";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/types/global";
@@ -29,28 +27,31 @@ export function useWeatherInfo() {
       // 1. Check for cached weather
       //const cached = await SecureStore.getItemAsync(WEATHER_CACHE_KEY);
       const cached = await storage.getItem(WEATHER_CACHE_KEY);
+      let staleWeather: Record<string, unknown> | null = null;
       if (cached) {
         const { timestamp, weather: cachedWeather } = JSON.parse(cached);
         const age = now - timestamp;
-
-        //console.log("🧊 Cached weather age:", age, "ms");
+        staleWeather = cachedWeather ?? null;
 
         if (age < CACHE_DURATION) {
-          //console.log("✅ Using cached weather");
           dispatch(setWeather(cachedWeather));
           dispatch(setHour(new Date().getHours()));
           dispatch(setLoading(false));
           return cachedWeather;
         }
-
-        //console.log("⏰ Cache expired, will fetch new data");
-      } else {
-        //console.log("❌ No cached weather found");
       }
 
-      // 2. Fetch current location
-      const { latitude, longitude } = await fetchLocation();
-      //console.log("📍 Fetched location:", latitude, longitude);
+      const location = await fetchLocation();
+      if (!location) {
+        if (staleWeather) {
+          dispatch(setWeather(staleWeather));
+          dispatch(setHour(new Date().getHours()));
+          return staleWeather;
+        }
+        return null;
+      }
+
+      const { latitude, longitude } = location;
 
       // 3. Fetch new weather from API
       const res = await fetch(
@@ -74,14 +75,18 @@ export function useWeatherInfo() {
       //   })
       // );
 
-      await storage.setItem(WEATHER_CACHE_KEY, JSON.stringify({
-        timestamp: now,
-        weather: currentWeather,
-      }));
+      await storage.setItem(
+        StorageKeys.weatherCache,
+        JSON.stringify({
+          timestamp: now,
+          weather: currentWeather,
+        }),
+      );
       return currentWeather;
-      //console.log("💾 Weather cached successfully");
     } catch (err: any) {
-      console.error("❌ Error fetching weather:", err);
+      if (__DEV__) {
+        console.warn("[weather] fetch failed", err?.message ?? err);
+      }
       dispatch(setError(err?.message || "Failed to fetch weather"));
       return null
     } finally {

@@ -53,7 +53,7 @@ export const loadAuthData = createAsyncThunk(
       //   }, 1000);
       // });
       // 9887765432
-      // await AsyncStorage.clear();
+     //  await storage.clearAll();
       // await SecureStore.deleteItemAsync("lastSavedPushToken");
       // await SecureStore.deleteItemAsync("LOCATION_CACHE");
       // await SecureStore.deleteItemAsync("WEATHER_CACHE");

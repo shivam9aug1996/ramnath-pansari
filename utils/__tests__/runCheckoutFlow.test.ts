@@ -13,15 +13,35 @@ const OPEN_NOW = new Date("2026-06-17T06:30:00.000Z");
 const CLOSED_NOW = new Date("2026-06-17T02:00:00.000Z");
 
 describe("runCheckoutFlow", () => {
-  it("continues with cached config when offer fetch fails", async () => {
+  it("aborts when offer fetch fails", async () => {
     const deps = createCheckoutDeps({
       fetchOffers: jest.fn().mockRejectedValue(new Error("network")),
     });
 
     const result = await runCheckoutFlow(deps);
 
-    expect(result.status).toBe("proceed");
+    expect(result).toMatchObject({
+      status: "abort",
+      reason: "sync_error",
+      toastType: "error",
+    });
     expect(deps.fetchOffers).toHaveBeenCalled();
+    expect(deps.updateProductsAsPerCart).not.toHaveBeenCalled();
+  });
+
+  it("aborts when offer fetch returns null", async () => {
+    const deps = createCheckoutDeps({
+      fetchOffers: jest.fn().mockResolvedValue(null),
+    });
+
+    const result = await runCheckoutFlow(deps);
+
+    expect(result).toMatchObject({
+      status: "abort",
+      reason: "sync_error",
+      toastType: "error",
+    });
+    expect(deps.updateProductsAsPerCart).not.toHaveBeenCalled();
   });
 
   it("aborts when store is closed", async () => {

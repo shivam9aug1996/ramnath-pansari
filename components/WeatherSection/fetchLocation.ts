@@ -1,10 +1,14 @@
 import { storage } from "@/utils/storage";
 import { StorageKeys } from "@/utils/storageKeys";
 import * as Location from "expo-location";
-import * as SecureStore from "expo-secure-store";
 
-const LOCATION_CACHE_KEY = "LOCATION_CACHE";
 const CACHE_DURATION = 30 * 60 * 1000;
+
+type CachedLocation = {
+  timestamp: number;
+  latitude: number;
+  longitude: number;
+};
 
 function getLatLng(location: Location.LocationObject) {
   return {
@@ -13,51 +17,68 @@ function getLatLng(location: Location.LocationObject) {
   };
 }
 
-export const fetchLocation = async () => {
+async function readLocationCache(): Promise<CachedLocation | null> {
+  const raw = await storage.getItem(StorageKeys.locationCache);
+  if (!raw) return null;
   try {
-    const now = Date.now();
+    const parsed = JSON.parse(raw) as CachedLocation;
+    if (
+      typeof parsed?.timestamp !== "number" ||
+      typeof parsed?.latitude !== "number" ||
+      typeof parsed?.longitude !== "number"
+    ) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
 
-    // Check SecureStore for cached location
-    // const cached = await SecureStore.getItemAsync(LOCATION_CACHE_KEY);
-    const cached = await storage.getItem(LOCATION_CACHE_KEY);
+async function writeLocationCache(
+  timestamp: number,
+  latitude: number,
+  longitude: number,
+): Promise<void> {
+  await storage.setItem(
+    StorageKeys.locationCache,
+    JSON.stringify({ timestamp, latitude, longitude }),
+  );
+}
+
+/** Returns coords, stale cache, or null when location is unavailable. */
+export const fetchLocation = async (): Promise<{
+  latitude: number;
+  longitude: number;
+} | null> => {
+  const now = Date.now();
+  const cached = await readLocationCache();
+
+  if (cached && now - cached.timestamp < CACHE_DURATION) {
+    return { latitude: cached.latitude, longitude: cached.longitude };
+  }
+
+  let permission = await Location.getForegroundPermissionsAsync();
+  if (permission.status === "undetermined") {
+    permission = await Location.requestForegroundPermissionsAsync();
+  }
+
+  if (permission.status !== "granted") {
     if (cached) {
-      const { timestamp, latitude, longitude } = JSON.parse(cached);
-      const age = now - timestamp;
-
-      //console.log("📦 Cached location age:", age, "ms");
-
-      if (age < CACHE_DURATION) {
-        //console.log("✅ Using cached location");
-        return { latitude, longitude };
-      }
-
-      //console.log("⏰ Location cache expired, fetching new");
-    } else {
-      //console.log("❌ No cached location found");
+      return { latitude: cached.latitude, longitude: cached.longitude };
     }
+    return null;
+  }
 
-    // Request permissions
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") {
-      throw new Error("Permission to access location was denied");
-    }
-
-    // Get current location
-    const location: Location.LocationObject =
-      await Location.getCurrentPositionAsync({});
+  try {
+    const location = await Location.getCurrentPositionAsync({});
     const { latitude, longitude } = getLatLng(location);
-
-  
-    await storage.setItem(StorageKeys.locationCache, JSON.stringify({
-      timestamp: now,
-      latitude,
-      longitude,
-    }));
-
-    //console.log("📍 New location fetched and cached");
+    await writeLocationCache(now, latitude, longitude);
     return { latitude, longitude };
-  } catch (error: any) {
-    console.error("❌ Location fetch error:", error);
-    throw new Error(error?.message || "Error while fetching lat and long");
+  } catch {
+    if (cached) {
+      return { latitude: cached.latitude, longitude: cached.longitude };
+    }
+    return null;
   }
 };

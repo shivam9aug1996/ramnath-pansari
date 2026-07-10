@@ -28,21 +28,20 @@ const DeferredFadeIn = ({
   // Step 1: wait until navigation/interactions finish
   useEffect(() => {
     if (simulateProduction) return;
-
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
-
+    const fallbackTimer = setTimeout(() => {
+      if (!cancelled) setMounted(true);
+    }, 2000);
     const task = InteractionManager.runAfterInteractions(() => {
       timer = setTimeout(() => {
-        if (!cancelled) {
-          setMounted(true);
-        }
+        if (!cancelled) setMounted(true);
       }, delay);
     });
-
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      clearTimeout(fallbackTimer);
       task.cancel();
     };
   }, [delay]);

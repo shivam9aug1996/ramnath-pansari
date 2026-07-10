@@ -197,14 +197,30 @@ export async function runCheckoutFlow(
     );
     const displayedDeliverySettings = deliverySettings;
 
-    let latestOffers = cachedOffers;
-    let freshOffersResponse: OffersResponse | null = null;
+    let freshOffersResponse: OffersResponse;
     try {
-      freshOffersResponse = await fetchOffers();
-      latestOffers = freshOffersResponse?.offers ?? latestOffers;
+      const response = await fetchOffers();
+      if (response == null) {
+        return {
+          status: "abort",
+          reason: "sync_error",
+          message:
+            "Could not load latest offers. Check your connection and try again.",
+          toastType: "error",
+        };
+      }
+      freshOffersResponse = response;
     } catch {
-      // use cached offers if refetch fails
+      return {
+        status: "abort",
+        reason: "sync_error",
+        message:
+          "Could not load latest offers. Check your connection and try again.",
+        toastType: "error",
+      };
     }
+
+    const latestOffers = freshOffersResponse.offers ?? [];
 
     let latestDeliverySettings = deliverySettings;
     let freshDeliveryResponse: DeliverySettingsResponse | null = null;

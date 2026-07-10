@@ -9,6 +9,7 @@
     "android:release": "expo run:android --variant release  --device",
     "android:debug": "expo run:android --variant debug  --device",
     "android:apk": "cd android && ./gradlew assembleDebug",
+    "android:aab": "cd android && ./gradlew bundleRelease",
     "android:clean-native": "rm -rf android/app/.cxx android/app/build android/build android/app/build/generated",
     "ios": "expo run:ios --device \"iPhone 17 Pro\"",
     "ios:release": "expo run:ios --configuration Release --device \"iPhone 17 Pro\"",

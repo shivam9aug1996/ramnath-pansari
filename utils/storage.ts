@@ -41,10 +41,26 @@ async function setJson(key: string, value: unknown): Promise<void> {
   await setItem(key, JSON.stringify(value));
 }
 
+async function clearAll(): Promise<void> {
+  await AsyncStorage.clear();
+  if (Platform.OS === "web") {
+    return; // on web, storage already uses AsyncStorage only
+  }
+  const knownKeys = Object.values(StorageKeys);
+  await Promise.all(
+    knownKeys.map((key) =>
+      SecureStore.deleteItemAsync(key).catch(() => {
+        // key may not exist — ignore
+      }),
+    ),
+  );
+}
+
 export const storage = {
   getItem,
   setItem,
   removeItem,
   getJson,
   setJson,
+  clearAll,
 };

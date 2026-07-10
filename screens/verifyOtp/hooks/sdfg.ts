@@ -5,7 +5,12 @@ import { useDispatch, useSelector } from "react-redux";
 import { useVerifyOtpMutation } from "@/redux/features/authSlice";
 import { RootState } from "@/types/global";
 import { persistAuthAndNavigate } from "@/utils/completeLogin";
+import { requestLocationIfNeeded } from "@/utils/requestLocationIfNeeded";
 
+
+type GuestLoginOptions = {
+  requestLocation?: boolean;
+};
 interface VerifyOtpHook {
   isLoading: boolean;
   errorState: string;
@@ -17,7 +22,7 @@ interface VerifyOtpHook {
   handleVerifyOtp: (otpValue: string) => void;
   setErrorState: React.Dispatch<React.SetStateAction<string>>;
   mobileNumber: string | undefined;
-  guestLogin: () => void;
+  guestLogin: (options?: GuestLoginOptions) => Promise<void>;
 }
 
 const useVerifyOtp1 = (): VerifyOtpHook => {
@@ -88,14 +93,18 @@ const useVerifyOtp1 = (): VerifyOtpHook => {
     [mobileNumber, validateOtp, verifyOtp, completeLogin],
   );
 
-  const guestLogin = useCallback(async () => {
-    try {
-      const result = await verifyOtp({ isGuestUser: true }).unwrap();
-      await completeLogin(result);
-    } catch {
-      setErrorState("Guest login failed. Please try again.");
+ 
+const guestLogin = useCallback(async (options?: GuestLoginOptions) => {
+  try {
+    if (options?.requestLocation) {
+      await requestLocationIfNeeded();
     }
-  }, [verifyOtp, completeLogin]);
+    const result = await verifyOtp({ isGuestUser: true }).unwrap();
+    await completeLogin(result);
+  } catch {
+    setErrorState("Guest login failed. Please try again.");
+  }
+}, [verifyOtp, completeLogin]);
 
   return {
     isLoading: saveAuthDataState?.isLoading || isLoading || isCompletingLogin,

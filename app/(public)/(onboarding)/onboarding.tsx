@@ -45,16 +45,16 @@ const Onboarding = () => {
     });
   };
 
-  const handlePress = useCallback(() => {
+  const handlePress = useCallback(async() => {
     let totalSlides = onboardingSlides.length;
 
     if (activeSlide === totalSlides - 1) {
-      guestLogin();
+      await guestLogin({ requestLocation: true })
     } else {
       sliderRef?.current?.goToSlide(activeSlide + 1);
       onSlideChange(activeSlide + 1);
     }
-  }, [activeSlide]);
+  }, [activeSlide, guestLogin]);
 
   if (Platform.OS === "web") {
     return (

@@ -6,4 +6,7 @@ export const StorageKeys = {
     weatherCache: "WEATHER_CACHE",
     locationCache: "LOCATION_CACHE",
     greetingCacheV2: "GREETING_CACHE_KEY_V2",
+    activeDriverOrderId: "activeDriverOrderId",
+    activeDriverId: "activeDriverId",
+    greeting_cache_v2:"greeting_cache_v2",
   } as const;
