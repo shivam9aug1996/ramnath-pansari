@@ -194,7 +194,7 @@ const onViewableItemsChanged = useRef(
     (hidden: boolean) => {
       // Content growth at the list tail (pagination skeletons) can fire spurious
       // scroll-up events — keep chrome hidden until the user explicitly scrolls up.
-      if (!hidden && isLoadingMoreRef.current) return;
+      //if (!hidden && isLoadingMoreRef.current) return;
       dispatch(setProductListScrollParams({ shouldHideChrome: hidden }));
     },
     [dispatch],

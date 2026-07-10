@@ -128,7 +128,7 @@ const { showSkeleton: showPaginationSkeleton, beginPaging, isPagingMore } =
 
   const onChromeVisibilityChange = useCallback(
     (hidden: boolean) => {
-      if (!hidden && isLoadingMoreRef.current) return;
+     // if (!hidden && isLoadingMoreRef.current) return;
       dispatch(setProductListScrollParams({ shouldHideChrome: hidden }));
     },
     [dispatch],
