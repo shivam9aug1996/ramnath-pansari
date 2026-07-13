@@ -30,6 +30,7 @@ import OrderItem from "./OrderItem";
 import useOrderListStageLoad from "@/hooks/useOrderListStageLoad";
 import FadeSlideIn from "@/app/components/FadeSlideIn";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
+import TryAgain from "../(category)/CategoryList/TryAgain";
 const Order = () => {
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   const [page, setPage] = useState(1);
@@ -38,7 +39,7 @@ const Order = () => {
     data: orderData,
     isLoading: isOrderLoading,
     isFetching: isOrderFetching,
-    error: orderError,
+    isError: isOrderError,
     refetch: refetchOrder,
   } = useFetchOrdersQuery(
     { userId: userId, limit: 10, page: page },
@@ -72,10 +73,21 @@ const Order = () => {
     }
   }, [page, refetchOrder, userId]);
 
+  const handleRetryOrders = useCallback(() => {
+    setPage(1);
+    refetchOrder();
+  }, [refetchOrder]);
+
   useEffect(() => {
     if (!isRefreshing || isOrderFetching) return;
     setIsRefreshing(false);
   }, [isRefreshing, isOrderFetching]);
+
+  const hasOrdersToShow = (orderData?.orders?.length ?? 0) > 0;
+  const showInitialSkeleton =
+    isOrderLoading || (isOrderFetching && !hasOrdersToShow);
+  const showTryAgain =
+    isOrderError && !hasOrdersToShow && !isOrderFetching;
 
   const renderProductItem = useCallback(
     ({ item, index }: { item: any; index: number }) => {
@@ -91,12 +103,16 @@ const Order = () => {
         <View style={{ flex: 1 }}>
          
             <>
-              {isOrderLoading ? (
+              {showInitialSkeleton ? (
                 <View>
                   <OrderListPlaceHolder />
                 </View>
-              ) : orderError ? (
-                <Text>Error loading data</Text>
+              ) : showTryAgain ? (
+                <TryAgain
+                  refetch={handleRetryOrders}
+                  title="Couldn't load orders"
+                  message="Please check your connection and try again."
+                />
               ) : (
                 <FlatList
                 refreshControl={

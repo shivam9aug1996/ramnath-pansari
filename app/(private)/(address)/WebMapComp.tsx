@@ -1,16 +1,16 @@
-import { ActivityIndicator, Button, StyleSheet, Text, View } from "react-native";
-import { devError, devLog, devWarn } from "@/utils/devLog";
-import React, { memo, useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { devError, devLog } from "@/utils/devLog";
+import React, { memo, useCallback, useEffect, useState } from "react";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import WebView from "react-native-webview";
-import { baseUrl, hostUrl } from "@/redux/constants";
+import { hostUrl } from "@/redux/constants";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import { fetchLocation } from "./utils";
 import { setCurrentAddressData } from "@/redux/features/addressSlice";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import { Colors } from "@/constants/Colors";
-import { showToast } from "@/utils/utils";
+import TryAgain from "../(category)/CategoryList/TryAgain";
 
 const WebMapComp = ({
   latitude,
@@ -19,114 +19,125 @@ const WebMapComp = ({
   latitude: any;
   longitude: any;
 }) => {
-  
   const token = useSelector((state: RootState) => state?.auth?.token);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [mapKey, setMapKey] = useState(0);
   const [currentLocation, setCurrentLocation] = useState<any>(null);
   const currentAddressData = useSelector(
     (state: RootState) => state?.address?.currentAddressData
   );
   const dispatch = useDispatch();
   const [loc, setLoc] = useState<any>(null);
-  useEffect(() => {
-    fetchLocation1();
-  }, []);
 
-  const fetchLocation1 = async () => {
+  const fetchLocation1 = useCallback(async () => {
+    setLoadError(null);
+    setIsLoading(true);
     try {
-        const data =await fetchLocation();
-        setCurrentLocation(data)
-      let locInfo =
+      const deviceLocation = await fetchLocation();
+      setCurrentLocation(deviceLocation);
+      const locInfo =
         latitude && longitude
           ? {
               latitude: parseFloat(latitude as string),
               longitude: parseFloat(longitude as string),
             }
-          : await fetchLocation();
+          : deviceLocation;
       setLoc(locInfo);
-    } catch (err) {
+    } catch (err: any) {
       devLog("err", err);
-      showToast({
-        text2: err?.message || "Error fetching location",
-        type: "error",
-      });
+      setLoadError(err?.message || "Error fetching location");
       setIsLoading(false);
-      router.back();
     }
-  };
- // devLog("loc", loc);
+  }, [latitude, longitude]);
+
+  useEffect(() => {
+    fetchLocation1();
+  }, [fetchLocation1]);
+
+  const handleMapError = useCallback(() => {
+    setLoadError("Couldn't load the map. Please try again.");
+    setIsLoading(false);
+  }, []);
+
+  const handleRetry = useCallback(() => {
+    setLoadError(null);
+    setIsLoading(true);
+    if (!loc) {
+      fetchLocation1();
+      return;
+    }
+    setMapKey((key) => key + 1);
+  }, [fetchLocation1, loc]);
 
   return (
     <ScreenSafeWrapper title="Select Address">
-      {isLoading && (
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="small" color={Colors.light.lightGreen} />
-          <Text style={styles.loaderText}>Loading map...</Text>
-        </View>
+      {loadError ? (
+        <TryAgain refetch={handleRetry} message={loadError} />
+      ) : (
+        <>
+          {isLoading && (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="small" color={Colors.light.lightGreen} />
+              <Text style={styles.loaderText}>Loading map...</Text>
+            </View>
+          )}
+          <View style={{ flex: 1, marginTop: 20 }}>
+            {loc && (
+              <WebView
+                key={mapKey}
+                cacheMode="LOAD_CACHE_ELSE_NETWORK"
+                onContentSizeChange={(event) => {
+                  devLog("onContentSizeChange", event);
+                }}
+                onLoad={() => {
+                  devLog("onLoad");
+                  setIsLoading(false);
+                }}
+                cacheEnabled={true}
+                onLoadStart={() => {
+                  devLog("onLoadStart");
+                  setIsLoading(true);
+                }}
+                onLoadEnd={() => {
+                  devLog("onLoadEnd");
+                  setIsLoading(false);
+                }}
+                onError={handleMapError}
+                onHttpError={handleMapError}
+                source={{
+                  uri: `${hostUrl}/addressMap?lat=${loc?.latitude}&lng=${loc?.longitude}&cLat=${currentLocation?.latitude}&cLng=${currentLocation?.longitude}`,
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                }}
+                onMessage={(event) => {
+                  try {
+                    const data = JSON.parse(event.nativeEvent.data);
+                    devLog("Received location:", data);
+                    dispatch(
+                      setCurrentAddressData({
+                        ...currentAddressData,
+                        form: {
+                          ...currentAddressData?.form,
+                          address: data.address,
+                          latitude: data?.lat,
+                          longitude: data?.lng,
+                        },
+                      })
+                    );
+                    router.back();
+                  } catch (err) {
+                    devError("Invalid JSON from WebView", err);
+                  }
+                }}
+                style={{ flex: 1, borderRadius: 20, overflow: "hidden" }}
+              />
+            )}
+          </View>
+        </>
       )}
-      <View style={{ flex: 1, marginTop: 20 }}> 
-        {loc && (
-          <WebView
-          
-          cacheMode="LOAD_CACHE_ELSE_NETWORK"
-            onContentSizeChange={(event) => {
-              devLog("onContentSizeChange", event);
-            }}
-            onLoad={() => {
-              devLog("onLoad");
-              setIsLoading(false);
-            }}
-            cacheEnabled={true}
-            onLoadStart={() => {
-              devLog("onLoadStart");
-              setIsLoading(true);
-            }}
-            onLoadEnd={() => {
-              devLog("onLoadEnd");
-              setIsLoading(false);
-            }}
-            // onLoadProgress={() => {
-            //   devLog("onLoadProgress");
-            //   setIsLoading(true);
-            // }}
-            onError={() => {
-              setIsLoading(false);
-            }}
-            onHttpError={() => {
-              setIsLoading(false);
-            }}
-            source={{
-              uri: `${hostUrl}/addressMap?lat=${loc?.latitude}&lng=${loc?.longitude}&cLat=${currentLocation?.latitude}&cLng=${currentLocation?.longitude}`,
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }}
-            onMessage={(event) => {
-              try {
-                const data = JSON.parse(event.nativeEvent.data);
-                devLog("Received location:", data);
-                dispatch(
-                  setCurrentAddressData({
-                    ...currentAddressData,
-                    form: {
-                      ...currentAddressData?.form,
-                      address: data.address,
-                      latitude: data?.lat,
-                      longitude: data?.lng,
-                    },
-                  })
-                );
-                router.back();
-                //here can i send data to addAddress.tsx using router.back
-              } catch (err) {
-                devError("Invalid JSON from WebView", err);
-              }
-            }}
-            style={{ flex: 1, borderRadius: 20, overflow: "hidden" }}
-          />
-        )}
-      </View>
     </ScreenSafeWrapper>
   );
 };

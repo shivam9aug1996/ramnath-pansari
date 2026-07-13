@@ -1,5 +1,5 @@
 import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
-import React, { memo, useEffect } from "react";
+import React, { memo, useCallback, useEffect } from "react";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import {
   orderApi,
@@ -28,6 +28,7 @@ import DeferredFadeIn from "@/components/DeferredFadeIn";
 import OrderLottie from "@/components/OrderLottie";
 import OrderLiveTrackingScroll from "./OrderLiveTrackingScroll";
 import AddressItem from "./AddressItem";
+import TryAgain from "../(category)/CategoryList/TryAgain";
 
 type OrderDetailBodyProps = {
   orderStatus: string;
@@ -162,10 +163,14 @@ const OrderDetailComp = ({
   prevStatus?: string;
 }) => {
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
-  const { data, isFetching, isSuccess } = useFetchOrderDetailQuery(
-    { orderId: id, userId },
-    { skip: !id },
-  );
+  const {
+    data,
+    isFetching,
+    isLoading,
+    isError,
+    isSuccess,
+    refetch,
+  } = useFetchOrderDetailQuery({ orderId: id, userId }, { skip: !id });
   const dispatch = useDispatch();
   const itemsOrdered = data?.orderData?.cartData?.cart?.items || [];
   const trackingData = data?.orderData?.orderHistory;
@@ -196,6 +201,15 @@ const OrderDetailComp = ({
     }
   }, [prevStatus, orderStatus, isSuccess, data, userId, dispatch]);
 
+  const hasOrderData = Boolean(data?.orderData);
+  const showInitialSkeleton =
+    isLoading || (isFetching && !hasOrderData);
+  const showTryAgain = isError && !hasOrderData && !isFetching;
+
+  const handleRetryOrderDetail = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
   const bodyProps = {
     orderStatus,
     orderStatusData,
@@ -217,14 +231,32 @@ const OrderDetailComp = ({
     <ScreenSafeWrapper showCartIcon>
       {Platform.OS !== "web" && <OrderLottie />}
       <DeferredFadeIn delay={100} style={{ flex: 1 }}>
-        {expectsLiveMap ? (
+        {showInitialSkeleton ? (
+          expectsLiveMap ? (
+            <View style={styles.liveMapBleed}>
+              <OrderLiveTrackingScroll orderId={id}>
+                <OrderDetailBodySkeleton inSheet />
+              </OrderLiveTrackingScroll>
+            </View>
+          ) : (
+            <ScrollView
+              bounces={Platform.OS === "android" ? false : true}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.paddedScrollContent}
+            >
+              <OrderDetailBodySkeleton />
+            </ScrollView>
+          )
+        ) : showTryAgain ? (
+          <TryAgain
+            refetch={handleRetryOrderDetail}
+            title="Couldn't load order"
+            message="Please check your connection and try again."
+          />
+        ) : expectsLiveMap ? (
           <View style={styles.liveMapBleed}>
             <OrderLiveTrackingScroll orderId={id}>
-              {isFetching ? (
-                <OrderDetailBodySkeleton inSheet />
-              ) : (
-                <OrderDetailBody {...bodyProps} inSheet />
-              )}
+              <OrderDetailBody {...bodyProps} inSheet />
             </OrderLiveTrackingScroll>
           </View>
         ) : (
@@ -233,11 +265,7 @@ const OrderDetailComp = ({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.paddedScrollContent}
           >
-            {isFetching ? (
-              <OrderDetailBodySkeleton />
-            ) : (
-              <OrderDetailBody {...bodyProps} />
-            )}
+            <OrderDetailBody {...bodyProps} />
           </ScrollView>
         )}
       </DeferredFadeIn>
