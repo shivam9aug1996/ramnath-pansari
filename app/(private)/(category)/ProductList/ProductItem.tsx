@@ -60,7 +60,7 @@ const isVisible = true;
     () => [styles.container, getProductColumnStyle(index)],
     [index]
   );
-console.log("productitem", index, quantity, isVisible);
+//console.log("productitem", index, quantity, isVisible);
   return (
     
     <View style={containerStyle}>

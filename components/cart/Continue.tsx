@@ -5,6 +5,7 @@ import {
   Pressable,
 } from "react-native";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import { Colors } from "@/constants/Colors";
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
@@ -139,12 +140,12 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
   //   latestCartDataRef.current = cartData;
   // }, [cartData?.cart?.items]);
 
-  // console.log(pathname);
+  // devLog(pathname);
   //   useFocusEffect(
   //     // Callback should be wrapped in `React.useCallback` to avoid running the effect too often.
   //     useCallback(() => {
   //       // Invoked whenever the route is focused.
-  // console.log("needToSyncWithBackend",needToSyncWithBackend)
+  // devLog("needToSyncWithBackend",needToSyncWithBackend)
   //         if(needToSyncWithBackend.status){
   //           dispatch(setIsCartOperationProcessing(true));
 
@@ -164,7 +165,7 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
   //         (item: any) =>
   //           item?.productId !== "676da9f75763ded56d43032d"
   //       );
-  //           console.log("payload",payload)
+  //           devLog("payload",payload)
   //           await bulkUpdateCart({
   //             body: {
   //               items:payload
@@ -182,7 +183,7 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
 
   //       // Return function is invoked whenever the route gets out of focus.
   //       return () => {
-  //         console.log('This route is now unfocused.');
+  //         devLog('This route is now unfocused.');
   //       };
   //     }, [needToSyncWithBackend?.status]));
 
@@ -207,7 +208,7 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
   //         (item: any) =>
   //           item?.productId !== "676da9f75763ded56d43032d"
   //       );
-  //           console.log("payload",payload)
+  //           devLog("payload",payload)
   //           await bulkUpdateCart({
   //             body: {
   //               items:payload
@@ -331,7 +332,7 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                     
                     dispatch(setIsClearCartLoading(true));
                     const needToSync = await AsyncStorage.getItem(`cartData-${userId}-needToSync`)     
-                    console.log("needToSync654345678",needToSync)
+                    devLog("needToSync654345678",needToSync)
                     if(needToSync === "true"){
                       await AsyncStorage.setItem(`cartData-${userId}`,JSON.stringify([]))
                       dispatch(
@@ -612,7 +613,7 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                     });
                     abortCheckout();
                   } catch (error) {
-                    console.log("[cart-sync] checkout:failed", error);
+                    devLog("[cart-sync] checkout:failed", error);
                     showToast({
                       type: "error",
                       text2: "Checkout could not continue. Please try again.",

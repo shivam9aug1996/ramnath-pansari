@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import { useDispatch, useSelector } from "react-redux";
 import {
   removeCartButtonProductId,
@@ -140,7 +141,7 @@ export const useCartOperationsV1 = (item: Product, initialValue: number) => {
             )
           );
         } catch (syncError) {
-          console.error("Sync error:", syncError);
+          devError("Sync error:", syncError);
         }
       }
       
@@ -162,7 +163,7 @@ export const useCartOperationsV1 = (item: Product, initialValue: number) => {
         queueRef.current = operation().catch(() => {});
         await queueRef.current;
       } catch (error) {
-        console.error("Operation failed:", error);
+        devError("Operation failed:", error);
       }
     },
     []

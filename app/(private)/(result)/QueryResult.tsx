@@ -68,7 +68,8 @@ import { useGoToCartListPadding } from "@/contexts/DeliveryFloatContext";
 import { clearVisibleProductIds, updateVisibleProductIds } from "../(category)/ProductList/productVisibilityStore";
 
 const QueryResult = ({query}:{query:string}) => {
- 
+  const scrollEndedRef = useRef(0);
+
   const userId = useSelector((state: RootState) => state.auth?.userData?._id);
   const isGuestUser = useSelector(
     (state: RootState) => state.auth?.userData?.isGuestUser,
@@ -105,26 +106,28 @@ const QueryResult = ({query}:{query:string}) => {
   const { data, isFetching, error, isSuccess, isLoading } =
     useFetchProductsBySearchQuery(
       { query, type: "autocomplete", page, limit: 10 },
-      { skip: !query }
+      { skip: !query 
+        
+       && scrollEndedRef.current !== 1 
+      
+      }
     );
 
   const hasNextPage = data?.currentPage < data?.totalPages;
 
-const { showSkeleton: showPaginationSkeleton, beginPaging, isPagingMore } =
-  usePaginationSkeleton({
-    isFetching,
-    page,
-    hasItems: (data?.results?.length ?? 0) > 0,
-    hasNextPage,
-    itemCount: data?.results?.length ?? 0,
-  });
+// const { showSkeleton: showPaginationSkeleton, beginPaging, isPagingMore } =
+//   usePaginationSkeleton({
+//     isFetching,
+//     page,
+//     hasItems: (data?.results?.length ?? 0) > 0,
+//     hasNextPage,
+//     itemCount: data?.results?.length ?? 0,
+//   });
   const hasResults = (data?.results?.length ?? 0) > 0;
 
   const showInitialSkeleton = !hasResults && (isLoading || isFetching);
 
 
-  const isLoadingMoreRef = useRef(showPaginationSkeleton);
-  isLoadingMoreRef.current = showPaginationSkeleton;
 
   const onChromeVisibilityChange = useCallback(
     (hidden: boolean) => {
@@ -296,9 +299,8 @@ const { showSkeleton: showPaginationSkeleton, beginPaging, isPagingMore } =
     () =>
       buildProductListData(data?.results, {
         showInitialSkeleton,
-        showPaginationSkeleton,
       }),
-    [data?.results, showInitialSkeleton, showPaginationSkeleton],
+    [data?.results, showInitialSkeleton],
   );
 
   const isRefreshingFirstPage = isFetching && page === 1;
@@ -358,9 +360,9 @@ const listContentContainerStyle = useMemo(
   );
 
   const renderListFooter = useCallback(() => {
-    if (showInitialSkeleton || !showPaginationSkeleton) return null;
+    if (showInitialSkeleton) return null;
     return <ProductPaginationSkeleton />;
-  }, [showInitialSkeleton, showPaginationSkeleton]);
+  }, [showInitialSkeleton]);
   
   const renderEmptyComponent = useCallback(() => {
     if (
@@ -407,18 +409,26 @@ const listContentContainerStyle = useMemo(
     if (showInitialSkeleton) return;
     if (!hasNextPage) return;
     if (isFetching) return;
-    if (showPaginationSkeleton || isPagingMore) return;
-    beginPaging();
     fetchNextPage();
   }, [
     showInitialSkeleton,
     hasNextPage,
     isFetching,
-    showPaginationSkeleton,
-    isPagingMore,
-    beginPaging,
     fetchNextPage,
   ]);
+
+  const onMomentumScrollEnd = useCallback(() => {
+    scrollEndedRef.current = 1;
+  }, []);
+  const onMomentumScrollBegin = useCallback(() => {
+    scrollEndedRef.current = 2;
+  }, []);
+  const onScrollBeginDrag = useCallback(() => {
+    scrollEndedRef.current = 3;
+  }, []);
+  const onScrollEndDrag = useCallback(() => {
+    scrollEndedRef.current = 4;
+  }, []);
 
   return (
     <>
@@ -440,9 +450,10 @@ const listContentContainerStyle = useMemo(
             />
             {showPlaceholder ? (
               <View style={styles.container}>
-                <ProductListPlaceholder
+                {/* <ProductListPlaceholder
                   contentContainerStyle={listContentStyle}
-                />
+                /> */}
+                <ProductListPlaceholder contentContainerStyle={listContentStyle} />
               </View>
             ) : error ? (
               <Text style={styles.errorText}>Error loading data</Text>
@@ -453,10 +464,8 @@ const listContentContainerStyle = useMemo(
                   bounces={Platform.OS === "android" ? false : true}
                   //disableAutoLayout
                   initialNumToRender={6}
-                  maxToRenderPerBatch={showPaginationSkeleton ? 8 : 2}
-                  windowSize={showPaginationSkeleton ? 7 : 5}
-                  data={listData}
-                  extraData={{ showInitialSkeleton, showPaginationSkeleton, cartItemsMap }}
+                  data={data?.results}
+                  extraData={{ cartItemsMap }}
                   renderItem={renderProductItem}
                   keyExtractor={(item, index) => item?._id || index.toString()}
                   numColumns={2}
@@ -469,14 +478,18 @@ const listContentContainerStyle = useMemo(
                   ListHeaderComponent={header}
                   ListEmptyComponent={renderEmptyComponent}
                   ListFooterComponent={renderListFooter}
+                  onMomentumScrollEnd={onMomentumScrollEnd}
+                  onMomentumScrollBegin={onMomentumScrollBegin}
+                  onScrollBeginDrag={onScrollBeginDrag}
+                  onScrollEndDrag={onScrollEndDrag}
 
                   // ItemSeparatorComponent={() => (
                   //   <View style={{ height: PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT }} />
                   // )}
                   // viewabilityConfig={viewabilityConfig}
                   // onViewableItemsChanged={onViewableItemsChanged}
-                  scrollEventThrottle={50}
-                  onScroll={handleScroll}
+                  // scrollEventThrottle={50}
+                  // onScroll={handleScroll}
 
                 />
               </View>

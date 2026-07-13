@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import { Image } from "react-native";
 
 export const usePreloadAssets = (remoteImages = []) => {
@@ -15,7 +16,7 @@ export const usePreloadAssets = (remoteImages = []) => {
         await Promise.all([preloadRemoteImages()]);
         setStatus("success");
       } catch (error) {
-        console.error("Error preloading assets:", error);
+        devError("Error preloading assets:", error);
         setStatus("error");
       }
     };

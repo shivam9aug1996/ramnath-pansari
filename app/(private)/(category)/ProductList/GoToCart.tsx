@@ -38,9 +38,10 @@ import { formatNumber } from "@/utils/utils";
 import { useGoToCartInsetActions } from "@/contexts/DeliveryFloatContext";
 import { useDeliverySettings } from "@/hooks/useDeliverySettings";
 
-const CARD_RADIUS = 20;
-const MILESTONE_SIZE = 26;
-const RING_SIZE = 32;
+const CARD_RADIUS = 16;
+const MILESTONE_SIZE = 22;
+const RING_SIZE = 26;
+const RING_RADIUS = 9;
 
 type GoToCartProps = {
   isCart?: boolean;
@@ -53,7 +54,7 @@ function MilestoneRing({
 }: {
   progress: number;
 }) {
-  const circumference = 2 * Math.PI * 12;
+  const circumference = 2 * Math.PI * RING_RADIUS;
   const dashOffset = circumference * (1 - Math.min(progress, 1));
   if (Platform.OS === "web") {
     return (
@@ -77,7 +78,7 @@ function MilestoneRing({
       <Circle
         cx={RING_SIZE / 2}
         cy={RING_SIZE / 2}
-        r={12}
+        r={RING_RADIUS}
         stroke="rgba(25,75,56,0.12)"
         strokeWidth={2}
         fill="transparent"
@@ -86,7 +87,7 @@ function MilestoneRing({
         <Circle
           cx={RING_SIZE / 2}
           cy={RING_SIZE / 2}
-          r={12}
+          r={RING_RADIUS}
           stroke={Colors.light.mediumGreen}
           strokeWidth={2}
           fill="transparent"
@@ -141,7 +142,7 @@ function MilestoneTrack({
                 >
                   <Ionicons
                     name={milestone.icon}
-                    size={12}
+                    size={10}
                     color={
                       unlocked
                         ? Colors.light.white
@@ -201,12 +202,14 @@ function PromoIncentive({
   hasAdminOffers,
   deliveryUnlocked,
   compact,
+  hideBenefitChips = false,
 }: {
   subtotal: number;
   milestones: OfferMilestone[];
   hasAdminOffers: boolean;
   deliveryUnlocked: boolean;
   compact?: boolean;
+  hideBenefitChips?: boolean;
 }) {
   const unlocked = useMemo(
     () => getUnlockedMilestones(milestones, subtotal),
@@ -247,7 +250,9 @@ function PromoIncentive({
   return (
     <View style={[styles.promoSection, compact && styles.promoSectionCompact]}>
       <View style={styles.promoHeader}>
-        <Text style={styles.promoTitle}>Order benefits</Text>
+        <Text style={[styles.promoTitle, compact && styles.promoTitleCompact]}>
+          Order benefits
+        </Text>
         {next ? (
           <Text style={styles.promoMeta}>
             ₹{formatNumber(next.remaining)} to next
@@ -259,7 +264,7 @@ function PromoIncentive({
 
       <MilestoneTrack subtotal={subtotal} milestones={milestones} />
 
-      {benefitChips.length > 0 ? (
+      {!hideBenefitChips && benefitChips.length > 0 ? (
         <View style={styles.benefitChipRow}>
           {benefitChips.map((chip) => (
             <BenefitChip
@@ -280,33 +285,38 @@ function CartSummaryBar({
   savings,
   thumbnail,
   onPress,
+  compact = false,
 }: {
   cartItems: number;
   subtotal: number;
   savings: number;
   thumbnail: string | null;
   onPress: () => void;
+  compact?: boolean;
 }) {
   return (
-    <View style={styles.cartSection}>
+    <View style={[styles.cartSection, compact && styles.cartSectionCompact]}>
       <Pressable
         onPress={onPress}
         style={({ pressed }) => [
           styles.cartSummaryPressable,
+          compact && styles.cartSummaryPressableCompact,
           pressed && styles.pressed,
         ]}
       >
         <Image
           source={{ uri: thumbnail || staticImage }}
-          style={styles.thumbnail}
+          style={[styles.thumbnail, compact && styles.thumbnailCompact]}
           contentFit="cover"
         />
 
         <View style={styles.priceBlock}>
           <View style={styles.priceRow}>
-            <Text style={styles.totalPrice}>₹{formatNumber(subtotal)}</Text>
+            <Text style={[styles.totalPrice, compact && styles.totalPriceCompact]}>
+              ₹{formatNumber(subtotal)}
+            </Text>
             {savings > 0 ? (
-              <Text style={styles.savingsText}>
+              <Text style={[styles.savingsText, compact && styles.savingsTextCompact]}>
                 ₹{formatNumber(savings)} saved
               </Text>
             ) : null}
@@ -317,7 +327,7 @@ function CartSummaryBar({
             </Text>
             <Ionicons
               name="chevron-up"
-              size={14}
+              size={compact ? 12 : 14}
               color={Colors.light.mediumGrey}
             />
           </View>
@@ -328,10 +338,13 @@ function CartSummaryBar({
         onPress={onPress}
         style={({ pressed }) => [
           styles.proceedButton,
+          compact && styles.proceedButtonCompact,
           pressed && styles.proceedButtonPressed,
         ]}
       >
-        <Text style={styles.proceedText}>Proceed</Text>
+        <Text style={[styles.proceedText, compact && styles.proceedTextCompact]}>
+          Proceed
+        </Text>
       </Pressable>
     </View>
   );
@@ -458,12 +471,14 @@ const GoToCart = ({ isCart = false, embedded = false }: GoToCartProps) => {
     );
   }
 
+  const compactBar = embedded;
+
   return (
     <View
       pointerEvents="box-none"
       style={[
         embedded ? styles.embeddedRoot : styles.floatingRoot,
-        { paddingBottom: Math.max(insets.bottom, 8) },
+        { paddingBottom: embedded ? 4 : Math.max(insets.bottom, 8) },
       ]}
       onLayout={(event) => handleBarLayout(event.nativeEvent.layout.height)}
     >
@@ -474,6 +489,8 @@ const GoToCart = ({ isCart = false, embedded = false }: GoToCartProps) => {
             milestones={milestones}
             hasAdminOffers={adminOfferMilestones.length > 0}
             deliveryUnlocked={deliveryUnlocked}
+            compact={compactBar}
+           // hideBenefitChips
           />
         ) : null}
         <CartSummaryBar
@@ -482,6 +499,7 @@ const GoToCart = ({ isCart = false, embedded = false }: GoToCartProps) => {
           savings={savings}
           thumbnail={thumbnail}
           onPress={navigateToCart}
+          compact={compactBar}
         />
       </View>
     </View>
@@ -527,13 +545,17 @@ const styles = StyleSheet.create({
   promoSection: {
     backgroundColor: Colors.light.white,
     paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 10,
-    gap: 8,
+    paddingTop: 8,
+    paddingBottom: 8,
+    gap: 6,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.light.lightGrey,
   },
   promoSectionCompact: {
+    paddingHorizontal: 12,
+    paddingTop: 6,
+    paddingBottom: 6,
+    gap: 4,
     borderRadius: CARD_RADIUS,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.light.lightGrey,
@@ -550,6 +572,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
     color: Colors.light.darkGreen,
+  },
+  promoTitleCompact: {
+    fontSize: 13,
+    lineHeight: 16,
   },
   promoMeta: {
     fontFamily: "Montserrat_600SemiBold",
@@ -576,8 +602,8 @@ const styles = StyleSheet.create({
   },
   milestoneLineTrack: {
     position: "absolute",
-    left: 20,
-    right: 20,
+    left: 16,
+    right: 16,
     top: RING_SIZE / 2,
     height: 2,
     borderRadius: 999,
@@ -662,11 +688,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 8,
     gap: 10,
     backgroundColor: Colors.light.white,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.light.lightGrey,
+  },
+  cartSectionCompact: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 8,
   },
   cartSummaryPressable: {
     flex: 1,
@@ -675,14 +706,22 @@ const styles = StyleSheet.create({
     gap: 10,
     minWidth: 0,
   },
+  cartSummaryPressableCompact: {
+    gap: 8,
+  },
   pressed: {
     opacity: 0.85,
   },
   thumbnail: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
     backgroundColor: Colors.light.softGrey_1,
+  },
+  thumbnailCompact: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
   },
   priceBlock: {
     flex: 1,
@@ -697,15 +736,23 @@ const styles = StyleSheet.create({
   },
   totalPrice: {
     color: Colors.light.darkGreen,
-    fontSize: 18,
-    lineHeight: 22,
+    fontSize: 17,
+    lineHeight: 21,
     fontFamily: "Montserrat_700Bold",
+  },
+  totalPriceCompact: {
+    fontSize: 16,
+    lineHeight: 20,
   },
   savingsText: {
     color: Colors.light.mediumGreen,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 16,
     fontFamily: "Montserrat_600SemiBold",
+  },
+  savingsTextCompact: {
+    fontSize: 11,
+    lineHeight: 14,
   },
   itemCountRow: {
     flexDirection: "row",
@@ -720,12 +767,17 @@ const styles = StyleSheet.create({
   },
   proceedButton: {
     backgroundColor: Colors.light.lightYellow,
-    paddingHorizontal: 22,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
     borderRadius: 999,
-    minWidth: 108,
+    minWidth: 96,
     alignItems: "center",
     justifyContent: "center",
+  },
+  proceedButtonCompact: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    minWidth: 88,
   },
   proceedButtonPressed: {
     opacity: 0.9,
@@ -733,8 +785,12 @@ const styles = StyleSheet.create({
   },
   proceedText: {
     color: Colors.light.darkGreen,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 18,
     fontFamily: "Raleway_700Bold",
+  },
+  proceedTextCompact: {
+    fontSize: 13,
+    lineHeight: 16,
   },
 });

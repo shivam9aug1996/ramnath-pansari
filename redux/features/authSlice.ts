@@ -7,6 +7,7 @@ import {
 import { baseUrl } from "../constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthData, SaveAuthDataPayload } from "@/types/global";
+import { devError, devLog } from "@/utils/devLog";
 import * as SecureStore from "expo-secure-store";
 import { cartApi } from "./cartSlice";
 import { CACHE_DURATION, cleanOldProductCache } from "@/utils/utils";
@@ -53,6 +54,8 @@ export const loadAuthData = createAsyncThunk(
       //   }, 1000);
       // });
       // 9887765432
+      // await AsyncStorage.removeItem('@carousel/config');
+
      //  await storage.clearAll();
       // await SecureStore.deleteItemAsync("lastSavedPushToken");
       // await SecureStore.deleteItemAsync("LOCATION_CACHE");
@@ -174,7 +177,7 @@ export const savePushToken1 = createAsyncThunk(
               token,
               userId,
             };
-            console.log("body4556789067890-67890", body);
+            devLog("body4556789067890-67890", body);
       const response = await fetch(`${baseUrl}/save-push-token`, {
         method: "POST",
         body: JSON.stringify(body),
@@ -282,7 +285,7 @@ export const authApi = createApi({
           //dispatch(setUserData(data.userData));
           // Additional logic can be added here
         } catch (error) {
-          console.error("Update profile failed:", error);
+          devError("Update profile failed:", error);
           // Handle the error if needed
         }
       },
@@ -296,7 +299,7 @@ export const authApi = createApi({
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          console.log("jhgfdf67890ghjk", data);
+          devLog("jhgfdf67890ghjk", data);
           await AsyncStorage.setItem(
             "userData",
             JSON.stringify(data?.userData)
@@ -304,7 +307,7 @@ export const authApi = createApi({
           //dispatch(setUserData(data.userData));
           // Additional logic can be added here
         } catch (error) {
-          console.error("Update profile failed:", error);
+          devError("Update profile failed:", error);
           // Handle the error if needed
         }
       },

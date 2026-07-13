@@ -1,4 +1,5 @@
 import { fetchLocation } from "./fetchLocation";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import { setError, setHour, setLoading, setWeather } from "@/redux/features/weatherSlice";
@@ -19,7 +20,7 @@ export function useWeatherInfo() {
 
   const fetchWeather = async () => {
     try {
-      //console.log("🌦️ useWeatherInfo hook triggered");
+      //devLog("🌦️ useWeatherInfo hook triggered");
       dispatch(setLoading(true));
       dispatch(setError(null));
       const now = Date.now();
@@ -60,7 +61,7 @@ export function useWeatherInfo() {
       const json = await res.json();
       const currentWeather = json?.weather?.[0] || {};
 
-      //console.log("🌤️ Fetched weather:", currentWeather);
+      //devLog("🌤️ Fetched weather:", currentWeather);
 
       // 4. Update state
       dispatch(setWeather(currentWeather));
@@ -84,9 +85,7 @@ export function useWeatherInfo() {
       );
       return currentWeather;
     } catch (err: any) {
-      if (__DEV__) {
-        console.warn("[weather] fetch failed", err?.message ?? err);
-      }
+      devWarn("[weather] fetch failed", err?.message ?? err);
       dispatch(setError(err?.message || "Failed to fetch weather"));
       return null
     } finally {

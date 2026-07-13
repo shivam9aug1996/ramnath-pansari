@@ -5,6 +5,7 @@ import {
   patchSyncedProductsInCache,
   SyncedProductResult,
 } from "./patchSyncedProductsInCache";
+import { devLog } from "@/utils/devLog";
 
 type CartResponse = {
   cart?: {
@@ -18,7 +19,7 @@ export async function applyPostCheckoutCartUpdate(
   newCartData: CartResponse | undefined,
   syncedProducts?: SyncedProductResult[] | null,
 ) {
-  console.log("[cart-sync] applyPostCheckoutCartUpdate:start", {
+  devLog("[cart-sync] applyPostCheckoutCartUpdate:start", {
     userId,
     cartItemCount: newCartData?.cart?.items?.length ?? 0,
     syncResultCount: syncedProducts?.length ?? 0,
@@ -32,7 +33,7 @@ export async function applyPostCheckoutCartUpdate(
     );
     await AsyncStorage.setItem(`cartData-${userId}-needToSync`, "false");
 
-    console.log("[cart-sync] applyPostCheckoutCartUpdate:cart cache updated", {
+    devLog("[cart-sync] applyPostCheckoutCartUpdate:cart cache updated", {
       items: (newCartData.cart?.items ?? []).map((item: any) => ({
         productId: item?.productDetails?._id ?? item?.productId,
         quantity: item?.quantity,
@@ -45,5 +46,5 @@ export async function applyPostCheckoutCartUpdate(
 
   await patchSyncedProductsInCache(dispatch, syncedProducts ?? []);
 
-  console.log("[cart-sync] applyPostCheckoutCartUpdate:done");
+  devLog("[cart-sync] applyPostCheckoutCartUpdate:done");
 }

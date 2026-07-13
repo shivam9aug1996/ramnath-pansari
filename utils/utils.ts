@@ -1,4 +1,5 @@
 import { Image } from "react-native";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import * as FileSystem from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import Toast, { ToastShowParams } from "react-native-toast-message";
@@ -51,11 +52,11 @@ export const downloadAsset = async (url, fileName) => {
   const { exists } = await FileSystem.getInfoAsync(fileUri);
 
   if (!exists) {
-    //console.log("Downloading asset...");
+    //devLog("Downloading asset...");
     await FileSystem.downloadAsync(url, fileUri);
-    //console.log("Asset downloaded and stored at:", fileUri);
+    //devLog("Asset downloaded and stored at:", fileUri);
   } else {
-    //console.log("Asset already exists locally:", fileUri);
+    //devLog("Asset already exists locally:", fileUri);
   }
 
   return fileUri;
@@ -77,7 +78,7 @@ export const hapticFeedback = (style = Haptics.ImpactFeedbackStyle.Soft) => {
   try {
     Haptics.impactAsync(style);
   } catch (error) {
-    console.error("Haptics error:", error);
+    devError("Haptics error:", error);
   }
 };
 
@@ -98,7 +99,7 @@ export const hideAllToast = () => {
   Toast?.hide();
 };
 
-export const CACHE_DURATION = 1 * 60 * 1000;
+export const CACHE_DURATION = 5 * 60 * 1000;
 
 
 export async function cleanOldProductCache(CACHE_DURATION: number) {
@@ -117,15 +118,15 @@ export async function cleanOldProductCache(CACHE_DURATION: number) {
 
         const age = now - timestamp;
         if (age >= CACHE_DURATION) {
-          console.log("Removing expired cache:", key);
+          devLog("Removing expired cache:", key);
           await AsyncStorage.removeItem(key);
         }
       } catch (err) {
-        console.warn(`Error processing cache key: ${key}`, err);
+        devWarn(`Error processing cache key: ${key}`, err);
       }
     }
   } catch (err) {
-    console.error("Error cleaning product cache:", err);
+    devError("Error cleaning product cache:", err);
   }
 }
 
@@ -143,14 +144,14 @@ export async function cleanAllProductCache() {
       
 
       
-          console.log("Removing expired cache:", key);
+          devLog("Removing expired cache:", key);
           await AsyncStorage.removeItem(key);
         
       } catch (err) {
-        console.warn(`Error processing cache key: ${key}`, err);
+        devWarn(`Error processing cache key: ${key}`, err);
       }
     }
   } catch (err) {
-    console.error("Error cleaning product cache:", err);
+    devError("Error cleaning product cache:", err);
   }
 }

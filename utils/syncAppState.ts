@@ -359,22 +359,24 @@ export async function syncAppState(
       hasToken: Boolean(options.token),
     });
 
-    try {
-      const recentSearchPrefetch = options.userId
-        ? prefetchRecentSearchFromStorage(dispatch, options.userId).catch(
-            () => null,
-          )
-        : Promise.resolve(null);
+    let prefetchedRecentSearch: Awaited<
+      ReturnType<typeof prefetchRecentSearchFromStorage>
+    > = null;
 
+    try {
       await hydrateLocalCaches(dispatch, options.userId);
+
+      if (options.userId) {
+        prefetchedRecentSearch = await prefetchRecentSearchFromStorage(
+          dispatch,
+          options.userId,
+        ).catch(() => null);
+      }
 
       const clientVersions = await readAppSyncClientVersions();
       syncLog("clientVersions", clientVersions);
 
-      const [syncResponse, prefetchedRecentSearch] = await Promise.all([
-        postSyncState(clientVersions, options.token),
-        recentSearchPrefetch,
-      ]);
+      const syncResponse = await postSyncState(clientVersions, options.token);
       let effectiveFetch = options.isGuestUser
         ? filterFetchForGuest(syncResponse.fetch)
         : syncResponse.fetch;
@@ -424,6 +426,14 @@ export async function syncAppState(
       });
     } catch (error) {
       syncLog("error:fallback-ready", error);
+
+      if (options.userId) {
+        await syncRecentSearch(dispatch, options.userId, {
+          prefetchedCache: prefetchedRecentSearch,
+          localOnly: Boolean(options.isGuestUser),
+        }).catch(() => {});
+      }
+
       dispatch(
         setSyncComplete({
           fetch: {

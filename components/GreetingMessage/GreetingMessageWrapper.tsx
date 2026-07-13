@@ -8,8 +8,7 @@ const GreetingMessageWrapper = () => {
     // Destructuring values here is fine.
     
     const { message, loading } = useGreetingMessage();
-    
-console.log("message",message)
+
     // GreetingMessage is already memoized, so it will only re-render if
     // 'message' or 'loading' props change. This is efficient.
     return (

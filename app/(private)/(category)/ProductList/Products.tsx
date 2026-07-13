@@ -4,7 +4,6 @@ import React, {
   useEffect,
   useRef,
   useState,
-  useTransition,
 } from "react";
 import { ActivityIndicator, View, FlatList, StyleSheet } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
@@ -27,7 +26,11 @@ import { debounce } from "lodash";
 import { Text } from "react-native";
 import { setSubCategoryActionClicked } from "@/redux/features/categorySlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { CACHE_DURATION, cleanAllProductCache, cleanOldProductCache } from "@/utils/utils";
+import {
+  CACHE_DURATION,
+  cleanAllProductCache,
+  cleanOldProductCache,
+} from "@/utils/utils";
 
 interface ProductsProps {
   isCategoryFetching: boolean;
@@ -48,7 +51,7 @@ interface ProductList3Props {
     totalResults: number;
   };
   setPaginationState: (
-    updater: (prev: PaginationState) => PaginationState
+    updater: (prev: PaginationState) => PaginationState,
   ) => void;
   isProductsFetching: boolean;
   isProductsLoading: boolean;
@@ -58,17 +61,17 @@ interface ProductList3Props {
 
 const Products = ({ isCategoryFetching }: ProductsProps) => {
   const subCategoryActionClicked = useSelector(
-    (state: RootState) => state.category.subCategoryActionClicked
+    (state: RootState) => state.category.subCategoryActionClicked,
   );
   const selectedSubCategory = useSelector(
-    (state: RootState) => state.product.selectedSubCategoryId
+    (state: RootState) => state.product.selectedSubCategoryId,
   );
   //console.log("selectedSubCategory765434567890--", selectedSubCategory?._id);
   const selectedCategoryClicked = useSelector(
-    (state: RootState) => state.product.selectedCategoryClicked
+    (state: RootState) => state.product.selectedCategoryClicked,
   );
   const resetPagination = useSelector(
-    (state: RootState) => state.product?.resetPagination
+    (state: RootState) => state.product?.resetPagination,
   );
   const dispatch = useDispatch();
 
@@ -79,7 +82,6 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
   });
 
   const flatListRef = useRef<FlatList>(null);
-  //console.log("paginationSta45678te23456789876543", selectedSubCategory);
 
   const {
     data,
@@ -99,7 +101,7 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
         !paginationState.categoryId ||
         paginationState.page < 1 ||
         paginationState.categoryId === "null",
-    }
+    },
   );
 
   const [fetchProducts] = useLazyFetchProductsQuery();
@@ -134,7 +136,9 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
   // }, [selectedSubCategory]);
   useEffect(() => {
     const nextId = selectedSubCategory?._id;
-    if (!nextId || nextId === "null") return;
+    if (!nextId || nextId === "null") {
+      return;
+    }
     scrollToTop(flatListRef);
     setPaginationState((prev) => ({
       ...prev,
@@ -159,10 +163,9 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
     useCallback(() => {
       requestAnimationFrame(() => {
         if (resetPagination?.status && data?.products) {
-          console.log("resetPagination23456789876543", resetPagination);
           const id = resetPagination?.item?._id;
           const index = data.products.findIndex(
-            (item: Product) => item._id === id
+            (item: Product) => item._id === id,
           );
           const page = Math.ceil((index + 1) / 10);
 
@@ -172,7 +175,7 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
               page,
               limit: 10,
             },
-            false
+            false,
           )
             ?.unwrap()
             ?.finally(() => {
@@ -180,131 +183,105 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
             });
         }
       });
-    }, [resetPagination?.status, data, selectedSubCategory?._id, dispatch])
+    }, [resetPagination?.status, data, selectedSubCategory?._id, dispatch]),
   );
 
   // Outside JSX, inside your parent component
-const handleRefetchProducts = useCallback(async () => {
-  // 1️⃣ Clear product cache
-  await cleanAllProductCache();
- // await refetch()?.unwrap()
-  setPaginationState((prev) => ({
-    ...prev,
-    page: 1,
-  }));
-  // await dispatch(
-  //   productApi.endpoints.fetchProducts.initiate(
-  //     { categoryId: selectedSubCategory?._id, page: 1, limit: 10 },
-  //     { forceRefetch: true }
-  //   )
-  // );
- dispatch(productApi.util.resetApiState())
- // dispatch(productApi.util.resetApiState())
+  const handleRefetchProducts = useCallback(async () => {
+    // 1️⃣ Clear product cache
+    await cleanAllProductCache();
+    // await refetch()?.unwrap()
+    setPaginationState((prev) => ({
+      ...prev,
+      page: 1,
+    }));
+    // await dispatch(
+    //   productApi.endpoints.fetchProducts.initiate(
+    //     { categoryId: selectedSubCategory?._id, page: 1, limit: 10 },
+    //     { forceRefetch: true }
+    //   )
+    // );
+    dispatch(productApi.util.resetApiState());
+    // dispatch(productApi.util.resetApiState())
 
+    // 2️⃣ Clear RTK Query cached data for this query
+    // dispatch(
+    //   productApi.util.updateQueryData(
+    //     "fetchProducts",
+    //     {
+    //       categoryId: selectedSubCategory?._id,
 
+    //     },
+    //     (draft) => {
+    //       draft.products = [];
+    //       draft.currentPage = 1;
+    //     }
+    //   )
+    // );
 
-  // 2️⃣ Clear RTK Query cached data for this query
-  // dispatch(
-  //   productApi.util.updateQueryData(
-  //     "fetchProducts",
-  //     {
-  //       categoryId: selectedSubCategory?._id,
-       
-  //     },
-  //     (draft) => {
-  //       draft.products = [];
-  //       draft.currentPage = 1;
-  //     }
-  //   )
-  // );
+    // 3️⃣ Reset pagination state
+    // setPaginationState((prev) => ({
+    //   ...prev,
+    //   page: 1,
+    // }));
 
-  // 3️⃣ Reset pagination state
-  // setPaginationState((prev) => ({
-  //   ...prev,
-  //   page: 1,
-  // }));
+    // 4️⃣ Fetch fresh products
+    // await fetchProducts(
+    //   {
+    //     categoryId: selectedSubCategory?._id,
+    //     page: 1,
+    //     limit: 10,
+    //   },
+    //   false
+    // )?.unwrap();
+  }, [dispatch, selectedSubCategory?._id, setPaginationState, fetchProducts]);
 
-  // 4️⃣ Fetch fresh products
-  // await fetchProducts(
-  //   {
-  //     categoryId: selectedSubCategory?._id,
-  //     page: 1,
-  //     limit: 10,
-  //   },
-  //   false
-  // )?.unwrap();
-}, [dispatch, selectedSubCategory?._id, setPaginationState, fetchProducts]);
+  const activeCategoryId = selectedSubCategory?._id ?? null;
+  const isCategoryOutOfSync =
+    activeCategoryId != null && paginationState.categoryId !== activeCategoryId;
+  const hasProductsToShow = (data?.products?.length ?? 0) > 0;
 
+  const showInitialSkeleton =
+    isCategoryFetching ||
+    !paginationState.categoryId ||
+    isCategoryOutOfSync ||
+    (!hasProductsToShow &&
+      (isProductsLoading ||
+        (isProductsFetching && paginationState.page === 1)));
+
+  const showOverlaySpinner =
+    subCategoryActionClicked ||
+    (isProductsFetching &&
+      paginationState.page === 1 &&
+      hasProductsToShow &&
+      !showInitialSkeleton);
 
   if (isProductError) {
     return <TryAgain refetch={handleRefetchProducts} />;
   }
 
-  // const isLoading =
-  //   isCategoryFetching || !paginationState.categoryId || isProductsLoading;
-  // const isLoading =
-  // isCategoryFetching ||
-  // !paginationState.categoryId ||
-  // isProductsLoading ||
-  // (isProductsFetching && paginationState.page === 1 && !data?.products?.length) ||
-  // selectedSubCategory?._id !== paginationState.categoryId;
-  // if(subCategoryActionClicked){
-  //   return <ActivityIndicator size="large" color={Colors.light.lightGreen} />
-  // }
-
-  const activeCategoryId = selectedSubCategory?._id ?? null;
-const isCategoryOutOfSync =
-  activeCategoryId != null &&
-  paginationState.categoryId !== activeCategoryId;
-  const hasProductsToShow = (data?.products?.length ?? 0) > 0;
-  const isLoading =
-    isCategoryFetching ||
-    (!hasProductsToShow &&
-      (!paginationState.categoryId ||
-        isCategoryOutOfSync ||
-        isProductsLoading ||
-        (isProductsFetching && paginationState.page === 1)));
-
-  console.log("products",isLoading);
-
-  const showInitialSkeleton =
-  isCategoryFetching ||
-  !paginationState.categoryId ||
-  isCategoryOutOfSync ||
-  (!hasProductsToShow &&
-    (isProductsLoading ||
-      (isProductsFetching && paginationState.page === 1)));
-      const showOverlaySpinner =
-      subCategoryActionClicked ||
-      (isProductsFetching &&
-        paginationState.page === 1 &&
-        hasProductsToShow &&
-        !showInitialSkeleton);
   return (
-
-    
-      <View style={styles.container}>
-        {showOverlaySpinner && (
-          <View style={styles.overlay}>
-            <ActivityIndicator size="large" color={Colors.light.lightGreen} />
-          </View>
-        )}
-        <ProductList3
-          refetch={handleRefetchProducts}
-          flatListRef={flatListRef}
-          data={data}
-          setPaginationState={setPaginationState}
-          isProductsFetching={
-            isProductsFetching ||
-            selectedCategoryClicked ||
-            subCategoryActionClicked
-          }
-          isProductsLoading={isProductsLoading}
-          paginationState={paginationState}
-          showInitialSkeleton={showInitialSkeleton}
-        />
-      </View>
-  
+    <View style={styles.container}>
+      {showOverlaySpinner && (
+        <View style={styles.overlay}>
+          <ActivityIndicator size="large" color={Colors.light.lightGreen} />
+        </View>
+      )}
+      <ProductList3
+        refetch={handleRefetchProducts}
+        flatListRef={flatListRef}
+        data={data}
+        setPaginationState={setPaginationState}
+        isProductsFetching={
+          isProductsFetching ||
+          selectedCategoryClicked ||
+          subCategoryActionClicked
+        }
+        isProductsLoading={isProductsLoading}
+        paginationState={paginationState}
+        showInitialSkeleton={showInitialSkeleton}
+      />
+    </View>
 
     // <View style={{ flex: 1 }}>
     //   {isLoading ? (

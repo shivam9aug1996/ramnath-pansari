@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
@@ -42,7 +43,7 @@ function navigateFromNotification(orderId: string) {
     try {
       router.push(`/(orderDetail)/${orderId}`);
     } catch (error) {
-      console.warn("Notification navigation failed:", error);
+      devWarn("Notification navigation failed:", error);
     }
   }, 800);
 }
@@ -139,7 +140,7 @@ export default function Push1() {
             // );
           }
         } catch (error) {
-          console.warn("Failed to handle received notification:", error);
+          devWarn("Failed to handle received notification:", error);
         }
       });
 
@@ -159,7 +160,7 @@ export default function Push1() {
             navigateFromNotification(String(notData.orderId));
           }
         } catch (error) {
-          console.warn("Failed to handle notification response:", error);
+          devWarn("Failed to handle notification response:", error);
         }
       });
 

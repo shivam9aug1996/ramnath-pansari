@@ -1,4 +1,5 @@
 import { useLazyFetchGeocodingQuery } from "@/redux/features/addressSlice";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import { useState } from "react";
 import { fetchLocation } from "./utils";
 const initialState = {
@@ -30,7 +31,7 @@ const useFetchLocation = () => {
   };
 
   const fetchLocationData = async (lat = null, long = null) => {
-   // console.log("trdfgbnm,./");
+   // devLog("trdfgbnm,./");
     setLoading(true);
     setError("");
     setData(initialState);
@@ -56,7 +57,7 @@ const useFetchLocation = () => {
       }
     } catch (e: any) {
       setError(e?.message || "An unexpected error occurred");
-      console.error(e);
+      devError(e);
     } finally {
       setLoading(false);
     }

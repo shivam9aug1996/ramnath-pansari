@@ -1,4 +1,5 @@
 import { StyleSheet } from "react-native";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import { useState } from "react";
 import {
   useCreatePreOrderMutation,
@@ -86,7 +87,7 @@ const getRazorpayOptions = (
       theme: { color: Colors.light.lightGreen },
     };
   } catch (error) {
-    console.error('Error creating Razorpay options:', error);
+    devError('Error creating Razorpay options:', error);
     throw error;
   }
 };
@@ -161,7 +162,7 @@ const usePayment = () => {
 
       const cartData = await fetchCartData({ userId }, true)?.unwrap();
       const productIds = extractProductIds(cartData);
-      console.log("[product-lock] payment:online:start", {
+      devLog("[product-lock] payment:online:start", {
         userId,
         productIds,
         amount,
@@ -173,7 +174,7 @@ const usePayment = () => {
         userId,
         productIds,
       }).unwrap();
-      console.log("[product-lock] payment:online:pre-order-created", {
+      devLog("[product-lock] payment:online:pre-order-created", {
         userId,
         razorpayOrderId: res.data.id,
       });
@@ -228,7 +229,7 @@ const usePayment = () => {
             }
           } catch (verifyError: any) {
             dispatch(setOrderSuccessView(false));
-            console.log("[product-lock] payment:online:verify-failed", {
+            devLog("[product-lock] payment:online:verify-failed", {
               userId,
               status: verifyError?.status,
               data: verifyError?.data,
@@ -242,7 +243,7 @@ const usePayment = () => {
           }
         })
         .catch((error) => {
-          console.error("Payment failed:", error);
+          devError("Payment failed:", error);
           showToast({
             type: "error",
             text2: error?.description || "Payment failed",
@@ -253,7 +254,7 @@ const usePayment = () => {
           setIsRazorpayOpened(false);
         });
     } catch (error: any) {
-      console.log("[product-lock] payment:online:pre-order-failed", {
+      devLog("[product-lock] payment:online:pre-order-failed", {
         userId,
         status: error?.status,
         data: error?.data,
@@ -266,7 +267,7 @@ const usePayment = () => {
         type: "error",
         text2: message,
       });
-      console.error("Order creation failed:", error);
+      devError("Order creation failed:", error);
       setIsPaymentProcessing(false);
     }
   };
@@ -283,7 +284,7 @@ const usePayment = () => {
 
       const cartData = await fetchCartData({ userId }, true)?.unwrap();
       const productIds = extractProductIds(cartData);
-      console.log("[product-lock] payment:cod:start", {
+      devLog("[product-lock] payment:cod:start", {
         userId,
         productIds,
         amount,
@@ -306,7 +307,7 @@ const usePayment = () => {
       router.push("/(order)/order");
       router.push(`/(orderDetail)/${verifyResponse?.orderId}`);
     } catch (error: any) {
-      console.log("[product-lock] payment:cod:failed", {
+      devLog("[product-lock] payment:cod:failed", {
         userId,
         status: error?.status,
         data: error?.data,

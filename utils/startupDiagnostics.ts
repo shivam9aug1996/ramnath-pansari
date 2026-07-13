@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Updates from "expo-updates";
@@ -77,10 +78,11 @@ let launchContext: LaunchContext | null = null;
 let startupFinalized = false;
 
 function logLine(message: string, data?: Record<string, unknown>) {
+  if (!__DEV__) return;
   if (data) {
-    console.log(PREFIX, message, data);
+    devLog(PREFIX, message, data);
   } else {
-    console.log(PREFIX, message);
+    devLog(PREFIX, message);
   }
 }
 

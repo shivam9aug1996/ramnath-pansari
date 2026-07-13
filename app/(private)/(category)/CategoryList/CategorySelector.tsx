@@ -25,6 +25,7 @@ const CategorySelector = ({
 
   return (
     <FlatList
+    nestedScrollEnabled={true}
       horizontal
       bounces={Platform.OS !== "android"}
       contentContainerStyle={contentContainerStyle}

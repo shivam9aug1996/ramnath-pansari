@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSendOtp } from "@/screens/login/hooks/useSendOtp";
 import { useSendOtpMutation } from "@/redux/features/authSlice";
@@ -24,7 +25,7 @@ export const getResendTime = async (mobileNum: any) => {
       }
     }
   } catch (error) {
-    console.error("Failed to check resend eligibility", error);
+    devError("Failed to check resend eligibility", error);
   }
 };
 
@@ -82,7 +83,7 @@ const useResendCode = (
         }
       }
     } catch (error) {
-      console.error("Failed to check resend eligibility", error);
+      devError("Failed to check resend eligibility", error);
     }
   };
 
@@ -100,7 +101,7 @@ const useResendCode = (
       setCanResend(false);
       setCountdown(RESEND_INTERVAL / 1000);
     } catch (error) {
-      console.error("Failed to save resend timestamp", error);
+      devError("Failed to save resend timestamp", error);
     }
   };
 

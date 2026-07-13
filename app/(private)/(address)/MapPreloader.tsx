@@ -1,4 +1,5 @@
 import React, { memo, useEffect, useMemo } from "react";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import { View } from "react-native";
 import WebView from "react-native-webview";
 import { useDispatch, useSelector } from "react-redux";
@@ -15,7 +16,7 @@ type Props = {
 };
 
 const MapPreloader = ({ latitude, longitude }: Props) => {
-    console.log("mappreloader1234567890");
+    devLog("mappreloader1234567890");
   const dispatch = useDispatch();
   const token = useSelector((state: RootState) => state?.auth?.token);
 

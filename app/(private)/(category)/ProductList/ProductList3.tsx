@@ -8,17 +8,18 @@ import {
   FlatList,
   RefreshControl,
   ViewToken,
+  ActivityIndicator,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import NotFound from "../../(result)/NotFound";
 import ProductItem from "./ProductItem";
-import { useHideOnScroll } from "@/hooks/useHideOnScroll";
-import { usePaginationSkeleton } from "@/hooks/usePaginationSkeleton";
+// import { useHideOnScroll } from "@/hooks/useHideOnScroll";
+// import { usePaginationSkeleton } from "@/hooks/usePaginationSkeleton";
 import {
-  setProductListScrollParams,
+  // setProductListScrollParams,
   setVisibleIds,
 } from "@/redux/features/productSlice";
-import { useFocusEffect } from "expo-router";
+// import { useFocusEffect } from "expo-router";
 import ProductItemWrapper from "./ProductItemWrapper";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGoToCartListPadding } from "@/contexts/DeliveryFloatContext";
@@ -36,11 +37,13 @@ import {
 } from "./productListLayout";
 import { ProductItemSkeleton, ProductItemSkeletonStatic, ProductPaginationSkeleton } from "./ProductListPlaceholder";
 import { clearVisibleProductIds, updateVisibleProductIds } from "./productVisibilityStore";
+import { Colors } from "@/constants/Colors";
 
 
 const ITEM_HEIGHT = PRODUCT_CARD_HEIGHT;
 const ESTIMATED_ITEM_HEIGHT = ITEM_HEIGHT + PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT;
-
+const PAGINATION_RESERVE_HEIGHT =
+  PRODUCT_CARD_HEIGHT + PRODUCT_ITEM_MARGIN_BOTTOM; 
 const ItemSeparator = () => {
   return <View style={{ height: PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT }} />;
 };
@@ -94,6 +97,7 @@ const ProductList3 = ({
 }: ProductList3Props) => {
    //const visibleIds = useSelector((state: RootState) => state.product.visibleIds);
   // console.log("visibleIds98767890",visibleIds);
+  const scrollEndedRef = useRef(0);
   const goToCartListPadding = useGoToCartListPadding();
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   const syncedProductOverrides = useSelector(
@@ -101,7 +105,9 @@ const ProductList3 = ({
   );
   const { data: cartData, isLoading: isCartLoading } = useFetchCartQuery(
     { userId },
-    { skip: !userId }
+    { skip: !userId 
+      && scrollEndedRef.current !== 1
+     }
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -110,10 +116,10 @@ const ProductList3 = ({
 const listContentContainerStyle = useMemo(
   () => [
     styles.flatList,
-    isRefreshingFirstPage && styles.listRefreshing,
+    isRefreshingFirstPage && !showInitialSkeleton &&  styles.listRefreshing,
     { paddingBottom: PRODUCT_LIST_PADDING_BOTTOM + goToCartListPadding },
   ],
-  [isRefreshingFirstPage, goToCartListPadding],
+  [isRefreshingFirstPage, goToCartListPadding, showInitialSkeleton],
 );
   //const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
   //const visibleIdsRef = useRef(visibleIds);
@@ -178,46 +184,45 @@ const onViewableItemsChanged = useRef(
 
   const hasNextPage = data?.currentPage < data?.totalPages;
 
-  const { showSkeleton: showPaginationSkeleton, beginPaging, isPagingMore } =
-  usePaginationSkeleton({
-    isFetching: isProductsFetching,
-    page: paginationState.page,
-    hasItems: (data?.products?.length ?? 0) > 0,
-    hasNextPage,
-    itemCount: data?.products?.length ?? 0,
-  });
+  // const { showSkeleton: showPaginationSkeleton, beginPaging, isPagingMore } =
+  // usePaginationSkeleton({
+  //   isFetching: isProductsFetching,
+  //   page: paginationState.page,
+  //   hasItems: (data?.products?.length ?? 0) > 0,
+  //   hasNextPage,
+  //   itemCount: data?.products?.length ?? 0,
+  // });
 
-  const isLoadingMoreRef = useRef(showPaginationSkeleton);
-  isLoadingMoreRef.current = showPaginationSkeleton;
+  // const isLoadingMoreRef = useRef(showPaginationSkeleton);
+  // isLoadingMoreRef.current = showPaginationSkeleton;
 
-  const onChromeVisibilityChange = useCallback(
-    (hidden: boolean) => {
-      // Content growth at the list tail (pagination skeletons) can fire spurious
-      // scroll-up events — keep chrome hidden until the user explicitly scrolls up.
-      //if (!hidden && isLoadingMoreRef.current) return;
-      dispatch(setProductListScrollParams({ shouldHideChrome: hidden }));
-    },
-    [dispatch],
-  );
+  // const onChromeVisibilityChange = useCallback(
+  //   (hidden: boolean) => {
+  //     // Content growth at the list tail (pagination skeletons) can fire spurious
+  //     // scroll-up events — keep chrome hidden until the user explicitly scrolls up.
+  //     //if (!hidden && isLoadingMoreRef.current) return;
+  //     dispatch(setProductListScrollParams({ shouldHideChrome: hidden }));
+  //   },
+  //   [dispatch],
+  // );
 
-  const { handleScroll, reset: resetScrollChrome } = useHideOnScroll(
-    onChromeVisibilityChange,
-  );
+  // const { handleScroll, reset: resetScrollChrome } = useHideOnScroll(
+  //   onChromeVisibilityChange,
+  // );
 
-  useFocusEffect(
-    useCallback(() => {
-      resetScrollChrome();
-      return () => resetScrollChrome();
-    }, [resetScrollChrome]),
-  );
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     resetScrollChrome();
+  //     return () => resetScrollChrome();
+  //   }, [resetScrollChrome]),
+  // );
 
+  // useEffect(() => {
+  //   resetScrollChrome();
+  // }, [paginationState.categoryId, resetScrollChrome]);
 
-
- 
-
-  useEffect(() => {
-    resetScrollChrome();
-  }, [paginationState.categoryId, resetScrollChrome]);
+  const isLoadingMore =
+    isProductsFetching && paginationState.page > 1 && (data?.products?.length ?? 0) > 0;
 
   useEffect(() => {
     clearVisibleProductIds();
@@ -227,13 +232,21 @@ const onViewableItemsChanged = useRef(
     dispatch(setVisibleIds([]));
   }, []);
 
+  // const listData = useMemo(
+  //   () =>
+  //     buildProductListData(data?.products, {
+  //       showInitialSkeleton,
+  //       showPaginationSkeleton,
+  //     }),
+  //   [data?.products, showInitialSkeleton, showPaginationSkeleton],
+  // );
+
   const listData = useMemo(
     () =>
       buildProductListData(data?.products, {
         showInitialSkeleton,
-        showPaginationSkeleton,
       }),
-    [data?.products, showInitialSkeleton, showPaginationSkeleton],
+    [data?.products, showInitialSkeleton],
   );
 
   // const renderProductItem = useCallback(
@@ -290,10 +303,28 @@ const onViewableItemsChanged = useRef(
     [cartItemsMap, syncedProductOverrides],
   );
 
+  // const renderListFooter = useCallback(() => {
+  //   if (showInitialSkeleton || !isLoadingMore) return null;
+  //   return <ProductPaginationSkeleton />;
+  // }, [showInitialSkeleton, isLoadingMore]);
+
   const renderListFooter = useCallback(() => {
-    if (showInitialSkeleton || !showPaginationSkeleton) return null;
-    return <ProductPaginationSkeleton />;
-  }, [showInitialSkeleton, showPaginationSkeleton]);
+    if (showInitialSkeleton || !hasNextPage) return null;
+    return (
+      <View>
+        {<ProductPaginationSkeleton />}
+      </View>
+    );
+  }, [showInitialSkeleton, hasNextPage, isLoadingMore]);
+
+  // const renderListFooter = useCallback(() => {
+  //   if (showInitialSkeleton || !isLoadingMore) return null;
+  //   return (
+  //     <View style={styles.footerLoader}>
+  //       <ActivityIndicator size="small" color={Colors.light.lightGreen} />
+  //     </View>
+  //   );
+  // }, [showInitialSkeleton, isLoadingMore]);
 
   const renderEmptyComponent = useCallback(() => {
     if (
@@ -326,7 +357,7 @@ const onViewableItemsChanged = useRef(
     paginationState.page,
   ]);
 
-  const fetchNextPage = useCallback(() => {
+  const fetchNextPage = useCallback(async() => {
     setPaginationState((prevState) => ({
       ...prevState,
       page: prevState.page + 1,
@@ -337,16 +368,18 @@ const onViewableItemsChanged = useRef(
     if (showInitialSkeleton) return;
     if (!hasNextPage) return;
     if (isProductsFetching) return;
-    if (showPaginationSkeleton || isPagingMore) return;
-    beginPaging();
+   
+    // if (showPaginationSkeleton || isPagingMore) return;
+    // beginPaging();
     fetchNextPage();
   }, [
     hasNextPage,
     isProductsFetching,
-    showPaginationSkeleton,
-    isPagingMore,
-    beginPaging,
+    // showPaginationSkeleton,
+    // isPagingMore,
+    // beginPaging,
     fetchNextPage,
+    showInitialSkeleton,
   ]);
 
 
@@ -372,13 +405,11 @@ const onViewableItemsChanged = useRef(
   // }, [paginationState.categoryId]);
 
   const handleRefresh = async() => {
-    console.log("handleRefresh765434567890");
     setIsRefreshing(true);
     await refetch()
     setIsRefreshing(false);
   };
 
-  console.log("productlist3");
   // const ESTIMATED_ITEM_HEIGHT = ITEM_HEIGHT + PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT; // 280 + 20 = 300 ❌
   // const ROW_HEIGHT =
   // PRODUCT_CARD_HEIGHT + PRODUCT_ITEM_MARGIN_BOTTOM; 
@@ -390,6 +421,13 @@ const onViewableItemsChanged = useRef(
   //     index,
   //   };
   // };
+
+  const onMomentumScrollEnd = useCallback(() => {
+    scrollEndedRef.current = 1;
+  }, []);
+  const onMomentumScrollBegin = useCallback(() => {
+    scrollEndedRef.current = 2;
+  }, []);
 
   return (
     <FlatList
@@ -412,18 +450,24 @@ const onViewableItemsChanged = useRef(
       scrollEnabled={!showInitialSkeleton}
 
       data={listData}
+     // alwaysBounceVertical={false}
       ListFooterComponent={renderListFooter}
-      extraData={{ showInitialSkeleton, showPaginationSkeleton, cartItemsMap }}
+      //extraData={{ showInitialSkeleton, isLoadingMore, cartItemsMap }}
+       extraData={{ cartItemsMap }}
       keyExtractor={(item) => item._id}
       renderItem={renderProductItem}
       ListEmptyComponent={renderEmptyComponent}
       contentContainerStyle={listContentContainerStyle}
       onEndReached={showInitialSkeleton ? undefined : handleEndReached}
       onEndReachedThreshold={0.35}
+      onMomentumScrollEnd={onMomentumScrollEnd}
+      onMomentumScrollBegin={onMomentumScrollBegin}
+      onScrollBeginDrag={onMomentumScrollBegin}
+      onScrollEndDrag={onMomentumScrollEnd}
       // viewabilityConfig={viewabilityConfig}
       // onViewableItemsChanged={onViewableItemsChanged}
-      scrollEventThrottle={50}
-      onScroll={handleScroll}
+     // scrollEventThrottle={50}
+      // onScroll={handleScroll}
       style={{ marginTop: PRODUCT_LIST_MARGIN_TOP }}
     />
   );
@@ -438,5 +482,10 @@ const styles = StyleSheet.create({
   listRefreshing: {
     opacity: 0.6,
     pointerEvents: "none",
+  },
+  footerLoader: {
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

@@ -16,7 +16,7 @@ const ProductItemWrapper = ({
   quantity: number;
   //isVisible: boolean;
 }) => {
-  console.log("productitemwrapper",index, quantity);
+ // console.log("productitemwrapper",index, quantity);
     
   //   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   // const { data: cartData, isLoading: isCartLoading } = useFetchCartQuery(

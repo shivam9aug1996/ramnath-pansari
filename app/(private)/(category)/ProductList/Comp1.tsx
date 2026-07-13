@@ -3,7 +3,6 @@ import React from 'react'
 import { router } from 'expo-router'
 
 const Comp1 = () => {
-    console.log("uytrewer6765434567890")
   return (
     <View>
       <Text>Comp1</Text>

@@ -1,4 +1,5 @@
 import React, { memo } from "react";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import { FlatList, Platform } from "react-native";
 import SubCategoryItem from "./SubCategoryItem";
 import { SubCategorySelectorProps } from "@/types/global";
@@ -28,7 +29,7 @@ const SubCategorySelector = ({
       contentContainerStyle={contentContainerStyle}
       ref={subCatFlatListRef}
       onScrollToIndexFailed={()=>{
-        console.error("onScrollToIndexFailed")
+        devError("onScrollToIndexFailed")
       }}
       data={subCategories}
       keyExtractor={(item) => item._id}

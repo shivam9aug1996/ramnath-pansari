@@ -21,7 +21,6 @@ const Map = ({ sendData }) => {
     // Extract address if possible (from URL or via API)
     const addressRegex = /place\/([^/]+)\//;
     const addressMatch = url.match(addressRegex);
-    console.log("uytfvbnm,.", url);
     if (addressMatch) {
       address = decodeURIComponent(addressMatch[1].replace(/\+/g, " "));
       // setAddress(decodeURIComponent(addressMatch[1].replace(/\+/g, " ")));

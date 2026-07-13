@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { recentSearchApi } from "@/redux/features/recentSearchSlice";
 import type store from "@/redux/store";
 import { PROMO_CONFIG_TTL_MS, isPromoConfigStale } from "@/utils/promoConfigCache";
+import { devError } from "@/utils/devLog";
 import { runRecentSearchCacheHydration } from "@/utils/recentSearchDebug";
 
 export const RECENT_SEARCH_CACHE_KEY = "@recentSearch/config";
@@ -143,20 +144,39 @@ export function hydrateRecentSearchCache(
 
 let syncInFlight: Promise<void> | null = null;
 
-/** Read AsyncStorage and hydrate RTK immediately. No network fetch. */
-export async function prefetchRecentSearchFromStorage(
+async function resolveRecentSearchCache(
+  userId: string,
+  prefetchedCache?: RecentSearchCache | null,
+): Promise<RecentSearchCache | null> {
+  if (prefetchedCache) {
+    return prefetchedCache;
+  }
+  return readRecentSearchCache(userId);
+}
+
+/** Read disk cache and hydrate RTK. Returns cache even when disk is empty. */
+export async function hydrateRecentSearchFromStorage(
   dispatch: AppDispatch,
   userId: string,
+  prefetchedCache?: RecentSearchCache | null,
 ): Promise<RecentSearchCache | null> {
   if (!userId) {
     return null;
   }
 
-  const cached = await readRecentSearchCache(userId);
+  const cached = await resolveRecentSearchCache(userId, prefetchedCache);
   if (cached) {
     hydrateRecentSearchCache(dispatch, cached);
   }
   return cached;
+}
+
+/** Read AsyncStorage and hydrate RTK immediately. No network fetch. */
+export async function prefetchRecentSearchFromStorage(
+  dispatch: AppDispatch,
+  userId: string,
+): Promise<RecentSearchCache | null> {
+  return hydrateRecentSearchFromStorage(dispatch, userId);
 }
 
 export async function syncRecentSearch(
@@ -177,28 +197,14 @@ export async function syncRecentSearch(
   }
 
   syncInFlight = (async () => {
-    if (options?.localOnly) {
-      if (options && "prefetchedCache" in options) {
-        if (!options.prefetchedCache) {
-          const cached = await readRecentSearchCache(userId);
-          if (cached) {
-            hydrateRecentSearchCache(dispatch, cached);
-          }
-        }
-      } else {
-        await prefetchRecentSearchFromStorage(dispatch, userId);
-      }
-      return;
-    }
+    const cached = await hydrateRecentSearchFromStorage(
+      dispatch,
+      userId,
+      options?.prefetchedCache,
+    );
 
-    let cached: RecentSearchCache | null;
-    if (options && "prefetchedCache" in options) {
-      cached = options.prefetchedCache ?? null;
-    } else {
-      cached = await readRecentSearchCache(userId);
-      if (cached) {
-        hydrateRecentSearchCache(dispatch, cached);
-      }
+    if (options?.localOnly) {
+      return;
     }
 
     const shouldFetch =
@@ -218,10 +224,23 @@ export async function syncRecentSearch(
         ),
       ).unwrap()) as RecentSearchItem[];
 
-      upsertRecentSearchInStore(dispatch, userId, data ?? []);
-      await writeRecentSearchCache(userId, data ?? []);
+      if (Array.isArray(data) && data.length > 0) {
+        upsertRecentSearchInStore(dispatch, userId, data);
+        await writeRecentSearchCache(userId, data);
+        return;
+      }
+
+      // RTK stores [] from the response — restore disk cache when API is empty.
+      const fallback = cached ?? (await readRecentSearchCache(userId));
+      if (fallback) {
+        hydrateRecentSearchCache(dispatch, fallback);
+      }
     } catch {
-      // keep storage hydration if network fails
+      devError("Failed to sync recent search");
+      const fallback = cached ?? (await readRecentSearchCache(userId));
+      if (fallback) {
+        hydrateRecentSearchCache(dispatch, fallback);
+      }
     }
   })().finally(() => {
     syncInFlight = null;

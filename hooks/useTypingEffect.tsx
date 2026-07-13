@@ -35,8 +35,6 @@ export const useTypingEffect = (text: string, speed: number = 20): string => {
         } else {
           isTypingCompleteCountRef.current++;
           if(isTypingCompleteCountRef.current === 2){
-            console.log("Typing complete", text);
-            
           }
           return; // Typing complete 
         }

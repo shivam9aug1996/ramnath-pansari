@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { devLog, devWarn } from "@/utils/devLog";
 import {
   applySyncedProductOverrides,
   productApi,
@@ -139,14 +140,14 @@ async function patchAsyncStorageProductPages(
         );
         pagesPatched++;
         productsPatched += patchedOnPage;
-        console.log("[cart-sync] patch:asyncStorage", {
+        devLog("[cart-sync] patch:asyncStorage", {
           key,
           patchedOnPage,
         });
       }
     }
   } catch (error) {
-    console.warn("[cart-sync] patch:asyncStorage failed", error);
+    devWarn("[cart-sync] patch:asyncStorage failed", error);
   }
 
   return pagesPatched + productsPatched;
@@ -165,7 +166,7 @@ export async function patchSyncedProductsInCache(
     (p) => PATCHABLE_SYNC_STATUSES.has(p.status) && hasPatchableFields(p),
   );
 
-  console.log("[cart-sync] patchSyncedProductsInCache:start", {
+  devLog("[cart-sync] patchSyncedProductsInCache:start", {
     totalSyncResults: syncedProducts?.length ?? 0,
     normalizedCount: normalized.length,
     applicableUpdates: updates.length,
@@ -180,7 +181,7 @@ export async function patchSyncedProductsInCache(
   });
 
   if (!updates.length) {
-    console.log("[cart-sync] patchSyncedProductsInCache:skip — no patchable products");
+    devLog("[cart-sync] patchSyncedProductsInCache:skip — no patchable products");
     return;
   }
 
@@ -195,7 +196,7 @@ export async function patchSyncedProductsInCache(
       })),
     ),
   );
-  console.log("[cart-sync] patch:overrides applied", {
+  devLog("[cart-sync] patch:overrides applied", {
     productIds: updates.map((u) => u.productId),
   });
 
@@ -230,7 +231,7 @@ export async function patchSyncedProductsInCache(
               const fields = applySyncedFields(product, synced);
               if (fields.length) {
                 patchedInCategory++;
-                console.log("[cart-sync] patch:list", {
+                devLog("[cart-sync] patch:list", {
                   categoryId,
                   productId: synced.productId,
                   name: product.name,
@@ -253,7 +254,7 @@ export async function patchSyncedProductsInCache(
     .map((u) => u.productId)
     .filter((id) => !patchedProductIds.has(id));
   if (notInRtkCache.length) {
-    console.log(
+    devLog(
       "[cart-sync] patch:list not in loaded RTK pages (overrides still apply)",
       { productIds: notInRtkCache },
     );
@@ -281,7 +282,7 @@ export async function patchSyncedProductsInCache(
               const fields = applySyncedFields(product, synced);
               if (fields.length) {
                 searchProductsPatched++;
-                console.log("[cart-sync] patch:search", {
+                devLog("[cart-sync] patch:search", {
                   queryKey: key,
                   productId: synced.productId,
                   fields,
@@ -305,7 +306,7 @@ export async function patchSyncedProductsInCache(
             const fields = applySyncedFields(draft.product, synced);
             if (fields.length) {
               detailProductsPatched++;
-              console.log("[cart-sync] patch:detail", {
+              devLog("[cart-sync] patch:detail", {
                 productId: synced.productId,
                 fields,
               });
@@ -316,7 +317,7 @@ export async function patchSyncedProductsInCache(
     );
   }
 
-  console.log("[cart-sync] patchSyncedProductsInCache:done", {
+  devLog("[cart-sync] patchSyncedProductsInCache:done", {
     listCategoriesPatched,
     listProductsPatched,
     searchProductsPatched,

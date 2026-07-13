@@ -56,7 +56,6 @@ const AddressItem: FC<AddressItemProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [deleteAddress] = useDeleteAddressMutation();
   const [fetchAddress] = useLazyFetchAddressQuery();
-console.log("item",item)
   //const fullAddress = `${item.buildingName}, ${item.colonyArea}, ${item.city} - ${item.pincode}, ${item.state}`;
 const fullAddress = item?.address || ''
   const handleEditPress = () => {

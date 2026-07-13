@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = 'recentlyViewedItems';
@@ -11,7 +12,7 @@ export const loadRecentlyViewed = createAsyncThunk(
       const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);
       return jsonValue != null ? JSON.parse(jsonValue) : [];
     } catch (error) {
-      console.error('Error loading recently viewed items:', error);
+      devError('Error loading recently viewed items:', error);
       return [];
     }
   }
@@ -25,7 +26,7 @@ export const saveRecentlyViewed = createAsyncThunk(
       const jsonValue = JSON.stringify(items);
       await AsyncStorage.setItem(STORAGE_KEY, jsonValue);
     } catch (error) {
-      console.error('Error saving recently viewed items:', error);
+      devError('Error saving recently viewed items:', error);
     }
   }
 );

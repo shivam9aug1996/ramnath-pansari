@@ -18,6 +18,7 @@ import {
   Keyboard,
 } from "react-native";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
@@ -84,7 +85,7 @@ export const InputField: React.FC<InputFieldProps> = memo(
     onBlur,
   }) => {
     const handlePress = () => customRef?.current?.focus();
-    console.log("InputField---------->", defaultValue, label);
+    devLog("InputField---------->", defaultValue, label);
 
     return (
       <>
@@ -209,7 +210,7 @@ const AddAddress: React.FC = () => {
         delete formData?.query;
         delete formData?.action;
         formRef.current = formData;
-        console.log("formRef34567890", formData);
+        devLog("formRef34567890", formData);
         forceUpdate({}); // Force re-render to update UI
 
         // Clear errors using ref
@@ -224,7 +225,7 @@ const AddAddress: React.FC = () => {
     }, [currentAddressData])
   );
 
-  console.log("formRef3456678907890", currentAddressData);
+  devLog("formRef3456678907890", currentAddressData);
 
   const deliveryRadiusInfo = useMemo(() => {
     if (formRef.current?.latitude && formRef.current?.longitude) {
@@ -276,7 +277,7 @@ const AddAddress: React.FC = () => {
   const validateForm = () => {
     let valid = true;
     const newErrors: FormState = { ...errorsRef.current };
-    console.log("formRef---------->", formRef);
+    devLog("formRef---------->", formRef);
 
     if (!formRef.current.name.trim()) {
       newErrors.name = "Name is required";

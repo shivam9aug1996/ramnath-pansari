@@ -52,7 +52,11 @@ export async function writeCarouselConfigCache(
   fetchedAt = Date.now(),
 ): Promise<void> {
   const payload: CarouselConfigCache = { fetchedAt, carousel };
-  await AsyncStorage.setItem(CAROUSEL_CONFIG_CACHE_KEY, JSON.stringify(payload));
+  if(carousel.banners.length > 0){
+    await AsyncStorage.setItem(CAROUSEL_CONFIG_CACHE_KEY, JSON.stringify(payload));
+  }else{
+    await AsyncStorage.removeItem(CAROUSEL_CONFIG_CACHE_KEY);
+  }
 }
 
 export function hydrateCarouselConfigCache(
@@ -80,7 +84,7 @@ export async function syncCarouselConfig(
 
   syncInFlight = (async () => {
     const cached = await readCarouselConfigCache();
-    if (cached) {
+    if (cached && cached.carousel.banners.length > 0) {
       hydrateCarouselConfigCache(dispatch, cached);
     }
 

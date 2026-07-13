@@ -1,4 +1,5 @@
 import { getPaidCartPayload } from "@/utils/cartOfferUtils";
+import { devLog } from "@/utils/devLog";
 import { getPayableTotalFromItems } from "@/utils/deliveryFee";
 import { createSlice } from "@reduxjs/toolkit";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
@@ -66,7 +67,7 @@ export const cartApi = createApi({
             };
           });
           payload = getPaidCartPayload(parsedCartData);
-          console.log("payload4567890", payload);
+          devLog("payload4567890", payload);
           const data1 = {
             params: {
               userId,
@@ -312,7 +313,7 @@ const cartSlice = createSlice({
           ).toFixed(2),
         );
         state.cartItemQuantity = rebuildCartItemQuantities(items);
-        console.log("[cart-sync] cartItemQuantity:rebuilt from fetchCart", {
+        devLog("[cart-sync] cartItemQuantity:rebuilt from fetchCart", {
           itemCount: items.length,
           quantities: state.cartItemQuantity,
         });
@@ -381,7 +382,7 @@ const cartSlice = createSlice({
       cartApi.endpoints.clearCart.matchFulfilled,
       (state) => {
         state.cartItemQuantity = {};
-        console.log("[cart-sync] cartItemQuantity:cleared on clearCart");
+        devLog("[cart-sync] cartItemQuantity:cleared on clearCart");
       }
     );
   },

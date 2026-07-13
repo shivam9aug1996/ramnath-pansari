@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import { useDispatch, useSelector } from "react-redux";
 import {
   cartApi,
@@ -51,7 +52,7 @@ export const useCartOperations = (item: Product, initialValue: number) => {
   const quantity = useSelector(
     (state: RootState) => state?.cart?.cartItemQuantity[item._id]
   );
-  //console.log("oi7rfghjkl", initialValue);
+  //devLog("oi7rfghjkl", initialValue);
   // useEffect(() => {
   //   dispatch(setCartItemQuantity({productId:item._id,quantity:initialValue}));
   // }, [initialValue]);
@@ -64,7 +65,7 @@ export const useCartOperations = (item: Product, initialValue: number) => {
         setCartItemQuantity({ productId: item._id, quantity: initialValue })
       );
     } else {
-      console.log(
+      devLog(
         `Skipping setCartItemQuantity — already has queue for ${item._id} ${initialValue}`
       );
     }
@@ -74,7 +75,7 @@ export const useCartOperations = (item: Product, initialValue: number) => {
   //   const onQueueFinished = (finishedItemId: string) => {
   //     if (finishedItemId === item._id) {
   //       // ✅ Queue for this item has finished
-  //       console.log("Queue for this item has finished", finishedItemId);
+  //       devLog("Queue for this item has finished", finishedItemId);
   //      // dispatch(setCartItemQuantity({ productId: item._id, quantity: initialValue }));
   //       dispatch(setIsCartOperationProcessing(false))
   //     }
@@ -103,21 +104,21 @@ export const useCartOperations = (item: Product, initialValue: number) => {
         }).unwrap();
 
         let newCartData = await fetchCartData({ userId }, false).unwrap();
-        // console.log("newCartData", JSON.stringify(newCartData));
+        // devLog("newCartData", JSON.stringify(newCartData));
         let dataIndex = newCartData?.cart?.items?.findIndex((it) => {
-          //  console.log("iuytfghj8888kjhg", it);
+          //  devLog("iuytfghj8888kjhg", it);
           return it?.productDetails?._id === item?._id;
         });
         let data = newCartData?.cart?.items?.find((it) => {
-          // console.log("iuytfghj8888kjhg", it);
+          // devLog("iuytfghj8888kjhg", it);
           return it?.productDetails?._id === item?._id;
         });
 
-        // console.log("iuytrdcvbnm,", dataIndex, item,data);
+        // devLog("iuytrdcvbnm,", dataIndex, item,data);
 
         if (dataIndex !== -1) {
           let isChange = findProductChanges(item, data?.productDetails);
-          // console.log("isCh67890-ange", isChange);
+          // devLog("isCh67890-ange", isChange);
           if (isChange) {
             dispatch(setResetPagination({ item: item, status: true }));
             showToast({
@@ -131,18 +132,18 @@ export const useCartOperations = (item: Product, initialValue: number) => {
         //   newCartData?.cart?.items
         // )?.toFixed(2);
         // let isItem = newCartData?.cart?.items?.find((it) => {
-        //   console.log("iuytfghj8888kjhg", it);
+        //   devLog("iuytfghj8888kjhg", it);
         //   return it?.productDetails?._id === "676da9f75763ded56d43032d";
         // });
-        // console.log("87654edfghjkl;", isItem);
+        // devLog("87654edfghjkl;", isItem);
         // const isFreeItemPresent = isItem == undefined ? false : true;
-        // console.log("o8765redfbnm,", isFreeItemPresent, totalAmount);
+        // devLog("o8765redfbnm,", isFreeItemPresent, totalAmount);
         // if (totalAmount >= 1000 && !isFreeItemPresent) {
         //   let data = await fetchProductDetail(
         //     { productId: "676da9f75763ded56d43032d" },
         //     false
         //   )?.unwrap();
-        //   console.log("87trfghjkl", JSON.stringify(data));
+        //   devLog("87trfghjkl", JSON.stringify(data));
         //   await updateCart({
         //     body: {
         //       quantity: 1,
@@ -157,12 +158,12 @@ export const useCartOperations = (item: Product, initialValue: number) => {
         //   let newCartData = await fetchCartData({ userId }, false).unwrap();
         // }
         // if (totalAmount < 1000 && isFreeItemPresent) {
-        //   console.log("987654edfghjkl", isFreeItemPresent, totalAmount);
+        //   devLog("987654edfghjkl", isFreeItemPresent, totalAmount);
         //   let data = await fetchProductDetail(
         //     { productId: "676da9f75763ded56d43032d" },
         //     false
         //   )?.unwrap();
-        //   console.log("87trfghjkl", JSON.stringify(data));
+        //   devLog("87trfghjkl", JSON.stringify(data));
         //   await updateCart({
         //     body: {
         //       quantity: 0,
@@ -178,12 +179,12 @@ export const useCartOperations = (item: Product, initialValue: number) => {
         // }
 
         // dispatch(removeCartButtonProductId(item._id));
-        // console.log("hiuytre34567890");
+        // devLog("hiuytre34567890");
       } catch (error) {
         // ItemTaskQueue.setLastTaskStatus(item._id, "error");
         // const status = ItemTaskQueue.getLastTaskStatus(item._id);
-        console.log("hgfdsdfghjkl", status);
-        console.log("error", error);
+        devLog("hgfdsdfghjkl", status);
+        devLog("error", error);
         if (error?.status == 467) {
           showToast({
             type: "info",
@@ -196,7 +197,7 @@ export const useCartOperations = (item: Product, initialValue: number) => {
           dispatch(removeCartButtonProductId(item._id));
           throw new Error("test");
 
-          // console.log(`Failed after ${3} attempts`, error);
+          // devLog(`Failed after ${3} attempts`, error);
         } else if (error?.status == 468) {
           showToast({
             type: "info",
@@ -291,17 +292,17 @@ export const useCartOperations = (item: Product, initialValue: number) => {
   //   });
   // }
 
-  //console.log("iuytrdfghjkl;", selectedSubCategory);
+  //devLog("iuytrdfghjkl;", selectedSubCategory);
   const handlePress = useCallback(
     async (quantity: number, value: number, item: Product) => {
-      //console.log("o8765redfghjkl", quantity, value, item);
-      // console.log("hiiiiuyfghjklghjkl", quantity, value, item);
+      //devLog("o8765redfghjkl", quantity, value, item);
+      // devLog("hiiiiuyfghjklghjkl", quantity, value, item);
       if (item?.discountedPrice == 0) {
         showToast({
           type: "info",
           text2: "This free gift cannot be modified or removed.",
         });
-        //  console.log("hiiiiuyfghjklghjkl", quantity, value);
+        //  devLog("hiiiiuyfghjklghjkl", quantity, value);
         dispatch(setCartItemQuantity({ productId: item._id, quantity: value }));
         dispatch(setIsCartOperationProcessing(false));
         buttonClicked.current = false;
@@ -339,28 +340,28 @@ export const useCartOperations = (item: Product, initialValue: number) => {
         dispatch(setIsCartOperationProcessing(false));
       }
 
-      // console.log("o8765redfghjkl", quantity, initialValue);
+      // devLog("o8765redfghjkl", quantity, initialValue);
       dispatch(setCartButtonProductId(item._id));
       ItemTaskQueue.addTask(item._id, async () => {
-        console.log("⏳ Start", item._id, quantity);
+        devLog("⏳ Start", item._id, quantity);
         await cartUpdate(quantity, value, item);
-        console.log("✅ Done", item._id, quantity);
+        devLog("✅ Done", item._id, quantity);
       });
       // await waitUntilQueueEmpty(item._id);
-      // console.log("🎉 Final task completed, queue is empty");
+      // devLog("🎉 Final task completed, queue is empty");
       // dispatch(
       //   setCartItemQuantity({ productId: item._id, quantity: quantity })
       // );
       // dispatch(setIsCartOperationProcessing(false));
 
       // ItemTaskQueue.runAfterQueueEmpty(item._id, () => {
-      //   console.log("🎉 Final task completed, queue is empty");
+      //   devLog("🎉 Final task completed, queue is empty");
       //   dispatch(setIsCartOperationProcessing(false));
       // });
 
       ItemTaskQueue.runAfterQueueEmpty(item._id, async () => {
         const status = ItemTaskQueue.getLastTaskStatus(item._id);
-        console.log(
+        devLog(
           "🎉 All tasks for item completed:",
           item._id,
           "Status:",
@@ -390,7 +391,7 @@ export const useCartOperations = (item: Product, initialValue: number) => {
   ]);
 
 const newHandlePress = useCallback(async(newQuantity:number,initialValue:number,updatedCart:any) => {
-  console.log("newHandlePress",newQuantity,initialValue,updatedCart)
+  devLog("newHandlePress",newQuantity,initialValue,updatedCart)
 },[])
 
   const newDebouncePress = useCallback(debounce(newHandlePress, 5000, false), [
@@ -450,9 +451,9 @@ const newHandlePress = useCallback(async(newQuantity:number,initialValue:number,
           const items = draft.cart.items || [];
 
           const totalAmount = calculateTotalAmount(items);
-          console.log("totalAmount", totalAmount);
+          devLog("totalAmount", totalAmount);
           if (totalAmount >= 1000) {
-            console.log("totalAmount>=1000", totalAmount);
+            devLog("totalAmount>=1000", totalAmount);
             //i need to add free item
             const freeItem = {
               _id: `676da9f75763ded56d43032d`,
@@ -492,13 +493,13 @@ const newHandlePress = useCallback(async(newQuantity:number,initialValue:number,
       //   `fetchCart({"userId":"${userId}"})`
       // ]?.data;
       // updatedCart = updatedCart?.cart?.items;
-      // console.log("updatedCart",JSON.stringify(updatedCart))
+      // devLog("updatedCart",JSON.stringify(updatedCart))
       // if (updatedCart) {
-      //   console.log("87654wasdfghjkl",`cartData-${userId}`,updatedCart)
+      //   devLog("87654wasdfghjkl",`cartData-${userId}`,updatedCart)
       //  // newDebouncePress(newQuantity,initialValue,updatedCart)
       //  await SecureStore.setItemAsync(`cartData-${userId}`, JSON.stringify(updatedCart))
       // }
-     // console.log("updatedCart",JSON.stringify(updatedCart?.cart?.items))
+     // devLog("updatedCart",JSON.stringify(updatedCart?.cart?.items))
       //debouncePress(newQuantity, initialValue, item);
     } else {
       showToast({
@@ -554,9 +555,9 @@ const newHandlePress = useCallback(async(newQuantity:number,initialValue:number,
           const items = draft.cart.items || [];
 
           const totalAmount = calculateTotalAmount(items);
-          console.log("totalAmount", totalAmount);
+          devLog("totalAmount", totalAmount);
           if (totalAmount < 1000) {
-            console.log("totalAmount>=1000", totalAmount);
+            devLog("totalAmount>=1000", totalAmount);
            
             const freeItemId = "676da9f75763ded56d43032d";
 

@@ -200,6 +200,7 @@ const PrivateHome = () => {
       showGradient={true}
     >
       <ScrollView
+      keyboardShouldPersistTaps="handled"
         ref={scrollRef}
         style={{ flex: 1 }}
         stickyHeaderIndices={[1]}

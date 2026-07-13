@@ -42,7 +42,7 @@ const LoaderBlock = ({
   width?: number | string;
   height?: number;
 }) => {
-  if (Platform.OS === "web") {
+  if (true) {
     return (
       <StaticBlock
         width={width as number | `${number}%`}
@@ -88,7 +88,7 @@ const ProductItemSkeleton = ({ index }: { index: number }) => (
   </View>
 );
 
-export const ProductPaginationSkeleton = memo(({ count = PRODUCT_PAGINATION_SKELETON_COUNT }) => (
+export const ProductPaginationSkeleton = memo(({ count = PRODUCT_PAGINATION_SKELETON_COUNT }: { count?: number }) => (
   <View style={styles.paginationRow}>
     {Array.from({ length: count }, (_, index) => (
       <ProductItemSkeletonStatic key={`pagination-skeleton-${index}`} index={index} />

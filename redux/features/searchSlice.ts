@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { baseUrl } from "../constants";
+import { devLog } from "@/utils/devLog";
 
 export const searchApi = createApi({
   reducerPath: "searchApi",
@@ -78,7 +79,7 @@ export const searchApi = createApi({
             currentCache?.results?.push(...newItems?.results);
             currentCache.currentPage = newItems?.currentPage;
           } else if (currentCache.currentPage >= newItems?.currentPage) {
-            console.log("currentCache.currentPage > newItems?.currentPage");
+            devLog("currentCache.currentPage > newItems?.currentPage");
             let updatedProducts = [...currentCache.results];
 
             // Clear out all items from the start index

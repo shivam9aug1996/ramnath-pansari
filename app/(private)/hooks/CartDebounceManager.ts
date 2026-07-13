@@ -1,4 +1,5 @@
 import { debounce } from "lodash";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 class CartDebounceManager {
@@ -14,7 +15,7 @@ class CartDebounceManager {
         );
         await AsyncStorage.setItem(`cartData-${userId}-needToSync`, "true");
       } catch (error) {
-        console.error("Error updating cart in AsyncStorage:", error);
+        devError("Error updating cart in AsyncStorage:", error);
       }
     }, 1000);
   }

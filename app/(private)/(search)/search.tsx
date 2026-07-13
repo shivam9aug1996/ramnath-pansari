@@ -31,7 +31,6 @@ import { setCurrentSearchQuery } from "@/redux/features/searchSlice";
 const Search = () => {
   const dispatch = useDispatch();
   const currentSearchQuery = useSelector((state: RootState) => state.search.currentSearchQuery);
-  console.log("currentSearchQuery", currentSearchQuery);
   const { showQueryData, showRecentSearch, showWrapper } =
     useSearchStageLioad();
     const queryRef = useRef("");
@@ -75,7 +74,6 @@ const Search = () => {
   };
 
   const handleClear = () => {
-    console.log("handleClear");
     queryRef.current = "";
     setQuery("");
     dispatch(setCurrentSearchQuery(''));
@@ -84,7 +82,7 @@ const Search = () => {
 
   const handleCancel = () => {
     Keyboard.dismiss();
-    handleClear();
+   // handleClear();
   };
 
   const onPress = useCallback((query: string) => {

@@ -43,7 +43,6 @@ const Account: React.FC = () => {
   const clearAuthDataState = useSelector(
     (state: RootState) => state?.auth?.clearAuthData,
   );
-  console.log("clearAuthDataState456789099", clearAuthDataState);
   const userInfo = useSelector((state: RootState) => state.auth.userData);
   const [logout, { isError: islogouterror, isSuccess }] = useLogoutMutation();
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -65,7 +64,6 @@ const Account: React.FC = () => {
       };
     }, []),
   );
-  console.log("accounttab4567890");
   return (
     <>
       <ScreenSafeWrapper title="Profile">

@@ -1,4 +1,5 @@
 import { ActivityIndicator, Button, StyleSheet, Text, View } from "react-native";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import React, { memo, useEffect, useState } from "react";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import WebView from "react-native-webview";
@@ -44,7 +45,7 @@ const WebMapComp = ({
           : await fetchLocation();
       setLoc(locInfo);
     } catch (err) {
-      console.log("err", err);
+      devLog("err", err);
       showToast({
         text2: err?.message || "Error fetching location",
         type: "error",
@@ -53,7 +54,7 @@ const WebMapComp = ({
       router.back();
     }
   };
- // console.log("loc", loc);
+ // devLog("loc", loc);
 
   return (
     <ScreenSafeWrapper title="Select Address">
@@ -69,23 +70,23 @@ const WebMapComp = ({
           
           cacheMode="LOAD_CACHE_ELSE_NETWORK"
             onContentSizeChange={(event) => {
-              console.log("onContentSizeChange", event);
+              devLog("onContentSizeChange", event);
             }}
             onLoad={() => {
-              console.log("onLoad");
+              devLog("onLoad");
               setIsLoading(false);
             }}
             cacheEnabled={true}
             onLoadStart={() => {
-              console.log("onLoadStart");
+              devLog("onLoadStart");
               setIsLoading(true);
             }}
             onLoadEnd={() => {
-              console.log("onLoadEnd");
+              devLog("onLoadEnd");
               setIsLoading(false);
             }}
             // onLoadProgress={() => {
-            //   console.log("onLoadProgress");
+            //   devLog("onLoadProgress");
             //   setIsLoading(true);
             // }}
             onError={() => {
@@ -104,7 +105,7 @@ const WebMapComp = ({
             onMessage={(event) => {
               try {
                 const data = JSON.parse(event.nativeEvent.data);
-                console.log("Received location:", data);
+                devLog("Received location:", data);
                 dispatch(
                   setCurrentAddressData({
                     ...currentAddressData,
@@ -119,7 +120,7 @@ const WebMapComp = ({
                 router.back();
                 //here can i send data to addAddress.tsx using router.back
               } catch (err) {
-                console.error("Invalid JSON from WebView", err);
+                devError("Invalid JSON from WebView", err);
               }
             }}
             style={{ flex: 1, borderRadius: 20, overflow: "hidden" }}

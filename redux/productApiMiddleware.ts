@@ -1,4 +1,4 @@
-import { showToast } from "@/utils/utils";
+import { devError, devLog } from "@/utils/devLog";
 import { clearAuthData } from "./features/authSlice";
 import * as SecureStore from "expo-secure-store";
 import { storage } from "@/utils/storage";
@@ -8,7 +8,7 @@ const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
 const productApiMiddleware = (store: any) => (next: any) => async (action: any) => {
   const url = action?.meta?.baseQueryMeta?.request?.url;
-  console.log("45678ytfghjk",action?.type,action);
+  devLog("45678ytfghjk", action?.type, action);
   
   if (url && url.includes("/api/products?categoryId")) {
     try {
@@ -18,7 +18,7 @@ const productApiMiddleware = (store: any) => (next: any) => async (action: any) 
       const page = urlObj.searchParams.get("page");
       const limit = urlObj.searchParams.get("limit");
       const reset = urlObj.searchParams.get("reset");
-      console.log("123456789012345687678906547890",categoryId,page,limit,reset);
+      devLog("123456789012345687678906547890", categoryId, page, limit, reset);
       
       // Only cache when page=1 and reset=false
       if (page == "1" && categoryId) {
@@ -37,24 +37,24 @@ const productApiMiddleware = (store: any) => (next: any) => async (action: any) 
           
           // await SecureStore.setItemAsync(cacheKey, JSON.stringify(cacheData));
           await storage.setItem(cacheKey, JSON.stringify(cacheData));
-          console.log(`✅ Cached products for category ${categoryId}, page 1`);
+          devLog(`✅ Cached products for category ${categoryId}, page 1`);
         }
-        console.log("1234567890123456876547890",action.type);
+        devLog("1234567890123456876547890", action.type);
         
         // Check if this is a pending action (API call starting)
         if (action.type?.includes("pending")) {
-            console.log("1234567890");
+            devLog("1234567890");
           // Try to get cached data first
          //const cachedString = await SecureStore.getItemAsync(cacheKey);
          const cachedString = await storage.getItem(cacheKey);
           if (cachedString) {
-            console.log("12345678904567890");
+            devLog("12345678904567890");
             const cached = JSON.parse(cachedString);
             const now = Date.now();
             
             // Check if cache is still valid
             if (now - cached.timestamp < CACHE_DURATION) {
-              console.log(`📦 Using cached products for category ${categoryId}, page 1`);
+              devLog(`📦 Using cached products for category ${categoryId}, page 1`);
               
               // Create a fulfilled action with cached data
               const fulfilledAction = {
@@ -76,7 +76,7 @@ const productApiMiddleware = (store: any) => (next: any) => async (action: any) 
               // Dispatch the cached data instead of making the API call
               return store.dispatch(fulfilledAction);
             } else {
-              console.log(`⏰ Cache expired for category ${categoryId}, page 1`);
+              devLog(`⏰ Cache expired for category ${categoryId}, page 1`);
               // Remove expired cache
               //await SecureStore.deleteItemAsync(cacheKey);
               await storage.removeItem(cacheKey);
@@ -85,7 +85,7 @@ const productApiMiddleware = (store: any) => (next: any) => async (action: any) 
         }
       }
     } catch (error) {
-      console.error("Error in productApiMiddleware:", error);
+      devError("Error in productApiMiddleware:", error);
     }
   }
 

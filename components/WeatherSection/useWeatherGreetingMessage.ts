@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import * as SecureStore from "expo-secure-store";
 import { useLazyFetchGreetingMessageQuery } from "@/redux/features/cartSlice";
 import { getTimeOfDay } from "@/utils/huggingface";
@@ -64,7 +65,7 @@ const cached = await storage.getItem(key);
       }));
       return cleanText;
     } catch (err) {
-      console.log("Failed to fetch AI greeting", err);
+      devLog("Failed to fetch AI greeting", err);
       setGreeting(FALLBACK_MESSAGE_GENERIC);
       return FALLBACK_MESSAGE_GENERIC;
     }

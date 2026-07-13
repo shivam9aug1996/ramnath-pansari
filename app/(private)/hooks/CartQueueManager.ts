@@ -1,3 +1,4 @@
+import { devError, devLog, devWarn } from "@/utils/devLog";
 // utils/CartQueueManager.ts
 
 type Task = () => Promise<void>;
@@ -7,13 +8,13 @@ export class CartQueueManager {
   private processing = false;
 
   public addTask(task: Task) {
-    console.log("ad567890-dTask-",task);
+    devLog("ad567890-dTask-",task);
     this.queue.push(task);
     this.processQueue();
   }
 
   private async processQueue() {
-    console.log("processQueue-",this.queue,this.processing);
+    devLog("processQueue-",this.queue,this.processing);
     if (this.processing || this.queue.length === 0) return;
 
     this.processing = true;
@@ -23,7 +24,7 @@ export class CartQueueManager {
       try {
         await nextTask();
       } catch (e) {
-        console.error("Cart task failed:", e);
+        devError("Cart task failed:", e);
       }
     }
 

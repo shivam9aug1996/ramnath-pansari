@@ -13,7 +13,6 @@ export const generateText = async (prompt: string, token:string) => {
     }
   );
   const data = await res.json();
-  console.log("res67890-",data)
   return data?.text
 };
 

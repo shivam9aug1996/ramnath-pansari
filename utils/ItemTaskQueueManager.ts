@@ -1,3 +1,4 @@
+import { devError, devLog, devWarn } from "@/utils/devLog";
 // // utils/ItemTaskQueueManager.ts
 
 // type Task = () => Promise<void>;
@@ -64,7 +65,7 @@
 //         try {
 //           await task(); // wait before starting next
 //         } catch (err) {
-//           console.error(`Error in task for ${itemId}:`, err);
+//           devError(`Error in task for ${itemId}:`, err);
 //         }
 //       }
 //     }
@@ -171,10 +172,10 @@ class PerItemQueueManager {
       if (task) {
         try {
           await task(); // wait before starting next
-          console.log("🎉 Task completed successfully for:", itemId);
+          devLog("🎉 Task completed successfully for:", itemId);
           this.lastTaskStatus.set(itemId, "success");
         } catch (err) {
-          console.error(`Error in task for ${itemId}:`, err);
+          devError(`Error in task for ${itemId}:`, err);
           this.lastTaskStatus.set(itemId, "error");
           
         }

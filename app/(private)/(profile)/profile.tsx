@@ -41,7 +41,6 @@ const fields: any = [
 
 const profile = () => {
   const userInfo = useSelector((state: RootState) => state.auth.userData);
-  console.log("userInfo", userInfo);
   const [updateProfile, { isLoading: updateProfileLoading }] =
     useUpdateProfileMutation();
   const [fetchProfile, { isLoading: fetchProfileLoading }] =
@@ -142,7 +141,6 @@ const profile = () => {
       // Only update profile if there are changes
       if (hasChanges) {
         formRes.append("_id", userInfo?._id);
-        console.log("form67890Res", formRes);
         try {
           await updateProfile(formRes)?.unwrap();
           await fetchProfile({ _id: userInfo?._id }, false)?.unwrap();

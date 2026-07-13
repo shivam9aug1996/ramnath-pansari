@@ -1,4 +1,5 @@
 import * as TaskManager from "expo-task-manager";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -9,7 +10,7 @@ export const setupNotifications = () => {
     BACKGROUND_NOTIFICATION_TASK,
     async ({ data, error }) => {
       if (error) {
-        console.error("Error in background task", error);
+        devError("Error in background task", error);
         return;
       }
 
@@ -26,14 +27,14 @@ export const setupNotifications = () => {
             JSON.stringify(updatedData)
           );
         } catch (e) {
-          console.error("Error processing notification data:", e);
+          devError("Error processing notification data:", e);
         }
       }
     }
   );
 
   Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK).catch((error) => {
-    console.warn(
+    devWarn(
       "Background notification task not registered. Rebuild the native app after enabling enableBackgroundRemoteNotifications in app.json.",
       error
     );

@@ -1,5 +1,5 @@
-import React, { memo, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Pressable, Platform } from "react-native";
+import React, { memo, useCallback, useEffect, useRef } from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -9,24 +9,30 @@ import Animated, {
 import { CartButtonProps } from "@/types/global";
 import { useCartOperations } from "../../hooks/useCartOperations";
 
+const ADD_WIDTH = 75;
+const QUANTITY_WIDTH = 100;
 
 const CartButton = ({ value, item }: CartButtonProps) => {
   const { quantity, handleAdd, handleRemove } = useCartOperations(item, value);
 
-  const animatedWidth = useSharedValue(quantity > 0 ? 100 : 75);
+  const hasQuantity = quantity > 0;
+  const animatedWidth = useSharedValue(hasQuantity ? QUANTITY_WIDTH : ADD_WIDTH);
+  const lastAnimatedWidth = useRef(hasQuantity ? QUANTITY_WIDTH : ADD_WIDTH);
 
   useEffect(() => {
-    animatedWidth.value = withTiming(quantity > 0 ? 100 : 75, {
+    const targetWidth = hasQuantity ? QUANTITY_WIDTH : ADD_WIDTH;
+    if (lastAnimatedWidth.current === targetWidth) return;
+
+    lastAnimatedWidth.current = targetWidth;
+    animatedWidth.value = withTiming(targetWidth, {
       duration: 250,
       easing: Easing.out(Easing.cubic),
     });
-  }, [quantity]);
+  }, [hasQuantity, animatedWidth]);
 
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      width: animatedWidth.value,
-    };
-  });
+  const animatedStyle = useAnimatedStyle(() => ({
+    width: animatedWidth.value,
+  }));
 
   if (item?.isOutOfStock) {
     return (
@@ -42,17 +48,13 @@ const CartButton = ({ value, item }: CartButtonProps) => {
 
   return (
     <View style={styles.container}>
-      
       <Animated.View style={[styles.animatedWrapper, animatedStyle]}>
-     
-
-        {quantity > 0 ? (
+        {hasQuantity ? (
           <View style={styles.quantityContainer}>
             <TouchableOpacity
-             
               onPress={handleRemove}
               style={styles.quantityButton}
-             activeOpacity={0.7}
+              activeOpacity={0.7}
             >
               <Text style={styles.buttonText}>−</Text>
             </TouchableOpacity>
@@ -69,7 +71,6 @@ const CartButton = ({ value, item }: CartButtonProps) => {
           </View>
         ) : (
           <TouchableOpacity
-         
             onPress={handleAdd}
             style={styles.addButton}
             activeOpacity={0.8}
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
   quantityContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: 'rgba(38, 173, 113, 0.9)',
+    backgroundColor: "rgba(38, 173, 113, 0.9)",
     paddingVertical: 4,
     paddingHorizontal: 4,
     height: "100%",

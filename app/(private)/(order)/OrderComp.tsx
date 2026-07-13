@@ -1,4 +1,5 @@
 import { Button, Platform, StyleSheet, Text, View } from "react-native";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import React, { useEffect, useRef, useState } from "react";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, PROVIDER_DEFAULT } from "../(address)/AppMapView";
 
@@ -70,7 +71,7 @@ const OrderComp = () => {
 
       setRouteCallback(decodedCoordinates);
     } catch (error) {
-      console.error("Error fetching route:", error);
+      devError("Error fetching route:", error);
     }
   };
 

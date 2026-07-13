@@ -4,6 +4,8 @@ import { baseUrl } from "../constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CACHE_DURATION, cleanOldProductCache } from "@/utils/utils";
 import type { Product } from "@/types/global";
+import { getCachedProducts, setCachedProducts } from "@/utils/productCache";
+import { devLog } from "@/utils/devLog";
 
 export type SyncedProductOverride = Partial<
   Pick<
@@ -32,17 +34,21 @@ export const productApi = createApi({
       async queryFn(arg, _queryApi, _extraOptions, baseQuery) {
         
         const { page, clear, categoryId, ...rest } = arg;
-        const localKey = `products-${categoryId}-${page}`;
-        const now = Date.now();
-        const cached = await AsyncStorage.getItem(localKey);
+        // const localKey = `products-${categoryId}-${page}`;
+        // const now = Date.now();
+        // const cached = await AsyncStorage.getItem(localKey);
 
         
-        if (cached) {
-          const { data, timestamp } = JSON.parse(cached);
-          const age = now - timestamp;
-          if (age < CACHE_DURATION) {
-            return { data };
-          }
+        // if (cached) {
+        //   const { data, timestamp } = JSON.parse(cached);
+        //   const age = now - timestamp;
+        //   if (age < CACHE_DURATION) {
+        //     return { data };
+        //   }
+        // }
+        const cachedData = await getCachedProducts(categoryId, page);
+        if (cachedData) {
+          return { data: cachedData };
         }
 
         // else, proceed with the normal baseQuery
@@ -52,13 +58,14 @@ export const productApi = createApi({
           params: { page, categoryId, ...rest },
         });
         if (result.data) {
-          await AsyncStorage.setItem(
-            localKey,
-            JSON.stringify({
-              data: result.data,
-              timestamp: now,
-            })
-          );
+          // await AsyncStorage.setItem(
+          //   localKey,
+          //   JSON.stringify({
+          //     data: result.data,
+          //     timestamp: now,
+          //   })
+          // );
+          setCachedProducts(categoryId, page, result.data);
         }
 
         return result;
@@ -102,7 +109,7 @@ export const productApi = createApi({
           // }
           // console.log("updatedProducts67890", JSON.stringify(updatedProducts));
           // currentCache.products = updatedProducts;
-          console.log("currentCache.currentPage > newItems?.currentPage");
+          devLog("currentCache.currentPage > newItems?.currentPage");
           let updatedProducts = [...currentCache.products];
 
           // Clear out all items from the start index
@@ -139,7 +146,7 @@ export const productApi = createApi({
             //   JSON.stringify(updatedProducts)
             // );
             // currentCache.products = updatedProducts;
-            console.log("currentCache.currentPage > newItems?.currentPage");
+            devLog("currentCache.currentPage > newItems?.currentPage");
             let updatedProducts = [...currentCache.products];
 
             // Clear out all items from the start index

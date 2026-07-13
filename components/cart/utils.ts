@@ -1,4 +1,5 @@
 import { CartItem, Product, ProductDetails } from "@/types/global";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import { getCatalogBillItems } from "@/utils/cartOfferUtils";
 
 export const calculateTotalAmount = (products: CartItem[] = []): number => {
@@ -43,15 +44,15 @@ const normalizeCartProductId = (productId: unknown) =>
 export const findCartChanges = (prevCart, nextCart) => {
   const priceChanges = [];
   const removedItems = [];
- // console.log("jio87", prevCart);
+ // devLog("jio87", prevCart);
   // Create a map for fast lookup of previous items
   const prevItemsMap = new Map(
     prevCart?.cart?.items?.map((item) => {
-     // console.log("87654efghjk", item);
+     // devLog("87654efghjk", item);
       return [normalizeCartProductId(item.productId), item];
     })
   );
-//  console.log("567567890890-", prevItemsMap);
+//  devLog("567567890890-", prevItemsMap);
 
   // Iterate over nextCart items to check for price changes
   nextCart?.cart?.items.forEach((nextItem) => {
@@ -133,7 +134,7 @@ export const findMaxQuantityChanges = (prevCart, nextCart) => {
           nextMaxQuantity < prevMaxQuantity &&
           (prevQty > nextMaxQuantity || qtyWasCapped)
         ) {
-          console.log("[cart-sync] maxQuantity:block checkout", {
+          devLog("[cart-sync] maxQuantity:block checkout", {
             productId: nextItem.productId,
             productName: nextItem.productDetails.name,
             prevMaxQuantity,
@@ -149,7 +150,7 @@ export const findMaxQuantityChanges = (prevCart, nextCart) => {
             newMaxQuantity: nextMaxQuantity,
           });
         } else if (nextMaxQuantity < prevMaxQuantity) {
-          console.log("[cart-sync] maxQuantity:ignored (no user impact)", {
+          devLog("[cart-sync] maxQuantity:ignored (no user impact)", {
             productId: nextItem.productId,
             productName: nextItem.productDetails.name,
             prevMaxQuantity,

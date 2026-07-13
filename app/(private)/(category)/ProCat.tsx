@@ -33,7 +33,6 @@ const ProCat = ({
   useEffect(() => {
     dispatch(setSelectedSubCategoryId("null"))
   }, [])
-  console.log("procat",id, name, selectedCategoryIdIndex);
   return (
     <>
       <ScreenSafeWrapper showCartIcon={true} title={name} showSearchIcon={true} wrapperStyle={{paddingBottom:0,marginBottom:0}} >

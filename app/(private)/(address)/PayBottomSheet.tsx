@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import React, { memo, useTransition } from "react";
 import BottomSheet from "@/components/BottomSheet";
 import Button from "@/components/Button";
@@ -21,7 +22,7 @@ const PayBottomSheet = ({
     <BottomSheet
       animation={false}
       onClose={() => {
-       // console.log("closed");
+       // devLog("closed");
         setIsPayModal(false);
       }}
     >
@@ -69,7 +70,7 @@ const PayBottomSheet = ({
             const addressData = data?.find((item) => {
               return item?._id == selectedAddressId;
             });
-            console.log("kjhyt567890-", addressData, totalAmountInNumber);
+            devLog("kjhyt567890-", addressData, totalAmountInNumber);
             // setIsPayModal({
             //   status: true,
             //   value: {

@@ -20,7 +20,6 @@ const asyncStorageMiddleware = store => next => action => {
   }
 
   if(action.type === 'auth/saveAuthData/fulfilled') {
-    console.log("iu7654ewsdfhjhgrdesdfghj765434567890",)
    store.dispatch(savePushToken1() as any);
   }
   //console.log("act45689876434567890ion", action.type);

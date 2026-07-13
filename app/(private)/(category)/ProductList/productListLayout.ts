@@ -13,7 +13,7 @@ export const PRODUCT_ITEM_MARGIN_BOTTOM = 8;
 export const PRODUCT_SKELETON_COUNT = 6;
 export const PRODUCT_PAGINATION_SKELETON_COUNT = 2;
 /** Fallback until GoToCart onLayout measures the real height */
-export const GO_TO_CART_ESTIMATED_HEIGHT = 192;
+export const GO_TO_CART_ESTIMATED_HEIGHT = 132;
 
 export type ProductListSkeletonItem = {
   _id: string;

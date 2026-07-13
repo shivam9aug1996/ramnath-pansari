@@ -1,3 +1,4 @@
+import { devError } from "@/utils/devLog";
 import React, { useRef, useEffect } from "react";
 import LottieView from "lottie-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -22,7 +23,6 @@ const ConfettiLottie = ({
         // Only play when value changes
         if (prevAmount !== remainingAmount) {
           if (remainingAmount !== undefined && remainingAmount <= 0) {
-            console.log("play animation7654567890");
             animationRef.current?.play();
           } else {
             animationRef.current?.reset();
@@ -34,7 +34,7 @@ const ConfettiLottie = ({
           String(remainingAmount)
         );
       } catch (err) {
-        console.log("Error handling animation state:", err);
+        devError("Error handling animation state:", err);
       }
     };
 

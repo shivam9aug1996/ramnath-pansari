@@ -8,7 +8,6 @@ const cat = () => {
     id: string;
     name?: string;
   }>();
-  console.log(id, name, selectedCategoryIdIndex);
   return (
     <CatPro
       id={id}

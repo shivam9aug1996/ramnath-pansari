@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 import { useSelector } from "react-redux";
@@ -36,7 +37,7 @@ export const useNotificationObserver = () => {
         try {
           router.push(`/(orderDetail)/${notData.orderId}`);
         } catch (error) {
-          console.warn("Notification navigation failed:", error);
+          devWarn("Notification navigation failed:", error);
         }
       }, 1000);
       return () => clearTimeout(timer);

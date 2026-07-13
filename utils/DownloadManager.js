@@ -1,4 +1,5 @@
 import * as FileSystem from "expo-file-system";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 class DownloadManager {
@@ -19,7 +20,7 @@ class DownloadManager {
     // Check if the file already exists
     const fileInfo = await FileSystem.getInfoAsync(fileUri);
     if (fileInfo.exists) {
-      //console.log(`File already exists at ${fileUri}`);
+      //devLog(`File already exists at ${fileUri}`);
       return fileUri; // Return the URI of the existing file
     }
 
@@ -47,11 +48,11 @@ class DownloadManager {
 
     try {
       const { uri } = await this.downloadResumable.downloadAsync();
-      //console.log(`Finished downloading to ${uri}`);
+      //devLog(`Finished downloading to ${uri}`);
       await AsyncStorage.removeItem(`pausedDownload_${fileName}`); // Clean up
       return uri;
     } catch (e) {
-      console.error("Error during download:", e);
+      devError("Error during download:", e);
       return null;
     }
   }
@@ -69,9 +70,9 @@ class DownloadManager {
           `pausedDownload_${fileName}`,
           JSON.stringify(savableData)
         );
-        //console.log(`Paused and saved download state for ${fileName}`);
+        //devLog(`Paused and saved download state for ${fileName}`);
       } catch (e) {
-        console.error("Error pausing download:", e);
+        devError("Error pausing download:", e);
       }
     }
   }
@@ -85,7 +86,7 @@ class DownloadManager {
       `pausedDownload_${fileName}`
     );
     if (!savedDownload) {
-      console.error("No paused download found for:", fileName);
+      devError("No paused download found for:", fileName);
       return null;
     }
 
@@ -100,11 +101,11 @@ class DownloadManager {
 
     try {
       const { uri } = await this.downloadResumable.resumeAsync();
-      //console.log(`Resumed and finished downloading to ${uri}`);
+      //devLog(`Resumed and finished downloading to ${uri}`);
       await AsyncStorage.removeItem(`pausedDownload_${fileName}`); // Clean up
       return uri;
     } catch (e) {
-      console.error("Error resuming download:", e);
+      devError("Error resuming download:", e);
       return null;
     }
   }

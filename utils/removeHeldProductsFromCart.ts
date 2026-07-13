@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { devLog } from "@/utils/devLog";
 import { applyPostCheckoutCartUpdate } from "./applyPostCheckoutCartUpdate";
 
 type CartItem = {
@@ -52,7 +53,7 @@ export async function removeHeldProductsFromCart({
     );
   }
 
-  console.log("[product-lock] removeHeldProducts:bulk-payload", {
+  devLog("[product-lock] removeHeldProducts:bulk-payload", {
     userId,
     removePayload,
   });
@@ -70,7 +71,7 @@ export async function removeHeldProductsFromCart({
   await AsyncStorage.setItem(`cartData-${userId}`, JSON.stringify(localItems));
   await AsyncStorage.setItem(`cartData-${userId}-needToSync`, "false");
 
-  console.log("[product-lock] removeHeldProducts:local-cleared", {
+  devLog("[product-lock] removeHeldProducts:local-cleared", {
     userId,
     heldProductIds,
     remainingLocalCount: localItems.length,
@@ -78,7 +79,7 @@ export async function removeHeldProductsFromCart({
 
   const newCartData = await fetchCartData({ userId }, false).unwrap();
 
-  console.log("[product-lock] removeHeldProducts:server-cart", {
+  devLog("[product-lock] removeHeldProducts:server-cart", {
     userId,
     itemCount: newCartData?.cart?.items?.length ?? 0,
     productIds: (newCartData?.cart?.items ?? []).map((item: any) =>

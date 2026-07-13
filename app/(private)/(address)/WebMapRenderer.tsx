@@ -1,5 +1,6 @@
 // components/WebMapRenderer.tsx
 import React, { useEffect, useState } from "react";
+import { devError, devLog, devWarn } from "@/utils/devLog";
 import { ActivityIndicator, View } from "react-native";
 import WebView from "react-native-webview";
 import { useDispatch, useSelector } from "react-redux";
@@ -29,7 +30,7 @@ const WebMapRenderer = ({ visible = true, latitude, longitude, onDone }: Props) 
   useEffect(() => {
     fetchLocation1();
     return () => {
-    console.log("unmount")
+    devLog("unmount")
     }
   }, []);
 
@@ -44,7 +45,7 @@ const WebMapRenderer = ({ visible = true, latitude, longitude, onDone }: Props) 
 
       setLoc(locInfo);
     } catch (err) {
-      console.log("err", err);
+      devLog("err", err);
      if(visible){
         showToast({
             text2: err?.message || "Error fetching location",
@@ -57,7 +58,7 @@ const WebMapRenderer = ({ visible = true, latitude, longitude, onDone }: Props) 
   };
 
 
-  console.log("isLoading",isLoading)
+  devLog("isLoading",isLoading)
 
   if (!visible) {
     return null;
@@ -83,15 +84,15 @@ const WebMapRenderer = ({ visible = true, latitude, longitude, onDone }: Props) 
     <WebView
     cacheEnabled={true}
     onLoadStart={() => {
-        console.log("onLoadStart");
+        devLog("onLoadStart");
         setIsLoading(true);
       }}
       onLoadEnd={() => {
-        console.log("onLoadEnd");
+        devLog("onLoadEnd");
         setIsLoading(false);
       }}
       onLoadProgress={() => {
-        console.log("onLoadProgress");
+        devLog("onLoadProgress");
         setIsLoading(true);
       }}
       onError={()=>{
@@ -123,7 +124,7 @@ const WebMapRenderer = ({ visible = true, latitude, longitude, onDone }: Props) 
           );
           onDone?.(); // callback to go back or do something
         } catch (err) {
-          console.error("Invalid JSON from WebView", err);
+          devError("Invalid JSON from WebView", err);
         }
       }}
       style={{

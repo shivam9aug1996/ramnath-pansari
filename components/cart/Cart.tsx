@@ -67,7 +67,7 @@ const Cart = ({ tabBarHeight = 0 }: CartProps) => {
     dispatch(cartApi.util.resetApiState());
   };
 
-  console.log("cartData",JSON.stringify(cartData))
+  //console.log("cartData",JSON.stringify(cartData))
 
   return (
     <>

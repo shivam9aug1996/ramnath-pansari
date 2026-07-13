@@ -183,7 +183,6 @@ if(previousSelectedCategory.current === selectedId?._id){
 }, [selectedSubCategory, subCategories, selectedCategory, isCategoryFetching]);
 
 const handleSelectCategory = useCallback((category: Category) => {
-  console.log("category",category)
   const index = categories.findIndex(c => c._id === category._id);
   setSelectedCategory(category);
   // router.setParams({
