@@ -34,7 +34,6 @@ import {
   finalizeStartupReady,
   markStartupCheckpoint,
 } from "@/utils/startupDiagnostics";
-import { categoryLog } from "@/utils/categoryDebug";
 import { syncCarouselConfig } from "@/utils/carouselConfigCache";
 
 const CATEGORY_PLACEHOLDER_COUNT = 3;
@@ -62,50 +61,12 @@ const PrivateHome = () => {
   const {
     isLoading: isCategoriesLoading,
     isFetching: isCategoriesFetching,
-    isUninitialized: isCategoriesUninitialized,
     refetch,
   } = useFetchCategoriesQuery({}, { skip: !token || !appSyncReady });
 
   const showCategorySkeleton =
     !categories.length &&
     (!appSyncReady || isCategoriesLoading || isCategoriesFetching);
-
-  const lastCategoryLogKey = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!__DEV__) return;
-
-    const logKey = [
-      appSyncReady,
-      isCategoriesLoading,
-      isCategoriesFetching,
-      isCategoriesUninitialized,
-      categories.length,
-      showCategorySkeleton,
-    ].join(":");
-
-    if (lastCategoryLogKey.current === logKey) return;
-    lastCategoryLogKey.current = logKey;
-
-    categoryLog("ui:read", {
-      source: "PrivateHome",
-      appSyncReady,
-      querySkipped: !token || !appSyncReady,
-      selectorCount: categories.length,
-      isLoading: isCategoriesLoading,
-      isFetching: isCategoriesFetching,
-      isUninitialized: isCategoriesUninitialized,
-      showSkeleton: showCategorySkeleton,
-    });
-  }, [
-    appSyncReady,
-    token,
-    isCategoriesLoading,
-    isCategoriesFetching,
-    isCategoriesUninitialized,
-    categories.length,
-    showCategorySkeleton,
-  ]);
 
   useEffect(() => {
     store.dispatch(loadRecentlyViewed());

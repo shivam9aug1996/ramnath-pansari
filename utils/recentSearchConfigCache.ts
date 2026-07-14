@@ -1,10 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { recentSearchApi } from "@/redux/features/recentSearchSlice";
 import type store from "@/redux/store";
-import {
-  recentSearchLog,
-  runRecentSearchCacheHydration,
-} from "@/utils/recentSearchDebug";
+import { runRecentSearchCacheHydration } from "@/utils/recentSearchDebug";
 
 export const RECENT_SEARCH_CACHE_KEY = "@recentSearch/config";
 const MAX_LOCAL_RECENT_SEARCH = 10;
@@ -32,19 +29,13 @@ export async function readRecentSearchCache(
 ): Promise<RecentSearchCache | null> {
   try {
     const raw = await AsyncStorage.getItem(getRecentSearchCacheKey(userId));
-    if (!raw) {
-      recentSearchLog("disk:miss", { userId });
-      return null;
-    }
+    if (!raw) return null;
     const parsed = JSON.parse(raw) as RecentSearchCache;
     if (!Array.isArray(parsed?.data) || parsed.userId !== userId) {
-      recentSearchLog("disk:invalid", { userId });
       return null;
     }
-    recentSearchLog("disk:hit", { userId, count: parsed.data.length });
     return parsed;
-  } catch (error) {
-    recentSearchLog("disk:read-error", error);
+  } catch {
     return null;
   }
 }
@@ -59,7 +50,6 @@ export async function writeRecentSearchCache(
     getRecentSearchCacheKey(userId),
     JSON.stringify(payload),
   );
-  recentSearchLog("disk:write", { userId, count: data.length });
 }
 
 export async function upsertRecentSearchInStore(
@@ -67,7 +57,6 @@ export async function upsertRecentSearchInStore(
   userId: string,
   data: RecentSearchItem[],
 ): Promise<void> {
-  recentSearchLog("rtk:upsert", { userId, count: data.length });
   // Must await — upsertQueryData leaves status "pending" until the microtask
   // fulfills. A follow-up initiate({ forceRefetch: true }) while pending is
   // skipped by RTK (no HTTP), even with forceRefetch.
@@ -109,7 +98,6 @@ export async function saveLocalRecentSearchItem(
     ...withoutDuplicate,
   ].slice(0, MAX_LOCAL_RECENT_SEARCH);
 
-  recentSearchLog("local:save", { userId, query: trimmed, count: next.length });
   await upsertRecentSearchInStore(dispatch, userId, next);
   await writeRecentSearchCache(userId, next);
   return next;
@@ -125,7 +113,6 @@ export async function removeLocalRecentSearchItem(
 
   const cached = await readRecentSearchCache(userId);
   const next = (cached?.data ?? []).filter((item) => item._id !== id);
-  recentSearchLog("local:remove", { userId, id, count: next.length });
   await upsertRecentSearchInStore(dispatch, userId, next);
   await writeRecentSearchCache(userId, next);
   return next;
@@ -141,33 +128,16 @@ export async function loadRecentSearch(
   userId: string,
   options?: { isGuestUser?: boolean },
 ): Promise<void> {
-  recentSearchLog("load:start", {
-    userId,
-    isGuestUser: Boolean(options?.isGuestUser),
-  });
-
-  if (!userId) {
-    recentSearchLog("load:skip-no-user");
-    return;
-  }
+  if (!userId) return;
 
   const cached = await readRecentSearchCache(userId);
   if (cached) {
     await upsertRecentSearchInStore(dispatch, userId, cached.data);
-  } else {
-    recentSearchLog("load:no-disk-cache", { userId });
   }
 
-  if (options?.isGuestUser) {
-    recentSearchLog("load:guest-exit", {
-      userId,
-      count: cached?.data.length ?? 0,
-    });
-    return;
-  }
+  if (options?.isGuestUser) return;
 
   try {
-    recentSearchLog("load:api:start", { userId });
     const data = (await dispatch(
       recentSearchApi.endpoints.fetchRecentSearch.initiate(
         { userId },
@@ -176,11 +146,9 @@ export async function loadRecentSearch(
     ).unwrap()) as RecentSearchItem[];
 
     const list = Array.isArray(data) ? data : [];
-    recentSearchLog("load:api:ok", { userId, count: list.length });
     await upsertRecentSearchInStore(dispatch, userId, list);
     await writeRecentSearchCache(userId, list);
-    recentSearchLog("load:done", { userId, count: list.length });
-  } catch (error) {
-    recentSearchLog("load:api:fail", { userId, error });
+  } catch {
+    // Keep disk/API-hydrated data if the network refresh fails.
   }
 }

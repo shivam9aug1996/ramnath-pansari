@@ -1,12 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { devError, devLog, devWarn } from "@/utils/devLog";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Updates from "expo-updates";
 import { Platform } from "react-native";
-
-const PREFIX = "[startup-diag]";
-const STARTUP_WINDOW_MS = 30_000;
 
 const STORAGE = {
   installId: "@startup/installId",
@@ -73,18 +69,8 @@ export type LaunchContext = {
 };
 
 let sessionId = "";
-let sessionStartedAt = 0;
 let launchContext: LaunchContext | null = null;
 let startupFinalized = false;
-
-function logLine(message: string, data?: Record<string, unknown>) {
-  if (!__DEV__) return;
-  if (data) {
-    devLog(PREFIX, message, data);
-  } else {
-    devLog(PREFIX, message);
-  }
-}
 
 async function appendEvent(event: StartupEvent) {
   try {
@@ -100,10 +86,6 @@ async function appendEvent(event: StartupEvent) {
   }
 }
 
-export function isWithinStartupWindow() {
-  return sessionStartedAt > 0 && Date.now() - sessionStartedAt < STARTUP_WINDOW_MS;
-}
-
 export function getLaunchContext() {
   return launchContext;
 }
@@ -111,7 +93,6 @@ export function getLaunchContext() {
 export async function initStartupDiagnostics(): Promise<LaunchContext> {
   const now = Date.now();
   sessionId = `${now}-${Math.random().toString(36).slice(2, 8)}`;
-  sessionStartedAt = now;
   startupFinalized = false;
   persistedCheckpointRank = -1;
 
@@ -184,16 +165,6 @@ export async function initStartupDiagnostics(): Promise<LaunchContext> {
     previousSession,
   };
 
-  logLine("launch_context", launchContext as unknown as Record<string, unknown>);
-
-  if (previousSession) {
-    logLine("previous_session_incomplete", {
-      ...previousSession,
-      launchKind,
-      isFirstInstall,
-    });
-  }
-
   persistedCheckpointRank = CHECKPOINT_RANK["session:start"];
 
   await AsyncStorage.multiSet([
@@ -244,33 +215,11 @@ export async function markStartupCheckpoint(
   if (!sessionId) return;
 
   await persistCheckpoint(checkpoint);
-  const event: StartupEvent = {
+  await appendEvent({
     ts: Date.now(),
     sessionId,
     checkpoint,
     payload,
-  };
-  logLine(checkpoint, {
-    sessionId,
-    launchKind: launchContext?.launchKind,
-    isFirstInstall: launchContext?.isFirstInstall,
-    ...payload,
-  });
-  await appendEvent(event);
-}
-
-export async function logStartupFetch(
-  phase: "start" | "success" | "error" | "abort",
-  meta: { url?: string; endpoint?: string; ms?: number; error?: string },
-) {
-  if (!sessionId || !isWithinStartupWindow()) return;
-
-  logLine(`fetch:${phase}`, meta);
-  await appendEvent({
-    ts: Date.now(),
-    sessionId,
-    checkpoint: `fetch:${phase}`,
-    payload: meta,
   });
 }
 
@@ -278,9 +227,4 @@ export async function finalizeStartupReady(extra?: Record<string, unknown>) {
   if (startupFinalized) return;
   startupFinalized = true;
   await markStartupCheckpoint("startup_ready", extra);
-}
-
-export async function dumpStartupDiagnostics() {
-  const raw = await AsyncStorage.getItem(STORAGE.eventLog);
-  logLine("event_log_dump", { events: raw ? JSON.parse(raw) : [] });
 }

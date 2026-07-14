@@ -1,68 +1,31 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React, { memo, useEffect } from "react";
-import { Colors } from "@/constants/Colors";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { memo } from "react";
 import { Image } from "expo-image";
-import { ThemedText } from "../ThemedText";
 import { useCartOperations } from "@/app/(private)/hooks/useCartOperations";
-import { useSelector } from "react-redux";
-import { RootState } from "@/types/global";
-import { showToast } from "@/utils/utils";
 import AnimatedQuantity from "@/app/(private)/(category)/ProductList/AnimatedQuantity";
 
-const CartButton = ({ item, value, itemHeight }: any) => {
-  const { quantity, handleAdd, handleRemove, handleClearAll, buttonClicked } =
-    useCartOperations(item?.productDetails, value);
-  const cartButtonProductId = useSelector(
-    (state: RootState) => state.cart.cartButtonProductId || []
+const CartButton = ({ item, value }: any) => {
+  const { quantity, handleAdd, handleRemove } = useCartOperations(
+    item?.productDetails,
+    value,
   );
 
-
-  const isLoading = cartButtonProductId.includes(item?.productDetails?._id);
-
   return (
-    <>
-     
-
-      <View style={[styles.quantityContainer]}>
-        <TouchableOpacity
-          onPress={() => {
-            // if (isLoading) {
-            //   showToast({
-            //     type: "info",
-            //     text2: "Please wait a moment — we’re still updating your cart.",
-            //   });
-            //   return;
-            // }
-            handleRemove();
-          }}
-          style={styles.quantityButton}
-        >
-          <Image
-            source={require("../../assets/images/entypo_minus.png")}
-            style={styles.icon}
-          />
-        </TouchableOpacity>
-        <AnimatedQuantity variant={3} quantity={quantity} />
-        <TouchableOpacity
-          onPress={() => {
-            // if (isLoading) {
-            //   showToast({
-            //     type: "info",
-            //     text2: "Please wait a moment — we’re still updating your cart.",
-            //   });
-            //   return;
-            // }
-            handleAdd();
-          }}
-          style={styles.quantityButton}
-        >
-          <Image
-            source={require("../../assets/images/entypo_plus.png")}
-            style={styles.icon}
-          />
-        </TouchableOpacity>
-      </View>
-    </>
+    <View style={styles.quantityContainer}>
+      <TouchableOpacity onPress={handleRemove} style={styles.quantityButton}>
+        <Image
+          source={require("../../assets/images/entypo_minus.png")}
+          style={styles.icon}
+        />
+      </TouchableOpacity>
+      <AnimatedQuantity variant={3} quantity={quantity} />
+      <TouchableOpacity onPress={handleAdd} style={styles.quantityButton}>
+        <Image
+          source={require("../../assets/images/entypo_plus.png")}
+          style={styles.icon}
+        />
+      </TouchableOpacity>
+    </View>
   );
 };
 

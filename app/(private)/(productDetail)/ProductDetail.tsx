@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, ActivityIndicator } from "react-native";
   import React, { memo, useCallback, useEffect, useState } from "react";
   import Animated, { useAnimatedRef } from "react-native-reanimated";
   import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
@@ -186,10 +186,21 @@ import { StyleSheet, Text, View } from "react-native";
                         <ThemedText style={contentStyles.productPrice} type="title">
                           {`₹ ${discountedPrice}`}
                         </ThemedText>
-                        {isCartLoading ||
-                        data?.product?.isOutOfStock ||
+                        {data?.product?.isOutOfStock ||
                         !isSuccess ||
-                        data?.product == null ? null : (
+                        data?.product == null ? null : isCartLoading ? (
+                          <View
+                            style={contentStyles.cartButtonLoaderWrap}
+                            pointerEvents="none"
+                          >
+                            <View style={contentStyles.cartButtonLoaderBar}>
+                              <ActivityIndicator
+                                size="small"
+                                color={Colors.light.gradientGreen_1}
+                              />
+                            </View>
+                          </View>
+                        ) : (
                           <CartButton
                             value={cartItem?.quantity || 0}
                             item={data?.product}

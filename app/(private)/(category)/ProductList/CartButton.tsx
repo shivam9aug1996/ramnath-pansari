@@ -1,26 +1,74 @@
-import React, { memo, useCallback, useEffect, useRef } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import React, { memo, useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import { CartButtonProps } from "@/types/global";
+import { useSelector } from "react-redux";
+import { CartButtonProps, RootState } from "@/types/global";
+import { useFetchCartQuery } from "@/redux/features/cartSlice";
 import { useCartOperations } from "../../hooks/useCartOperations";
 
 const ADD_WIDTH = 75;
 const QUANTITY_WIDTH = 100;
 
+const CartButtonLoader = () => (
+  <View style={styles.container}>
+    <View style={styles.loaderButton}>
+      <ActivityIndicator size="small" color="#0d9448" />
+    </View>
+  </View>
+);
+
 const CartButton = ({ value, item }: CartButtonProps) => {
+  const userId = useSelector(
+    (state: RootState) => state.auth.userData?._id,
+  );
+  const isGuestUser = useSelector(
+    (state: RootState) => state.auth.userData?.isGuestUser,
+  );
+
+  const skipCartQuery = !userId || !!isGuestUser;
+  const { isLoading, isUninitialized, isSuccess, isError } = useFetchCartQuery(
+    { userId },
+    { skip: skipCartQuery },
+  );
+
+  // Keep the real button gated until the first cart settle (not later refetches).
+  const showCartLoader =
+    !skipCartQuery && !isSuccess && !isError && (isLoading || isUninitialized);
+
   const { quantity, handleAdd, handleRemove } = useCartOperations(item, value);
 
   const hasQuantity = quantity > 0;
   const animatedWidth = useSharedValue(hasQuantity ? QUANTITY_WIDTH : ADD_WIDTH);
   const lastAnimatedWidth = useRef(hasQuantity ? QUANTITY_WIDTH : ADD_WIDTH);
+  const hasHydratedRef = useRef(false);
 
   useEffect(() => {
+    if (showCartLoader) {
+      hasHydratedRef.current = false;
+      return;
+    }
+
     const targetWidth = hasQuantity ? QUANTITY_WIDTH : ADD_WIDTH;
+
+    // First paint after cart settles: snap to final width (no ADD→qty animation).
+    if (!hasHydratedRef.current) {
+      hasHydratedRef.current = true;
+      animatedWidth.value = targetWidth;
+      lastAnimatedWidth.current = targetWidth;
+      return;
+    }
+
     if (lastAnimatedWidth.current === targetWidth) return;
 
     lastAnimatedWidth.current = targetWidth;
@@ -28,7 +76,7 @@ const CartButton = ({ value, item }: CartButtonProps) => {
       duration: 250,
       easing: Easing.out(Easing.cubic),
     });
-  }, [hasQuantity, animatedWidth]);
+  }, [showCartLoader, hasQuantity, animatedWidth]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     width: animatedWidth.value,
@@ -44,6 +92,10 @@ const CartButton = ({ value, item }: CartButtonProps) => {
         </View>
       </View>
     );
+  }
+
+  if (showCartLoader) {
+    return <CartButtonLoader />;
   }
 
   return (
@@ -93,6 +145,16 @@ const styles = StyleSheet.create({
   animatedWrapper: {
     height: 36,
     overflow: "hidden",
+  },
+  loaderButton: {
+    width: ADD_WIDTH,
+    height: 36,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: "#d1d5db",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   addButton: {
     backgroundColor: "rgba(255, 255, 255, 0.9)",

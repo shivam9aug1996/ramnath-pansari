@@ -5,6 +5,8 @@ export const PRODUCT_DETAIL_HEADER_HEIGHT = 300;
 export const FOOD_BADGE_SIZE_MD = 20;
 export const PRODUCT_NAME_MIN_HEIGHT = 52;
 export const CART_BUTTON_SPACER_HEIGHT = 56;
+export const CART_BUTTON_HEIGHT = 50;
+export const CART_BUTTON_RADIUS = 12;
 /** Extra space below scroll content, above GoToCart chrome */
 export const PRODUCT_DETAIL_SCROLL_PADDING_BOTTOM = 24;
 
@@ -85,5 +87,24 @@ export const productDetailContentStyles = StyleSheet.create({
   },
   infoSectionBody: {
     gap: 10,
+  },
+  /** Matches detail CartButton idle bar slot while cart / body loads */
+  cartButtonLoaderWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: CART_BUTTON_HEIGHT,
+  },
+  cartButtonLoaderBar: {
+    height: CART_BUTTON_HEIGHT,
+    borderRadius: CART_BUTTON_RADIUS,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    backgroundColor: Colors.light.softGreen,
+    borderWidth: 1,
+    borderColor: "rgba(38, 173, 113, 0.25)",
   },
 });

@@ -1,5 +1,4 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { devLog, devWarn } from "@/utils/devLog";
 import {
   applySyncedProductOverrides,
   productApi,
@@ -80,33 +79,30 @@ type PatchableProduct = {
 function applySyncedFields(
   product: PatchableProduct,
   synced: SyncedProductResult,
-): string[] {
-  const patched: string[] = [];
+): boolean {
+  let patched = false;
   if (synced.newMaxQuantity != null) {
     product.maxQuantity = synced.newMaxQuantity;
-    patched.push(`maxQuantity=${synced.newMaxQuantity}`);
+    patched = true;
   }
   if (synced.newPrice != null) {
     product.price = synced.newPrice;
-    patched.push(`price=${synced.newPrice}`);
+    patched = true;
   }
   if (synced.newDiscountedPrice != null) {
     product.discountedPrice = synced.newDiscountedPrice;
-    patched.push(`discountedPrice=${synced.newDiscountedPrice}`);
+    patched = true;
   }
   if (synced.newIsOutOfStock != null) {
     product.isOutOfStock = synced.newIsOutOfStock;
-    patched.push(`isOutOfStock=${synced.newIsOutOfStock}`);
+    patched = true;
   }
   return patched;
 }
 
 async function patchAsyncStorageProductPages(
   updates: SyncedProductResult[],
-): Promise<number> {
-  let pagesPatched = 0;
-  let productsPatched = 0;
-
+): Promise<void> {
   try {
     const keys = await AsyncStorage.getAllKeys();
     const productKeys = keys.filter((k) => k.startsWith("products-"));
@@ -128,7 +124,7 @@ async function patchAsyncStorageProductPages(
       let patchedOnPage = 0;
       for (const synced of updates) {
         const product = products.find((p) => p._id === synced.productId);
-        if (product && applySyncedFields(product, synced).length) {
+        if (product && applySyncedFields(product, synced)) {
           patchedOnPage++;
         }
       }
@@ -138,19 +134,11 @@ async function patchAsyncStorageProductPages(
           key,
           JSON.stringify({ ...parsed, timestamp: Date.now() }),
         );
-        pagesPatched++;
-        productsPatched += patchedOnPage;
-        devLog("[cart-sync] patch:asyncStorage", {
-          key,
-          patchedOnPage,
-        });
       }
     }
-  } catch (error) {
-    devWarn("[cart-sync] patch:asyncStorage failed", error);
+  } catch {
+    // Best-effort cache patch; RTK overrides still apply.
   }
-
-  return pagesPatched + productsPatched;
 }
 
 export async function patchSyncedProductsInCache(
@@ -166,22 +154,7 @@ export async function patchSyncedProductsInCache(
     (p) => PATCHABLE_SYNC_STATUSES.has(p.status) && hasPatchableFields(p),
   );
 
-  devLog("[cart-sync] patchSyncedProductsInCache:start", {
-    totalSyncResults: syncedProducts?.length ?? 0,
-    normalizedCount: normalized.length,
-    applicableUpdates: updates.length,
-    updates: updates.map((u) => ({
-      productId: u.productId,
-      status: u.status,
-      newMaxQuantity: u.newMaxQuantity ?? null,
-      newPrice: u.newPrice ?? null,
-      newDiscountedPrice: u.newDiscountedPrice ?? null,
-      newIsOutOfStock: u.newIsOutOfStock ?? null,
-    })),
-  });
-
   if (!updates.length) {
-    devLog("[cart-sync] patchSyncedProductsInCache:skip — no patchable products");
     return;
   }
 
@@ -196,17 +169,11 @@ export async function patchSyncedProductsInCache(
       })),
     ),
   );
-  devLog("[cart-sync] patch:overrides applied", {
-    productIds: updates.map((u) => u.productId),
-  });
 
   await patchAsyncStorageProductPages(updates);
 
   const state = store.getState();
   const productQueries = state.productApi?.queries ?? {};
-  let listCategoriesPatched = 0;
-  let listProductsPatched = 0;
-  const patchedProductIds = new Set<string>();
 
   for (const key of Object.keys(productQueries)) {
     if (!key.startsWith("fetchProducts-")) continue;
@@ -215,7 +182,6 @@ export async function patchSyncedProductsInCache(
     if (!entry?.data?.products?.length) continue;
 
     const categoryId = key.replace("fetchProducts-", "");
-    let patchedInCategory = 0;
 
     dispatch(
       productApi.util.updateQueryData(
@@ -227,41 +193,15 @@ export async function patchSyncedProductsInCache(
               (p) => p._id === synced.productId,
             );
             if (product) {
-              patchedProductIds.add(synced.productId);
-              const fields = applySyncedFields(product, synced);
-              if (fields.length) {
-                patchedInCategory++;
-                devLog("[cart-sync] patch:list", {
-                  categoryId,
-                  productId: synced.productId,
-                  name: product.name,
-                  fields,
-                });
-              }
+              applySyncedFields(product, synced);
             }
           }
         },
       ),
     );
-
-    if (patchedInCategory > 0) {
-      listCategoriesPatched++;
-      listProductsPatched += patchedInCategory;
-    }
-  }
-
-  const notInRtkCache = updates
-    .map((u) => u.productId)
-    .filter((id) => !patchedProductIds.has(id));
-  if (notInRtkCache.length) {
-    devLog(
-      "[cart-sync] patch:list not in loaded RTK pages (overrides still apply)",
-      { productIds: notInRtkCache },
-    );
   }
 
   const searchQueries = state.searchApi?.queries ?? {};
-  let searchProductsPatched = 0;
 
   for (const key of Object.keys(searchQueries)) {
     if (!key.startsWith("fetchProductsBySearch")) continue;
@@ -279,15 +219,7 @@ export async function patchSyncedProductsInCache(
               (p: PatchableProduct) => p._id === synced.productId,
             );
             if (product) {
-              const fields = applySyncedFields(product, synced);
-              if (fields.length) {
-                searchProductsPatched++;
-                devLog("[cart-sync] patch:search", {
-                  queryKey: key,
-                  productId: synced.productId,
-                  fields,
-                });
-              }
+              applySyncedFields(product, synced);
             }
           }
         },
@@ -295,7 +227,6 @@ export async function patchSyncedProductsInCache(
     );
   }
 
-  let detailProductsPatched = 0;
   for (const synced of updates) {
     dispatch(
       productApi.util.updateQueryData(
@@ -303,26 +234,10 @@ export async function patchSyncedProductsInCache(
         { productId: synced.productId },
         (draft) => {
           if (draft?.product?._id === synced.productId) {
-            const fields = applySyncedFields(draft.product, synced);
-            if (fields.length) {
-              detailProductsPatched++;
-              devLog("[cart-sync] patch:detail", {
-                productId: synced.productId,
-                fields,
-              });
-            }
+            applySyncedFields(draft.product, synced);
           }
         },
       ),
     );
   }
-
-  devLog("[cart-sync] patchSyncedProductsInCache:done", {
-    listCategoriesPatched,
-    listProductsPatched,
-    searchProductsPatched,
-    detailProductsPatched,
-    overrideCount: updates.length,
-    notInRtkCache,
-  });
 }

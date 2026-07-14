@@ -313,10 +313,6 @@ const cartSlice = createSlice({
           ).toFixed(2),
         );
         state.cartItemQuantity = rebuildCartItemQuantities(items);
-        devLog("[cart-sync] cartItemQuantity:rebuilt from fetchCart", {
-          itemCount: items.length,
-          quantities: state.cartItemQuantity,
-        });
       }
     );
     builder.addMatcher(
@@ -382,7 +378,6 @@ const cartSlice = createSlice({
       cartApi.endpoints.clearCart.matchFulfilled,
       (state) => {
         state.cartItemQuantity = {};
-        devLog("[cart-sync] cartItemQuantity:cleared on clearCart");
       }
     );
   },

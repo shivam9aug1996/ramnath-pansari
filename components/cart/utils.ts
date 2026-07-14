@@ -1,5 +1,4 @@
 import { CartItem, Product, ProductDetails } from "@/types/global";
-import { devError, devLog, devWarn } from "@/utils/devLog";
 import { getCatalogBillItems } from "@/utils/cartOfferUtils";
 
 export const calculateTotalAmount = (products: CartItem[] = []): number => {
@@ -134,29 +133,11 @@ export const findMaxQuantityChanges = (prevCart, nextCart) => {
           nextMaxQuantity < prevMaxQuantity &&
           (prevQty > nextMaxQuantity || qtyWasCapped)
         ) {
-          devLog("[cart-sync] maxQuantity:block checkout", {
-            productId: nextItem.productId,
-            productName: nextItem.productDetails.name,
-            prevMaxQuantity,
-            nextMaxQuantity,
-            prevQty,
-            nextQty,
-            qtyWasCapped,
-          });
           maxQuantityChanges.push({
             productId: nextItem.productId,
             productName: nextItem.productDetails.name,
             oldMaxQuantity: prevMaxQuantity,
             newMaxQuantity: nextMaxQuantity,
-          });
-        } else if (nextMaxQuantity < prevMaxQuantity) {
-          devLog("[cart-sync] maxQuantity:ignored (no user impact)", {
-            productId: nextItem.productId,
-            productName: nextItem.productDetails.name,
-            prevMaxQuantity,
-            nextMaxQuantity,
-            prevQty,
-            nextQty,
           });
         }
       }

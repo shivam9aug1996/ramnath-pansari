@@ -1,5 +1,6 @@
 import React from "react";
-import { StyleSheet, View, ViewStyle } from "react-native";
+import { ActivityIndicator, StyleSheet, View, ViewStyle } from "react-native";
+import { Colors } from "@/constants/Colors";
 import {
   FOOD_BADGE_SIZE_MD,
   PRODUCT_NAME_MIN_HEIGHT,
@@ -44,6 +45,14 @@ const InfoSectionSkeleton = ({ rows = 4 }: { rows?: number }) => (
   </View>
 );
 
+const CartButtonSkeleton = () => (
+  <View style={contentStyles.cartButtonLoaderWrap} pointerEvents="none">
+    <View style={contentStyles.cartButtonLoaderBar}>
+      <ActivityIndicator size="small" color={Colors.light.gradientGreen_1} />
+    </View>
+  </View>
+);
+
 export const ProductDetailBodySkeleton = () => (
   <>
     <View style={contentStyles.textContainer}>
@@ -54,7 +63,12 @@ export const ProductDetailBodySkeleton = () => (
             { width: FOOD_BADGE_SIZE_MD, height: FOOD_BADGE_SIZE_MD },
           ]}
         />
-        <View style={[skeletonStyles.nameSkeleton, { minHeight: PRODUCT_NAME_MIN_HEIGHT }]}>
+        <View
+          style={[
+            skeletonStyles.nameSkeleton,
+            { minHeight: PRODUCT_NAME_MIN_HEIGHT },
+          ]}
+        >
           <SkeletonBar width="95%" height={20} />
           <SkeletonBar width="72%" height={20} />
         </View>
@@ -64,6 +78,7 @@ export const ProductDetailBodySkeleton = () => (
       <SkeletonBar width={72} height={24} style={skeletonStyles.discountBar} />
       <SkeletonBar width="46%" height={16} style={skeletonStyles.mrpBar} />
       <SkeletonBar width="38%" height={18} style={skeletonStyles.priceBar} />
+      <CartButtonSkeleton />
     </View>
 
     <View style={contentStyles.infoSectionsContainer}>
@@ -80,13 +95,13 @@ export default ProductDetailPlaceholder;
 const skeletonStyles = StyleSheet.create({
   bar: {
     borderRadius: 5,
-    backgroundColor: "#f3f3f3",
+    backgroundColor: Colors.light.softGrey_2,
   },
   badgeSkeleton: {
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: "#e3e3e3",
-    backgroundColor: "#f3f3f3",
+    borderColor: "#e8e8e8",
+    backgroundColor: Colors.light.softGrey_2,
   },
   nameSkeleton: {
     flex: 1,

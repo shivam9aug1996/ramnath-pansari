@@ -3,10 +3,7 @@ import { categoryApi } from "@/redux/features/categorySlice";
 import type store from "@/redux/store";
 import type { Category } from "@/types/global";
 import { isPromoConfigStale, PROMO_CONFIG_TTL_MS } from "@/utils/promoConfigCache";
-import {
-  categoryLog,
-  runCategoryCacheHydration,
-} from "@/utils/categoryDebug";
+import { runCategoryCacheHydration } from "@/utils/categoryDebug";
 
 export const CATEGORY_CONFIG_CACHE_KEY = "@category/config";
 export const CATEGORY_CONFIG_TTL_MS = PROMO_CONFIG_TTL_MS;
@@ -35,23 +32,14 @@ export async function readCategoryConfigCache(): Promise<CategoryConfigCache | n
   try {
     const raw = await AsyncStorage.getItem(CATEGORY_CONFIG_CACHE_KEY);
     if (!raw) {
-      categoryLog("storage:read", { hit: false });
       return null;
     }
     const parsed = JSON.parse(raw) as CategoryConfigCache;
     if (!Array.isArray(parsed?.categories)) {
-      categoryLog("storage:read", { hit: false, reason: "invalid-shape" });
       return null;
     }
-    categoryLog("storage:read", {
-      hit: true,
-      count: parsed.categories.length,
-      ageMs: Date.now() - parsed.fetchedAt,
-      stale: isCategoryConfigStale(parsed.fetchedAt),
-    });
     return parsed;
-  } catch (error) {
-    categoryLog("storage:read:error", { error });
+  } catch {
     return null;
   }
 }
@@ -62,20 +50,13 @@ export async function writeCategoryConfigCache(
 ): Promise<void> {
   const payload: CategoryConfigCache = { fetchedAt, categories };
   await AsyncStorage.setItem(CATEGORY_CONFIG_CACHE_KEY, JSON.stringify(payload));
-  categoryLog("storage:write", { count: categories.length, fetchedAt });
 }
 
 export function hydrateCategoryConfigCache(
   dispatch: AppDispatch,
   cache: CategoryConfigCache,
-  source: "storage" | "network-response" = "storage",
+  _source: "storage" | "network-response" = "storage",
 ): void {
-  categoryLog("cache:hydrate", {
-    count: cache.categories.length,
-    fetchedAt: cache.fetchedAt,
-    network: false,
-    source,
-  });
   runCategoryCacheHydration(() => {
     dispatch(
       categoryApi.util.upsertQueryData("fetchCategories", {}, {

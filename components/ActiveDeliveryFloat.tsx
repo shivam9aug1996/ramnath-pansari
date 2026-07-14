@@ -51,27 +51,9 @@ const SPRING_CONFIG = { damping: 22, stiffness: 220 };
 const PILL_HEIGHT = 52;
 const COMPACT_SIZE = 56;
 const FULL_PILL_WIDTH = SCREEN_WIDTH - HORIZONTAL_MARGIN * 2;
-const DEBUG_FLOAT = __DEV__;
-const LOG_PREFIX = "[active-delivery-float]";
 const TAB_FLOAT_EXTRA_PADDING = 50;
 const CART_FLOAT_EXTRA_PADDING = 40;
 const HOME_FLOAT_EXTRA_PADDING = 30;
-
-type BottomReservedSource =
-  | "cartFooterInset"
-  | "goToCartInset"
-  | "tabBar"
-  | "tabBar+cartCheckoutFallback"
-  | "safeArea";
-
-function logFloat(event: string, payload?: Record<string, unknown>) {
-  if (!DEBUG_FLOAT) return;
-  if (payload) {
-    console.log(LOG_PREFIX, event, payload);
-    return;
-  }
-  console.log(LOG_PREFIX, event);
-}
 
 function hasMeaningfulInsetChange(previous: number, next: number) {
   return Math.abs(previous - next) >= INSET_SNAP_THRESHOLD;
@@ -95,12 +77,12 @@ function isCartCheckoutRoute(pathname: string) {
   return pathname.includes("/cartScreen") || isCartTab(pathname);
 }
 
-function getBottomReservedMeta(
+function getBottomReserved(
   pathname: string,
   cartFooterInset: number,
   goToCartInset: number,
   safeAreaBottom: number,
-): { reserved: number; source: BottomReservedSource } {
+): number {
   const tabBarHeight = getTabBarReservedHeight(safeAreaBottom);
   const isCartScreen = pathname.includes("/cartScreen");
   const checkoutFooterInset =
@@ -116,13 +98,10 @@ function getBottomReservedMeta(
       const floor = tabBar + getCartFooterFallbackInset(0) + FLOAT_GAP + 20;
       reserved = Math.max(reserved, floor);
     }
-    return { reserved, source: "cartFooterInset" };
+    return reserved;
   }
   if (goToCartInset > 0 && !isTabRoute(pathname)) {
-    return {
-      reserved: goToCartInset + FLOAT_GAP,
-      source: "goToCartInset",
-    };
+    return goToCartInset + FLOAT_GAP;
   }
   if (isTabRoute(pathname)) {
     let reserved = tabBarHeight + FLOAT_GAP + TAB_FLOAT_EXTRA_PADDING;
@@ -133,23 +112,11 @@ function getBottomReservedMeta(
       if (cartFooterInset <= 0) {
         reserved += safeAreaBottom + FLOAT_GAP - CART_FLOAT_EXTRA_PADDING;
       }
-      return { reserved, source: "tabBar+cartCheckoutFallback" };
+      return reserved;
     }
-    return { reserved, source: "tabBar" };
+    return reserved;
   }
-  return {
-    reserved: safeAreaBottom + FLOAT_GAP,
-    source: "safeArea",
-  };
-}
-
-function getRouteFlags(pathname: string) {
-  return {
-    pathname,
-    isTabRoute: isTabRoute(pathname),
-    isHomeTab: isHomeTab(pathname),
-    isCartTab: isCartTab(pathname),
-  };
+  return safeAreaBottom + FLOAT_GAP;
 }
 
 export type ActiveDeliveryFloatHomeVariant = "full" | "compact";
@@ -194,9 +161,9 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
   const maxYShared = useSharedValue(0);
   const pillWidthShared = useSharedValue(pillWidth);
 
-  const bottomReservedMeta = useMemo(
+  const bottomReserved = useMemo(
     () =>
-      getBottomReservedMeta(
+      getBottomReserved(
         pathname,
         cartFooterInset,
         goToCartInset,
@@ -204,7 +171,6 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
       ),
     [cartFooterInset, goToCartInset, insets.bottom, pathname],
   );
-  const bottomReserved = bottomReservedMeta.reserved;
 
   const defaultY = SCREEN_HEIGHT - bottomReserved - pillHeight;
   const minY = insets.top + FLOAT_GAP;
@@ -247,37 +213,12 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
       cartFooterInsetChanged;
 
     if (hasCustomPosition && !shouldSnapToDefault) {
-      logFloat("snap_skipped_custom_position", {
-        ...getRouteFlags(pathname),
-        goToCartInset,
-        cartFooterInset,
-        bottomReserved,
-        bottomReservedSource: bottomReservedMeta.source,
-      });
       return;
     }
 
     if (shouldSnapToDefault) {
       setHasCustomPosition(false);
     }
-
-    logFloat("snap_to_default", {
-      ...getRouteFlags(pathname),
-      reason: {
-        routeChanged,
-        goToCartInsetChanged,
-        cartFooterInsetChanged,
-        layoutModeChanged,
-        cartTabRouteChanged: routeChanged && isCartTab(pathname),
-      },
-      goToCartInset,
-      cartFooterInset,
-      bottomReserved,
-      bottomReservedSource: bottomReservedMeta.source,
-      defaultX,
-      defaultY,
-      hasCustomPosition,
-    });
 
     posX.value = withSpring(defaultX, SPRING_CONFIG);
     posY.value = withSpring(defaultY, SPRING_CONFIG);
@@ -291,7 +232,6 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
     dragStartY,
     goToCartInset,
     bottomReserved,
-    bottomReservedMeta.source,
     hasCustomPosition,
     isCompact,
     pathname,
@@ -300,50 +240,11 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
   ]);
 
   useEffect(() => {
-    logFloat("route_context", {
-      ...getRouteFlags(pathname),
-      goToCartInset,
-      cartFooterInset,
-      safeAreaBottom: insets.bottom,
-      bottomReserved,
-      bottomReservedSource: bottomReservedMeta.source,
-      defaultY,
-      defaultX,
-      pillHeight,
-      isCompact,
-      isVisible: true,
-      activeOrderCount: activeOrders.length,
-      isHiddenOnDetail: false,
-      sheetOpen: false,
-      hasCustomPosition,
-    });
-  }, [
-    activeOrders.length,
-    bottomReserved,
-    bottomReservedMeta.source,
-    cartFooterInset,
-    defaultX,
-    defaultY,
-    goToCartInset,
-    hasCustomPosition,
-    insets.bottom,
-    isCompact,
-    pathname,
-    pillHeight,
-  ]);
-
-  useEffect(() => {
     if (!setBottomInset) return;
 
     const inset = isHomeTab(pathname)
       ? pillHeight + FLOAT_GAP + getTabBarReservedHeight(insets.bottom)
       : 0;
-
-    logFloat("home_list_inset", {
-      ...getRouteFlags(pathname),
-      isVisible: true,
-      homeListInset: inset,
-    });
 
     setBottomInset(inset);
 

@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import { syncAppState } from "@/utils/syncAppState";
 import { loadRecentSearch } from "@/utils/recentSearchConfigCache";
-import { recentSearchLog } from "@/utils/recentSearchDebug";
 
 /** Syncs global configs; loads recent search separately for the current user. */
 export default function PromoConfigSync() {
@@ -21,25 +20,10 @@ export default function PromoConfigSync() {
   );
 
   useEffect(() => {
-    if (!userId || isAdminUser || isDriverUser) {
-      recentSearchLog("promo-sync:skip", {
-        userId,
-        isAdminUser,
-        isDriverUser,
-      });
-      return;
-    }
-
-    recentSearchLog("promo-sync:effect", {
-      userId,
-      isGuestUser,
-      hasToken: Boolean(token),
-    });
+    if (!userId || isAdminUser || isDriverUser) return;
 
     syncAppState(dispatch, { token, userId, isGuestUser }).catch(() => {});
-    loadRecentSearch(dispatch, userId, { isGuestUser }).catch((error) => {
-      recentSearchLog("promo-sync:load-error", error);
-    });
+    loadRecentSearch(dispatch, userId, { isGuestUser }).catch(() => {});
   }, [dispatch, token, userId, isAdminUser, isDriverUser, isGuestUser]);
 
   return null;

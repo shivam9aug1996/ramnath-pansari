@@ -1,219 +1,9 @@
-// import { useEffect, useRef, useCallback, startTransition } from "react";
-// import { useDispatch, useSelector } from "react-redux";
-// import {
-//   cartApi,
-//   setCartItemQuantity,
-//   setIsCartOperationProcessing,
-// } from "@/redux/features/cartSlice";
-
-// import {
-//   hapticFeedback,
-//   hideAllToast,
-//   showToast,
-// } from "@/utils/utils";
-// import { RootState, Product } from "@/types/global";
-// import { router } from "expo-router";
-// import store from "@/redux/store";
-// import CartDebounceManager from "./CartDebounceManager";
-// import { offerApi } from "@/redux/features/offerSlice";
-// import { applyOptimisticOffersToCart } from "@/utils/applyOptimisticOffers";
-// import { computeOrderDiscountFromOffers } from "@/utils/cartOfferUtils";
-// import { getPaidCartSubtotal } from "@/utils/deliveryFee";
-
-// const LOG_PREFIX = "[CartButton:flicker]";
-
-// const logCartOps = (event: string, payload?: Record<string, unknown>) => {
-//   console.log(LOG_PREFIX, event, payload ?? "");
-// };
-
-// export const useCartOperations = (item: Product, initialValue: number) => {
-//   const isCartOperationProcessing = useSelector(
-//     (state: RootState) => state?.cart?.isCartOperationProcessing,
-//   );
-//   const isClearCartLoading = useSelector(
-//     (state: RootState) => state?.cart?.isClearCartLoading,
-//   );
-//   const dispatch = useDispatch();
-//   const buttonClicked = useRef(false);
-//   const userInfo = useSelector((state: RootState) => state.auth.userData);
-//   const userId = userInfo?._id;
-//   const isGuestUser = userInfo?.isGuestUser;
-
-//   const storedQuantity = useSelector(
-//     (state: RootState) => state.cart.cartItemQuantity[item._id],
-//   );
-//   const quantity = storedQuantity ?? initialValue ?? 0;
-
-//   useEffect(() => {
-//     if (storedQuantity !== initialValue) {
-//       logCartOps("sync storedQuantity from initialValue", {
-//         productId: item._id,
-//         storedQuantity,
-//         initialValue,
-//         resolvedQuantity: initialValue ?? 0,
-//       });
-//       dispatch(
-//         setCartItemQuantity({
-//           productId: item._id,
-//           quantity: initialValue ?? 0,
-//         }),
-//       );
-//     }
-//   }, [dispatch, item._id, initialValue, storedQuantity]);
-
-//   const updateCartItems = useCallback(
-//     async (newQuantity: number) => {
-//       logCartOps("updateCartItems", {
-//         productId: item._id,
-//         previousQuantity: quantity,
-//         newQuantity,
-//         initialValue,
-//         storedQuantity,
-//       });
-//       dispatch(
-//         setCartItemQuantity({ productId: item._id, quantity: newQuantity }),
-//       );
-
-//       startTransition(() => {
-//         dispatch(
-//           cartApi.util.updateQueryData("fetchCart", { userId }, (draft) => {
-//             let items = [...(draft.cart.items || [])];
-//             const index = items.findIndex(
-//               (i) =>
-//                 i.productDetails?._id === item._id && !i.isPromoFreebie,
-//             );
-
-//             if (newQuantity === 0 && index !== -1) {
-//               items.splice(index, 1);
-//             } else if (index !== -1) {
-//               items[index] = { ...items[index], quantity: newQuantity };
-//             } else if (newQuantity > 0) {
-//               items.push({
-//                 _id: `temp-${Date.now()}`,
-//                 productId: item._id,
-//                 quantity: newQuantity,
-//                 productDetails: item,
-//               });
-//             }
-
-//             const offers =
-//               offerApi.endpoints.fetchOffers.select()(
-//                 store.getState() as never,
-//               )?.data?.offers ?? [];
-
-//             draft.cart.items = applyOptimisticOffersToCart(items, offers);
-//             draft.orderDiscount = computeOrderDiscountFromOffers(
-//               getPaidCartSubtotal(items),
-//               offers,
-//             );
-//           }),
-//         );
-//       });
-
-//       startTransition(() => {
-//         let updatedCart =
-//           store.getState().cartApi.queries[`fetchCart({"userId":"${userId}"})`]
-//             ?.data;
-
-//         updatedCart = updatedCart?.cart?.items || [];
-
-//         if (updatedCart?.length >= 0) {
-//           CartDebounceManager.getInstance().updateCart(updatedCart, userId);
-//         }
-//       });
-//     },
-//     [dispatch, item, userId, quantity, initialValue, storedQuantity],
-//   );
-
-//   const handleAdd = useCallback(() => {
-//     if (isCartOperationProcessing || isClearCartLoading) {
-//       showToast({
-//         type: "info",
-//         text2: "Please wait a moment — we're still updating your cart.",
-//       });
-//       return;
-//     }
-//     if (isGuestUser) {
-//       showToast({
-//         type: "info",
-//         text2: "🛍️ Tap here to log in and start filling your cart!",
-//         onPress() {
-//           router.push("/login");
-//           hideAllToast();
-//         },
-//       });
-//       return;
-//     }
-
-//     hapticFeedback();
-//     const maxQuantity = item?.maxQuantity ?? 5;
-//     if (quantity < maxQuantity) {
-//       buttonClicked.current = true;
-//       updateCartItems(quantity + 1);
-//     } else {
-//       showToast({
-//         type: "info",
-//         text2:
-//           "You have reached the maximum limit allowed for purchase of this item.",
-//       });
-//     }
-//   }, [
-//     isGuestUser,
-//     quantity,
-//     item?.maxQuantity,
-//     updateCartItems,
-//     isCartOperationProcessing,
-//     isClearCartLoading,
-//   ]);
-
-//   const handleRemove = useCallback(() => {
-//     if (isCartOperationProcessing || isClearCartLoading) {
-//       showToast({
-//         type: "info",
-//         text2: "Please wait a moment — we're still updating your cart.",
-//       });
-//       return;
-//     }
-//     hapticFeedback();
-//     if (quantity > 0) {
-//       buttonClicked.current = true;
-//       updateCartItems(quantity - 1);
-//     }
-//   }, [
-//     quantity,
-//     updateCartItems,
-//     isCartOperationProcessing,
-//     isClearCartLoading,
-//   ]);
-
-//   const handleClearAll = useCallback(() => {
-//     hapticFeedback();
-//     if (quantity > 0) {
-//       buttonClicked.current = true;
-//       updateCartItems(0);
-//     }
-//   }, [quantity, updateCartItems]);
-
-//   return {
-//     quantity,
-//     handleAdd,
-//     handleRemove,
-//     handleClearAll,
-//     buttonClicked,
-//   };
-// };
-
-
-
-
-
 import { useEffect, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   cartApi,
   setCartItemQuantity,
 } from "@/redux/features/cartSlice";
-
 import {
   hapticFeedback,
   hideAllToast,
@@ -228,159 +18,187 @@ import { applyOptimisticOffersToCart } from "@/utils/applyOptimisticOffers";
 import { computeOrderDiscountFromOffers } from "@/utils/cartOfferUtils";
 import { getPaidCartSubtotal } from "@/utils/deliveryFee";
 
+const BUSY_TOAST = {
+  type: "info" as const,
+  text2: "Please wait a moment — we're still updating your cart.",
+};
+
+const GUEST_TOAST = {
+  type: "info" as const,
+  text2: "🛍️ Tap here to log in and start filling your cart!",
+  onPress() {
+    router.push("/login");
+    hideAllToast();
+  },
+};
+
+const MAX_QTY_TOAST = {
+  type: "info" as const,
+  text2:
+    "You have reached the maximum limit allowed for purchase of this item.",
+};
+
+function isCartBusy(state: any) {
+  return (
+    !!state?.cart?.isCartOperationProcessing || !!state?.cart?.isClearCartLoading
+  );
+}
+
+function resolveQuantity(state: any, productId: string, fallback: number) {
+  const stored = state?.cart?.cartItemQuantity?.[productId];
+  return stored !== undefined ? stored : fallback;
+}
+
+function patchCartItems(items: any[], product: Product, newQuantity: number) {
+  const next = items.slice();
+  const index = next.findIndex(
+    (i) => i.productDetails?._id === product._id && !i.isPromoFreebie,
+  );
+
+  if (newQuantity === 0) {
+    if (index !== -1) next.splice(index, 1);
+    return next;
+  }
+
+  if (index !== -1) {
+    next[index] = { ...next[index], quantity: newQuantity };
+    return next;
+  }
+
+  next.push({
+    _id: `temp-${product._id}`,
+    productId: product._id,
+    quantity: newQuantity,
+    productDetails: product,
+  });
+  return next;
+}
+
 export const useCartOperations = (item: Product, initialValue: number) => {
-  const isCartOperationProcessing = useSelector(
-    (state: RootState) => state?.cart?.isCartOperationProcessing,
-  );
-  const isClearCartLoading = useSelector(
-    (state: RootState) => state?.cart?.isClearCartLoading,
-  );
+  const productId = item._id;
   const dispatch = useDispatch();
   const buttonClicked = useRef(false);
-  const userInfo = useSelector((state: RootState) => state.auth.userData);
-  const userId = userInfo?._id;
-  const isGuestUser = userInfo?.isGuestUser;
+  const itemRef = useRef(item);
+  const initialValueRef = useRef(initialValue);
+
+  itemRef.current = item;
+  initialValueRef.current = initialValue;
 
   const storedQuantity = useSelector(
-    (state: RootState) => state.cart.cartItemQuantity[item._id],
+    (state: RootState) => (state.cart as any).cartItemQuantity?.[productId],
   );
+
   const quantity = storedQuantity ?? initialValue ?? 0;
 
+  // Redux is the source of truth once a quantity is stored (taps / fetchCart).
+  // Never copy initialValue back into Redux — list + detail each mount this hook
+  // with their own refs, and a stale parent value was resetting optimistic qty.
   useEffect(() => {
-    if (buttonClicked.current) {
-      if (storedQuantity === initialValue) {
-        buttonClicked.current = false;
-      }
-      return;
+    if (!buttonClicked.current) return;
+    if (storedQuantity === initialValue) {
+      buttonClicked.current = false;
     }
-
-    if (storedQuantity !== initialValue) {
-      dispatch(
-        setCartItemQuantity({
-          productId: item._id,
-          quantity: initialValue ?? 0,
-        }),
-      );
-    }
-  }, [dispatch, item._id, initialValue, storedQuantity]);
+  }, [initialValue, storedQuantity]);
 
   const updateCartItems = useCallback(
-    async (newQuantity: number) => {
+    (newQuantity: number) => {
+      const product = itemRef.current;
+      const userId = (store.getState() as any).auth?.userData?._id;
+      if (!userId || !product?._id) return;
+
       dispatch(
-        setCartItemQuantity({ productId: item._id, quantity: newQuantity }),
+        setCartItemQuantity({ productId: product._id, quantity: newQuantity }),
       );
 
-      dispatch(
-        cartApi.util.updateQueryData("fetchCart", { userId }, (draft) => {
-          const items = [...(draft.cart.items || [])];
-          const index = items.findIndex(
-            (i) =>
-              i.productDetails?._id === item._id && !i.isPromoFreebie,
-          );
+      let itemsForStorage: any[] = [];
 
-          if (newQuantity === 0 && index !== -1) {
-            items.splice(index, 1);
-          } else if (index !== -1) {
-            items[index] = { ...items[index], quantity: newQuantity };
-          } else if (newQuantity > 0) {
-            items.push({
-              _id: `temp-${Date.now()}`,
-              productId: item._id,
-              quantity: newQuantity,
-              productDetails: item,
-            });
-          }
+      dispatch(
+        cartApi.util.updateQueryData("fetchCart", { userId }, (draft: any) => {
+          const currentItems = draft.cart?.items ?? [];
+          const patched = patchCartItems(currentItems, product, newQuantity);
 
           const offers =
             offerApi.endpoints.fetchOffers.select()(
               store.getState() as never,
             )?.data?.offers ?? [];
 
-          draft.cart.items = applyOptimisticOffersToCart(items, offers);
+          const withOffers = applyOptimisticOffersToCart(patched, offers);
+          draft.cart.items = withOffers;
           draft.orderDiscount = computeOrderDiscountFromOffers(
-            getPaidCartSubtotal(items),
+            getPaidCartSubtotal(patched),
             offers,
           );
-        }),
+          itemsForStorage = withOffers;
+        }) as any,
       );
 
-      const updatedCart =
-        store.getState().cartApi.queries[`fetchCart({"userId":"${userId}"})`]
-          ?.data?.cart?.items ?? [];
-
-      CartDebounceManager.getInstance().updateCart(updatedCart, userId);
+      CartDebounceManager.getInstance().updateCart(itemsForStorage, userId);
     },
-    [dispatch, item, userId],
+    [dispatch],
   );
 
   const handleAdd = useCallback(() => {
-    if (isCartOperationProcessing || isClearCartLoading) {
-      showToast({
-        type: "info",
-        text2: "Please wait a moment — we're still updating your cart.",
-      });
+    const state = store.getState() as any;
+    if (isCartBusy(state)) {
+      showToast(BUSY_TOAST);
       return;
     }
-    if (isGuestUser) {
-      showToast({
-        type: "info",
-        text2: "🛍️ Tap here to log in and start filling your cart!",
-        onPress() {
-          router.push("/login");
-          hideAllToast();
-        },
-      });
+    if (state.auth?.userData?.isGuestUser) {
+      showToast(GUEST_TOAST);
       return;
     }
 
     hapticFeedback();
-    const maxQuantity = item?.maxQuantity ?? 5;
-    if (quantity < maxQuantity) {
-      buttonClicked.current = true;
-      updateCartItems(quantity + 1);
-    } else {
-      showToast({
-        type: "info",
-        text2:
-          "You have reached the maximum limit allowed for purchase of this item.",
-      });
+
+    const current = resolveQuantity(
+      state,
+      productId,
+      initialValueRef.current ?? 0,
+    );
+    const maxQuantity = itemRef.current?.maxQuantity ?? 5;
+
+    if (current >= maxQuantity) {
+      showToast(MAX_QTY_TOAST);
+      return;
     }
-  }, [
-    isGuestUser,
-    quantity,
-    item?.maxQuantity,
-    updateCartItems,
-    isCartOperationProcessing,
-    isClearCartLoading,
-  ]);
+
+    buttonClicked.current = true;
+    updateCartItems(current + 1);
+  }, [productId, updateCartItems]);
 
   const handleRemove = useCallback(() => {
-    if (isCartOperationProcessing || isClearCartLoading) {
-      showToast({
-        type: "info",
-        text2: "Please wait a moment — we're still updating your cart.",
-      });
+    const state = store.getState() as any;
+    if (isCartBusy(state)) {
+      showToast(BUSY_TOAST);
       return;
     }
+
     hapticFeedback();
-    if (quantity > 0) {
-      buttonClicked.current = true;
-      updateCartItems(quantity - 1);
-    }
-  }, [
-    quantity,
-    updateCartItems,
-    isCartOperationProcessing,
-    isClearCartLoading,
-  ]);
+
+    const current = resolveQuantity(
+      state,
+      productId,
+      initialValueRef.current ?? 0,
+    );
+    if (current <= 0) return;
+
+    buttonClicked.current = true;
+    updateCartItems(current - 1);
+  }, [productId, updateCartItems]);
 
   const handleClearAll = useCallback(() => {
     hapticFeedback();
-    if (quantity > 0) {
-      buttonClicked.current = true;
-      updateCartItems(0);
-    }
-  }, [quantity, updateCartItems]);
+
+    const current = resolveQuantity(
+      store.getState() as any,
+      productId,
+      initialValueRef.current ?? 0,
+    );
+    if (current <= 0) return;
+
+    buttonClicked.current = true;
+    updateCartItems(0);
+  }, [productId, updateCartItems]);
 
   return {
     quantity,

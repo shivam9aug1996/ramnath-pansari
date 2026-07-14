@@ -1,5 +1,4 @@
 import { Slot } from "expo-router";
-import { devError, devLog, devWarn } from "@/utils/devLog";
 import * as SplashScreen from "expo-splash-screen";
 import { Fragment, useEffect } from "react";
 import { View } from "react-native";
@@ -51,9 +50,7 @@ const RootLayout = () => {
   const [fontsLoaded] = useFonts();
 
   useEffect(() => {
-    initStartupDiagnostics().catch((error) => {
-      devWarn("[startup-diag] init failed", error);
-    });
+    initStartupDiagnostics().catch(() => {});
   }, []);
 
   useEffect(() => {

@@ -612,8 +612,7 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                       text2: result.message,
                     });
                     abortCheckout();
-                  } catch (error) {
-                    devLog("[cart-sync] checkout:failed", error);
+                  } catch {
                     showToast({
                       type: "error",
                       text2: "Checkout could not continue. Please try again.",
