@@ -17,6 +17,7 @@ const ROLE_FILTERS = [
   { key: undefined, label: 'All' },
   { key: 'admin', label: 'Admins' },
   { key: 'customer', label: 'Customers' },
+  { key: 'driver', label: 'Drivers' },
   { key: 'guest', label: 'Guests' },
 ] as const
 

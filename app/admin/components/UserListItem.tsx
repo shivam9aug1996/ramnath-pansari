@@ -51,12 +51,17 @@ const UserListItem = ({
               <Text style={styles.badgeTextAdmin}>Admin</Text>
             </View>
           ) : null}
+          {item.isDriverUser ? (
+            <View style={[styles.badge, styles.badgeDriver]}>
+              <Text style={styles.badgeTextDriver}>Driver</Text>
+            </View>
+          ) : null}
           {item.isGuestUser ? (
             <View style={[styles.badge, styles.badgeGuest]}>
               <Text style={styles.badgeTextGuest}>Guest</Text>
             </View>
           ) : null}
-          {!item.isAdminUser && !item.isGuestUser ? (
+          {!item.isAdminUser && !item.isGuestUser && !item.isDriverUser ? (
             <View style={[styles.badge, styles.badgeCustomer]}>
               <Text style={styles.badgeTextCustomer}>Customer</Text>
             </View>
@@ -125,12 +130,18 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   badgeAdmin: { backgroundColor: '#DCFCE7' },
+  badgeDriver: { backgroundColor: '#CCFBF1' },
   badgeGuest: { backgroundColor: '#FEF3C7' },
   badgeCustomer: { backgroundColor: '#EFF6FF' },
   badgeTextAdmin: {
     fontSize: 10,
     fontWeight: '800',
     color: adminTheme.accent,
+  },
+  badgeTextDriver: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0F766E',
   },
   badgeTextGuest: {
     fontSize: 10,
