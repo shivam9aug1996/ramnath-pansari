@@ -5,6 +5,10 @@ import {
   type DeliveryRadiusSettings,
 } from "@/utils/storeConfig";
 import { DEFAULT_DELIVERY_RADIUS } from "@/constants/StoreConfig";
+import {
+  ensureForegroundLocationPermission,
+  LocationPermissionError,
+} from "@/utils/locationPermission";
 
 export const getLatLng = (
   locationData: Location.LocationObject,
@@ -17,20 +21,15 @@ export const getLatLng = (
 };
 
 export const fetchLocation = async () => {
-  try {
-    const { status } = await Location.requestForegroundPermissionsAsync();
+  const permission = await ensureForegroundLocationPermission();
+  if (permission.status !== "granted") {
+    throw new LocationPermissionError(permission.canAskAgain);
+  }
 
-    if (status !== "granted") {
-      throw Error("Permission to access location was denied");
-    }
+  try {
     const location: Location.LocationObject =
       await Location.getCurrentPositionAsync({});
-
-    const { latitude, longitude } = getLatLng(location);
-    return {
-      latitude,
-      longitude,
-    };
+    return getLatLng(location);
   } catch (error: any) {
     throw Error(error?.message || "Error while fetching lat and long");
   }

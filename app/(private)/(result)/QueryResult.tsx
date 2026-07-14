@@ -23,6 +23,7 @@ import {
 } from "@/redux/features/recentSearchSlice";
 import {
   saveLocalRecentSearchItem,
+  upsertRecentSearchInStore,
   writeRecentSearchCache,
 } from "@/utils/recentSearchConfigCache";
 import { useFetchCartQuery } from "@/redux/features/cartSlice";
@@ -190,6 +191,7 @@ const QueryResult = ({query}:{query:string}) => {
       await createRecentSearch({ body: { query, userId } })?.unwrap();
       const data = await fetchRecentSearch({ userId }, false)?.unwrap();
       if (data) {
+        await upsertRecentSearchInStore(dispatch, userId, data);
         await writeRecentSearchCache(userId, data);
       }
     } catch {

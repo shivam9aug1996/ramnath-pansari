@@ -3,7 +3,7 @@
     "name": "Ramnath Pansari",
     "slug": "ramnath-pansari-v1",
     "description": "Ramnath Pansari's app delivers groceries, herbal products, pooja items, wedding essentials, and chemicals quickly to your doorstep. It's your one-stop shop for daily and special needs, offering convenience and fast service.",
-    "version": "1.0.29",
+    "version": "1.0.30",
     "orientation": "portrait",
     "icon": "./assets/images/icon2.png",
     "scheme": "myapp",
@@ -22,13 +22,13 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ramnath.pansari.shop",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "config": {
-        "googleMapsApiKey": "AIzaSyCY7OexW8I25uKjtJwqU1hAQZAZ4d8bnqQ",
         "usesNonExemptEncryption": false
       }
     },
     "android": {
-      "googleServicesFile": "./android/app/google-services.json",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive2.png",
         "backgroundColor": "#FFFFFF"
@@ -112,6 +112,6 @@
       }
     },
     "owner": "shivam9aug1996",
-    "runtimeVersion": "1.0.29"
+    "runtimeVersion": "1.0.30"
   }
 }

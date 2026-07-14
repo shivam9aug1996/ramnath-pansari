@@ -1,11 +1,8 @@
 import { Platform } from "react-native";
-import * as Location from "expo-location";
+import { ensureForegroundLocationPermission } from "@/utils/locationPermission";
 
+/** Best-effort location prompt (e.g. onboarding). Does not throw. */
 export async function requestLocationIfNeeded(): Promise<void> {
   if (Platform.OS === "web") return;
-
-  const existing = await Location.getForegroundPermissionsAsync();
-  if (existing.status !== "granted") {
-    await Location.requestForegroundPermissionsAsync();
-  }
+  await ensureForegroundLocationPermission();
 }

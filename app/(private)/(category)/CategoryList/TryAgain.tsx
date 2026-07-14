@@ -8,6 +8,7 @@ interface TryAgainProps {
   refetch: () => void;
   title?: string;
   message?: string;
+  actionTitle?: string;
   compact?: boolean;
   style?: ViewStyle;
 }
@@ -16,6 +17,7 @@ const TryAgain: React.FC<TryAgainProps> = ({
   refetch,
   title = "Something went wrong",
   message = "We couldn't load this right now. Please check your connection and try again.",
+  actionTitle = "Try Again",
   compact = false,
   style,
 }) => {
@@ -42,7 +44,7 @@ const TryAgain: React.FC<TryAgainProps> = ({
 
       <View style={[styles.buttonRow, compact && styles.buttonRowCompact]}>
         <Button
-          title="Try Again"
+          title={actionTitle}
           onPress={refetch}
           variant="cart"
           wrapperStyle={styles.buttonWrap}

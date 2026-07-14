@@ -1,76 +1,113 @@
 import {
-  ActivityIndicator,
   FlatList,
   Platform,
   RefreshControl,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
 } from "react-native";
-import React, { useCallback, useEffect, useState } from "react";
-import Push from "./Push";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import { useFetchOrdersQuery } from "@/redux/features/orderSlice";
 import { RootState } from "@/types/global";
 import { useSelector } from "react-redux";
-import { FlashList } from "@shopify/flash-list";
-import { Colors } from "@/constants/Colors";
 import NotFound from "../(result)/NotFound";
-import ProductListPlaceholder from "../(category)/ProductList/ProductListPlaceholder";
-import ImageDisplay from "./ImageDisplay";
-import { mockOrders } from "./mock";
-import { getOrderStatusTitle } from "./utils";
-import { MaterialIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import OrderListPlaceHolder from "./OrderListPlaceHolder";
-import CustomSuspense from "@/components/CustomSuspense";
-import { formatNumber } from "@/utils/utils";
 import OrderItem from "./OrderItem";
-import useOrderListStageLoad from "@/hooks/useOrderListStageLoad";
-import FadeSlideIn from "@/app/components/FadeSlideIn";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
 import TryAgain from "../(category)/CategoryList/TryAgain";
+import { devLog } from "@/utils/devLog";
+import { OrderFilterValues } from "./OrderFilters";
+import OrderPaginationBar from "./OrderPaginationBar";
+import OrderFilterBar from "./OrderFilterBar";
+import OrderFilterSheet from "./OrderFilterSheet";
+
+const EMPTY_FILTERS: OrderFilterValues = {
+  orderId: "",
+};
+
 const Order = () => {
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   const [page, setPage] = useState(1);
+  const [appliedFilters, setAppliedFilters] =
+    useState<OrderFilterValues>(EMPTY_FILTERS);
+  const [draftFilters, setDraftFilters] =
+    useState<OrderFilterValues>(EMPTY_FILTERS);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const listRef = useRef<FlatList>(null);
+
+  const queryArgs = useMemo(() => {
+    const args = {
+      userId: userId as string,
+      limit: 10,
+      page,
+    } as {
+      userId: string;
+      limit: number;
+      page: number;
+      orderId?: string;
+    };
+
+    const trimmedOrderId = appliedFilters.orderId.trim();
+    if (trimmedOrderId) {
+      args.orderId = trimmedOrderId;
+    }
+
+    return args;
+  }, [appliedFilters, page, userId]);
+
   const {
     data: orderData,
     isLoading: isOrderLoading,
     isFetching: isOrderFetching,
     isError: isOrderError,
     refetch: refetchOrder,
-  } = useFetchOrdersQuery(
-    { userId: userId, limit: 10, page: page },
-    { skip: !userId, refetchOnMountOrArgChange: true,
-      refetchOnReconnect: true,
-      // Set to 0 so data is immediately removed from cache
-     },
-  );
+  } = useFetchOrdersQuery(queryArgs, {
+    skip: !userId,
+    // Cache each page separately; only fetch when that page isn't cached yet.
+    refetchOnMountOrArgChange: false,
+    refetchOnReconnect: true,
+  });
 
-  const hasNextPage = orderData?.currentPage < orderData?.totalPages;
+  const orders = orderData?.orders ?? [];
+  const totalPages = Math.max(orderData?.totalPages ?? 1, 1);
+  const currentPage = orderData?.currentPage ?? page;
+  const hasOrdersToShow = orders.length > 0;
+  const hasActiveFilters = Boolean(appliedFilters.orderId.trim());
 
-  const isPaginationLoading = isOrderFetching && page > 1 && !isRefreshing;
+  const isInitialLoad =
+    isOrderLoading || (isOrderFetching && !hasOrdersToShow && !isRefreshing);
+  const showTryAgain =
+    isOrderError && !hasOrdersToShow && !isOrderFetching;
+  const showEmpty =
+    !isInitialLoad && !isOrderFetching && !hasOrdersToShow;
 
-  const renderLoader = () => {
-    return isPaginationLoading ? (
-      <ActivityIndicator size="large" color={Colors.light.lightGreen} />
-    ) : null;
-  };
+  const scrollToTop = useCallback(() => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, []);
 
-  const fetchNextPage = () => {
+  const goToPreviousPage = useCallback(() => {
+    if (page <= 1 || isOrderFetching) return;
+    setPage((prev) => prev - 1);
+    scrollToTop();
+  }, [isOrderFetching, page, scrollToTop]);
+
+  const goToNextPage = useCallback(() => {
+    if (page >= totalPages || isOrderFetching) return;
     setPage((prev) => prev + 1);
-  };
+    scrollToTop();
+  }, [isOrderFetching, page, totalPages, scrollToTop]);
 
   const onRefresh = useCallback(() => {
     if (!userId) return;
+
     setIsRefreshing(true);
-    if (page === 1) {
-      refetchOrder();
-    } else {
+    if (page !== 1) {
       setPage(1);
+      return;
     }
+
+    refetchOrder();
   }, [page, refetchOrder, userId]);
 
   const handleRetryOrders = useCallback(() => {
@@ -78,43 +115,81 @@ const Order = () => {
     refetchOrder();
   }, [refetchOrder]);
 
+  const openFilterSheet = useCallback(() => {
+    devLog("[Order] openFilterSheet");
+    setDraftFilters(appliedFilters);
+    setIsFilterSheetOpen(true);
+  }, [appliedFilters]);
+
+  const closeFilterSheet = useCallback(() => {
+    devLog("[Order] closeFilterSheet called");
+    setIsFilterSheetOpen(false);
+  }, []);
+
+  useEffect(() => {
+    devLog("[Order] isFilterSheetOpen:", isFilterSheetOpen);
+  }, [isFilterSheetOpen]);
+
+  const handleApplyFilters = useCallback(() => {
+    setAppliedFilters({
+      orderId: draftFilters.orderId.trim(),
+    });
+    setPage(1);
+    scrollToTop();
+    setIsFilterSheetOpen(false);
+  }, [draftFilters, scrollToTop]);
+
+  const handleClearFilters = useCallback(() => {
+    setDraftFilters(EMPTY_FILTERS);
+    setAppliedFilters(EMPTY_FILTERS);
+    setPage(1);
+    scrollToTop();
+    setIsFilterSheetOpen(false);
+  }, [scrollToTop]);
+
   useEffect(() => {
     if (!isRefreshing || isOrderFetching) return;
     setIsRefreshing(false);
   }, [isRefreshing, isOrderFetching]);
 
-  const hasOrdersToShow = (orderData?.orders?.length ?? 0) > 0;
-  const showInitialSkeleton =
-    isOrderLoading || (isOrderFetching && !hasOrdersToShow);
-  const showTryAgain =
-    isOrderError && !hasOrdersToShow && !isOrderFetching;
-
   const renderProductItem = useCallback(
     ({ item, index }: { item: any; index: number }) => {
       return <OrderItem key={item?._id || index} item={item} index={index} />;
     },
-    []
+    [],
   );
+
+  const listHeader = useMemo(
+    () => (
+      <OrderFilterBar
+        appliedFilters={appliedFilters}
+        onOpenFilters={openFilterSheet}
+        onClearFilters={handleClearFilters}
+      />
+    ),
+    [appliedFilters, handleClearFilters, openFilterSheet],
+  );
+
   return (
     <>
       <ScreenSafeWrapper title="My Orders">
-       <DeferredFadeIn delay={0} style={{flex:1}}>
-       <View style={{ height: 10 }}></View>
-        <View style={{ flex: 1 }}>
-         
+      <DeferredFadeIn delay={0} style={{ flex: 1 }}>
+        <View style={{ height: 10 }} />
+        <View style={styles.content}>
+          {isInitialLoad ? (
+            <View>
+              <OrderListPlaceHolder />
+            </View>
+          ) : showTryAgain ? (
+            <TryAgain
+              refetch={handleRetryOrders}
+              title="Couldn't load orders"
+              message="Please check your connection and try again."
+            />
+          ) : (
             <>
-              {showInitialSkeleton ? (
-                <View>
-                  <OrderListPlaceHolder />
-                </View>
-              ) : showTryAgain ? (
-                <TryAgain
-                  refetch={handleRetryOrders}
-                  title="Couldn't load orders"
-                  message="Please check your connection and try again."
-                />
-              ) : (
-                <FlatList
+              <FlatList
+                ref={listRef}
                 refreshControl={
                   <RefreshControl
                     refreshing={isRefreshing}
@@ -122,42 +197,54 @@ const Order = () => {
                   />
                 }
                 initialNumToRender={5}
-                  bounces={Platform.OS === "android" ? false : true}
-                  // disableAutoLayout
-                  ItemSeparatorComponent={() => (
-                    <View style={{ height: 15 }}></View>
-                  )}
-                  // estimatedItemSize={277}
-                  showsVerticalScrollIndicator={false}
-                  data={orderData?.orders}
-                  // data={mockOrders}
-                  renderItem={renderProductItem}
-                  keyExtractor={(item, index) =>
-                    item?._id + index || index.toString()
-                  }
-                  onEndReached={() => {
-                    if (isOrderFetching) return;
-                    if (hasNextPage) fetchNextPage();
-                  }}
-                  onEndReachedThreshold={0.1}
-                  ListFooterComponent={renderLoader}
-                  contentContainerStyle={styles.flatList}
-                  ListFooterComponentStyle={{ paddingTop: 15 }}
-                  ListEmptyComponent={
-                    isOrderFetching ? null : (
-                      <NotFound
-                        title={"Order not Found"}
-                        subtitle={"You haven't placed any order yet."}
-                      />
-                    )
-                  }
-                />
-              )}
+                bounces={Platform.OS === "android" ? false : true}
+                ItemSeparatorComponent={() => <View style={{ height: 15 }} />}
+                showsVerticalScrollIndicator={false}
+                data={orders}
+                renderItem={renderProductItem}
+                keyExtractor={(item, index) =>
+                  item?._id ? String(item._id) : index.toString()
+                }
+                ListHeaderComponent={listHeader}
+                contentContainerStyle={styles.flatList}
+                ListEmptyComponent={
+                  showEmpty ? (
+                    <NotFound
+                      title={
+                        hasActiveFilters ? "No matching orders" : "Order not Found"
+                      }
+                      subtitle={
+                        hasActiveFilters
+                          ? "Try a different order ID."
+                          : "You haven't placed any order yet."
+                      }
+                    />
+                  ) : null
+                }
+              />
+
+              <OrderPaginationBar
+                page={currentPage}
+                totalPages={totalPages}
+                isFetching={isOrderFetching && !isRefreshing}
+                onPrevious={goToPreviousPage}
+                onNext={goToNextPage}
+              />
             </>
-          
+          )}
         </View>
-       </DeferredFadeIn>
+      </DeferredFadeIn>
       </ScreenSafeWrapper>
+
+      <OrderFilterSheet
+        visible={isFilterSheetOpen}
+        filters={draftFilters}
+        onChange={setDraftFilters}
+        onApply={handleApplyFilters}
+        onClear={handleClearFilters}
+        onClose={closeFilterSheet}
+        isApplying={isOrderFetching && page === 1}
+      />
     </>
   );
 };
@@ -165,54 +252,12 @@ const Order = () => {
 export default Order;
 
 const styles = StyleSheet.create({
-  itemContainer: {
-    flexDirection: "row",
-    padding: 15,
-    backgroundColor: "#F1F4F3",
-    borderRadius: 23,
-    alignItems: "center",
-  },
-  itemContent: {
+  content: {
     flex: 1,
-    marginLeft: 15,
-    justifyContent: "space-between",
-  },
-  orderStatus: {
-    fontFamily: "Montserrat_600SemiBold",
-    fontSize: 12,
-    color: Colors.light.darkGrey,
-    //marginBottom: 8,
-  },
-  detailsWrapper: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  productCountText: {
-    fontFamily: "Montserrat_500Medium",
-    fontSize: 14,
-    color: Colors.light.darkGrey,
-  },
-  amountText: {
-    fontFamily: "Montserrat_700Bold",
-    fontSize: 16,
-    color: Colors.light.lightGreen,
   },
   flatList: {
     paddingTop: 10,
-    //  paddingBottom: 50,
-  },
-  statusWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-    paddingRight: 10,
-  },
-  statusCircle: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
-    borderWidth: 3,
+    paddingBottom: 8,
+    flexGrow: 1,
   },
 });

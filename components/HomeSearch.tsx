@@ -20,7 +20,22 @@ const PLACEHOLDER_INTERVAL = 2500;
 
 const HomeSearch = ({ compact = false }: { compact?: boolean }) => {
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
+  const isGuestUser = useSelector(
+    (state: RootState) => state?.auth?.userData?.isGuestUser,
+  );
   const data = useCachedRecentSearch(userId, "HomeSearch");
+
+  useEffect(() => {
+    if (__DEV__) {
+      console.log("[recent-search] HomeSearch", {
+        userId,
+        isGuestUser,
+        count: data.length,
+        queries: data.map((item) => item.query),
+      });
+    }
+  }, [userId, isGuestUser, data]);
+
   const isFocused = useIsFocused();
   const dispatch = useDispatch();
 

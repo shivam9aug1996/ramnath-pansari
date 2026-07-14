@@ -26,7 +26,6 @@ import {
 } from "@/utils/promoConfigCache";
 import {
   hydrateCarouselConfigCache,
-  isBadCarouselCache,
   readCarouselConfigCache,
   writeCarouselConfigCache,
 } from "@/utils/carouselConfigCache";
@@ -37,16 +36,9 @@ import {
 } from "@/utils/storeConfigCache";
 import {
   hydrateCategoryConfigCache,
-  isBadCategoryCache,
-  isCategoryConfigStale,
   readCategoryConfigCache,
   writeCategoryConfigCache,
 } from "@/utils/categoryConfigCache";
-import { categoryLog } from "@/utils/categoryDebug";
-import {
-  prefetchRecentSearchFromStorage,
-  syncRecentSearch,
-} from "@/utils/recentSearchConfigCache";
 
 type AppDispatch = typeof store.dispatch;
 
@@ -57,6 +49,7 @@ export type SyncAppStateOptions = {
 };
 
 let syncInFlight: Promise<void> | null = null;
+let syncInFlightKey: string | null = null;
 
 function syncLog(label: string, data?: unknown): void {
   if (!__DEV__) return;
@@ -65,6 +58,10 @@ function syncLog(label: string, data?: unknown): void {
   } else {
     console.log(`[app-sync] ${label}`);
   }
+}
+
+function syncKey(options: SyncAppStateOptions): string {
+  return `${options.userId ?? "none"}:${Boolean(options.isGuestUser)}`;
 }
 
 async function runFetchTask(
@@ -106,10 +103,7 @@ async function postSyncState(
   return body;
 }
 
-async function hydrateLocalCaches(
-  dispatch: AppDispatch,
-  userId?: string,
-): Promise<void> {
+async function hydrateLocalCaches(dispatch: AppDispatch): Promise<void> {
   const [promoCache, carouselCache, storeCache, categoryCache] =
     await Promise.all([
       readPromoConfigCache(),
@@ -129,79 +123,20 @@ async function hydrateLocalCaches(
   if (categoryCache) hydrateCategoryConfigCache(dispatch, categoryCache);
 }
 
+/** Guests only need shared browsing data (banners + categories). */
 function filterFetchForGuest(fetch: AppSyncFetchFlags): AppSyncFetchFlags {
   return {
     carousel: fetch.carousel,
+    category: fetch.category,
     offers: false,
     deliverySettings: false,
     storeConfig: false,
-    category: fetch.category,
   };
-}
-
-async function resolveCarouselFetch(
-  fetch: AppSyncFetchFlags,
-): Promise<AppSyncFetchFlags> {
-  if (fetch.carousel) return fetch;
-
-  const carouselCache = await readCarouselConfigCache();
-  if (!isBadCarouselCache(carouselCache)) return fetch;
-
-  syncLog("carousel:bad-cache", {
-    bannerCount: carouselCache?.carousel?.banners?.length ?? 0,
-  });
-  return { ...fetch, carousel: true };
-}
-
-async function resolveCategoryFetch(
-  fetch: AppSyncFetchFlags,
-  clientVersions: AppSyncClientVersions,
-  serverCategoryVersion: number,
-): Promise<AppSyncFetchFlags> {
-  const categoryCache = await readCategoryConfigCache();
-  const cacheFresh =
-    Boolean(categoryCache) &&
-    !isCategoryConfigStale(categoryCache!.fetchedAt);
-  const clientCategory = clientVersions.category;
-  const versionMatches =
-    clientCategory != null && clientCategory >= serverCategoryVersion;
-
-  let shouldFetchCategory = fetch.category;
-
-  if (isBadCategoryCache(categoryCache)) {
-    categoryLog("sync:bad-cache", {
-      count: categoryCache?.categories?.length ?? 0,
-    });
-    shouldFetchCategory = true;
-  } else if (!shouldFetchCategory) {
-    const ttlStale =
-      !categoryCache || isCategoryConfigStale(categoryCache.fetchedAt);
-    if (ttlStale) {
-      categoryLog("sync:ttl:decision", {
-        shouldFetch: true,
-        hadCache: Boolean(categoryCache),
-        ageMs: categoryCache ? Date.now() - categoryCache.fetchedAt : null,
-      });
-      shouldFetchCategory = true;
-    }
-  } else if (versionMatches && cacheFresh) {
-    categoryLog("sync:skip:decision", {
-      shouldFetch: false,
-      reason: "fresh-cache-version-match",
-      clientCategory,
-      serverCategory: serverCategoryVersion,
-      ageMs: categoryCache ? Date.now() - categoryCache.fetchedAt : null,
-    });
-    shouldFetchCategory = false;
-  }
-
-  return { ...fetch, category: shouldFetchCategory };
 }
 
 async function fetchStaleResources(
   dispatch: AppDispatch,
   fetch: AppSyncFetchFlags,
-  userId?: string,
 ): Promise<void> {
   const staleKeys = (
     Object.entries(fetch) as [keyof AppSyncFetchFlags, boolean][]
@@ -304,23 +239,16 @@ async function fetchStaleResources(
   if (fetch.category) {
     tasks.push(
       runFetchTask("category", async () => {
-        categoryLog("api:GET:network:start", { source: "syncAppState" });
         const result = await dispatch(
-          categoryApi.endpoints.fetchCategories.initiate({}, {
-            forceRefetch: true,
-          }),
+          categoryApi.endpoints.fetchCategories.initiate(
+            {},
+            { forceRefetch: true },
+          ),
         ).unwrap();
         const categories = result?.categories ?? [];
-        categoryLog("api:GET:network:ok", {
-          source: "syncAppState",
-          count: categories.length,
-        });
         hydrateCategoryConfigCache(
           dispatch,
-          {
-            fetchedAt: Date.now(),
-            categories,
-          },
+          { fetchedAt: Date.now(), categories },
           "network-response",
         );
         await writeCategoryConfigCache(categories);
@@ -340,15 +268,30 @@ async function fetchStaleResources(
   }
 }
 
+/**
+ * Global config sync only (carousel, category, offers, delivery, store).
+ * Recent search is handled separately — see loadRecentSearch.
+ */
 export async function syncAppState(
   dispatch: AppDispatch,
   options: SyncAppStateOptions,
 ): Promise<void> {
-  if (syncInFlight) {
-    syncLog("deduped — sync already in flight");
+  const key = syncKey(options);
+
+  if (syncInFlight && syncInFlightKey === key) {
+    syncLog("deduped — same sync already in flight", { key });
     return syncInFlight;
   }
 
+  if (syncInFlight) {
+    syncLog("awaiting previous sync before identity change", {
+      previous: syncInFlightKey,
+      next: key,
+    });
+    await syncInFlight.catch(() => {});
+  }
+
+  syncInFlightKey = key;
   syncInFlight = (async () => {
     const startedAt = Date.now();
     dispatch(setSyncStarted());
@@ -359,48 +302,20 @@ export async function syncAppState(
       hasToken: Boolean(options.token),
     });
 
-    let prefetchedRecentSearch: Awaited<
-      ReturnType<typeof prefetchRecentSearchFromStorage>
-    > = null;
-
     try {
-      await hydrateLocalCaches(dispatch, options.userId);
-
-      if (options.userId) {
-        prefetchedRecentSearch = await prefetchRecentSearchFromStorage(
-          dispatch,
-          options.userId,
-        ).catch(() => null);
-      }
+      await hydrateLocalCaches(dispatch);
 
       const clientVersions = await readAppSyncClientVersions();
       syncLog("clientVersions", clientVersions);
 
       const syncResponse = await postSyncState(clientVersions, options.token);
-      let effectiveFetch = options.isGuestUser
+      const effectiveFetch = options.isGuestUser
         ? filterFetchForGuest(syncResponse.fetch)
         : syncResponse.fetch;
 
-      effectiveFetch = await resolveCategoryFetch(
-        effectiveFetch,
-        clientVersions,
-        syncResponse.server.category,
-      );
-      effectiveFetch = await resolveCarouselFetch(effectiveFetch);
-
       syncLog("effectiveFetch", effectiveFetch);
 
-      const recentSearchSync = options.userId
-        ? syncRecentSearch(dispatch, options.userId, {
-            prefetchedCache: prefetchedRecentSearch,
-            localOnly: Boolean(options.isGuestUser),
-          }).catch(() => {})
-        : Promise.resolve();
-
-      await Promise.all([
-        fetchStaleResources(dispatch, effectiveFetch, options.userId),
-        recentSearchSync,
-      ]);
+      await fetchStaleResources(dispatch, effectiveFetch);
 
       if (options.isGuestUser) {
         const nextVersions = {
@@ -416,24 +331,13 @@ export async function syncAppState(
         syncLog("versions:saved:customer", nextVersions);
       }
 
-      const completePayload = {
-        fetch: effectiveFetch,
-      };
-      dispatch(setSyncComplete(completePayload));
+      dispatch(setSyncComplete({ fetch: effectiveFetch }));
       syncLog("complete", {
-        ...completePayload,
+        fetch: effectiveFetch,
         durationMs: Date.now() - startedAt,
       });
     } catch (error) {
       syncLog("error:fallback-ready", error);
-
-      if (options.userId) {
-        await syncRecentSearch(dispatch, options.userId, {
-          prefetchedCache: prefetchedRecentSearch,
-          localOnly: Boolean(options.isGuestUser),
-        }).catch(() => {});
-      }
-
       dispatch(
         setSyncComplete({
           fetch: {
@@ -448,7 +352,10 @@ export async function syncAppState(
       syncLog("complete:fallback", { durationMs: Date.now() - startedAt });
     }
   })().finally(() => {
-    syncInFlight = null;
+    if (syncInFlightKey === key) {
+      syncInFlight = null;
+      syncInFlightKey = null;
+    }
   });
 
   return syncInFlight;

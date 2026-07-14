@@ -58,7 +58,7 @@ const RecentSearch: React.FC<RecentSearchProps> = ({ onPress }) => {
       }
       await deleteRecentSearch({ userId, id })?.unwrap();
       const next = data.filter((item) => item._id !== id);
-      upsertRecentSearchInStore(dispatch, userId, next);
+      await upsertRecentSearchInStore(dispatch, userId, next);
       await writeRecentSearchCache(userId, next);
     },
     [deleteRecentSearch, userId, isGuestUser, data, dispatch],

@@ -1,6 +1,7 @@
 import { storage } from "@/utils/storage";
 import { StorageKeys } from "@/utils/storageKeys";
 import * as Location from "expo-location";
+import { ensureForegroundLocationPermission } from "@/utils/locationPermission";
 
 const CACHE_DURATION = 30 * 60 * 1000;
 
@@ -9,13 +10,6 @@ type CachedLocation = {
   latitude: number;
   longitude: number;
 };
-
-function getLatLng(location: Location.LocationObject) {
-  return {
-    latitude: location.coords.latitude,
-    longitude: location.coords.longitude,
-  };
-}
 
 async function readLocationCache(): Promise<CachedLocation | null> {
   const raw = await storage.getItem(StorageKeys.locationCache);
@@ -58,11 +52,7 @@ export const fetchLocation = async (): Promise<{
     return { latitude: cached.latitude, longitude: cached.longitude };
   }
 
-  let permission = await Location.getForegroundPermissionsAsync();
-  if (permission.status === "undetermined") {
-    permission = await Location.requestForegroundPermissionsAsync();
-  }
-
+  const permission = await ensureForegroundLocationPermission();
   if (permission.status !== "granted") {
     if (cached) {
       return { latitude: cached.latitude, longitude: cached.longitude };
@@ -72,7 +62,7 @@ export const fetchLocation = async (): Promise<{
 
   try {
     const location = await Location.getCurrentPositionAsync({});
-    const { latitude, longitude } = getLatLng(location);
+    const { latitude, longitude } = location.coords;
     await writeLocationCache(now, latitude, longitude);
     return { latitude, longitude };
   } catch {

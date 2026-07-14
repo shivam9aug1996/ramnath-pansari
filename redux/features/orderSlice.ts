@@ -2,6 +2,25 @@ import { createSlice } from "@reduxjs/toolkit";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { baseUrl } from "../constants";
 
+export type FetchOrdersArgs = {
+  userId: string;
+  page: number;
+  limit: number;
+  orderId?: string;
+};
+
+type FetchOrdersResponse = {
+  orders: Array<{ _id?: string }>;
+  totalOrders?: number;
+  totalPages?: number;
+  currentPage?: number;
+};
+
+function getFetchOrdersCacheKey(queryArgs: FetchOrdersArgs) {
+  const { userId, limit, page, orderId } = queryArgs;
+  return `${userId}-${limit}-${page}-${orderId ?? ""}`;
+}
+
 export const orderApi = createApi({
   reducerPath: "orderApi",
   baseQuery: fetchBaseQuery({
@@ -40,40 +59,18 @@ export const orderApi = createApi({
         body: data,
       }),
     }),
-    fetchOrders: builder.query({
+    fetchOrders: builder.query<FetchOrdersResponse, FetchOrdersArgs>({
       query: (data) => ({
         url: "/order/post",
         method: "GET",
         params: data,
       }),
-     // keepUnusedDataFor: 0,
+      keepUnusedDataFor: 300,
       serializeQueryArgs: ({ endpointName, queryArgs }) => {
-       // console.log("jhgfhjkl3456890", endpointName, queryArgs);
-        return `${endpointName}`;
+        return `${endpointName}-${getFetchOrdersCacheKey(queryArgs)}`;
       },
-      merge: (currentCache, newItems, { arg: { page } }) => {
-        const incomingOrders = newItems?.orders ?? [];
-
-        if (!currentCache || page === 1) {
-          return {
-            ...newItems,
-            orders: incomingOrders,
-            currentPage: newItems?.currentPage ?? page,
-          };
-        }
-
-        return {
-          ...newItems,
-          orders: [...(currentCache.orders ?? []), ...incomingOrders],
-          currentPage: newItems?.currentPage ?? currentCache.currentPage,
-        };
-      },
-      forceRefetch: ({ currentArg, previousArg }) => {
-       // console.log("lkuytr4567890-", currentArg, previousArg);
-        return currentArg?.page !== previousArg?.page;
-      },
-      providesTags: (result, error, { userId, page }) => [
-        { type: "orderList", id: `${userId}` }, // Provide a tag specific to the userId and page
+      providesTags: (result, error, { userId }) => [
+        { type: "orderList", id: `${userId}` },
       ],
     }),
     fetchOrderDetail: builder.query({

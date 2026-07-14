@@ -1,6 +1,6 @@
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, AppState, StyleSheet, Text, View } from "react-native";
 import { devError, devLog } from "@/utils/devLog";
-import React, { memo, useCallback, useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import WebView from "react-native-webview";
 import { hostUrl } from "@/redux/constants";
@@ -11,6 +11,10 @@ import { setCurrentAddressData } from "@/redux/features/addressSlice";
 import { router } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import TryAgain from "../(category)/CategoryList/TryAgain";
+import {
+  LocationPermissionError,
+  openAppSettings,
+} from "@/utils/locationPermission";
 
 const WebMapComp = ({
   latitude,
@@ -22,6 +26,7 @@ const WebMapComp = ({
   const token = useSelector((state: RootState) => state?.auth?.token);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [needsSettings, setNeedsSettings] = useState(false);
   const [mapKey, setMapKey] = useState(0);
   const [currentLocation, setCurrentLocation] = useState<any>(null);
   const currentAddressData = useSelector(
@@ -29,9 +34,11 @@ const WebMapComp = ({
   );
   const dispatch = useDispatch();
   const [loc, setLoc] = useState<any>(null);
+  const wasInBackground = useRef(false);
 
   const fetchLocation1 = useCallback(async () => {
     setLoadError(null);
+    setNeedsSettings(false);
     setIsLoading(true);
     try {
       const deviceLocation = await fetchLocation();
@@ -46,6 +53,8 @@ const WebMapComp = ({
       setLoc(locInfo);
     } catch (err: any) {
       devLog("err", err);
+      const isPermissionError = err instanceof LocationPermissionError;
+      setNeedsSettings(isPermissionError && !err.canAskAgain);
       setLoadError(err?.message || "Error fetching location");
       setIsLoading(false);
     }
@@ -55,12 +64,31 @@ const WebMapComp = ({
     fetchLocation1();
   }, [fetchLocation1]);
 
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "background" || nextState === "inactive") {
+        wasInBackground.current = true;
+        return;
+      }
+      if (nextState === "active" && wasInBackground.current && needsSettings) {
+        wasInBackground.current = false;
+        fetchLocation1();
+      }
+    });
+    return () => sub.remove();
+  }, [fetchLocation1, needsSettings]);
+
   const handleMapError = useCallback(() => {
     setLoadError("Couldn't load the map. Please try again.");
+    setNeedsSettings(false);
     setIsLoading(false);
   }, []);
 
   const handleRetry = useCallback(() => {
+    if (needsSettings) {
+      openAppSettings();
+      return;
+    }
     setLoadError(null);
     setIsLoading(true);
     if (!loc) {
@@ -68,12 +96,17 @@ const WebMapComp = ({
       return;
     }
     setMapKey((key) => key + 1);
-  }, [fetchLocation1, loc]);
+  }, [fetchLocation1, loc, needsSettings]);
 
   return (
     <ScreenSafeWrapper title="Select Address">
       {loadError ? (
-        <TryAgain refetch={handleRetry} message={loadError} />
+        <TryAgain
+          refetch={handleRetry}
+          title={needsSettings ? "Location permission needed" : undefined}
+          message={loadError}
+          actionTitle={needsSettings ? "Open Settings" : "Try Again"}
+        />
       ) : (
         <>
           {isLoading && (
