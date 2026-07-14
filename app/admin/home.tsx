@@ -396,6 +396,14 @@ const Home = () => {
               tint="#7C3AED"
               iconBg="#EDE9FE"
             />
+            <ActionCard
+              title="Sync versions"
+              subtitle="Force client cache refresh"
+              href="/admin/sync-versions"
+              icon="sync-outline"
+              tint="#0F766E"
+              iconBg="#CCFBF1"
+            />
           </View>
         </View>
 

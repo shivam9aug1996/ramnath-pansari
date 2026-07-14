@@ -30,6 +30,7 @@ describe("buildUpdatedClientVersions", () => {
         deliverySettings: 1,
         storeConfig: 3,
         category: 4,
+        product: 6,
       }),
     ).toEqual({
       carousel: 2,
@@ -37,6 +38,7 @@ describe("buildUpdatedClientVersions", () => {
       deliverySettings: 1,
       storeConfig: 3,
       category: 4,
+      product: 6,
     });
   });
 });

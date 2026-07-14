@@ -39,6 +39,7 @@ import {
   readCategoryConfigCache,
   writeCategoryConfigCache,
 } from "@/utils/categoryConfigCache";
+import { clearProductCache } from "@/utils/productCache";
 
 type AppDispatch = typeof store.dispatch;
 
@@ -131,6 +132,7 @@ function filterFetchForGuest(fetch: AppSyncFetchFlags): AppSyncFetchFlags {
     offers: false,
     deliverySettings: false,
     storeConfig: false,
+    product: false,
   };
 }
 
@@ -256,6 +258,14 @@ async function fetchStaleResources(
     );
   }
 
+  if (fetch.product) {
+    tasks.push(
+      runFetchTask("product", async () => {
+        await clearProductCache();
+      }),
+    );
+  }
+
   const results = await Promise.allSettled(tasks);
   const failed = results.filter((r) => r.status === "rejected");
   if (failed.length > 0) {
@@ -346,6 +356,7 @@ export async function syncAppState(
             deliverySettings: !options.isGuestUser,
             storeConfig: !options.isGuestUser,
             category: true,
+            product: !options.isGuestUser,
           },
         }),
       );

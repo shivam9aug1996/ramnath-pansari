@@ -42,5 +42,6 @@ export function buildUpdatedClientVersions(
     deliverySettings: server.deliverySettings,
     storeConfig: server.storeConfig,
     category: server.category,
+    product: server.product,
   };
 }

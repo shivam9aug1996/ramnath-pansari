@@ -631,6 +631,7 @@ export type AppSyncServerVersions = {
   deliverySettings: number;
   storeConfig: number;
   category: number;
+  product: number;
 };
 
 export type AppSyncClientVersions = Partial<AppSyncServerVersions>;
@@ -641,9 +642,14 @@ export type AppSyncFetchFlags = {
   deliverySettings: boolean;
   storeConfig: boolean;
   category: boolean;
+  product: boolean;
 };
 
 export type AppSyncResponse = {
   server: AppSyncServerVersions;
   fetch: AppSyncFetchFlags;
+};
+
+export type AdminSyncVersionsResponse = {
+  syncVersions: AppSyncServerVersions;
 };

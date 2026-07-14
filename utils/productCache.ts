@@ -59,3 +59,13 @@ export function setCachedProducts<T = any>(
 export function clearProductMemoryCache(): void {
   memoryCache.clear();
 }
+
+export async function clearProductCache(): Promise<void> {
+  memoryCache.clear();
+  const keys = await AsyncStorage.getAllKeys();
+  for (const key of keys) {
+    if (key.startsWith("products-")) {
+      await AsyncStorage.removeItem(key);
+    }
+  }
+}

@@ -20,6 +20,7 @@ import deliverySettingsSlice, { deliverySettingsApi } from "./features/deliveryS
 import adminDeliverySettingsSlice, { adminDeliverySettingsApi } from "./features/adminDeliverySettingsSlice";
 import storeConfigSlice, { storeConfigApi } from "./features/storeConfigSlice";
 import adminStoreConfigSlice, { adminStoreConfigApi } from "./features/adminStoreConfigSlice";
+import adminSyncVersionsSlice, { adminSyncVersionsApi } from "./features/adminSyncVersionsSlice";
 import recentSearchSlice, {
   recentSearchApi,
 } from "./features/recentSearchSlice";
@@ -75,6 +76,8 @@ const store = configureStore({
     [storeConfigApi.reducerPath]: storeConfigApi.reducer,
     adminStoreConfig: adminStoreConfigSlice,
     [adminStoreConfigApi.reducerPath]: adminStoreConfigApi.reducer,
+    adminSyncVersions: adminSyncVersionsSlice,
+    [adminSyncVersionsApi.reducerPath]: adminSyncVersionsApi.reducer,
     khata: khataSlice,
     [khataApi.reducerPath]: khataApi.reducer,
     recentlyViewed: recentlyViewedSlice,
@@ -106,6 +109,7 @@ const store = configureStore({
       .concat(adminDeliverySettingsApi.middleware)
       .concat(storeConfigApi.middleware)
       .concat(adminStoreConfigApi.middleware)
+      .concat(adminSyncVersionsApi.middleware)
       .concat(driverOrderApi.middleware)
       .concat(khataApi.middleware)
       .concat(asyncStorageMiddleware)
