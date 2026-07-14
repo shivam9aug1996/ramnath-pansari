@@ -258,6 +258,9 @@ const cartSlice = createSlice({
         [action?.payload?.productId]: action?.payload?.quantity,
       };
     },
+    resetCartItemQuantity: (state) => {
+      state.cartItemQuantity = {};
+    },
     incrementCartQueueCount: (state, action) => {
       //console.log("5456786567890456789-",action?.payload?.productId,state.cartQueueCount[action?.payload?.productId])
       state.cartQueueCount = {
@@ -392,6 +395,7 @@ export const {
   setIsClearCartLoading,
   setIsVisibleGoToCartWrapper,
   setCartItemQuantity,
+  resetCartItemQuantity,
   incrementCartQueueCount,
   decrementCartQueueCount,
   setNeedToSyncWithBackend,

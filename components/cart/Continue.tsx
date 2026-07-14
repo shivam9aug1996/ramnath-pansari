@@ -18,6 +18,7 @@ import {
 } from "@/utils/deliveryFee";
 import {
   cartApi,
+  resetCartItemQuantity,
   setCartPayableTotals,
   setIsCartOperationProcessing,
   setIsClearCartLoading,
@@ -30,6 +31,7 @@ import {
   useReleaseCheckoutHoldsMutation,
   useSyncCartMutation,
 } from "@/redux/features/cartSlice";
+import CartDebounceManager from "@/app/(private)/hooks/CartDebounceManager";
 
 import { useLazyFetchAddressQuery } from "@/redux/features/addressSlice";
 import { setCheckoutFlow } from "@/redux/features/orderSlice";
@@ -329,30 +331,54 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                 ]}
                 onPress={async () => {
                   try {
-                    
                     dispatch(setIsClearCartLoading(true));
-                    const needToSync = await AsyncStorage.getItem(`cartData-${userId}-needToSync`)     
-                    devLog("needToSync654345678",needToSync)
-                    if(needToSync === "true"){
-                      await AsyncStorage.setItem(`cartData-${userId}`,JSON.stringify([]))
-                      dispatch(
-                        cartApi.util.updateQueryData("fetchCart", { userId }, (draft) => {
-                          draft.cart.items = [];
-                        })
-                      )
-                    }else{
 
+                    // Drop any in-flight debounced local write so cleared state is not overwritten.
+                    const debounceManager = CartDebounceManager.getInstance();
+                    debounceManager.cancelPendingUpdate();
+                    debounceManager.invalidateCache(userId);
+
+                    // CartButtons read cartItemQuantity — must clear with items, not only API path.
+                    dispatch(resetCartItemQuantity());
+                    dispatch(setCartPayableTotals({ total: 0 }));
+                    dispatch(
+                      cartApi.util.updateQueryData(
+                        "fetchCart",
+                        { userId },
+                        (draft) => {
+                          if (draft?.cart) {
+                            draft.cart.items = [];
+                          }
+                          if (draft) {
+                            draft.orderDiscount = 0;
+                          }
+                        },
+                      ),
+                    );
+
+                    await AsyncStorage.setItem(
+                      `cartData-${userId}`,
+                      JSON.stringify([]),
+                    );
+
+                    const needToSync = await AsyncStorage.getItem(
+                      `cartData-${userId}-needToSync`,
+                    );
+                    devLog("needToSync654345678", needToSync);
+
+                    // When local cart was dirty, empty AsyncStorage is enough — next
+                    // fetchCart will bulk-sync []. Otherwise clear on the server too.
+                    if (needToSync !== "true") {
                       await clearCart({
                         body: {},
                         params: { userId },
                       }).unwrap();
-                      // await SecureStore.setItemAsync(`cartData-${userId}`,JSON.stringify([]))
-                      // await SecureStore.setItemAsync(`cartData-${userId}-needToSync`, "true")
-                      await AsyncStorage.setItem(`cartData-${userId}`,JSON.stringify([]))
-                      await AsyncStorage.setItem(`cartData-${userId}-needToSync`, "true")
+                      await AsyncStorage.setItem(
+                        `cartData-${userId}-needToSync`,
+                        "true",
+                      );
                       await fetchCartData({ userId }, false)?.unwrap();
                     }
-
                   } catch (error) {
                   } finally {
                     dispatch(setIsClearCartLoading(false));

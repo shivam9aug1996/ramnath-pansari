@@ -23,7 +23,7 @@
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = RamnathPansari/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = RamnathPansari/Info.plist; sourceTree = "<group>"; };
 		63823C6324FAB913EC5DEBD5 /* Pods-RamnathPansari.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RamnathPansari.release.xcconfig"; path = "Target Support Files/Pods-RamnathPansari/Pods-RamnathPansari.release.xcconfig"; sourceTree = "<group>"; };
-		69E964FEFDB8194AD9626C18 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = RamnathPansari/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		69E964FEFDB8194AD9626C18 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = RamnathPansari/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		8009F35ABF2647919AB0FFA9 /* GoogleService-Info.plist */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = "RamnathPansari/GoogleService-Info.plist"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = RamnathPansari/SplashScreen.storyboard; sourceTree = "<group>"; };
 		B04283CDF65EA7CE69B1FB6F /* Pods-RamnathPansari.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RamnathPansari.debug.xcconfig"; path = "Target Support Files/Pods-RamnathPansari/Pods-RamnathPansari.debug.xcconfig"; sourceTree = "<group>"; };
@@ -52,7 +52,6 @@
 				B04283CDF65EA7CE69B1FB6F /* Pods-RamnathPansari.debug.xcconfig */,
 				63823C6324FAB913EC5DEBD5 /* Pods-RamnathPansari.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -462,7 +461,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.4;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.30;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -487,6 +486,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = RamnathPansari/RamnathPansari.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DVQZGXQ349;
 				INFOPLIST_FILE = RamnathPansari/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -494,7 +494,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.4;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.30;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
