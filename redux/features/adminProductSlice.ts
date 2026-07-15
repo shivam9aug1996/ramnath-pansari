@@ -50,6 +50,7 @@ export const adminProductApi = createApi({
         categoryId?: string;
         stock?: string;
         promoOnly?: string;
+        deleted?: string;
       }
     >({
       query: (params) => ({
@@ -109,10 +110,14 @@ export const adminProductApi = createApi({
       onQueryStarted: invalidateAdminStats,
     }),
 
-    deleteAdminProduct: builder.mutation<{ success: boolean }, { id: string }>({
-      query: ({ id }) => ({
+    deleteAdminProduct: builder.mutation<
+      { success: boolean; permanent?: boolean },
+      { id: string; permanent?: boolean }
+    >({
+      query: ({ id, permanent }) => ({
         url: `/admin/products/${id}`,
         method: "DELETE",
+        params: permanent ? { permanent: "true" } : undefined,
       }),
       invalidatesTags: [{ type: "adminProductList", id: "LIST" }],
       onQueryStarted: invalidateAdminStats,

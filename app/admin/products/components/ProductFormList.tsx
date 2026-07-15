@@ -102,9 +102,10 @@ type Props = {
   isSubmitting: boolean;
   onSubmit: (payload: AdminProductInput) => Promise<void>;
   onPickCategory: () => void;
-  onDelete?: () => void;
+  onDelete?: (permanent: boolean) => void;
   isDeleting?: boolean;
   productFromJio?: boolean;
+  isDeleted?: boolean;
   offerUsage?: ProductOfferUsage;
   onOpenOffer?: (offerId: string) => void;
 };
@@ -119,11 +120,17 @@ export default function ProductFormList({
   onDelete,
   isDeleting = false,
   productFromJio = false,
+  isDeleted = false,
   offerUsage,
   onOpenOffer,
 }: Props) {
+  const [deletePermanently, setDeletePermanently] = React.useState(isDeleted);
   const promoOnlyLocked = offerUsage?.blockedFields.includes('promoOnly') ?? false;
   const deleteBlocked = offerUsage?.blockedFields.includes('delete') ?? false;
+
+  React.useEffect(() => {
+    if (isDeleted) setDeletePermanently(true);
+  }, [isDeleted]);
 
   const setField = <K extends keyof ProductFormValues>(
     key: K,
@@ -358,33 +365,50 @@ export default function ProductFormList({
       </TouchableOpacity>
 
       {onDelete ? (
-        <TouchableOpacity
-          style={[
-            styles.deleteBtn,
-            (isDeleting || deleteBlocked) && styles.saveBtnDisabled,
-          ]}
-          onPress={() => {
-            if (deleteBlocked) {
-              showAlert(
-                'Cannot delete',
-                offerUsage?.blockedEdits.find((b) => b.field === 'delete')?.reason ??
-                  'Disable live offers using this product first.',
-              );
-              return;
-            }
-            onDelete();
-          }}
-          disabled={isDeleting}
-        >
-          {isDeleting ? (
-            <ActivityIndicator color={Colors.light.gradientRed_1} />
-          ) : (
-            <>
-              <Ionicons name="trash-outline" size={18} color={Colors.light.gradientRed_1} />
-              <Text style={styles.deleteText}>Delete product</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        <>
+          <View style={styles.switchRow}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={styles.switchLabel}>Delete permanently</Text>
+              <Text style={styles.hint}>
+                Removes from the database. Order history is unaffected (details are stored on the order).
+              </Text>
+            </View>
+            <Switch
+              value={deletePermanently}
+              onValueChange={setDeletePermanently}
+              disabled={isDeleting || deleteBlocked || isDeleted}
+            />
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.deleteBtn,
+              (isDeleting || deleteBlocked) && styles.saveBtnDisabled,
+            ]}
+            onPress={() => {
+              if (deleteBlocked) {
+                showAlert(
+                  'Cannot delete',
+                  offerUsage?.blockedEdits.find((b) => b.field === 'delete')?.reason ??
+                    'Disable live offers using this product first.',
+                );
+                return;
+              }
+              onDelete(deletePermanently);
+            }}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <ActivityIndicator color={Colors.light.gradientRed_1} />
+            ) : (
+              <>
+                <Ionicons name="trash-outline" size={18} color={Colors.light.gradientRed_1} />
+                <Text style={styles.deleteText}>
+                  {deletePermanently ? 'Delete permanently' : 'Delete product'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </>
       ) : null}
     </ScrollView>
   );

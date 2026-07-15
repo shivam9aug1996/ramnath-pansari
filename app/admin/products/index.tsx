@@ -19,6 +19,7 @@ const STOCK_FILTERS = [
   { key: 'in_stock', label: 'In stock' },
   { key: 'out_of_stock', label: 'Out of stock' },
   { key: 'promo_only', label: 'Promo / freebie' },
+  { key: 'deleted', label: 'Deleted' },
 ] as const
 
 const AdminProductsScreen = () => {
@@ -39,8 +40,10 @@ const AdminProductsScreen = () => {
     page,
     limit: 20,
     search: debouncedSearch || undefined,
-    stock: stock === 'promo_only' ? undefined : stock,
+    stock:
+      stock === 'promo_only' || stock === 'deleted' ? undefined : stock,
     promoOnly: stock === 'promo_only' ? 'true' : undefined,
+    deleted: stock === 'deleted' ? 'true' : undefined,
   })
 
   React.useEffect(() => {

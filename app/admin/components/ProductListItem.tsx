@@ -43,7 +43,11 @@ const ProductListItem = ({
           {hasDiscount ? <Text style={styles.mrp}>₹{item.price}</Text> : null}
         </View>
         <View style={styles.badges}>
-          {item.isOutOfStock ? (
+          {item.isDeleted ? (
+            <View style={[styles.badge, styles.badgeDeleted]}>
+              <Text style={styles.badgeTextDeleted}>Deleted</Text>
+            </View>
+          ) : item.isOutOfStock ? (
             <View style={[styles.badge, styles.badgeRed]}>
               <Text style={styles.badgeTextRed}>Out of stock</Text>
             </View>
@@ -148,6 +152,7 @@ const styles = StyleSheet.create({
   badgeGreen: { backgroundColor: '#DCFCE7' },
   badgePromo: { backgroundColor: '#FCE7F3' },
   badgeJio: { backgroundColor: '#EFF6FF' },
+  badgeDeleted: { backgroundColor: '#F1F5F9' },
   badgeTextRed: {
     fontSize: 10,
     fontWeight: '800',
@@ -167,6 +172,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     color: '#2563EB',
+  },
+  badgeTextDeleted: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
   },
   cloneBtn: {
     width: 36,

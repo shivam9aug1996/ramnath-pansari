@@ -69,7 +69,7 @@ const ProductDetailScreen = () => {
 
   const offerUsage = data?.offerUsage;
 
-  const onDelete = async () => {
+  const onDelete = async (permanent: boolean) => {
     if (offerUsage && !offerUsage.canDelete) {
       showAlert(
         'Cannot delete',
@@ -80,15 +80,20 @@ const ProductDetailScreen = () => {
     }
 
     const confirmed = await confirmAction(
-      'Delete product',
-      'This will hide the product from the store. Continue?',
-      'Delete',
+      permanent ? 'Delete permanently' : 'Delete product',
+      permanent
+        ? 'This removes the product from the database forever. Order history will still show past purchases. Continue?'
+        : 'This will hide the product from the store. Continue?',
+      permanent ? 'Delete forever' : 'Delete',
     );
     if (!confirmed) return;
 
     try {
-      await deleteProduct({ id }).unwrap();
-      showAlert('Deleted', 'Product removed');
+      await deleteProduct({ id, permanent }).unwrap();
+      showAlert(
+        'Deleted',
+        permanent ? 'Product permanently removed' : 'Product removed',
+      );
       router.back();
     } catch (e: unknown) {
       const msg =
@@ -139,12 +144,21 @@ const ProductDetailScreen = () => {
         </View>
       ) : null}
 
+      {data.product.isDeleted ? (
+        <View style={styles.deletedBanner}>
+          <Text style={styles.deletedText}>
+            This product is soft-deleted and hidden from the store.
+          </Text>
+        </View>
+      ) : null}
+
       <ProductFormList
         values={formValues}
         onChange={setFormValues}
         submitLabel="Save changes"
         isSubmitting={isSaving}
         productFromJio={Boolean(data.product.productFromJio)}
+        isDeleted={Boolean(data.product.isDeleted)}
         offerUsage={offerUsage}
         onOpenOffer={(offerId) => router.push(`/admin/offers/${offerId}`)}
         onDelete={onDelete}
@@ -187,6 +201,14 @@ const styles = StyleSheet.create({
     borderBottomColor: '#DBEAFE',
   },
   syncText: { fontSize: 11, color: '#475569', fontWeight: '600' },
+  deletedBanner: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#F1F5F9',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  deletedText: { fontSize: 12, color: '#64748B', fontWeight: '600' },
   cloneBtn: {
     width: 40,
     height: 40,

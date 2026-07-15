@@ -433,6 +433,7 @@ export interface AdminProductDocument {
   jiomartUid?: string;
   promoOnly?: boolean;
   productFromJio?: boolean;
+  isDeleted?: boolean;
   createdAt?: string;
   lastUpdated?: string;
 }
