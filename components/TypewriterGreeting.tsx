@@ -117,8 +117,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   logo: {
-    width: 28,
-    height: 28,
+    width: 45,
+    height: 45,
     borderRadius: 6,
   },
   brandText: {
