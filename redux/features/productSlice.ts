@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseUrl } from "../constants";
+import { createApiBaseQuery } from "../createApiBaseQuery";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CACHE_DURATION, cleanOldProductCache } from "@/utils/utils";
 import type { Product } from "@/types/global";
@@ -16,18 +17,7 @@ export type SyncedProductOverride = Partial<
 
 export const productApi = createApi({
   reducerPath: "productApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${baseUrl}`,
-    prepareHeaders: (headers, api) => {
-      const token = api?.getState()?.auth?.token;
-      if (token) {
-        // console.log("kiop");
-        headers.set("authorization", `Bearer ${token}`);
-      }
-      return headers;
-    },
-    credentials: "include",
-  }),
+  baseQuery: createApiBaseQuery(),
   tagTypes: ["Products"],
   endpoints: (builder) => ({
     fetchProducts: builder.query({
@@ -92,6 +82,17 @@ export const productApi = createApi({
         // console.log("765redfghjkl currentCache", JSON.stringify(currentCache));
 
         if (page === 1) {
+
+          if (arg?.reset === true) {
+            console.log("reset is true");
+            // drop scrolled pages 2+; keep only fresh page-1 result
+            currentCache.products = [...(newItems.products ?? [])];
+            currentCache.currentPage = newItems.currentPage;
+            currentCache.totalPages = newItems.totalPages;
+            currentCache.totalResults = newItems.totalResults;
+            return;
+          }
+          
           const startIndex = (page - 1) * 10;
           // let updatedProducts = [...currentCache.products];
           // for (let i = 0; i < newItems.products.length; i++) {
@@ -181,7 +182,8 @@ export const productApi = createApi({
         return (
           currentArg?.categoryId !== previousArg?.categoryId ||
           currentArg?.page !== previousArg?.page ||
-          currentArg?.reset == true
+          currentArg?.reset == true ||
+          currentArg?.refreshKey !== previousArg?.refreshKey
         );
       },
     }),

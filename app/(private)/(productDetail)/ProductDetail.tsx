@@ -30,6 +30,7 @@ import { StyleSheet, Text, View, ActivityIndicator } from "react-native";
     PRODUCT_DETAIL_SCROLL_PADDING_BOTTOM,
   } from "./productDetailLayout";
   import { useGoToCartListPadding } from "@/contexts/DeliveryFloatContext";
+import GoToCartWrapper from "../(category)/ProductList/GoToCartWrapper";
 
   const contentStyles = productDetailContentStyles;
   const ProductDetail = ({id,extraData}:{id:string,extraData:any}) => {
@@ -234,7 +235,7 @@ import { StyleSheet, Text, View, ActivityIndicator } from "react-native";
             isOutOfStock={data?.product?.isOutOfStock}
           />
         ) : data?.product !== null ? (
-          <GoToCart />
+          <GoToCartWrapper showGoToCart={true} />
         ) : // </CustomSuspense>
         null}
       </>

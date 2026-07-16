@@ -25,7 +25,6 @@ import * as ImagePicker from "expo-image-picker";
 import Feather from "@expo/vector-icons/Feather";
 import CustomSuspense from "@/components/CustomSuspense";
 import { showToast } from "@/utils/utils";
-import useProfileStageLoad from "@/hooks/useProfileStageLoad";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
 const fields: any = [
   { key: "name", label: "Name", iconName: "person-outline", maxLength: 30 },

@@ -24,6 +24,7 @@ import {
   initStartupDiagnostics,
   markStartupCheckpoint,
 } from "@/utils/startupDiagnostics";
+import { initAppCheck } from "@/utils/appCheck";
 import "@/utils/driverLocationTask";
 
 const SPLASH_BACKGROUND = "#FFFFFF";
@@ -36,6 +37,8 @@ SplashScreen.setOptions({
 
 // Setup background notifications
 setupNotifications();
+// Start App Check ASAP (non-blocking soft-fail if unavailable).
+void initAppCheck();
 
 export function InitialLayout() {
 

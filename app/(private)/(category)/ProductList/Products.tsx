@@ -11,6 +11,7 @@ import {
   productApi,
   setResetPagination,
   setSelectedCategoryClicked,
+  setSelectedSubCategoryId,
   useFetchProductsQuery,
   useLazyFetchProductsQuery,
 } from "@/redux/features/productSlice";
@@ -31,6 +32,7 @@ import {
   cleanAllProductCache,
   cleanOldProductCache,
 } from "@/utils/utils";
+import { clearCategoryProductCacheFromMemoryAndAsyncStorage } from "@/utils/productCache";
 
 interface ProductsProps {
   isCategoryFetching: boolean;
@@ -95,6 +97,7 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
       page: paginationState.page,
       limit: 10,
       reset: paginationState.reset,
+      refreshKey: paginationState.refreshKey, 
     },
     {
       skip:
@@ -236,6 +239,18 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
     // )?.unwrap();
   }, [dispatch, selectedSubCategory?._id, setPaginationState, fetchProducts]);
 
+
+  const handleRefetchProducts1 = useCallback(async() => {
+    await clearCategoryProductCacheFromMemoryAndAsyncStorage(selectedSubCategory?._id);
+    setPaginationState((prev) => ({
+      ...prev,
+      categoryId: selectedSubCategory._id,
+      page: 1,
+      reset: true, // was false in your file — that's why refresh did nothing
+      refreshKey: Date.now(), 
+    }));
+  }, [dispatch, selectedSubCategory]);
+
   const activeCategoryId = selectedSubCategory?._id ?? null;
   const isCategoryOutOfSync =
     activeCategoryId != null && paginationState.categoryId !== activeCategoryId;
@@ -268,6 +283,7 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
         </View>
       )}
       <ProductList3
+        handleRefresh1={handleRefetchProducts1}
         refetch={handleRefetchProducts}
         flatListRef={flatListRef}
         data={data}

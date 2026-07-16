@@ -38,6 +38,7 @@ import {
 import { ProductItemSkeleton, ProductItemSkeletonStatic, ProductPaginationSkeleton } from "./ProductListPlaceholder";
 import { clearVisibleProductIds, updateVisibleProductIds } from "./productVisibilityStore";
 import { Colors } from "@/constants/Colors";
+import Button from "@/components/Button";
 
 
 const ITEM_HEIGHT = PRODUCT_CARD_HEIGHT;
@@ -77,6 +78,7 @@ interface ProductList3Props {
   isProductsLoading: boolean;
   paginationState: PaginationState;
   showInitialSkeleton?: boolean;
+  handleRefresh1?: () => void;
 }
 
 interface CartData {
@@ -93,7 +95,8 @@ const ProductList3 = ({
   isProductsLoading,
   paginationState,
   refetch,
-  showInitialSkeleton = false
+  showInitialSkeleton = false,
+  handleRefresh1=()=>{}
 }: ProductList3Props) => {
    //const visibleIds = useSelector((state: RootState) => state.product.visibleIds);
   // console.log("visibleIds98767890",visibleIds);
@@ -431,8 +434,9 @@ const onViewableItemsChanged = useRef(
 
   return (
     <FlatList
+    //ListHeaderComponent={<Button title="Refresh" onPress={handleRefresh1} />}
       key={paginationState.categoryId ?? "product-list"}
-   //refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+     refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh1} />}
 
       // onRefresh={refetch}
       // refreshing={isRefreshing}

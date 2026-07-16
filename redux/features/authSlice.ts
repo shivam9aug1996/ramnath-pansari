@@ -1,10 +1,10 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import {
   createApi,
-  fetchBaseQuery,
   fakeBaseQuery,
 } from "@reduxjs/toolkit/query/react";
 import { baseUrl } from "../constants";
+import { createApiBaseQuery } from "../createApiBaseQuery";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthData, SaveAuthDataPayload } from "@/types/global";
 import { devError, devLog } from "@/utils/devLog";
@@ -178,11 +178,16 @@ export const savePushToken1 = createAsyncThunk(
               userId,
             };
             devLog("body4556789067890-67890", body);
+      const { getAppCheckToken, APP_CHECK_HEADER } = await import(
+        "@/utils/appCheck"
+      );
+      const appCheckToken = await getAppCheckToken();
       const response = await fetch(`${baseUrl}/save-push-token`, {
         method: "POST",
         body: JSON.stringify(body),
         headers: {
           authorization: `Bearer ${authToken}`,
+          ...(appCheckToken ? { [APP_CHECK_HEADER]: appCheckToken } : {}),
         }
       });
       //await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -198,17 +203,7 @@ export const savePushToken1 = createAsyncThunk(
 
 export const authApi = createApi({
   reducerPath: "authApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${baseUrl}`,
-    prepareHeaders: (headers, api) => {
-      const token = api?.getState()?.auth?.token;
-      if (token) {
-        headers.set("authorization", `Bearer ${token}`);
-      }
-      return headers;
-    },
-    credentials: "include",
-  }),
+  baseQuery: createApiBaseQuery(),
   endpoints: (builder) => ({
     sendOtp: builder.mutation({
       query: (data) => ({

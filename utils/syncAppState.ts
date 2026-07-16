@@ -61,11 +61,15 @@ async function postSyncState(
   client: AppSyncClientVersions,
   token?: string | null,
 ): Promise<AppSyncResponse> {
+  const { getAppCheckToken, APP_CHECK_HEADER } = await import("@/utils/appCheck");
+  const appCheckToken = await getAppCheckToken();
+
   const response = await fetch(`${baseUrl}/app/sync-state`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...(appCheckToken ? { [APP_CHECK_HEADER]: appCheckToken } : {}),
     },
     credentials: "include",
     body: JSON.stringify({ client }),

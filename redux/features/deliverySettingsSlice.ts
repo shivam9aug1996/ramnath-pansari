@@ -1,22 +1,12 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseUrl } from "../constants";
+import { createApiBaseQuery } from "../createApiBaseQuery";
 import { DeliverySettingsResponse } from "@/types/global";
 
 export const deliverySettingsApi = createApi({
   reducerPath: "deliverySettingsApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${baseUrl}`,
-    prepareHeaders: (headers, api) => {
-      const token = (api as { getState: () => { auth?: { token?: string } } })
-        .getState()?.auth?.token;
-      if (token) {
-        headers.set("authorization", `Bearer ${token}`);
-      }
-      return headers;
-    },
-    credentials: "include",
-  }),
+  baseQuery: createApiBaseQuery(),
   tagTypes: ["deliverySettings"],
   endpoints: (builder) => ({
     fetchDeliverySettings: builder.query<DeliverySettingsResponse, void>({

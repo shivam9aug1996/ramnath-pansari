@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseUrl } from "../constants";
+import { createApiBaseQuery } from "../createApiBaseQuery";
 
 export type FetchOrdersArgs = {
   userId: string;
@@ -23,18 +24,7 @@ function getFetchOrdersCacheKey(queryArgs: FetchOrdersArgs) {
 
 export const orderApi = createApi({
   reducerPath: "orderApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${baseUrl}`,
-    prepareHeaders: (headers, api) => {
-      const token = api?.getState()?.auth?.token;
-      if (token) {
-       // console.log("kiop");
-        headers.set("authorization", `Bearer ${token}`);
-      }
-      return headers;
-    },
-    credentials: "include",
-  }),
+  baseQuery: createApiBaseQuery(),
   tagTypes: ["detailOrder", "orderList", "activeDeliveries"],
 
   endpoints: (builder) => ({

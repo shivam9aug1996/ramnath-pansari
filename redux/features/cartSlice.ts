@@ -2,8 +2,9 @@ import { getPaidCartPayload } from "@/utils/cartOfferUtils";
 import { devLog } from "@/utils/devLog";
 import { getPayableTotalFromItems } from "@/utils/deliveryFee";
 import { createSlice } from "@reduxjs/toolkit";
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseUrl } from "../constants";
+import { createApiBaseQuery } from "../createApiBaseQuery";
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -25,18 +26,7 @@ function rebuildCartItemQuantities(
 
 export const cartApi = createApi({
   reducerPath: "cartApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${baseUrl}`,
-    prepareHeaders: (headers, api) => {
-      const token = api?.getState()?.auth?.token;
-      if (token) {
-        //console.log("kiop");
-        headers.set("authorization", `Bearer ${token}`);
-      }
-      return headers;
-    },
-    credentials: "include",
-  }),
+  baseQuery: createApiBaseQuery(),
   tagTypes: ["cartList"],
 
   endpoints: (builder) => ({

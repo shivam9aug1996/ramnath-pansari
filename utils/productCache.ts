@@ -69,3 +69,45 @@ export async function clearProductCache(): Promise<void> {
     }
   }
 }
+
+export async function clearCategoryProductCacheFromMemoryAndAsyncStorage(
+  categoryId: string,
+): Promise<void> {
+  const prefix = `products-${categoryId}-`;
+
+  for (const key of memoryCache.keys()) {
+    if (key.startsWith(prefix)) {
+      memoryCache.delete(key);
+    }
+  }
+
+  const keys = await AsyncStorage.getAllKeys();
+  const categoryKeys = keys.filter((key) => key.startsWith(prefix));
+  if (categoryKeys.length) {
+    await AsyncStorage.multiRemove(categoryKeys);
+  }
+}
+
+/** Clears RTK Query `fetchProducts` cache for one category (not disk/memory). */
+// export function clearCategoryProductCacheFromRedux(
+//   dispatch: AppDispatch,
+//   categoryId: string,
+// ): void {
+//   // Lazy import — productSlice imports this module for get/setCachedProducts.
+//   const { productApi } =
+//     require("@/redux/features/productSlice") as typeof import("@/redux/features/productSlice");
+
+//   dispatch(
+//     productApi.util.upsertQueryData(
+//       "fetchProducts",
+//       { categoryId, page: 1, limit: 10, reset: false },
+//       {
+//         products: [],
+//         currentPage: 1,
+//         totalPages: 0,
+//         totalResults: 0,
+//       },
+//     ),
+//   );
+// }
+

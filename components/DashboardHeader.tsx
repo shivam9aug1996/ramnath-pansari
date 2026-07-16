@@ -6,47 +6,48 @@ import { Link, router } from "expo-router";
 import AccountOption from "./AccountOption";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import WeatherEmojiOverlay from "./WeatherEmojiOverlay";
+import TypewriterGreeting from "./TypewriterGreeting";
 
-const DashboardHeader = ({ userName, profileImage, onProfilePress,isGuestUser }) => {
-
-
+const DashboardHeader = ({
+  userName,
+  profileImage,
+  onProfilePress,
+  isGuestUser,
+}) => {
   return (
     <View style={styles.headerContainer}>
-        {/* {true && (
+      {/* {true && (
           <WeatherEmojiOverlay />
         )} */}
       <View style={{ flex: 2 }}>
-      {isGuestUser ? (
-  <AccountOption
-  onPress={() => {
-    router.navigate("/login");
-  }}
-  icon={
-    <MaterialCommunityIcons
-      name="login"
-      size={20}
-      color={Colors.light.gradientGreen_2}
-    />
-  }
-  label="Login/Signup"
-/> 
-) : (
-  <Text style={styles.greetingText}>
-    {`Hey ${userName} `}
-  </Text>
-)}
+        {isGuestUser ? (
+          <AccountOption
+            onPress={() => {
+              router.navigate("/login");
+            }}
+            icon={
+              <MaterialCommunityIcons
+                name="login"
+                size={20}
+                color={Colors.light.gradientGreen_2}
+              />
+            }
+            label="Login/Signup"
+          />
+        ) : (
+          <TypewriterGreeting userName={userName} />
 
-
+        )}
       </View>
       <TouchableOpacity
         style={{ flex: 1, alignItems: "flex-end" }}
         onPress={onProfilePress}
       >
         <Image
-        style={{
-          borderWidth:1,
-          borderColor: Colors.light.lightGreen
-        }}
+          style={{
+            borderWidth: 1,
+            borderColor: Colors.light.lightGreen,
+          }}
           borderRadius={25}
           width={50}
           height={50}
@@ -87,19 +88,17 @@ const styles = StyleSheet.create({
     borderColor: "#D1D5DB", // subtle gray border
     alignSelf: "flex-start",
   },
-  
+
   loginIcon: {
     width: 20,
     height: 20,
     marginRight: 8,
     tintColor: Colors.light.darkGreen,
   },
-  
+
   loginText: {
     fontSize: 16,
     fontFamily: "Raleway_600SemiBold",
     color: Colors.light.darkGreen,
-  }
-  
-  
+  },
 });
