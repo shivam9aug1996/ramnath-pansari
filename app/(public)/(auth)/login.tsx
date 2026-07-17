@@ -1,9 +1,7 @@
 import { StyleSheet } from "react-native";
-import React from "react";
 import Login from "@/screens/login";
-import AppTransition from "@/components/AppTransition";
 const login = () => {
-  return <AppTransition><Login /></AppTransition>;
+  return <Login/>
 };
 
 export default login;

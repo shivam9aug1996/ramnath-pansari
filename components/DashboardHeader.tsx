@@ -10,8 +10,6 @@ import TypewriterGreeting from "./TypewriterGreeting";
 
 type DashboardHeaderProps = {
   userName?: string | null;
-  locality?: string | null;
-  hasActiveDelivery?: boolean;
   profileImage?: string | null;
   onProfilePress?: () => void;
   isGuestUser?: boolean;
@@ -19,8 +17,6 @@ type DashboardHeaderProps = {
 
 const DashboardHeader = ({
   userName,
-  locality,
-  hasActiveDelivery,
   profileImage,
   onProfilePress,
   isGuestUser,
@@ -48,8 +44,6 @@ const DashboardHeader = ({
         ) : (
           <TypewriterGreeting
             userName={userName}
-            locality={locality}
-            hasActiveDelivery={hasActiveDelivery}
           />
 
         )}

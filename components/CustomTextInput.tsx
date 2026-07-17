@@ -80,7 +80,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             size={20}
           />
           <TextInput
-            autoFocus={true}
+            autoFocus={autoFocus}
             value={value}
             onChangeText={onChangeText}
             ref={textInputRef}
@@ -99,7 +99,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
           <TextInput
             enterKeyHint="done"
             maxLength={10}
-            autoFocus={true}
+            autoFocus={autoFocus}
             value={value}
             onChangeText={onChangeText}
             ref={textInputRef}

@@ -29,3 +29,4 @@ expo-env.d.ts
 ramnath-pansari-6aea0-firebase-adminsdk-5919t-57966b725e.json
 google-services.json
 GoogleService-Info.plist
+.env.local

@@ -104,7 +104,18 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
               : "height"
           }
         >
-          <DeferredFadeIn delay={100}>
+          <DeferredFadeIn delay={100} fallback={
+            <View style={[
+              {
+                flexDirection: "row",
+                alignItems: "center",
+                position: "relative",
+                minHeight: showBackButton || title ? 42 : 0,
+                backgroundColor:"transparent"
+              },
+              headerStyle,
+            ]}/>
+          }>
             <ThemedView
               style={[
                 {

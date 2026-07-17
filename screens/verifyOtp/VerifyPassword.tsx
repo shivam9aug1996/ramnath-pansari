@@ -44,19 +44,13 @@ const VerifyPassword: React.FC = () => {
   const isNewUser = userAlreadyRegistered === "false";
 
   return (
-    <ScreenSafeWrapper
-      showBackButton
-      useKeyboardAvoidingView={false}
-    >
+    <ScreenSafeWrapper showBackButton useKeyboardAvoidingView={false}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={10}
       >
-        <TouchableWithoutFeedback
-          onPress={Keyboard.dismiss}
-          accessible={false}
-        >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <DeferredFadeIn style={{ flex: 1 }} delay={200}>
             <ScrollView
               keyboardShouldPersistTaps="handled"
@@ -108,9 +102,7 @@ const VerifyPassword: React.FC = () => {
                     setErrorState={setErrorState}
                     onSubmitPassword={handleVerifyPassword}
                     placeholder={
-                      isNewUser
-                        ? "Create your password"
-                        : "Enter your password"
+                      isNewUser ? "Create your password" : "Enter your password"
                     }
                     autoFocus={!requiresEmailOtp}
                   />
@@ -125,20 +117,19 @@ const VerifyPassword: React.FC = () => {
                       </ThemedText>
                     )}
                   </View>
-                </View>
+                  <View>
+                    <Button
+                      title={isNewUser ? "Create Account" : "Continue"}
+                      isLoading={isLoading}
+                      onPress={() => handleVerifyPassword(password)}
+                    />
 
-                <View>
-                  <Button
-                    title={isNewUser ? "Create Account" : "Continue"}
-                    isLoading={isLoading}
-                    onPress={() => handleVerifyPassword(password)}
-                  />
-
-                  {isNewUser && !requiresEmailOtp && (
-                    <View style={{ marginTop: 16 }}>
-                      <TermsCheck />
-                    </View>
-                  )}
+                    {isNewUser && !requiresEmailOtp && (
+                      <View style={{ marginTop: 16 }}>
+                        <TermsCheck />
+                      </View>
+                    )}
+                  </View>
                 </View>
               </ThemedView>
             </ScrollView>

@@ -3,7 +3,7 @@
     "name": "Ramnath Pansari",
     "slug": "ramnath-pansari-v1",
     "description": "Ramnath Pansari's app delivers groceries, herbal products, pooja items, wedding essentials, and chemicals quickly to your doorstep. It's your one-stop shop for daily and special needs, offering convenience and fast service.",
-    "version": "1.0.31",
+    "version": "1.0.32",
     "orientation": "portrait",
     "icon": "./assets/images/icon2.png",
     "scheme": "myapp",
@@ -105,8 +105,20 @@
         {
           "ios": {
             "useFrameworks": "static",
-            "forceStaticLinking": ["RNFBApp", "RNFBAppCheck"]
+            "buildReactNativeFromSource": true,
+            "forceStaticLinking": [
+              "RNFBApp",
+              "RNFBAppCheck"
+            ]
           }
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "paytm-1c"
         }
       ]
     ],
@@ -122,6 +134,6 @@
       }
     },
     "owner": "shivam9aug1996",
-    "runtimeVersion": "1.0.31"
+    "runtimeVersion": "1.0.32"
   }
 }

@@ -208,8 +208,6 @@ const PrivateHome = () => {
           <DeferredFadeIn delay={100}>
             <DashboardHeader
               userName={truncateText(userData?.name?.split(" ")[0], 10)}
-              locality={locality}
-              hasActiveDelivery={hasActiveDelivery}
               profileImage={userData?.profileImage}
               onProfilePress={handleProfilePress}
               isGuestUser={userData?.isGuestUser}

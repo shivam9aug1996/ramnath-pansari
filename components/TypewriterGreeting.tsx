@@ -68,8 +68,6 @@ TypeChar.displayName = "TypeChar";
 
 type TypewriterGreetingProps = {
   userName?: string | null;
-  locality?: string | null;
-  hasActiveDelivery?: boolean;
   style?: TextStyle;
 };
 

@@ -30,33 +30,35 @@ const Login: React.FC = () => {
 
   return (
     <ScreenSafeWrapper useKeyboardAvoidingView={false}>
-     <DeferredFadeIn style={{flex:1}} delay={200}>
-     <TouchableWithoutFeedback onPress={dismissKeyboard}>
-        <ThemedView style={styles.container}>
-          <ThemedText type="title">{"Welcome to\nRamnath Pansari!"}</ThemedText>
-          <ThemedText style={styles.label}>{"Phone Number"}</ThemedText>
-          <CustomTextInput
-            value={mobileNumber}
-            onChangeText={handleChange}
-            textInputRef={textInputRef}
-            type={"phone"}
-          />
-          {!!errorState && (
-            <ThemedText
-              lightColor={Colors.light.lightRed}
-              style={styles.errorText}
-            >
-              {errorState}
+      <DeferredFadeIn style={{ flex: 1 }} delay={0}>
+        <TouchableWithoutFeedback onPress={dismissKeyboard}>
+          <ThemedView style={styles.container}>
+            <ThemedText type="title">
+              {"Welcome to\nRamnath Pansari!"}
             </ThemedText>
-          )}
-          <Button
-            title="Continue"
-            isLoading={isLoading}
-            onPress={handleSignIn}
-          />
-        </ThemedView>
-      </TouchableWithoutFeedback>
-     </DeferredFadeIn>
+            <ThemedText style={styles.label}>{"Phone Number"}</ThemedText>
+            <CustomTextInput
+              value={mobileNumber}
+              onChangeText={handleChange}
+              textInputRef={textInputRef}
+              type={"phone"}
+            />
+            {!!errorState && (
+              <ThemedText
+                lightColor={Colors.light.lightRed}
+                style={styles.errorText}
+              >
+                {errorState}
+              </ThemedText>
+            )}
+            <Button
+              title="Continue"
+              isLoading={isLoading}
+              onPress={handleSignIn}
+            />
+          </ThemedView>
+        </TouchableWithoutFeedback>
+      </DeferredFadeIn>
     </ScreenSafeWrapper>
   );
 };
