@@ -1,18 +1,19 @@
 import { useState } from "react";
-import { devError, devLog, devWarn } from "@/utils/devLog";
-import * as SecureStore from "expo-secure-store";
+import { devLog } from "@/utils/devLog";
 import { useLazyFetchGreetingMessageQuery } from "@/redux/features/cartSlice";
 import { getTimeOfDay } from "@/utils/huggingface";
-import { buildWeatherGreetingPrompt } from "../GreetingMessage/buildGreetingPrompt";
+import {
+  hashGreetingRequest,
+  type StructuredGreetingBody,
+} from "../GreetingMessage/buildGreetingPrompt";
 import { sanitizeGreeting } from "../GreetingMessage/sanitizeGreeting";
 import { storage } from "@/utils/storage";
-import { StorageKeys } from "@/utils/storageKeys";
 
 const CACHE_DURATION = 60 * 60 * 1000;
 const FALLBACK_MESSAGE_GENERIC =
   "Fast delivery. Reliable service. Everything you need at your doorstep.";
 
-const key = "GREETING_WEATHER_CACHE_V2";
+const key = "GREETING_WEATHER_CACHE_V3";
 
 type Weather = {
   main: string;
@@ -26,43 +27,47 @@ export function useWeatherGreetingMessage() {
   const fetchGreeting = async (weather: Weather) => {
     try {
       const now = Date.now();
-      //const cached = await SecureStore.getItemAsync(key);
-const cached = await storage.getItem(key);
-      if (cached) {
-        const { text, timestamp } = JSON.parse(cached);
-        const age = now - timestamp;
+      const body: StructuredGreetingBody = {
+        type: "weather",
+        payload: {
+          weatherDescription: weather.description,
+          weatherMain: weather.main,
+          timeOfDay: getTimeOfDay(),
+        },
+      };
+      const requestHash = hashGreetingRequest(body);
 
-        if (age < CACHE_DURATION) {
-          const cachedText = sanitizeGreeting(text, FALLBACK_MESSAGE_GENERIC);
+      const cached = await storage.getItem(key);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        const age = now - parsed.timestamp;
+        const sameRequest = parsed.requestHash === requestHash;
+
+        if (sameRequest && age < CACHE_DURATION) {
+          const cachedText = sanitizeGreeting(
+            parsed.text,
+            FALLBACK_MESSAGE_GENERIC,
+          );
           setGreeting(cachedText);
           return cachedText;
         }
       }
 
-      const prompt = buildWeatherGreetingPrompt({
-        weatherDescription: weather.description,
-        weatherMain: weather.main,
-        timeOfDay: getTimeOfDay(),
-      });
-
-      const result = await fetchGreetingMessage(
-        { body: JSON.stringify({ prompt }) },
-        true,
-      ).unwrap();
-
-      const cleanText = sanitizeGreeting(result?.text, FALLBACK_MESSAGE_GENERIC);
+      const result = await fetchGreetingMessage(body, true).unwrap();
+      const cleanText = sanitizeGreeting(
+        result?.text,
+        FALLBACK_MESSAGE_GENERIC,
+      );
 
       setGreeting(cleanText);
-
-      // await SecureStore.setItemAsync(
-      //   key,
-      //   JSON.stringify({ text: cleanText, timestamp: now }),
-      // );
-
-      await storage.setItem(key, JSON.stringify({
-        text: cleanText,
-        timestamp: now,
-      }));
+      await storage.setItem(
+        key,
+        JSON.stringify({
+          requestHash,
+          text: cleanText,
+          timestamp: now,
+        }),
+      );
       return cleanText;
     } catch (err) {
       devLog("Failed to fetch AI greeting", err);

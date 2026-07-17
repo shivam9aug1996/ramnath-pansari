@@ -181,10 +181,22 @@ export const cartApi = createApi({
       }),
     }),
     fetchGreetingMessage: builder.query({
-      query: (data) => ({
+      query: (body: {
+        type: "weather" | "cart" | "batch";
+        payload: {
+          weatherDescription?: string;
+          weatherMain?: string;
+          timeOfDay?: string;
+          cartItems?: string[];
+          recentlyViewedItems?: string[];
+          orderedItems?: string[];
+          activeOrderStatus?: string;
+          activeOrderedItems?: string[];
+        };
+      }) => ({
         url: "/generateGreeting",
         method: "POST",
-        body: data?.body,
+        body,
       }),
     }),
   }),

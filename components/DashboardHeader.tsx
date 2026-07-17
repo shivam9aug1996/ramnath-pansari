@@ -8,12 +8,23 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import WeatherEmojiOverlay from "./WeatherEmojiOverlay";
 import TypewriterGreeting from "./TypewriterGreeting";
 
+type DashboardHeaderProps = {
+  userName?: string | null;
+  locality?: string | null;
+  hasActiveDelivery?: boolean;
+  profileImage?: string | null;
+  onProfilePress?: () => void;
+  isGuestUser?: boolean;
+};
+
 const DashboardHeader = ({
   userName,
+  locality,
+  hasActiveDelivery,
   profileImage,
   onProfilePress,
   isGuestUser,
-}) => {
+}: DashboardHeaderProps) => {
   return (
     <View style={styles.headerContainer}>
       {/* {true && (
@@ -35,7 +46,11 @@ const DashboardHeader = ({
             label="Login/Signup"
           />
         ) : (
-          <TypewriterGreeting userName={userName} />
+          <TypewriterGreeting
+            userName={userName}
+            locality={locality}
+            hasActiveDelivery={hasActiveDelivery}
+          />
 
         )}
       </View>

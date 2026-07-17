@@ -1,182 +1,176 @@
-// import React, { useEffect } from "react";
-// import { View, Text, StyleSheet } from "react-native";
-// import { Image } from "expo-image";
-// import Animated, {
-//   useSharedValue,
-//   useAnimatedStyle,
-//   withRepeat,
-//   withTiming,
-//   Easing,
-//   SlideInUp,
-//   FadeIn,
-// } from "react-native-reanimated";
-
-// type WeatherIconProps = {
-//   weather: {
-//     id: number;
-//     main: string;
-//     description: string;
-//     icon: string;
-//   };
-//   hour: number;
-//   greeting: string;
-// };
-
-// const WeatherIcon: React.FC<WeatherIconProps> = ({ weather, greeting }) => {
-//   const iconUrl = `https://openweathermap.org/img/wn/${weather.icon}@4x.png`;
-//   const translateX = useSharedValue(0);
-
-//   useEffect(() => {
-//     translateX.value = withRepeat(
-//       withTiming(-10, {
-//         duration: 1000,
-//         easing: Easing.inOut(Easing.ease),
-//       }),
-//       -1,
-//       true
-//     );
-//   }, []);
-
-//   const iconAnimation = useAnimatedStyle(() => ({
-//     transform: [{ translateX: translateX.value }],
-//   }));
-
-//   return (
-//     <View style={styles.container}>
-//       <Animated.View  style={styles.card}>
-//         <View style={styles.row}>
-//           {/* <Animated.View style={iconAnimation}>
-//             <Image
-//               source={{ uri: iconUrl }}
-//               style={styles.icon}
-//               contentFit="contain"
-//             />
-//           </Animated.View> */}
-
-//           <Animated.View key={greeting} entering={FadeIn.duration(2000)} style={styles.textWrapper}>
-//             <Text style={styles.greetingText}>{greeting}</Text>
-//           </Animated.View>
-//         </View>
-//       </Animated.View>
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     paddingHorizontal: 20,
-//   },
-//   card: {
-//     marginBottom: 10,
-//     paddingHorizontal: 15,
-//     paddingVertical: 15,
-//     backgroundColor: "#fffae5",
-//     borderRadius: 20,
-//     borderWidth: 1,
-//     borderColor: "#ffd700",
-//     shadowColor: "#ffd700",
-//     shadowOffset: { width: 0, height: 2 },
-//     shadowOpacity: 0.3,
-//     shadowRadius: 4,
-//     elevation: 4,
-
-
-//   },
-//   row: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//    // maxWidth: "90%",
-//     // paddingHorizontal: 5,
-//     // paddingVertical: 5,
-//   },
-//   icon: {
-//     width: 50,
-//     height: 50,
-//   },
-//   textWrapper: {
-//     //marginLeft: 8,
-//   },
-//   greetingText: {
-//     fontSize: 13,
-//     color: "#333",
-//     fontWeight: "500",
-//     fontFamily: "Raleway_400Regular",
-//    // paddingRight: 5,
-//   },
-// });
-
-// export default WeatherIcon;
-
-
-
-import React, { memo, useEffect } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { Image } from "expo-image";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  Easing,
-  SlideInUp,
-  FadeIn,
-} from "react-native-reanimated";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { View, Text, StyleSheet, Pressable } from "react-native";
+import PagerView from "react-native-pager-view";
 import { truncateText } from "@/utils/utils";
 
+export const arrayColor = ["#F9FAFB", "#FAF9F6", "#FBFAFF"];
+
 type WeatherIconProps = {
-  weather: {
-    id: number;
-    main: string;
-    description: string;
-    icon: string;
-  };
-  hour: number;
-  greeting: string;
-  backgroundColor: string;
+  messages: string[];
+  autoPlay?: boolean;
 };
 
-const WeatherIcon: React.FC<WeatherIconProps> = ({ weather, greeting,backgroundColor }) => {
-  const iconUrl = `https://openweathermap.org/img/wn/${weather.icon}@4x.png`;
-  const translateX = useSharedValue(0);
+function colorForLogicalIndex(index: number) {
+  return arrayColor[index % arrayColor.length];
+}
+
+const WeatherIcon: React.FC<WeatherIconProps> = ({
+  messages,
+  autoPlay = true,
+}) => {
+  const pagerRef = useRef<PagerView>(null);
+  const [page, setPage] = useState(0);
+  const pageRef = useRef(0);
+  const userPausedUntilRef = useRef(0);
+
+  const slides = messages.length > 0 ? messages : [""];
+  const count = slides.length;
+  const looping = count > 1;
+
+  const loopedSlides = useMemo(() => {
+    if (!looping) return slides;
+    return [slides[count - 1], ...slides, slides[0]];
+  }, [slides, count, looping]);
+
+  const logicalFromPager = useCallback(
+    (pagerIndex: number) => {
+      if (!looping) return 0;
+      if (pagerIndex === 0) return count - 1;
+      if (pagerIndex === count + 1) return 0;
+      return pagerIndex - 1;
+    },
+    [looping, count],
+  );
+
+  const pagerFromLogical = useCallback(
+    (logicalIndex: number) => (looping ? logicalIndex + 1 : 0),
+    [looping],
+  );
 
   useEffect(() => {
-    // Only animate if the icon is visible (currently commented out in JSX)
-    // if (false) { // Placeholder for conditional animation
-    translateX.value = withRepeat(
-      withTiming(-10, {
-        duration: 1000,
-        easing: Easing.inOut(Easing.ease),
-      }),
-      -1,
-      true
-    );
-    // }
-  }, []);
+    pageRef.current = page;
+  }, [page]);
 
-  const iconAnimation = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
+  useEffect(() => {
+    if (page >= count) {
+      setPage(0);
+      pageRef.current = 0;
+      pagerRef.current?.setPageWithoutAnimation(pagerFromLogical(0));
+    }
+  }, [count, page, pagerFromLogical]);
+
+  useEffect(() => {
+    if (!autoPlay || !looping) return;
+
+    const id = setInterval(() => {
+      if (Date.now() < userPausedUntilRef.current) return;
+
+      const current = pageRef.current;
+      // Animate through clone on wrap so swipe-next from last feels continuous.
+      if (current === count - 1) {
+        pagerRef.current?.setPage(count + 1);
+      } else {
+        pagerRef.current?.setPage(pagerFromLogical(current + 1));
+      }
+    }, 5000);
+
+    return () => clearInterval(id);
+  }, [autoPlay, looping, count, pagerFromLogical]);
+
+  const onPageSelected = useCallback(
+    (e: { nativeEvent: { position: number } }) => {
+      const position = e.nativeEvent.position;
+
+      if (looping && position === 0) {
+        pagerRef.current?.setPageWithoutAnimation(count);
+        setPage(count - 1);
+        pageRef.current = count - 1;
+        return;
+      }
+
+      if (looping && position === count + 1) {
+        pagerRef.current?.setPageWithoutAnimation(1);
+        setPage(0);
+        pageRef.current = 0;
+        return;
+      }
+
+      const logical = logicalFromPager(position);
+      setPage(logical);
+      pageRef.current = logical;
+    },
+    [looping, count, logicalFromPager],
+  );
+
+  const onScrollStateChanged = useCallback(
+    (e: { nativeEvent: { pageScrollState: string } }) => {
+      if (e.nativeEvent.pageScrollState === "dragging") {
+        userPausedUntilRef.current = Date.now() + 8000;
+      }
+    },
+    [],
+  );
+
+  const goTo = useCallback(
+    (logicalIndex: number) => {
+      userPausedUntilRef.current = Date.now() + 8000;
+      pagerRef.current?.setPage(pagerFromLogical(logicalIndex));
+    },
+    [pagerFromLogical],
+  );
 
   return (
     <View style={styles.container}>
-      <Animated.View   style={[styles.card,{
-        backgroundColor:backgroundColor
-      }]}>
-        <View style={styles.row}>
-          {/* If you uncomment this, the icon will also be part of the design */}
-          {/* <Animated.View style={iconAnimation}>
-            <Image
-              source={{ uri: iconUrl }}
-              style={styles.icon}
-              contentFit="contain"
-            />
-          </Animated.View> */}
+      <PagerView
+        ref={pagerRef}
+        style={styles.pager}
+        initialPage={looping ? 1 : 0}
+        onPageSelected={onPageSelected}
+        onPageScrollStateChanged={onScrollStateChanged}
+      >
+        {loopedSlides.map((message, index) => {
+          const logical = looping
+            ? index === 0
+              ? count - 1
+              : index === count + 1
+                ? 0
+                : index - 1
+            : index;
 
-          <Animated.View key={greeting} entering={FadeIn.duration(1500)} style={styles.textWrapper}>
-            <Text style={styles.greetingText}>{truncateText(greeting,200)}</Text>
-          </Animated.View>
+          return (
+            <View key={`slide-${index}`} style={styles.page}>
+              <View
+                style={[
+                  styles.card,
+                  { backgroundColor: colorForLogicalIndex(logical) },
+                ]}
+              >
+                <Text style={styles.greetingText}>
+                  {truncateText(message, 200)}
+                </Text>
+              </View>
+            </View>
+          );
+        })}
+      </PagerView>
+
+      {looping ? (
+        <View style={styles.dots}>
+          {slides.map((_, index) => (
+            <Pressable
+              key={`dot-${index}`}
+              onPress={() => goTo(index)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`Go to message ${index + 1}`}
+            >
+              <View
+                style={[styles.dot, index === page && styles.dotActive]}
+              />
+            </Pressable>
+          ))}
         </View>
-      </Animated.View>
+      ) : null}
     </View>
   );
 };
@@ -184,51 +178,55 @@ const WeatherIcon: React.FC<WeatherIconProps> = ({ weather, greeting,backgroundC
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
-    height:100,
-    minHeight:100,
-    justifyContent:"center",
-    alignItems:"center",
-   
-   //marginTop: 10, // Added some top margin for better spacing
+    minHeight: 110,
+    justifyContent: "center",
+  },
+  pager: {
+    height: 88,
+    width: "100%",
+  },
+  page: {
+    flex: 1,
+    justifyContent: "center",
   },
   card: {
-    marginBottom: 10,
+    marginBottom: 4,
     paddingHorizontal: 15,
     paddingVertical: 15,
-    backgroundColor: "#F8ECEC", // Slightly softer white
-    borderRadius: 25,       // More rounded corners
+    borderRadius: 25,
     borderWidth: 1,
-    borderColor: "#e0e0e0", // Lighter, more subtle border
-    shadowColor: "#000",   // Black shadow for more general depth
-    shadowOffset: { width: 0, height: 3 }, // Slightly more pronounced shadow
-    shadowOpacity: 0.1,     // Reduced opacity for a softer shadow
-    shadowRadius: 6,        // Increased radius for a softer shadow
-    elevation: 3, 
-           // Android elevation
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center", 
-    width: "100%",// Center the content within the card
-  },
-  icon: {
-    width: 60, // Slightly larger icon if used
-    height: 60,
-    marginRight: 10, // Space between icon and text
-  },
-  textWrapper: {
-    flex: 1,
-  flexShrink: 1,
-  minWidth: 0,   
-    // No specific styles needed here, as text will naturally center
+    borderColor: "#e0e0e0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+    minHeight: 76,
+    justifyContent: "center",
   },
   greetingText: {
-    fontSize: 13, // Slightly larger font size
+    fontSize: 13,
     color: "#333",
-    fontWeight: "600", // Slightly bolder for better readability
-    fontFamily: "Raleway_500Medium", // If you have different weights, consider a slightly bolder one
-    textAlign: "center", // Ensure text is centered within its wrapper
+    fontWeight: "600",
+    fontFamily: "Raleway_500Medium",
+    textAlign: "center",
+  },
+  dots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    paddingBottom: 4,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#cfcfcf",
+  },
+  dotActive: {
+    width: 14,
+    backgroundColor: "#666",
   },
 });
 

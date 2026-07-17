@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -35,6 +35,9 @@ import {
   markStartupCheckpoint,
 } from "@/utils/startupDiagnostics";
 import { syncCarouselConfig } from "@/utils/carouselConfigCache";
+import { useFetchAddressQuery } from "@/redux/features/addressSlice";
+import { useFetchActiveDeliveriesQuery } from "@/redux/features/orderSlice";
+import { ACTIVE_FLOAT_STATUS_QUERY } from "@/utils/activeOrderFloat";
 
 const CATEGORY_PLACEHOLDER_COUNT = 3;
 const WEATHER_SECTION_HEIGHT = 100;
@@ -58,9 +61,32 @@ const PrivateHome = () => {
     );
   }, shallowEqual);
 
+  const { data: addresses } = useFetchAddressQuery(
+    { userId: userData?._id },
+    { skip: !userData?._id || Boolean(userData?.isGuestUser) },
+  );
+
+  const { data: activeDeliveries } = useFetchActiveDeliveriesQuery(
+    {
+      userId: userData?._id,
+      status: ACTIVE_FLOAT_STATUS_QUERY,
+      limit: 20,
+      page: 1,
+    },
+    { skip: !userData?._id || Boolean(userData?.isGuestUser) },
+  );
+
+  const hasActiveDelivery = (activeDeliveries?.orders?.length ?? 0) > 0;
+
+  const locality = useMemo(() => {
+    const primary = addresses?.[0];
+    return primary?.colonyArea || primary?.city || null;
+  }, [addresses]);
+
   const {
     isLoading: isCategoriesLoading,
     isFetching: isCategoriesFetching,
+    isUninitialized: isCategoriesUninitialized,
     refetch,
   } = useFetchCategoriesQuery({}, { skip: !token || !appSyncReady });
 
@@ -182,6 +208,8 @@ const PrivateHome = () => {
           <DeferredFadeIn delay={100}>
             <DashboardHeader
               userName={truncateText(userData?.name?.split(" ")[0], 10)}
+              locality={locality}
+              hasActiveDelivery={hasActiveDelivery}
               profileImage={userData?.profileImage}
               onProfilePress={handleProfilePress}
               isGuestUser={userData?.isGuestUser}

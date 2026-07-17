@@ -1,132 +1,181 @@
-import React, { memo, useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, View, type TextStyle } from "react-native";
+import React, { memo, useEffect, useMemo } from "react";
+import { StyleSheet, TextStyle, View } from "react-native";
 import { Image } from "expo-image";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
+
 import { Colors } from "@/constants/Colors";
+import { buildTypewriterLines } from "@/components/GreetingMessage/personalizedGreeting";
 
 const MAX_CHARS = 22;
 const CHAR_MS = 45;
 const HOLD_MS = 1200;
+
 const BRAND = "Ramnath Pansari";
 const brandIcon = require("@/assets/images/icon2.png");
 
 function clipOneLine(text: string, max = MAX_CHARS) {
-  const t = text.trim().replace(/\s+/g, " ");
-  if (t.length <= max) return t;
-  return `${t.slice(0, max - 1).trimEnd()}…`;
+  const normalized = text.trim().replace(/\s+/g, " ");
+
+  if (normalized.length <= max) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, max - 1).trimEnd()}…`;
 }
 
-function useTypewriterOnce(
-  lines: string[],
-  charMs = CHAR_MS,
-  holdMs = HOLD_MS,
-) {
-  const [lineIndex, setLineIndex] = useState(0);
-  const [visible, setVisible] = useState("");
-  const [done, setDone] = useState(false);
+type CharProps = {
+  char: string;
+  index: number;
+  start?: number;
+  textStyle?: TextStyle;
+};
 
-  useEffect(() => {
-    if (!lines.length || done) return;
+const TypeChar = memo(
+  ({ char, index, start = 0, textStyle }: CharProps) => {
+    const opacity = useSharedValue(0);
 
-    let cancelled = false;
-    let timeout: ReturnType<typeof setTimeout>;
-    const line = lines[lineIndex] ?? "";
-    let i = 0;
-    setVisible("");
+    useEffect(() => {
+      opacity.value = 0;
 
-    const tick = () => {
-      if (cancelled) return;
-      if (i <= line.length) {
-        setVisible(line.slice(0, i));
-        i += 1;
-        timeout = setTimeout(tick, charMs);
-        return;
-      }
+      opacity.value = withDelay(
+        start + index * CHAR_MS,
+        withTiming(1, {
+          duration: 80,
+          easing: Easing.out(Easing.quad),
+        }),
+      );
+    }, [char, index, opacity, start]);
 
-      if (lineIndex >= lines.length - 1) {
-        setDone(true);
-        return;
-      }
+    const animatedStyle = useAnimatedStyle(() => ({
+      opacity: opacity.value,
+    }));
 
-      timeout = setTimeout(() => {
-        if (!cancelled) setLineIndex((n) => n + 1);
-      }, holdMs);
-    };
+    return (
+      <Animated.Text style={[textStyle, animatedStyle]}>
+        {char === " " ? "\u00A0" : char}
+      </Animated.Text>
+    );
+  },
+);
 
-    tick();
-    return () => {
-      cancelled = true;
-      clearTimeout(timeout);
-    };
-  }, [lineIndex, lines, charMs, holdMs, done]);
-
-  return { visible, lineIndex, done };
-}
+TypeChar.displayName = "TypeChar";
 
 type TypewriterGreetingProps = {
   userName?: string | null;
+  locality?: string | null;
+  hasActiveDelivery?: boolean;
   style?: TextStyle;
 };
 
-const TypewriterGreeting = memo(function TypewriterGreeting({
-  userName,
-  style,
-}: TypewriterGreetingProps) {
-  const lines = useMemo(() => {
-    return [
-      clipOneLine(`Hey ${userName?.trim() || "there"}`),
-      clipOneLine("Ready to shop?"),
-      BRAND,
-    ];
-  }, [userName]);
+const TypewriterGreeting = memo(
+  ({ userName, style }: TypewriterGreetingProps) => {
+    const lines = useMemo(() => {
+      const first = userName?.trim().split(/\s+/)[0] || "there";
+      return [
+        clipOneLine(`Hey ${first}`),
+        clipOneLine("Ready to shop?"),
+        BRAND,
+      ];
+    }, [userName]);
 
-  const { visible: typed, lineIndex } = useTypewriterOnce(lines);
-  const isBrand = lineIndex === 2;
+    const [lineIndex, setLineIndex] = React.useState(0);
 
-  return (
-    <View style={styles.wrap}>
-      {isBrand ? (
-        <View style={styles.brandRow}>
-          <Image source={brandIcon} style={styles.logo} contentFit="contain" />
-          <Text style={[styles.brandText, style]} numberOfLines={1}>
-            {typed}
-          </Text>
+    const line = lines[lineIndex] ?? "";
+    const isBrand = lineIndex === lines.length - 1;
+
+    const chars = useMemo(() => line.split(""), [line]);
+
+    useEffect(() => {
+      setLineIndex(0);
+    }, [lines[0], lines[1]]);
+
+    useEffect(() => {
+      const typingDuration = line.length * CHAR_MS + 80;
+
+      const timeout = setTimeout(() => {
+        if (lineIndex < lines.length - 1) {
+          setLineIndex((prev) => prev + 1);
+        }
+      }, typingDuration + HOLD_MS);
+
+      return () => clearTimeout(timeout);
+    }, [line.length, lineIndex, lines.length]);
+
+    return (
+      <View style={styles.wrap}>
+        <View style={[styles.row, isBrand && styles.brandRow]}>
+          {isBrand && (
+            <Image
+              source={brandIcon}
+              style={styles.logo}
+              contentFit="contain"
+            />
+          )}
+
+          <View style={styles.chars}>
+            {chars.map((char, index) => (
+              <TypeChar
+                key={`${lineIndex}-${index}`}
+                char={char}
+                index={index}
+                textStyle={StyleSheet.flatten([
+                  isBrand ? styles.brandText : styles.text,
+                  style,
+                ])}
+              />
+            ))}
+          </View>
         </View>
-      ) : (
-        <Text style={[styles.text, style]} numberOfLines={1}>
-          {typed}
-        </Text>
-      )}
-    </View>
-  );
-});
+      </View>
+    );
+  },
+);
+
+TypewriterGreeting.displayName = "TypewriterGreeting";
 
 const styles = StyleSheet.create({
   wrap: {
-    minHeight: 32,
+    minHeight: 45,
     justifyContent: "center",
   },
+
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  brandRow: {
+    gap: 8,
+  },
+
+  chars: {
+    flexDirection: "row",
+    flexWrap: "nowrap",
+    alignItems: "center",
+  },
+
   text: {
     fontFamily: "Raleway_800ExtraBold",
     fontSize: 22,
     color: Colors.light.darkGreen,
-    marginBottom: 3,
   },
-  brandRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+
+  brandText: {
+    fontFamily: "Raleway_800ExtraBold",
+    fontSize: 18,
+    color: Colors.light.darkGreen,
   },
+
   logo: {
     width: 45,
     height: 45,
     borderRadius: 6,
-  },
-  brandText: {
-    flexShrink: 1,
-    fontFamily: "Raleway_800ExtraBold",
-    fontSize: 18,
-    color: Colors.light.darkGreen,
-    marginBottom: 3,
   },
 });
 

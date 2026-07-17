@@ -1,21 +1,21 @@
 import { baseUrl } from "@/redux/constants";
+import type { StructuredGreetingBody } from "@/components/GreetingMessage/buildGreetingPrompt";
 
-export const generateText = async (prompt: string, token:string) => {
-  const res = await fetch(
-    `${baseUrl}/generateGreeting`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify({ prompt }),
-    }
-  );
+export const generateText = async (
+  body: StructuredGreetingBody,
+  token: string,
+) => {
+  const res = await fetch(`${baseUrl}/generateGreeting`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
   const data = await res.json();
-  return data?.text
+  return data?.text;
 };
-
 
 export const getTimeOfDay = () => {
   const hour = new Date().getHours();

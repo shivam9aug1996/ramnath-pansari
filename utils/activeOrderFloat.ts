@@ -14,6 +14,8 @@ export type ActiveFloatOrder = {
   amountPaid?: number;
   imgArr?: string[];
   totalProductCount?: number;
+  /** Present when /order/post returns productNames from cart items. */
+  productNames?: string[];
 };
 
 export function getOrderStatusLabel(status?: string): string {

@@ -1,49 +1,46 @@
-interface PromptParams {
-  cartItems: string[];
-  recentlyViewedItems: string[];
-  timeOfDay?: string;
-}
+/** Client only sends structured greeting requests — prompts are built on the server. */
 
-export const buildGreetingPrompt = ({
-  cartItems,
-  recentlyViewedItems,
-  timeOfDay,
-}: PromptParams): string => {
-  const hasCart = cartItems.length > 0;
-  const hasViewed = recentlyViewedItems.length > 0;
+export type GreetingType = "weather" | "cart" | "batch";
 
-  const activityDescription = hasCart && hasViewed
-    ? "The user recently added items to their cart and viewed other products."
-    : hasCart
-      ? "The user recently added items to their cart."
-      : hasViewed
-        ? "The user recently viewed products but has an empty cart."
-        : "The user has not browsed products yet.";
-
-  const cartList = hasCart ? cartItems.join(", ") : "none";
-  const viewedList = hasViewed ? recentlyViewedItems.join(", ") : "none";
-
-  return [
-    `Time of day: ${timeOfDay || "unknown"}.`,
-    activityDescription,
-    `Cart items: ${cartList}.`,
-    `Recently viewed: ${viewedList}.`,
-    "Write one friendly homepage banner that nudges them to keep shopping.",
-  ].join(" ");
-};
-
-export const buildWeatherGreetingPrompt = ({
-  weatherDescription,
-  weatherMain,
-  timeOfDay,
-}: {
+export type WeatherGreetingPayload = {
   weatherDescription: string;
   weatherMain: string;
   timeOfDay: string;
-}) => {
-  return [
-    `Time of day: ${timeOfDay}.`,
-    `Weather: ${weatherDescription} (${weatherMain}).`,
-    "Write one warm Hinglish homepage banner that mentions the weather naturally and encourages browsing groceries.",
-  ].join(" ");
 };
+
+export type CartGreetingPayload = {
+  cartItems: string[];
+  recentlyViewedItems: string[];
+  orderedItems?: string[];
+  timeOfDay: string;
+};
+
+export type BatchGreetingPayload = {
+  timeOfDay: string;
+  weatherDescription?: string;
+  weatherMain?: string;
+  cartItems?: string[];
+  recentlyViewedItems?: string[];
+  orderedItems?: string[];
+  activeOrderStatus?: string;
+  activeOrderedItems?: string[];
+};
+
+export type StructuredGreetingBody =
+  | { type: "weather"; payload: WeatherGreetingPayload }
+  | { type: "cart"; payload: CartGreetingPayload }
+  | { type: "batch"; payload: BatchGreetingPayload };
+
+export function hashGreetingRequest(body: StructuredGreetingBody): string {
+  return JSON.stringify(body);
+}
+
+export function activeOrdersFingerprint(
+  orders: Array<{ _id?: string; orderStatus?: string }> | null | undefined,
+): string {
+  if (!orders?.length) return "none";
+  return orders
+    .map((order) => `${order._id ?? ""}:${order.orderStatus?.toLowerCase() ?? ""}`)
+    .sort()
+    .join("|");
+}

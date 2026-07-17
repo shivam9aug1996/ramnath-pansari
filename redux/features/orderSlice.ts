@@ -11,7 +11,10 @@ export type FetchOrdersArgs = {
 };
 
 type FetchOrdersResponse = {
-  orders: Array<{ _id?: string }>;
+  orders: Array<{
+    _id?: string;
+    productNames?: string[];
+  }>;
   totalOrders?: number;
   totalPages?: number;
   currentPage?: number;
