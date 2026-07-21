@@ -27,10 +27,13 @@ export interface FontsInterface {
 export interface AuthState {
   token: string | null;
   userData: UserData | null;
+  lastSavedPushToken?: string | null;
   saveAuthData: AsyncState<any>;
   loadAuthData: AsyncState<any>;
   clearAuthData: AsyncState<any>;
+  logoutSessionPending?: boolean;
   successModalOnAccountCreation: boolean;
+  userAlreadyRegistered?: boolean;
 }
 
 interface UserData {

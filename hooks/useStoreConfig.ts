@@ -11,8 +11,9 @@ type UseStoreConfigOptions = {
 };
 
 export function useStoreConfig(options?: UseStoreConfigOptions): StoreConfig {
-  const { data: fetched } = useFetchStoreConfigQuery(undefined, {
-    skip: !options?.fetch,
+  const isGuestUser = useSelector((state: RootState) => state.auth?.userData?.isGuestUser);
+  const { data: fetched } = useFetchStoreConfigQuery({
+    skip: !options?.fetch || isGuestUser,
   });
   const cached = useSelector(
     (state: RootState) =>

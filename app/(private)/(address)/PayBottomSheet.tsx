@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import { devError, devLog, devWarn } from "@/utils/devLog";
 import React, { memo, useTransition } from "react";
 import BottomSheet from "@/components/BottomSheet";
@@ -22,9 +22,10 @@ const PayBottomSheet = ({
     <BottomSheet
       animation={false}
       onClose={() => {
-       // devLog("closed");
+        // devLog("closed");
         setIsPayModal(false);
       }}
+      wrapperStyle={Platform.OS === "web" ? { height:"80%" } : {}}
     >
       <View style={{ paddingHorizontal: 30, gap: 20 }}>
         <View
@@ -39,31 +40,35 @@ const PayBottomSheet = ({
             {`₹ ${formatNumber(totalAmountInNumber)}`}
           </Text>
         </View>
+        {Platform.OS !== "web" && (
+          <>
+            <Button
+              disabled={isButtonLoading}
+              //isLoading={isButtonLoading}
+              title={`Pay Online`}
+              onPress={() => {
+                const addressData = data?.find((item) => {
+                  return item?._id == selectedAddressId;
+                });
+                // setIsPayModal({
+                //   status: true,
+                //   value: {
+                //     totalAmountInNumber,
+                //     addressData,
+                //   },
+                // });
+                startTransition(() => {
+                  setIsPayModal(false);
+                });
+                handleOnClick(totalAmountInNumber, addressData);
+              }}
+              textStyle={{ fontFamily: "Montserrat_600SemiBold" }}
+            />
+            <Text style={{ alignSelf: "center" }}>or</Text>
+          </>
+        )}
         <Button
           disabled={isButtonLoading}
-          //isLoading={isButtonLoading}
-          title={`Pay Online`}
-          onPress={() => {
-            const addressData = data?.find((item) => {
-              return item?._id == selectedAddressId;
-            });
-            // setIsPayModal({
-            //   status: true,
-            //   value: {
-            //     totalAmountInNumber,
-            //     addressData,
-            //   },
-            // });
-            startTransition(() => {
-              setIsPayModal(false);
-            });
-            handleOnClick(totalAmountInNumber, addressData);
-          }}
-          textStyle={{ fontFamily: "Montserrat_600SemiBold" }}
-        />
-        <Text style={{ alignSelf: "center" }}>or</Text>
-        <Button
-        disabled={isButtonLoading}
           // isLoading={isButtonLoading}
           title={`Cash on Delivery`}
           onPress={() => {

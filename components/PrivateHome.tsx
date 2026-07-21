@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -16,7 +16,6 @@ import {
 } from "@/redux/features/categorySlice";
 import { RootState, Category } from "@/types/global";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
-import { Colors } from "@/constants/Colors";
 import { truncateText } from "@/utils/utils";
 import CategoryCardPlaceholder from "./CategoryCardPlaceholder";
 import CategoryCard from "./CategoryCard";
@@ -28,14 +27,11 @@ import RecentlyViewedProducts from "@/app/(private)/(productDetail)/RecentlyView
 import Carasole, { getCarouselSlotHeight } from "./Carasole";
 import WeatherSection from "./WeatherSection/WeatherSection";
 import HomeSearch from "./HomeSearch";
-import GrientBackground from "./GrientBackground";
-import { LinearGradient } from "expo-linear-gradient";
 import {
   finalizeStartupReady,
   markStartupCheckpoint,
 } from "@/utils/startupDiagnostics";
 import { syncCarouselConfig } from "@/utils/carouselConfigCache";
-import { useFetchAddressQuery } from "@/redux/features/addressSlice";
 import { useFetchActiveDeliveriesQuery } from "@/redux/features/orderSlice";
 import { ACTIVE_FLOAT_STATUS_QUERY } from "@/utils/activeOrderFloat";
 
@@ -61,10 +57,7 @@ const PrivateHome = () => {
     );
   }, shallowEqual);
 
-  const { data: addresses } = useFetchAddressQuery(
-    { userId: userData?._id },
-    { skip: !userData?._id || Boolean(userData?.isGuestUser) },
-  );
+
 
   const { data: activeDeliveries } = useFetchActiveDeliveriesQuery(
     {
@@ -77,11 +70,6 @@ const PrivateHome = () => {
   );
 
   const hasActiveDelivery = (activeDeliveries?.orders?.length ?? 0) > 0;
-
-  const locality = useMemo(() => {
-    const primary = addresses?.[0];
-    return primary?.colonyArea || primary?.city || null;
-  }, [addresses]);
 
   const {
     isLoading: isCategoriesLoading,

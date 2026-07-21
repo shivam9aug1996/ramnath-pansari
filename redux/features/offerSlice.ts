@@ -14,7 +14,7 @@ export const offerApi = createApi({
         url: "/offers",
         method: "GET",
       }),
-      keepUnusedDataFor: 3600,
+      keepUnusedDataFor: 0,
       providesTags: [{ type: "offers", id: "LIST" }],
     }),
   }),

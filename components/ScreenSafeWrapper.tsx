@@ -1,24 +1,17 @@
-import GoToCart from "@/app/(private)/(category)/ProductList/GoToCart";
 import { Colors } from "@/constants/Colors";
-import { useFetchCartQuery } from "@/redux/features/cartSlice";
-import { RootState } from "@/types/global";
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import { router, useRouter } from "expo-router";
+import { router } from "expo-router";
 import React, { memo, ReactNode } from "react";
 import {
-  Dimensions,
   KeyboardAvoidingView,
   Platform,
   StyleProp,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useSelector } from "react-redux";
 import CartIcon from "./CartIcon";
 import HeaderBackButton from "./HeaderBackButton";
 import { ThemedText } from "./ThemedText";
@@ -29,14 +22,8 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
-import WebView from "react-native-webview";
-import Toast from "react-native-toast-message";
-import { toastConfig } from "@/app/toastconfig";
 import DeferredFadeIn from "./DeferredFadeIn";
-import WeatherSection from "./WeatherSection/WeatherSection";
-import { LinearGradient } from "expo-linear-gradient";
 import GrientBackground from "./GrientBackground";
-import WeatherEmojiOverlay from "./WeatherEmojiOverlay";
 import CartItemsCount from "./CartItemsCount";
 
 interface ScreenSafeWrapperProps {

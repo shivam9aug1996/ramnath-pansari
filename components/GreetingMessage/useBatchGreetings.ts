@@ -68,6 +68,8 @@ export function useBatchGreetings() {
   const recentlyViewed = useSelector(
     (state: RootState) => state?.recentlyViewed?.items,
   );
+  const isGuestUser = useSelector((s) => s.auth?.userData?.isGuestUser);
+
 
   const [fetchCartData] = useLazyFetchCartQuery();
   const [fetchOrders] = useLazyFetchOrdersQuery();
@@ -83,7 +85,7 @@ export function useBatchGreetings() {
         let cartItems: string[] = [];
         let orderedItems: string[] = [];
 
-        if (userId) {
+        if (userId && !isGuestUser) {
           const [cartSettled, ordersSettled] = await Promise.allSettled([
             fetchCartData({ userId }, true).unwrap(),
             fetchOrders({ userId, page: 1, limit: 5 }, true).unwrap(),
@@ -182,6 +184,7 @@ export function useBatchGreetings() {
     },
     [
       userId,
+      isGuestUser,
       recentlyViewed,
       fetchCartData,
       fetchOrders,

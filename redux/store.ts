@@ -113,7 +113,7 @@ const store = configureStore({
       .concat(khataApi.middleware)
       .concat(asyncStorageMiddleware)
       .concat(handle401Middleware)
-      .concat(handleLogoutMiddleware),
+      //.concat(handleLogoutMiddleware),
 });
 
 export default store;

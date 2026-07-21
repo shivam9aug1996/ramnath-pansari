@@ -19,8 +19,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import {
   clearAuthData,
+  logoutSession,
   useDeleteAccountMutation,
-  useLogoutMutation,
 } from "@/redux/features/authSlice";
 import Feather from "@expo/vector-icons/Feather";
 import CustomSuspense from "@/components/CustomSuspense";
@@ -40,11 +40,11 @@ import DeferredFadeIn from "@/components/DeferredFadeIn";
 
 const Account: React.FC = () => {
   const dispatch = useDispatch();
-  const clearAuthDataState = useSelector(
-    (state: RootState) => state?.auth?.clearAuthData,
-  );
   const userInfo = useSelector((state: RootState) => state.auth.userData);
-  const [logout, { isError: islogouterror, isSuccess }] = useLogoutMutation();
+  const logoutSessionPending = useSelector(
+    (state: RootState) => state.auth?.logoutSessionPending,
+  );
+  
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
   const [deleteAccount, { isLoading: isAccountDeleting }] =
@@ -74,7 +74,7 @@ const Account: React.FC = () => {
                 title={"Deleting Account..."}
                 subtitle={"Please wait while we delete your account."}
               />
-            ) : clearAuthDataState?.isLoading ? (
+            ) : logoutSessionPending ? (
               <NotFound
                 title={"Logging Out..."}
                 subtitle={"Please wait while we securely log you out."}
@@ -172,7 +172,7 @@ const Account: React.FC = () => {
                           label="Saved Addresses"
                         />
                         <AccountOption
-                          onPress={() => {
+                          onPress={async() => {
                             setLogoutConfirm(true);
                           }}
                           icon={
@@ -278,7 +278,7 @@ const Account: React.FC = () => {
                   style={styles.deleteButton}
                   onPress={async () => {
                     setLogoutConfirm(false);
-                    await logout({})?.unwrap();
+                    await dispatch(logoutSession() as any).unwrap();
                   }}
                 >
                   <Text style={styles.deleteButtonText}>Logout</Text>

@@ -14,7 +14,7 @@ export const storeConfigApi = createApi({
         url: "/store-config",
         method: "GET",
       }),
-      keepUnusedDataFor: 3600,
+      keepUnusedDataFor: 0,
       providesTags: [{ type: "storeConfig", id: "CONFIG" }],
     }),
   }),

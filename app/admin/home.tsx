@@ -14,7 +14,7 @@ import { Link } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import BottomSheet from '@/components/BottomSheet'
-import { useLogoutMutation } from '@/redux/features/authSlice'
+import { logoutSession } from '@/redux/features/authSlice'
 import { useGetAdminStatsQuery } from '@/redux/features/adminOrderSlice'
 import { Colors } from '@/constants/Colors'
 import { useSelector } from 'react-redux'
@@ -23,6 +23,7 @@ import {
   finalizeStartupReady,
   markStartupCheckpoint,
 } from '@/utils/startupDiagnostics'
+import { useDispatch } from 'react-redux'
 
 type ActionCardProps = {
   title: string
@@ -218,11 +219,13 @@ const StoreSnapshot = ({
 )
 
 const Home = () => {
+  const dispatch = useDispatch();
   const [logoutConfirm, setLogoutConfirm] = useState(false)
-  const [logout, { isLoading: isLoggingOut }] = useLogoutMutation()
-  const clearAuthDataState = useSelector(
-    (state: RootState) => state?.auth?.clearAuthData,
-  )
+
+  const logoutSessionPending = useSelector(
+    (state: RootState) => state.auth?.logoutSessionPending,
+  );
+  const isLoggingOut = logoutSessionPending;
   const adminName = useSelector(
     (state: RootState) => state?.auth?.userData?.name,
   )
@@ -309,6 +312,7 @@ const Home = () => {
               style={styles.heroLogoutBtn}
               onPress={() => setLogoutConfirm(true)}
               hitSlop={8}
+              disabled={isLoggingOut}
             >
               <Ionicons name="log-out-outline" size={20} color="#fff" />
             </TouchableOpacity>
@@ -428,7 +432,7 @@ const Home = () => {
                 style={styles.logoutButton}
                 onPress={async () => {
                   setLogoutConfirm(false)
-                  await logout({})?.unwrap()
+                  await dispatch(logoutSession() as any).unwrap()
                 }}
                 disabled={isLoggingOut}
               >
@@ -441,7 +445,7 @@ const Home = () => {
         </BottomSheet>
       )}
 
-      {clearAuthDataState?.isLoading || isLoggingOut ? (
+      {isLoggingOut ? (
         <View style={styles.loadingOverlay} pointerEvents="auto">
           <ActivityIndicator size="large" />
           <Text style={styles.loadingText}>Logging out…</Text>

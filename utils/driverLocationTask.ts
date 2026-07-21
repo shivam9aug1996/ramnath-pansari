@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
-import { Platform } from "react-native";
+import { Linking, Platform } from "react-native";
 import { push, ref } from "firebase/database";
 import { database } from "@/firebase";
 
@@ -38,6 +38,7 @@ async function sendDriverLocationToFirebase(
   lat: number,
   lng: number,
 ) {
+  const path = `drivers/${orderId}/locations`;
   const payload: DriverLocationPayload = {
     lat,
     lng,
@@ -47,7 +48,7 @@ async function sendDriverLocationToFirebase(
     driverId,
   };
 
-  await push(ref(database, `drivers/${orderId}/locations`), payload);
+  await push(ref(database, path), payload);
   lastLocationSendAt = Date.now();
 }
 
@@ -65,19 +66,30 @@ async function pushLocationFromCoords(
   await sendDriverLocationToFirebase(orderId, driverId, lat, lng);
 }
 
+async function getCurrentCoords() {
+  const current = await Promise.race([
+    Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced,
+    }),
+    new Promise<never>((_, reject) => {
+      setTimeout(
+        () => reject(new Error("getCurrentPositionAsync timed out after 15s")),
+        15_000,
+      );
+    }),
+  ]);
+  return current.coords;
+}
+
 async function tickSendCurrentLocation(source: LocationSendSource) {
   if (sendInFlight) return;
 
   sendInFlight = true;
   try {
-    const current = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.High,
-    });
-    await pushLocationFromCoords(
-      current.coords.latitude,
-      current.coords.longitude,
-      source,
-    );
+    const coords = await getCurrentCoords();
+    await pushLocationFromCoords(coords.latitude, coords.longitude, source);
+  } catch {
+    // best-effort; interval / next tick will retry
   } finally {
     sendInFlight = false;
   }
@@ -97,16 +109,125 @@ function clearForegroundInterval() {
   foregroundInterval = null;
 }
 
-async function ensureNativePermissions() {
-  const fg = await Location.requestForegroundPermissionsAsync();
-  if (fg.status !== "granted") {
-    throw new Error("Location permission is required for live delivery tracking");
+/** Check current location permission without prompting. */
+export async function getDriverLocationPermissionState(): Promise<{
+  foregroundGranted: boolean;
+  backgroundGranted: boolean;
+  canAskForegroundAgain: boolean;
+  canAskBackgroundAgain: boolean;
+}> {
+  if (isWeb) {
+    return {
+      foregroundGranted: true,
+      backgroundGranted: false,
+      canAskForegroundAgain: false,
+      canAskBackgroundAgain: false,
+    };
   }
 
-  const bg = await Location.requestBackgroundPermissionsAsync();
-  if (bg.status !== "granted") {
-    throw new Error("Background location permission is required during delivery");
+  const fg = await Location.getForegroundPermissionsAsync();
+  const bg = await Location.getBackgroundPermissionsAsync();
+  return {
+    foregroundGranted: fg.status === "granted",
+    backgroundGranted: bg.status === "granted",
+    canAskForegroundAgain: fg.status !== "granted" && fg.canAskAgain !== false,
+    canAskBackgroundAgain: bg.status !== "granted" && bg.canAskAgain !== false,
+  };
+}
+
+export async function openDriverLocationSettings() {
+  await Linking.openSettings();
+}
+
+/**
+ * Ask for While Using / foreground location, or open Settings when the OS
+ * will no longer show a permission dialog (e.g. Never selected).
+ */
+export async function requestForegroundDriverLocationPermission(): Promise<{
+  granted: boolean;
+  openedSettings: boolean;
+}> {
+  if (isWeb) {
+    return { granted: true, openedSettings: false };
   }
+
+  const current = await Location.getForegroundPermissionsAsync();
+  if (current.status === "granted") {
+    return { granted: true, openedSettings: false };
+  }
+
+  if (current.canAskAgain !== false) {
+    const requested = await Location.requestForegroundPermissionsAsync();
+    if (requested.status === "granted") {
+      return { granted: true, openedSettings: false };
+    }
+    if (requested.canAskAgain !== false) {
+      return { granted: false, openedSettings: false };
+    }
+  }
+
+  await Linking.openSettings();
+  return { granted: false, openedSettings: true };
+}
+
+/**
+ * Ask for Always / background location, or open Settings when the OS
+ * will no longer show a permission dialog.
+ */
+export async function requestAlwaysDriverLocationPermission(): Promise<{
+  granted: boolean;
+  openedSettings: boolean;
+}> {
+  if (isWeb) {
+    return { granted: false, openedSettings: false };
+  }
+
+  const fgResult = await requestForegroundDriverLocationPermission();
+  if (!fgResult.granted) {
+    return fgResult;
+  }
+
+  const bg = await Location.getBackgroundPermissionsAsync();
+  if (bg.status === "granted") {
+    return { granted: true, openedSettings: false };
+  }
+
+  if (bg.canAskAgain !== false) {
+    const requested = await Location.requestBackgroundPermissionsAsync();
+    if (requested.status === "granted") {
+      return { granted: true, openedSettings: false };
+    }
+    // User kept While Using / dismissed — only open Settings if OS won't ask again.
+    if (requested.canAskAgain !== false) {
+      return { granted: false, openedSettings: false };
+    }
+  }
+
+  await Linking.openSettings();
+  return { granted: false, openedSettings: true };
+}
+
+/** Returns whether background ("Always") location was granted. Does not prompt for Always. */
+async function ensureNativePermissions(): Promise<{ backgroundGranted: boolean }> {
+  // Prefer get + request only when undetermined so "Never" does not look like a silent crash.
+  const existing = await Location.getForegroundPermissionsAsync();
+  let fg = existing;
+  if (existing.status !== "granted" && existing.canAskAgain !== false) {
+    fg = await Location.requestForegroundPermissionsAsync();
+  }
+
+  if (fg.status !== "granted") {
+    const err = new Error(
+      fg.canAskAgain === false
+        ? "Location is set to Never. Enable While Using or Always in Settings to share live location."
+        : "Location permission is required for live delivery tracking",
+    );
+    (err as Error & { code?: string }).code = "LOCATION_PERMISSION_DENIED";
+    throw err;
+  }
+
+  const bg = await Location.getBackgroundPermissionsAsync();
+  return { backgroundGranted: bg.status === "granted" };
 }
 
 /** Web: foreground geolocation only (no background / TaskManager). */
@@ -158,24 +279,15 @@ async function stopNativeBackgroundTracking() {
   }
 }
 
-async function startForegroundTrackingLoop() {
-  startForegroundInterval();
-
-  try {
-    await tickSendCurrentLocation("initial-fix");
-  } catch {
-    // initial fix is best-effort; interval will retry
-  }
-}
-
 export async function startDriverLocationTracking(
   orderId: string,
   driverId: string,
 ) {
+  let backgroundGranted = false;
   if (isWeb) {
     await ensureWebPermissions();
   } else {
-    await ensureNativePermissions();
+    ({ backgroundGranted } = await ensureNativePermissions());
   }
 
   await AsyncStorage.setItem(ACTIVE_DRIVER_ORDER_KEY, orderId);
@@ -183,11 +295,25 @@ export async function startDriverLocationTracking(
 
   clearForegroundInterval();
 
-  if (!isWeb) {
-    await startNativeBackgroundTracking();
+  if (!isWeb && backgroundGranted) {
+    try {
+      await startNativeBackgroundTracking();
+    } catch {
+      // continue with foreground interval
+    }
+  } else if (!isWeb) {
+    // Ensure any previous background task is stopped if we no longer have Always.
+    try {
+      await stopNativeBackgroundTracking();
+    } catch {
+      // ignore
+    }
   }
 
-  await startForegroundTrackingLoop();
+  // Start interval immediately; initial fix is best-effort and must not block startup
+  // (getCurrentPositionAsync can hang for a long time on iOS).
+  startForegroundInterval();
+  tickSendCurrentLocation("initial-fix").catch(() => {});
 }
 
 export async function stopDriverLocationTracking() {
@@ -224,6 +350,7 @@ export async function resumeDriverLocationTrackingIfNeeded(driverId: string) {
     await startDriverLocationTracking(orderId, driverId);
   } else {
     startForegroundInterval();
+    tickSendCurrentLocation("initial-fix").catch(() => {});
   }
   return orderId;
 }

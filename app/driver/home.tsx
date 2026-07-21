@@ -17,16 +17,19 @@ import { adminListStyles, adminTheme } from "@/app/admin/theme";
 import { Colors } from "@/constants/Colors";
 import { RootState, DriverOrderSummary } from "@/types/global";
 import { useListDriverOrdersQuery } from "@/redux/features/driverOrderSlice";
-import { useLogoutMutation } from "@/redux/features/authSlice";
+import { logoutSession, useLogoutMutation } from "@/redux/features/authSlice";
 import {
   resumeDriverLocationTrackingIfNeeded,
   stopDriverLocationTracking,
 } from "@/utils/driverLocationTask";
 import StatusBadge from "@/app/admin/components/StatusBadge";
 import { confirmAction } from "@/utils/platformAlert";
+import { devWarn } from "@/utils/devLog";
+import { useDispatch } from "react-redux";
 
 const DriverHomeScreen = () => {
   const router = useRouter();
+  const dispatch = useDispatch();
   const driverId = useSelector(
     (state: RootState) => state.auth?.userData?.driverId,
   );
@@ -34,7 +37,10 @@ const DriverHomeScreen = () => {
   const driverName = useSelector((state: RootState) => state.auth?.userData?.name);
 
   const { data, isLoading, isFetching, refetch } = useListDriverOrdersQuery();
-  const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
+  const logoutSessionPending = useSelector(
+    (state: RootState) => state.auth?.logoutSessionPending,
+  );
+  const isLoggingOut = logoutSessionPending;
   const [pullRefreshing, setPullRefreshing] = useState(false);
 
   useEffect(() => {
@@ -44,7 +50,9 @@ const DriverHomeScreen = () => {
   useEffect(() => {
     const id = driverId || userId;
     if (!id) return;
-    resumeDriverLocationTrackingIfNeeded(String(id)).catch(() => {});
+    resumeDriverLocationTrackingIfNeeded(String(id)).catch((error) => {
+      devWarn("[driver-location] home resume failed", error);
+    });
   }, [driverId, userId]);
 
   const onRefresh = useCallback(() => {
@@ -62,11 +70,12 @@ const DriverHomeScreen = () => {
 
     try {
       await stopDriverLocationTracking();
-      await logout({}).unwrap();
+      await dispatch(logoutSession() as any).unwrap();
+      //await logout({}).unwrap();
     } catch {
       // Auth middleware still clears local session on failure
     }
-  }, [logout]);
+  }, []);
 
   const orders = data?.orders ?? [];
   const activeId = data?.activeDeliveryOrderId;
@@ -113,6 +122,7 @@ const DriverHomeScreen = () => {
   return (
     <AdminScreen>
       <HeaderBar
+        showBack={false}
         title="Deliveries"
         subtitle={driverName ? `Hi, ${driverName.split(" ")[0]}` : "Driver"}
         right={

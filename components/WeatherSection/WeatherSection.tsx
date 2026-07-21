@@ -12,7 +12,6 @@ import {
 import { activeOrdersFingerprint } from "../GreetingMessage/buildGreetingPrompt";
 import { useIsFocused } from "expo-router";
 import { RootState } from "@/types/global";
-import { useFetchAddressQuery } from "@/redux/features/addressSlice";
 import { useFetchActiveDeliveriesQuery } from "@/redux/features/orderSlice";
 import {
   ACTIVE_FLOAT_STATUS_QUERY,
@@ -47,10 +46,6 @@ const WeatherSection = () => {
   const userId = userData?._id;
   const isGuest = Boolean(userData?.isGuestUser);
 
-  const { data: addresses } = useFetchAddressQuery(
-    { userId },
-    { skip: !userId || isGuest },
-  );
 
   // Same query as ActiveDeliveryFloat — RTK cache shared.
   // Invalidated by useOrderStatusListener on Firebase status changes.
@@ -74,11 +69,6 @@ const WeatherSection = () => {
     [activeOrders],
   );
 
-  const locality = useMemo(() => {
-    const primary = addresses?.[0];
-    return primary?.colonyArea || primary?.city || null;
-  }, [addresses]);
-
   const weatherRef = useRef<WeatherBits>(null);
   const aiMessagesRef = useRef<string[]>([]);
   const activeOrdersRef = useRef(activeOrders);
@@ -101,13 +91,12 @@ const WeatherSection = () => {
       }),
       buildPersonalizedHomeBanner({
         name: userData?.name,
-        locality,
         weatherDescription: weatherRef.current?.description,
         weatherMain: weatherRef.current?.main,
       }),
       ...aiMessagesRef.current,
     ]);
-  }, [userData?.name, locality, activeOrders, weatherVersion, aiVersion]);
+  }, [userData?.name, activeOrders, weatherVersion, aiVersion]);
 
   const hasLoadedRef = useRef(false);
   const inFlightRef = useRef(false);

@@ -19,14 +19,16 @@ import { clearRecentlyViewed } from "./recentlyViewedSlice";
 import { storage } from "@/utils/storage";
 import { StorageKeys } from "@/utils/storageKeys";
 
-// const saveAuthDataToAsyncStorage = async (token: any, userData: any) => {
-//   try {
-//     await AsyncStorage.setItem("token", token);
-//     await AsyncStorage.setItem("userData", JSON.stringify(userData));
-//   } catch (e) {
-//     console.error("Failed to save auth data to AsyncStorage", e);
-//   }
-// };
+/** Shared guest session — used after logout and for guest login. */
+export const GUEST_AUTH = {
+  token: "guest_token",
+  userData: {
+    _id: "68561b44fcdf732b24588202",
+    isGuestUser: true,
+    mobileNumber: "9999999991",
+    name: "Guest User",
+  },
+} as const;
 
 export const saveAuthData = createAsyncThunk(
   "auth/saveAuthData",
@@ -89,31 +91,37 @@ export const clearAuthData = createAsyncThunk(
   "auth/clearAuthData",
   async (_, { rejectWithValue, dispatch }) => {
     try {
-      // await new Promise((res) => {
-      //   setTimeout(() => {
-      //     res("hi");
-      //   }, 1000);
-      // });
       dispatch(cartApi.util.resetApiState());
-dispatch(recentSearchApi.util.resetApiState());
-dispatch(orderApi.util.resetApiState());
-dispatch(categoryApi.util.resetApiState());
-dispatch(resetAppSync());
-dispatch(clearRecentlyViewed());
+      dispatch(recentSearchApi.util.resetApiState());
+      dispatch(orderApi.util.resetApiState());
+      dispatch(categoryApi.util.resetApiState());
+      dispatch(resetAppSync());
+      dispatch(clearRecentlyViewed());
 
-
-      await dispatch(savePushToken1({
-        isGuestUser:  true,
-        _id : "68561b44fcdf732b24588202" 
-      }) as any);
-      //await SecureStore.deleteItemAsync("token");
+      // Wipe user session storage, then install guest auth before any screen
+      // sees a null token. saveAuthData also triggers savePushToken1 via middleware.
       await storage.removeItem("token");
       await AsyncStorage?.clear();
+      await dispatch(
+        saveAuthData({
+          token: GUEST_AUTH.token,
+          userData: { ...GUEST_AUTH.userData },
+        }) as any,
+      ).unwrap();
 
-      const token = null;
-      let userData = null;
-      return { token, userData };
+      return {
+        token: GUEST_AUTH.token,
+        userData: { ...GUEST_AUTH.userData },
+      };
     } catch (error) {
+      devLog("[auth] clearAuthData fallback failed", error);
+        try {
+          await storage.removeItem("token");
+          await AsyncStorage.clear();
+        } catch (error) {
+          devLog("[auth] clearAuthData fallback failed", error);
+          // ignore
+        }
       return rejectWithValue(
         "error in clearAuthData: " + JSON.stringify(error)
       );
@@ -156,6 +164,9 @@ export const savePushToken1 = createAsyncThunk(
     // get darta from state
     const token = getState()?.auth?.lastSavedPushToken;
     const authToken = getState()?.auth?.token;
+    if (!authToken || authToken === "null") {
+      return; // or return rejectWithValue("no auth token") if you want it visible in Redux
+    }
     const userData = getState()?.auth?.userData;
     const isGuestUser = data?.isGuestUser || userData?.isGuestUser;
     const isAdminUser = userData?.isAdminUser;
@@ -177,7 +188,6 @@ export const savePushToken1 = createAsyncThunk(
               token,
               userId,
             };
-            devLog("body4556789067890-67890", body);
       const { getAppCheckToken, APP_CHECK_HEADER } = await import(
         "@/utils/appCheck"
       );
@@ -217,25 +227,15 @@ export const authApi = createApi({
        // console.log("FGHJIEWERTYU", data);
         // Check if isGuestUser is true
         if (data.isGuestUser) {
-          // Mock response for guest user
-          // await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-          const mockResponse = {
+          return {
             data: {
               isGuestUser: true,
               message: "OTP successfully verified",
-              token:
-                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NTYxYjQ0ZmNkZjczMmIyNDU4ODIwMiIsIm1vYmlsZU51bWJlciI6Ijk5OTk5OTk5OTEiLCJpc0d1ZXN0VXNlciI6dHJ1ZSwiaWF0IjoxNzUwNTE0NTQ4fQ.y4PIyRN1zgEY8sOOl6m2OTFYMw45sRdcbWjAsbs-tpQ",
+              token: GUEST_AUTH.token,
               userAlreadyRegistered: true,
-              userData: {
-                _id: "68561b44fcdf732b24588202",
-                isGuestUser: true,
-                mobileNumber: "9999999991",
-                name: "Guest User",
-              },
+              userData: { ...GUEST_AUTH.userData },
             },
           };
-
-          return { data: mockResponse.data };
         } else {
           // Use real API for non-guest users
           return baseQuery({
@@ -294,7 +294,6 @@ export const authApi = createApi({
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          devLog("jhgfdf67890ghjk", data);
           await AsyncStorage.setItem(
             "userData",
             JSON.stringify(data?.userData)
@@ -323,6 +322,25 @@ export const authApi = createApi({
     }),
   }),
 });
+
+export const logoutSession = createAsyncThunk(
+  "auth/logoutSession",
+  async (_: void, { dispatch, rejectWithValue }) => {
+    try {
+      await dispatch(authApi.endpoints.logout.initiate({})).unwrap();
+    } catch (error) {
+      devLog("[auth] logout API failed; clearing local session anyway", error);
+    }
+
+    try {
+      await dispatch(clearAuthData()).unwrap();
+    } catch (error) {
+      return rejectWithValue(
+        "error in logoutSession: " + JSON.stringify(error),
+      );
+    }
+  },
+);
 
 const authSlice = createSlice({
   name: "authSlice",
@@ -353,6 +371,7 @@ const authSlice = createSlice({
     },
     successModalOnAccountCreation: false,
     userAlreadyRegistered: false,
+    logoutSessionPending: false,
   },
   reducers: {
     setAuth: (state, action) => {
@@ -413,6 +432,17 @@ const authSlice = createSlice({
       });
 
     builder
+      .addCase(logoutSession.pending, (state) => {
+        state.logoutSessionPending = true;
+      })
+      .addCase(logoutSession.fulfilled, (state) => {
+        state.logoutSessionPending = false;
+      })
+      .addCase(logoutSession.rejected, (state) => {
+        state.logoutSessionPending = false;
+      });
+
+    builder
       .addCase(clearAuthData.pending, (state) => {
         state.clearAuthData.isLoading = true;
         state.clearAuthData.isError = false;
@@ -420,17 +450,16 @@ const authSlice = createSlice({
         state.clearAuthData.isSuccess = false;
       })
       .addCase(clearAuthData.fulfilled, (state, action) => {
-        //console.log("iuytrtyuio");
         state.clearAuthData.isLoading = false;
         state.clearAuthData.isError = false;
-        state.clearAuthData.data = null;
+        state.clearAuthData.data = action.payload;
         state.clearAuthData.isSuccess = true;
-        state.token = null;
-        state.userData = null;
+        // Guest session is ready — never leave a null-token gap for screens.
+        state.token = action.payload.token;
+        state.userData = action.payload.userData;
         state.successModalOnAccountCreation = false;
       })
       .addCase(clearAuthData.rejected, (state, action) => {
-        // console.log("kiooooo");
         state.clearAuthData.isLoading = false;
         state.clearAuthData.isError = true;
         state.clearAuthData.error = action.payload || "";
@@ -439,7 +468,8 @@ const authSlice = createSlice({
         state.userData = null;
         state.successModalOnAccountCreation = false;
       });
-      builder
+
+    builder
       .addCase(loadPushToken.fulfilled, (state, action) => {
         state.lastSavedPushToken = action.payload;
       })
