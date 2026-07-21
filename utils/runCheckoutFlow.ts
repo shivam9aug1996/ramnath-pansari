@@ -27,6 +27,7 @@ import type {
   OffersResponse,
   StoreConfigResponse,
 } from "@/types/global";
+import { devLog, devWarn } from "@/utils/devLog";
 
 export type CheckoutAbortReason =
   | "store_closed"
@@ -191,6 +192,19 @@ export async function runCheckoutFlow(
   };
 
   try {
+    devLog("[checkout] start", {
+      cachedOffersCount: cachedOffers?.length ?? 0,
+      delivery: {
+        freeDeliveryMin: deliverySettings.freeDeliveryMin,
+        shippingFee: deliverySettings.shippingFee,
+      },
+      store: {
+        acceptingOrders: storeConfig.acceptingOrders,
+        openTime: storeConfig.storeHours.openTime,
+        closeTime: storeConfig.storeHours.closeTime,
+      },
+    });
+
     const displayedBeforeCheckout = mergeCartItemsWithOffers(
       cartData?.cart?.items ?? [],
       cachedOffers,
@@ -199,8 +213,10 @@ export async function runCheckoutFlow(
 
     let freshOffersResponse: OffersResponse;
     try {
+      devLog("[checkout] fetchOffers start");
       const response = await fetchOffers();
       if (response == null) {
+        devWarn("[checkout] fetchOffers null");
         return {
           status: "abort",
           reason: "sync_error",
@@ -210,7 +226,11 @@ export async function runCheckoutFlow(
         };
       }
       freshOffersResponse = response;
-    } catch {
+      devLog("[checkout] fetchOffers ok", {
+        count: freshOffersResponse.offers?.length ?? 0,
+      });
+    } catch (error) {
+      devWarn("[checkout] fetchOffers failed", error);
       return {
         status: "abort",
         reason: "sync_error",
@@ -225,34 +245,72 @@ export async function runCheckoutFlow(
     let latestDeliverySettings = deliverySettings;
     let freshDeliveryResponse: DeliverySettingsResponse | null = null;
     try {
+      devLog("[checkout] fetchDeliverySettings start");
       freshDeliveryResponse = await fetchDeliverySettings();
       latestDeliverySettings = resolveDeliverySettings(
         freshDeliveryResponse?.deliverySettings,
       );
-    } catch {
+      devLog("[checkout] fetchDeliverySettings ok", {
+        displayed: {
+          freeDeliveryMin: displayedDeliverySettings.freeDeliveryMin,
+          shippingFee: displayedDeliverySettings.shippingFee,
+        },
+        latest: {
+          freeDeliveryMin: latestDeliverySettings.freeDeliveryMin,
+          shippingFee: latestDeliverySettings.shippingFee,
+        },
+        changed: hasDeliverySettingsChanged(
+          displayedDeliverySettings,
+          latestDeliverySettings,
+        ),
+      });
+    } catch (error) {
       // use cached delivery settings if refetch fails
+      devWarn("[checkout] fetchDeliverySettings failed — using cache", error);
     }
 
     if (freshOffersResponse && freshDeliveryResponse) {
+      devLog("[checkout] persist promo cache");
       onPromoConfigPersisted?.(freshOffersResponse, freshDeliveryResponse);
     }
 
     let latestStoreConfig = storeConfig;
     let freshStoreConfigResponse: StoreConfigResponse | null = null;
     try {
+      devLog("[checkout] fetchStoreConfig start");
       freshStoreConfigResponse = await fetchStoreConfig();
       latestStoreConfig = resolveStoreConfig(
         freshStoreConfigResponse?.storeConfig,
       );
-    } catch {
+      devLog("[checkout] fetchStoreConfig ok", {
+        displayed: {
+          acceptingOrders: storeConfig.acceptingOrders,
+          openTime: storeConfig.storeHours.openTime,
+          closeTime: storeConfig.storeHours.closeTime,
+        },
+        latest: {
+          acceptingOrders: latestStoreConfig.acceptingOrders,
+          openTime: latestStoreConfig.storeHours.openTime,
+          closeTime: latestStoreConfig.storeHours.closeTime,
+        },
+        changed: hasStoreConfigChanged(storeConfig, latestStoreConfig),
+      });
+    } catch (error) {
       // use cached store config if refetch fails
+      devWarn("[checkout] fetchStoreConfig failed — using cache", error);
     }
 
     if (freshStoreConfigResponse) {
+      devLog("[checkout] persist store-config cache");
       onStoreConfigPersisted?.(freshStoreConfigResponse);
     }
 
     if (!canAcceptOrders(latestStoreConfig, now)) {
+      devLog("[checkout] abort store_closed", {
+        acceptingOrders: latestStoreConfig.acceptingOrders,
+        openTime: latestStoreConfig.storeHours.openTime,
+        closeTime: latestStoreConfig.storeHours.closeTime,
+      });
       return {
         status: "abort",
         reason: "store_closed",
@@ -269,6 +327,9 @@ export async function runCheckoutFlow(
       hasStoreConfigChanged(storeConfig, latestStoreConfig) &&
       !storeReopenedAfterCache
     ) {
+      devLog("[checkout] abort store_config_changed", {
+        storeReopenedAfterCache,
+      });
       return {
         status: "abort",
         reason: "store_config_changed",
@@ -284,6 +345,16 @@ export async function runCheckoutFlow(
         latestDeliverySettings,
       )
     ) {
+      devLog("[checkout] abort delivery_settings_changed", {
+        displayed: {
+          freeDeliveryMin: displayedDeliverySettings.freeDeliveryMin,
+          shippingFee: displayedDeliverySettings.shippingFee,
+        },
+        latest: {
+          freeDeliveryMin: latestDeliverySettings.freeDeliveryMin,
+          shippingFee: latestDeliverySettings.shippingFee,
+        },
+      });
       return {
         status: "abort",
         reason: "delivery_settings_changed",
@@ -292,6 +363,8 @@ export async function runCheckoutFlow(
         toastType: "info",
       };
     }
+
+    devLog("[checkout] config checks passed");
 
     const preSyncItems = mergeCartItemsWithOffers(
       cartData?.cart?.items ?? [],
@@ -437,14 +510,16 @@ export async function runCheckoutFlow(
     const proceedHeldProductIds = heldProductIds ?? [];
     heldProductIds = null;
 
+    devLog("[checkout] proceed", { payableTotal, orderDiscount: orderDisc });
     return {
       status: "proceed",
       payableTotal,
       orderDiscount: orderDisc,
       heldProductIds: proceedHeldProductIds,
     };
-  } catch {
+  } catch (error) {
     await releaseHeldProducts();
+    devWarn("[checkout] unexpected_error", error);
     return {
       status: "abort",
       reason: "unexpected_error",

@@ -40,6 +40,7 @@ import {
   writeCategoryConfigCache,
 } from "@/utils/categoryConfigCache";
 import { clearProductCache } from "@/utils/productCache";
+import { devLog, devWarn } from "@/utils/devLog";
 
 type AppDispatch = typeof store.dispatch;
 
@@ -94,7 +95,11 @@ async function hydrateLocalCaches(dispatch: AppDispatch): Promise<void> {
 
   if (promoCache) hydratePromoConfigCache(dispatch, promoCache);
   if (carouselCache) hydrateCarouselConfigCache(dispatch, carouselCache);
-  if (storeCache) hydrateStoreConfigCache(dispatch, storeCache);
+  devLog("[store-config] syncAppState hydrateLocal", {
+    hasStoreCache: Boolean(storeCache),
+    fetchedAt: storeCache?.fetchedAt ?? null,
+  });
+  if (storeCache) await hydrateStoreConfigCache(dispatch, storeCache);
   if (categoryCache) hydrateCategoryConfigCache(dispatch, categoryCache);
 }
 
@@ -187,16 +192,27 @@ async function fetchStaleResources(
   if (fetch.storeConfig) {
     tasks.push(
       (async () => {
-        const storeConfig = await dispatch(
-          storeConfigApi.endpoints.fetchStoreConfig.initiate(undefined, {
-            forceRefetch: true,
-          }),
-        ).unwrap();
-        hydrateStoreConfigCache(dispatch, {
-          fetchedAt: Date.now(),
-          storeConfig,
-        });
-        await writeStoreConfigCache(storeConfig);
+        devLog("[store-config] syncAppState fetchStale start");
+        try {
+          const storeConfig = await dispatch(
+            storeConfigApi.endpoints.fetchStoreConfig.initiate(undefined, {
+              forceRefetch: true,
+            }),
+          ).unwrap();
+          if (!storeConfig?.storeConfig) {
+            devWarn("[store-config] syncAppState fetchStale empty", storeConfig);
+            return;
+          }
+          await hydrateStoreConfigCache(dispatch, {
+            fetchedAt: Date.now(),
+            storeConfig,
+          });
+          await writeStoreConfigCache(storeConfig);
+          devLog("[store-config] syncAppState fetchStale ok");
+        } catch (error) {
+          devWarn("[store-config] syncAppState fetchStale failed", error);
+          throw error;
+        }
       })(),
     );
   }
@@ -259,6 +275,12 @@ export async function syncAppState(
       const effectiveFetch = options.isGuestUser
         ? filterFetchForGuest(syncResponse.fetch)
         : syncResponse.fetch;
+
+      devLog("[store-config] syncAppState fetch flags", {
+        isGuestUser: Boolean(options.isGuestUser),
+        serverStoreConfig: syncResponse.fetch.storeConfig,
+        effectiveStoreConfig: effectiveFetch.storeConfig,
+      });
 
       await fetchStaleResources(dispatch, effectiveFetch);
 

@@ -1,10 +1,11 @@
-import {
-  Platform,
-  StyleSheet,
-  View,
-  Pressable,
-} from "react-native";
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { Platform, StyleSheet, View, Pressable } from "react-native";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from "react";
 import { devError, devLog, devWarn } from "@/utils/devLog";
 import { Colors } from "@/constants/Colors";
 import { ThemedView } from "../ThemedView";
@@ -12,10 +13,7 @@ import { ThemedText } from "../ThemedText";
 import { formatNumber, showToast } from "@/utils/utils";
 import { useDispatch } from "react-redux";
 import { router, useFocusEffect } from "expo-router";
-import {
-  getDeliveryFee,
-  getPayableTotalFromItems,
-} from "@/utils/deliveryFee";
+import { getDeliveryFee, getPayableTotalFromItems } from "@/utils/deliveryFee";
 import {
   cartApi,
   resetCartItemQuantity,
@@ -44,7 +42,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import Button from "../Button";
 import { useRenderTimer } from "@/hooks/useRenderTimer";
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { applyPostCheckoutCartUpdate } from "@/utils/applyPostCheckoutCartUpdate";
 import { removeHeldProductsFromCart } from "@/utils/removeHeldProductsFromCart";
@@ -72,21 +70,17 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
     [storeConfig],
   );
   const isCartOperationProcessing = useSelector(
-    (state: RootState) => state?.cart?.isCartOperationProcessing
+    (state: RootState) => state?.cart?.isCartOperationProcessing,
   );
   const cachedOffers = useCachedOffers();
   const { data: cartData } = useFetchCartQuery({ userId }, { skip: !userId });
 
   const mergedCartItems = useMemo(
-    () =>
-      mergeCartItemsWithOffers(
-        cartData?.cart?.items ?? [],
-        cachedOffers,
-      ),
+    () => mergeCartItemsWithOffers(cartData?.cart?.items ?? [], cachedOffers),
     [cartData?.cart?.items, cachedOffers],
   );
   const isClearCartLoading = useSelector(
-    (state: RootState) => state.cart.isClearCartLoading
+    (state: RootState) => state.cart.isClearCartLoading,
   );
 
   const [fetchCartData, { isLoading: isCartLoading }] = useLazyFetchCartQuery();
@@ -98,7 +92,7 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
   const [releaseCheckoutHolds] = useReleaseCheckoutHoldsMutation();
   const [clearCart] = useClearCartMutation();
   const needToSyncWithBackend = useSelector(
-    (state: RootState) => state?.cart?.needToSyncWithBackend
+    (state: RootState) => state?.cart?.needToSyncWithBackend,
   );
   // const navigation = useNavigation();
 
@@ -237,24 +231,10 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
           ? tabBarHeight + 10
           : tabBarHeight - 40
         : tabBarHeight === 0
-        ? tabBarHeight + 10
-        : tabBarHeight - 60,
+          ? tabBarHeight + 10
+          : tabBarHeight - 60,
   };
 
-  useLayoutEffect(() => {
-    if (!cartItems) {
-      setCartFooterInset?.(0);
-      return;
-    }
-    publishCartFooterInsetEstimate?.();
-  }, [cartItems, publishCartFooterInsetEstimate, setCartFooterInset]);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!userId) return;
-      syncStoreConfig(dispatch, { force: true }).catch(() => {});
-    }, [dispatch, userId]),
-  );
 
   useFocusEffect(
     useCallback(() => {
@@ -275,9 +255,7 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
   return (
     <View
       style={[styles.animatedContainer]}
-      onLayout={(event) =>
-        handleFooterLayout(event.nativeEvent.layout.height)
-      }
+      onLayout={(event) => handleFooterLayout(event.nativeEvent.layout.height)}
     >
       <>
         {cartItems ? (
@@ -437,9 +415,9 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                     <ThemedText style={styles.totalLabel}>
                       {discount.label}
                     </ThemedText>
-                    <ThemedText style={styles.savingsAmount}>{`- ₹ ${formatNumber(
-                      discount.amount,
-                    )}`}</ThemedText>
+                    <ThemedText
+                      style={styles.savingsAmount}
+                    >{`- ₹ ${formatNumber(discount.amount)}`}</ThemedText>
                   </ThemedView>
                 ))}
 
@@ -486,7 +464,7 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                   {"Final Amount"}
                 </ThemedText>
                 <ThemedText style={styles.finalTotalAmount}>{`₹ ${formatNumber(
-                  payableTotal
+                  payableTotal,
                 )}`}</ThemedText>
               </View>
 
@@ -500,7 +478,6 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                   isCartLoading ||
                   fetchingAddressLoading ||
                   isCartProcessing ||
-                 
                   isClearCartLoading
                 }
                 disabled={
@@ -510,7 +487,6 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                   isCartLoading ||
                   fetchingAddressLoading ||
                   isCartProcessing ||
-                  
                   isClearCartLoading
                 }
                 onPress={async () => {
@@ -530,6 +506,7 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                   };
 
                   try {
+                    devLog("[checkout] Continue onPress");
                     const result = await runCheckoutFlow({
                       userId,
                       cartData,
@@ -558,7 +535,9 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                           ),
                         ).unwrap(),
                       onPromoConfigPersisted: (offers, delivery) => {
-                        persistPromoConfigCache(offers, delivery).catch(() => {});
+                        persistPromoConfigCache(offers, delivery).catch(
+                          () => {},
+                        );
                       },
                       onStoreConfigPersisted: (config) => {
                         persistStoreConfigCache(config).catch(() => {});
@@ -575,7 +554,10 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                         })?.unwrap(),
                       fetchCart: async () =>
                         fetchCartData({ userId }, false)?.unwrap(),
-                      applyPostCheckoutCartUpdate: async (newCartData, synced) =>
+                      applyPostCheckoutCartUpdate: async (
+                        newCartData,
+                        synced,
+                      ) =>
                         applyPostCheckoutCartUpdate(
                           dispatch,
                           userId,
@@ -610,6 +592,12 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                       mergeCartItemsWithOffers,
                     });
 
+                    devLog("[checkout] Continue result", {
+                      status: result.status,
+                      reason:
+                        result.status === "abort" ? result.reason : undefined,
+                    });
+
                     if (result.status === "proceed") {
                       dispatch(
                         setCartPayableTotals({ total: result.payableTotal }),
@@ -622,7 +610,9 @@ const Continue = ({ tabBarHeight, isCartProcessing, userId }) => {
                         await releaseCheckoutHolds({
                           params: { userId },
                           body: { productIds: result.heldProductIds },
-                        }).unwrap().catch(() => {});
+                        })
+                          .unwrap()
+                          .catch(() => {});
                         showToast({
                           type: "error",
                           text2:
@@ -826,7 +816,7 @@ const styles = StyleSheet.create({
   checkoutButton: {
     marginTop: 0,
     flex: 1,
-    maxHeight:40
+    maxHeight: 40,
   },
   priceDetailsContainer: {
     paddingVertical: 12,

@@ -1,7 +1,7 @@
 import { Slot } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { Fragment, useEffect } from "react";
-import { View } from "react-native";
+import { ScrollView, View } from "react-native";
 import "react-native-reanimated";
 import "react-native-get-random-values";
 import { Provider } from "react-redux";
@@ -27,6 +27,7 @@ import {
 import { initAppCheck } from "@/utils/appCheck";
 import "@/utils/driverLocationTask";
 import * as Sentry from '@sentry/react-native';
+import { Text } from "react-native";
 
 Sentry.init({
   dsn: 'https://8a0bdb898eda3ee8f4694903e1cf94f0@o4511749906300928.ingest.us.sentry.io/4511749911347200',
@@ -64,6 +65,7 @@ export function InitialLayout() {
 
   return (
     <AuthenticationFlow>
+      
       <Slot />
     </AuthenticationFlow>
   );

@@ -621,19 +621,19 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
   const pillHeight = isCompact ? COMPACT_SIZE : PILL_HEIGHT;
   const pillWidth = isCompact ? COMPACT_SIZE : FULL_PILL_WIDTH;
 
-  const posX = useSharedValue(HORIZONTAL_MARGIN);
-  const posY = useSharedValue(0);
-  const dragStartX = useSharedValue(HORIZONTAL_MARGIN);
-  const dragStartY = useSharedValue(0);
-  const isDragging = useSharedValue(false);
-  const minYShared = useSharedValue(0);
-  const maxYShared = useSharedValue(0);
-  const pillWidthShared = useSharedValue(pillWidth);
-
   const defaultY = SCREEN_HEIGHT / 2;
   const minY = insets.top + FLOAT_GAP;
   const maxY = SCREEN_HEIGHT - insets.bottom - pillHeight - FLOAT_GAP;
   const defaultX = SCREEN_WIDTH - pillWidth - HORIZONTAL_MARGIN;
+
+  const posX = useSharedValue(defaultX);
+  const posY = useSharedValue(defaultY);
+  const dragStartX = useSharedValue(defaultX);
+  const dragStartY = useSharedValue(defaultY);
+  const isDragging = useSharedValue(false);
+  const minYShared = useSharedValue(minY);
+  const maxYShared = useSharedValue(maxY);
+  const pillWidthShared = useSharedValue(pillWidth);
 
   useEffect(() => {
     minYShared.value = minY;
@@ -642,6 +642,7 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
   }, [maxY, minY, maxYShared, minYShared, pillWidth, pillWidthShared]);
 
   useEffect(() => {
+    const isFirstLayout = prevIsCompactRef.current === null;
     const routeChanged = prevPathnameRef.current !== pathname;
     prevPathnameRef.current = pathname;
 
@@ -652,7 +653,7 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
 
     const shouldSnapToDefault = layoutModeChanged || routeChanged;
 
-    if (hasCustomPosition && !shouldSnapToDefault) {
+    if (hasCustomPosition && !shouldSnapToDefault && !isFirstLayout) {
       return;
     }
 
@@ -660,8 +661,14 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
       setHasCustomPosition(false);
     }
 
-    posX.value = withSpring(defaultX, SPRING_CONFIG);
-    posY.value = withSpring(defaultY, SPRING_CONFIG);
+    // First paint: place instantly. Later route/layout snaps: spring.
+    if (isFirstLayout) {
+      posX.value = defaultX;
+      posY.value = defaultY;
+    } else {
+      posX.value = withSpring(defaultX, SPRING_CONFIG);
+      posY.value = withSpring(defaultY, SPRING_CONFIG);
+    }
     dragStartX.value = defaultX;
     dragStartY.value = defaultY;
   }, [

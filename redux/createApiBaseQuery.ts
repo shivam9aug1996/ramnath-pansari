@@ -38,6 +38,7 @@ function summarizeAuthToken(token: string | null | undefined) {
 
 /**
  * Shared RTK Query baseQuery: Bearer auth + X-Firebase-AppCheck when available.
+ * `cache: "no-store"` avoids browser 304 empty bodies that make RTK see `{ data: undefined }`.
  */
 export function createApiBaseQuery(): BaseQueryFn<
   string | FetchArgs,
@@ -47,6 +48,11 @@ export function createApiBaseQuery(): BaseQueryFn<
   return fetchBaseQuery({
     baseUrl: `${baseUrl}`,
     credentials: "include",
+    fetchFn: (input, init) =>
+      fetch(input, {
+        ...init,
+        cache: "no-store",
+      }),
     prepareHeaders: async (headers, { getState, endpoint }) => {
       const auth = (getState() as RootLike)?.auth;
       const token = auth?.token;
@@ -62,6 +68,8 @@ export function createApiBaseQuery(): BaseQueryFn<
       if (token) {
         headers.set("authorization", `Bearer ${token}`);
       }
+      headers.set("Cache-Control", "no-cache");
+      headers.set("Pragma", "no-cache");
       await applyAppCheckHeader(headers);
       return headers;
     },
