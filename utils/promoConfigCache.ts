@@ -6,6 +6,7 @@ import type {
   DeliverySettingsResponse,
   OffersResponse,
 } from "@/types/global";
+import { devLog } from "@/utils/devLog";
 
 export const PROMO_CONFIG_CACHE_KEY = "@promo/config";
 export const PROMO_CONFIG_TTL_MS = 60 * 60 * 1000;
@@ -18,6 +19,21 @@ export type PromoConfigCache = {
 
 type AppDispatch = typeof store.dispatch;
 
+export function summarizeOffers(offers?: OffersResponse | null) {
+  const list = offers?.offers ?? [];
+  return {
+    count: list.length,
+    enabledCount: list.filter((o) => o.enabled).length,
+    ids: list.map((o) => o.id),
+    enabled: list.map((o) => ({
+      id: o.id,
+      enabled: o.enabled,
+      type: o.type,
+      minOrderValue: o.minOrderValue,
+    })),
+  };
+}
+
 export function isPromoConfigStale(
   fetchedAt: number,
   ttlMs = PROMO_CONFIG_TTL_MS,
@@ -28,17 +44,28 @@ export function isPromoConfigStale(
 export async function readPromoConfigCache(): Promise<PromoConfigCache | null> {
   try {
     const raw = await AsyncStorage.getItem(PROMO_CONFIG_CACHE_KEY);
-    if (!raw) return null;
+    if (!raw) {
+      devLog("[offers] readCache miss");
+      return null;
+    }
     const parsed = JSON.parse(raw) as PromoConfigCache;
     if (
       typeof parsed?.fetchedAt !== "number" ||
       !parsed?.offers ||
       !parsed?.deliverySettings
     ) {
+      devLog("[offers] readCache invalid shape");
       return null;
     }
+    devLog("[offers] readCache hit", {
+      fetchedAt: parsed.fetchedAt,
+      ageMs: Date.now() - parsed.fetchedAt,
+      stale: isPromoConfigStale(parsed.fetchedAt),
+      ...summarizeOffers(parsed.offers),
+    });
     return parsed;
   } catch {
+    devLog("[offers] readCache parse error");
     return null;
   }
 }
@@ -54,12 +81,21 @@ export async function writePromoConfigCache(
     deliverySettings,
   };
   await AsyncStorage.setItem(PROMO_CONFIG_CACHE_KEY, JSON.stringify(payload));
+  devLog("[offers] writeCache", {
+    fetchedAt,
+    ...summarizeOffers(offers),
+  });
 }
 
 export function hydratePromoConfigCache(
   dispatch: AppDispatch,
   cache: PromoConfigCache,
 ): void {
+  devLog("[offers] hydrate", {
+    fetchedAt: cache.fetchedAt,
+    ageMs: Date.now() - cache.fetchedAt,
+    ...summarizeOffers(cache.offers),
+  });
   dispatch(
     offerApi.util.upsertQueryData("fetchOffers", undefined, cache.offers),
   );
@@ -93,6 +129,13 @@ export async function syncPromoConfig(
       !cached ||
       isPromoConfigStale(cached.fetchedAt);
 
+    devLog("[offers] syncPromoConfig", {
+      force: Boolean(options?.force),
+      hasCache: Boolean(cached),
+      shouldFetch,
+      ...summarizeOffers(cached?.offers),
+    });
+
     if (!shouldFetch) return;
 
     try {
@@ -110,6 +153,8 @@ export async function syncPromoConfig(
         ).unwrap(),
       ]);
 
+      devLog("[offers] syncPromoConfig network", summarizeOffers(offersResult));
+
       hydratePromoConfigCache(dispatch, {
         fetchedAt: Date.now(),
         offers: offersResult,
@@ -118,6 +163,7 @@ export async function syncPromoConfig(
       await writePromoConfigCache(offersResult, deliveryResult);
     } catch {
       // Keep hydrated AsyncStorage data when network fails.
+      devLog("[offers] syncPromoConfig network failed");
     }
   })().finally(() => {
     syncInFlight = null;

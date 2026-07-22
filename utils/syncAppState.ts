@@ -5,6 +5,7 @@ import { carouselApi } from "@/redux/features/carouselSlice";
 import { storeConfigApi } from "@/redux/features/storeConfigSlice";
 import { categoryApi } from "@/redux/features/categorySlice";
 import {
+  setLocalHydrated,
   setSyncComplete,
   setSyncStarted,
 } from "@/redux/features/appSyncSlice";
@@ -22,6 +23,7 @@ import {
 import {
   hydratePromoConfigCache,
   readPromoConfigCache,
+  summarizeOffers,
   writePromoConfigCache,
 } from "@/utils/promoConfigCache";
 import {
@@ -84,7 +86,7 @@ async function postSyncState(
   return body;
 }
 
-async function hydrateLocalCaches(dispatch: AppDispatch): Promise<void> {
+async function hydrateLocalCaches(dispatch: AppDispatch) {
   const [promoCache, carouselCache, storeCache, categoryCache] =
     await Promise.all([
       readPromoConfigCache(),
@@ -95,12 +97,32 @@ async function hydrateLocalCaches(dispatch: AppDispatch): Promise<void> {
 
   if (promoCache) hydratePromoConfigCache(dispatch, promoCache);
   if (carouselCache) hydrateCarouselConfigCache(dispatch, carouselCache);
+  const offerSummary = summarizeOffers(promoCache?.offers);
   devLog("[store-config] syncAppState hydrateLocal", {
     hasStoreCache: Boolean(storeCache),
     fetchedAt: storeCache?.fetchedAt ?? null,
+    hasPromoCache: Boolean(promoCache),
+    promoFetchedAt: promoCache?.fetchedAt ?? null,
+    ...offerSummary,
   });
+  devLog("[offers] syncAppState hydrateLocal", {
+    hasPromoCache: Boolean(promoCache),
+    fetchedAt: promoCache?.fetchedAt ?? null,
+    ...offerSummary,
+  });
+  if (offerSummary.count === 0) {
+    devWarn("[offers] local promo has empty offers after hydrate", {
+      hasPromoCache: Boolean(promoCache),
+      promoFetchedAt: promoCache?.fetchedAt ?? null,
+      ageMs: promoCache?.fetchedAt
+        ? Date.now() - promoCache.fetchedAt
+        : null,
+    });
+  }
   if (storeCache) await hydrateStoreConfigCache(dispatch, storeCache);
   if (categoryCache) hydrateCategoryConfigCache(dispatch, categoryCache);
+
+  return { promoCache };
 }
 
 /** Guests only need shared browsing data (banners + categories). */
@@ -124,11 +146,13 @@ async function fetchStaleResources(
   if (fetch.offers) {
     tasks.push(
       (async () => {
+        devLog("[offers] fetchStale start (offers)");
         const offers = await dispatch(
           offerApi.endpoints.fetchOffers.initiate(undefined, {
             forceRefetch: true,
           }),
         ).unwrap();
+        devLog("[offers] fetchStale network (offers)", summarizeOffers(offers));
         const cached = await readPromoConfigCache();
         const deliverySettings =
           cached?.deliverySettings ??
@@ -143,6 +167,13 @@ async function fetchStaleResources(
           deliverySettings,
         });
         await writePromoConfigCache(offers, deliverySettings);
+        if ((offers?.offers?.length ?? 0) === 0) {
+          devWarn(
+            "[offers] network /offers returned empty — writing empty promo cache",
+            summarizeOffers(offers),
+          );
+        }
+        devLog("[offers] fetchStale ok (offers)", summarizeOffers(offers));
       })(),
     );
   }
@@ -150,6 +181,7 @@ async function fetchStaleResources(
   if (fetch.deliverySettings) {
     tasks.push(
       (async () => {
+        devLog("[offers] fetchStale start (deliverySettings)");
         const deliverySettings = await dispatch(
           deliverySettingsApi.endpoints.fetchDeliverySettings.initiate(
             undefined,
@@ -157,17 +189,49 @@ async function fetchStaleResources(
           ),
         ).unwrap();
         const cached = await readPromoConfigCache();
+        const cachedOfferList = cached?.offers?.offers;
+        const fromCache = Boolean(cached?.offers);
+        const cachedOffersEmpty =
+          fromCache && (cachedOfferList?.length ?? 0) === 0;
+        // Truthy `{ offers: [] }` skips network — this is the poison rewrite path.
+        if (cachedOffersEmpty) {
+          devWarn(
+            "[offers] deliverySettings write will reuse EMPTY cached offers (no /offers fetch)",
+            {
+              fromCache,
+              cachedOffersTruthy: Boolean(cached?.offers),
+              cachedOfferCount: cachedOfferList?.length ?? 0,
+            },
+          );
+        }
         const offers =
           cached?.offers ??
           (await dispatch(
             offerApi.endpoints.fetchOffers.initiate(undefined),
           ).unwrap());
+        const offerSummary = summarizeOffers(offers);
+        devLog("[offers] fetchStale offers for deliverySettings write", {
+          fromCache,
+          reusedEmptyOffers: cachedOffersEmpty,
+          willNetworkFetchOffers: !fromCache,
+          ...offerSummary,
+        });
         hydratePromoConfigCache(dispatch, {
           fetchedAt: Date.now(),
           offers,
           deliverySettings,
         });
         await writePromoConfigCache(offers, deliverySettings);
+        if (offerSummary.count === 0) {
+          devWarn(
+            "[offers] wrote promo cache with empty offers after deliverySettings sync",
+            offerSummary,
+          );
+        }
+        devLog(
+          "[offers] fetchStale ok (deliverySettings)",
+          offerSummary,
+        );
       })(),
     );
   }
@@ -267,8 +331,9 @@ export async function syncAppState(
     dispatch(setSyncStarted());
 
     try {
-      await hydrateLocalCaches(dispatch);
-
+      const { promoCache } = await hydrateLocalCaches(dispatch);
+      dispatch(setLocalHydrated());
+      const localOfferCount = promoCache?.offers?.offers?.length ?? 0;
       const clientVersions = await readAppSyncClientVersions();
 
       const syncResponse = await postSyncState(clientVersions, options.token);
@@ -276,11 +341,44 @@ export async function syncAppState(
         ? filterFetchForGuest(syncResponse.fetch)
         : syncResponse.fetch;
 
+      const localOffersEmpty = localOfferCount === 0;
+      const willSkipOffersFetch = !effectiveFetch.offers;
+      const stuckEmptyOffersRisk =
+        localOffersEmpty && willSkipOffersFetch && !options.isGuestUser;
+
       devLog("[store-config] syncAppState fetch flags", {
         isGuestUser: Boolean(options.isGuestUser),
         serverStoreConfig: syncResponse.fetch.storeConfig,
         effectiveStoreConfig: effectiveFetch.storeConfig,
+        serverOffers: syncResponse.fetch.offers,
+        effectiveOffers: effectiveFetch.offers,
+        serverDeliverySettings: syncResponse.fetch.deliverySettings,
+        effectiveDeliverySettings: effectiveFetch.deliverySettings,
       });
+      devLog("[offers] syncAppState fetch flags", {
+        isGuestUser: Boolean(options.isGuestUser),
+        localOfferCount,
+        localOffersEmpty,
+        clientOffersVersion: clientVersions.offers ?? null,
+        serverOffersVersion: syncResponse.server?.offers ?? null,
+        serverOffers: syncResponse.fetch.offers,
+        effectiveOffers: effectiveFetch.offers,
+        willSkipOffersFetch,
+        stuckEmptyOffersRisk,
+        serverDeliverySettings: syncResponse.fetch.deliverySettings,
+        effectiveDeliverySettings: effectiveFetch.deliverySettings,
+      });
+      if (stuckEmptyOffersRisk) {
+        devWarn(
+          "[offers] STUCK EMPTY RISK: local offers [] and serverOffers=false — will not refetch /offers",
+          {
+            localOfferCount,
+            clientOffersVersion: clientVersions.offers ?? null,
+            serverOffersVersion: syncResponse.server?.offers ?? null,
+            promoFetchedAt: promoCache?.fetchedAt ?? null,
+          },
+        );
+      }
 
       await fetchStaleResources(dispatch, effectiveFetch);
 

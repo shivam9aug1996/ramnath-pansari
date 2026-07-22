@@ -4,6 +4,12 @@ import { OfferDocument, RootState } from "@/types/global";
 
 const EMPTY_OFFERS: OfferDocument[] = [];
 
+
+export function usePromoLocalHydrated(): boolean {
+  return useSelector((state: RootState) => Boolean(state.appSync?.localHydrated));
+}
+
+
 export function useCachedOffers(): OfferDocument[] {
   return useSelector(
     (state: RootState) =>

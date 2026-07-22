@@ -3,6 +3,7 @@ import type { AppSyncFetchFlags } from "@/types/global";
 
 export type AppSyncSliceState = {
   ready: boolean;
+  localHydrated: boolean;
   inProgress: boolean;
   lastSyncedAt: number | null;
   fetch: AppSyncFetchFlags | null;
@@ -10,6 +11,7 @@ export type AppSyncSliceState = {
 
 const initialState: AppSyncSliceState = {
   ready: false,
+  localHydrated: false,
   inProgress: false,
   lastSyncedAt: null,
   fetch: null,
@@ -22,6 +24,9 @@ const appSyncSlice = createSlice({
     setSyncStarted: (state) => {
       state.inProgress = true;
     },
+    setLocalHydrated: (state) => {
+      state.localHydrated = true;
+    },
     setSyncComplete: (
       state,
       action: PayloadAction<{
@@ -29,6 +34,7 @@ const appSyncSlice = createSlice({
       }>,
     ) => {
       state.ready = true;
+      state.localHydrated = true;
       state.inProgress = false;
       state.lastSyncedAt = Date.now();
       state.fetch = action.payload.fetch;
@@ -37,7 +43,7 @@ const appSyncSlice = createSlice({
   },
 });
 
-export const { setSyncStarted, setSyncComplete, resetAppSync } =
+export const { setSyncStarted, setLocalHydrated, setSyncComplete, resetAppSync } =
   appSyncSlice.actions;
 
 export default appSyncSlice.reducer;

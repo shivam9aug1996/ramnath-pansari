@@ -99,7 +99,7 @@ export const hideAllToast = () => {
   Toast?.hide();
 };
 
-export const CACHE_DURATION = 1 * 20 * 1000;
+export const CACHE_DURATION = 5 * 60 * 1000;
 
 
 export async function cleanOldProductCache(CACHE_DURATION: number) {

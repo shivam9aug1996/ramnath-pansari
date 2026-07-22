@@ -14,7 +14,7 @@ export const deliverySettingsApi = createApi({
         url: "/delivery-settings",
         method: "GET",
       }),
-      keepUnusedDataFor: 60,
+      keepUnusedDataFor: 20,
       providesTags: [{ type: "deliverySettings", id: "CONFIG" }],
     }),
   }),
