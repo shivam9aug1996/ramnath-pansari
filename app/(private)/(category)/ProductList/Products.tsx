@@ -33,6 +33,7 @@ import {
   cleanOldProductCache,
 } from "@/utils/utils";
 import { clearCategoryProductCacheFromMemoryAndAsyncStorage } from "@/utils/productCache";
+import { devLog } from "@/utils/devLog";
 
 interface ProductsProps {
   isCategoryFetching: boolean;
@@ -263,6 +264,33 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
     (!hasProductsToShow &&
       (isProductsLoading ||
         (isProductsFetching && paginationState.page === 1)));
+
+  useEffect(() => {
+    devLog("[products] query state", {
+      paginationCategoryId: paginationState.categoryId,
+      selectedSubCategoryId: selectedSubCategory?._id ?? selectedSubCategory,
+      page: paginationState.page,
+      reset: paginationState.reset,
+      productCount: data?.products?.length ?? null,
+      totalResults: data?.totalResults ?? null,
+      isProductsLoading,
+      isProductsFetching,
+      isProductError,
+      isCategoryOutOfSync,
+      showInitialSkeleton,
+      hasProductsToShow,
+    });
+  }, [
+    paginationState,
+    selectedSubCategory,
+    data,
+    isProductsLoading,
+    isProductsFetching,
+    isProductError,
+    isCategoryOutOfSync,
+    showInitialSkeleton,
+    hasProductsToShow,
+  ]);
 
   const showOverlaySpinner =
     subCategoryActionClicked ||

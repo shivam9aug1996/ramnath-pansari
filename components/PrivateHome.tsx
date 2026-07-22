@@ -178,7 +178,7 @@ const PrivateHome = () => {
       keyboardShouldPersistTaps="handled"
         ref={scrollRef}
         style={{ flex: 1 }}
-        //stickyHeaderIndices={[1]}
+        stickyHeaderIndices={[1]}
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
         }

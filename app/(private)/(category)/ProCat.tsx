@@ -12,6 +12,7 @@ import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import { setSelectedSubCategoryId } from "@/redux/features/productSlice";
+import { devLog } from "@/utils/devLog";
 
 const ProCat = ({
   id,
@@ -31,8 +32,14 @@ const ProCat = ({
   const getCategories = categoryData;
   const dispatch = useDispatch();
   useEffect(() => {
-    dispatch(setSelectedSubCategoryId("null"))
-  }, [])
+    devLog("[products] ProCat mount → reset selectedSubCategoryId to null", {
+      id,
+      name,
+      selectedCategoryIdIndex,
+      childrenCount: getCategories?.children?.length ?? null,
+    });
+    dispatch(setSelectedSubCategoryId("null"));
+  }, []);
   return (
     <>
       <ScreenSafeWrapper showCartIcon={true} title={name} showSearchIcon={true} wrapperStyle={{paddingBottom:0,marginBottom:0}} >

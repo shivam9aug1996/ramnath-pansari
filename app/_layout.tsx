@@ -28,6 +28,7 @@ import { initAppCheck } from "@/utils/appCheck";
 import "@/utils/driverLocationTask";
 import * as Sentry from '@sentry/react-native';
 import { Text } from "react-native";
+import { InitialLayout1 } from "./InitialLayout1";
 
 Sentry.init({
   dsn: 'https://8a0bdb898eda3ee8f4694903e1cf94f0@o4511749906300928.ingest.us.sentry.io/4511749911347200',
@@ -83,6 +84,8 @@ const RootLayout = () => {
       markStartupCheckpoint("fonts_loaded").catch(() => {});
     }
   }, [fontsLoaded]);
+
+
 
   return (
     <Fragment>

@@ -6,7 +6,7 @@
   "ios.useFrameworks": "static",
   "ios.forceStaticLinking": "[\"RNFBApp\",\"RNFBAppCheck\"]",
   "apple.privacyManifestAggregationEnabled": "true",
+  "ios.buildReactNativeFromSource": "true",
   "EXPO_USE_PRECOMPILED_MODULES": "true",
-  "expo-image.disable-libdav1d": "false",
-  "ios.buildReactNativeFromSource": "true"
+  "expo-image.disable-libdav1d": "false"
 }

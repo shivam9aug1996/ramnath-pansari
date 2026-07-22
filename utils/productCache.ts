@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CACHE_DURATION } from "@/utils/utils";
+import { devLog } from "@/utils/devLog";
 
 type CacheEntry<T = any> = {
   data: T;
@@ -17,26 +18,61 @@ export async function getCachedProducts<T = any>(
 ): Promise<T | null> {
   const localKey = getProductCacheKey(categoryId, page);
   const now = Date.now();
-  if(page>1){
-    await new Promise(resolve => setTimeout(resolve, 500));
+  if (page > 1) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
- // await new Promise(resolve => setTimeout(resolve, 100));
+
   const mem = memoryCache.get(localKey);
-  if (mem && now - mem.timestamp < CACHE_DURATION) {
-    return mem.data as T;
+  if (mem) {
+    const age = now - mem.timestamp;
+    const valid = age < CACHE_DURATION;
+    devLog("[products] cache check (memory)", {
+      categoryId,
+      page,
+      localKey,
+      ageMs: age,
+      expiresInMs: CACHE_DURATION - age,
+      cacheDurationMs: CACHE_DURATION,
+      valid,
+      productCount: (mem.data as { products?: unknown[] })?.products?.length ?? null,
+    });
+    if (valid) return mem.data as T;
   }
 
   const cached = await AsyncStorage.getItem(localKey);
-  
-  if (!cached) return null;
+
+  if (!cached) {
+    devLog("[products] cache miss (no entry)", { categoryId, page, localKey });
+    return null;
+  }
 
   try {
     const parsed = JSON.parse(cached) as CacheEntry<T>;
-    if (now - parsed.timestamp < CACHE_DURATION) {
+    const age = now - parsed.timestamp;
+    const valid = age < CACHE_DURATION;
+    devLog("[products] cache check (disk)", {
+      categoryId,
+      page,
+      localKey,
+      ageMs: age,
+      expiresInMs: CACHE_DURATION - age,
+      cacheDurationMs: CACHE_DURATION,
+      valid,
+      productCount:
+        (parsed.data as { products?: unknown[] })?.products?.length ?? null,
+    });
+    if (valid) {
       memoryCache.set(localKey, parsed);
       return parsed.data;
     }
+    devLog("[products] cache expired", {
+      categoryId,
+      page,
+      ageMs: age,
+      cacheDurationMs: CACHE_DURATION,
+    });
   } catch {
+    devLog("[products] cache parse error", { categoryId, page, localKey });
     return null;
   }
 

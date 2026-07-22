@@ -38,6 +38,12 @@ export const productApi = createApi({
         // }
         const cachedData = await getCachedProducts(categoryId, page);
         if (cachedData) {
+          devLog("[products] cache hit", {
+            categoryId,
+            page,
+            productCount: cachedData?.products?.length ?? null,
+            totalResults: cachedData?.totalResults ?? null,
+          });
           return { data: cachedData };
         }
 
@@ -46,6 +52,18 @@ export const productApi = createApi({
           url: "/products",
           method: "GET",
           params: { page, categoryId, ...rest },
+        });
+        const networkData = result.data as
+          | { products?: unknown[]; totalResults?: number }
+          | undefined;
+        devLog("[products] network", {
+          categoryId,
+          page,
+          productCount: networkData?.products?.length ?? null,
+          totalResults: networkData?.totalResults ?? null,
+          hasError: Boolean(result.error),
+          errorStatus: (result.error as { status?: unknown } | undefined)
+            ?.status ?? null,
         });
         if (result.data) {
           // await AsyncStorage.setItem(

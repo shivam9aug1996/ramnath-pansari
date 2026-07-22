@@ -362,9 +362,9 @@ const listContentContainerStyle = useMemo(
   );
 
   const renderListFooter = useCallback(() => {
-    if (showInitialSkeleton) return null;
+    if (showInitialSkeleton || !hasNextPage) return null;
     return <ProductPaginationSkeleton />;
-  }, [showInitialSkeleton]);
+  }, [showInitialSkeleton, hasNextPage]);
   
   const renderEmptyComponent = useCallback(() => {
     if (

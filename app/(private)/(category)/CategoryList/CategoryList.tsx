@@ -15,6 +15,7 @@ import { debounce } from "lodash";
 import { setSubCategoryActionClicked } from "@/redux/features/categorySlice";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
 import { router } from "expo-router";
+import { devLog } from "@/utils/devLog";
 const CategoryList = ({
   categories,
   isCategoryFetching,
@@ -168,7 +169,13 @@ if(previousSelectedCategory.current === selectedId?._id){
   dispatch(setSubCategoryActionClicked(false));
 }
             previousSelectedCategory.current = selectedId?._id;
-//console.log("selectedId234567890-",selectedId)
+        devLog("[products] setSelectedSubCategoryId", {
+          selectedId: selectedId?._id,
+          selectedName: selectedId?.name,
+          fromAll: selectedSubCategory?._id === "all",
+          selectedCategoryIdIndex,
+          parentCategoryId: parentCategory?._id,
+        });
         dispatch(setSelectedSubCategoryId(selectedId));
        // dispatch(setSubCategoryActionClicked(false));
       }
