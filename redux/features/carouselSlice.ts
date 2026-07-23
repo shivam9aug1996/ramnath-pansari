@@ -14,7 +14,7 @@ export const carouselApi = createApi({
         url: "/carousel",
         method: "GET",
       }),
-      keepUnusedDataFor: 3600,
+      keepUnusedDataFor: 20,
       providesTags: [{ type: "carousel", id: "LIST" }],
     }),
   }),

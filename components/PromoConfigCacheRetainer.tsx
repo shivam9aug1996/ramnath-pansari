@@ -1,9 +1,12 @@
-// components/PromoConfigCacheRetainer.tsx
+import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { useFetchOffersQuery } from "@/redux/features/offerSlice";
 import { useFetchDeliverySettingsQuery } from "@/redux/features/deliverySettingsSlice";
 import { useFetchStoreConfigQuery } from "@/redux/features/storeConfigSlice";
+import { useFetchCarouselQuery } from "@/redux/features/carouselSlice";
+import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
 import { RootState } from "@/types/global";
+import { devLog } from "@/utils/devLog";
 
 const NO_AUTO_REFETCH = {
   refetchOnMountOrArgChange: false,
@@ -27,19 +30,91 @@ export default function PromoConfigCacheRetainer() {
     (s: RootState) => Boolean(s.appSync?.localHydrated),
   );
 
-  const skip =
+  const skipBase =
     !userId ||
     !localHydrated ||
     Boolean(isAdminUser) ||
     Boolean(isDriverUser);
 
-  // Guests: keep offers/delivery if you hydrate them; skip store-config like useStoreConfig
-  useFetchOffersQuery(undefined, { ...NO_AUTO_REFETCH, skip });
-  useFetchDeliverySettingsQuery(undefined, { ...NO_AUTO_REFETCH, skip });
-  useFetchStoreConfigQuery(undefined, {
+  // Guests only sync carousel + category; skip promo/store for them.
+  const skipPromo = skipBase || Boolean(isGuestUser);
+  const skipBrowse = skipBase;
+
+  const offers = useFetchOffersQuery(undefined, {
     ...NO_AUTO_REFETCH,
-    skip: skip || Boolean(isGuestUser),
+    skip: skipPromo,
   });
+  const delivery = useFetchDeliverySettingsQuery(undefined, {
+    ...NO_AUTO_REFETCH,
+    skip: skipPromo,
+  });
+  const storeConfig = useFetchStoreConfigQuery(undefined, {
+    ...NO_AUTO_REFETCH,
+    skip: skipPromo,
+  });
+  const carousel = useFetchCarouselQuery(undefined, {
+    ...NO_AUTO_REFETCH,
+    skip: skipBrowse,
+  });
+  const categories = useFetchCategoriesQuery(
+    {},
+    { ...NO_AUTO_REFETCH, skip: skipBrowse },
+  );
+
+  useEffect(() => {
+    devLog("[promo-retainer]", {
+      userId: userId ?? null,
+      isGuestUser: Boolean(isGuestUser),
+      isAdminUser: Boolean(isAdminUser),
+      isDriverUser: Boolean(isDriverUser),
+      localHydrated,
+      skipPromo,
+      skipBrowse,
+      offers: {
+        skip: skipPromo,
+        status: offers.status,
+        count: offers.data?.offers?.length ?? 0,
+      },
+      delivery: {
+        skip: skipPromo,
+        status: delivery.status,
+        hasRaw: Boolean(delivery.data?.deliverySettings),
+      },
+      storeConfig: {
+        skip: skipPromo,
+        status: storeConfig.status,
+        hasRaw: Boolean(storeConfig.data?.storeConfig),
+      },
+      carousel: {
+        skip: skipBrowse,
+        status: carousel.status,
+        banners: carousel.data?.banners?.length ?? 0,
+      },
+      categories: {
+        skip: skipBrowse,
+        status: categories.status,
+        count: categories.data?.categories?.length ?? 0,
+      },
+    });
+  }, [
+    userId,
+    isGuestUser,
+    isAdminUser,
+    isDriverUser,
+    localHydrated,
+    skipPromo,
+    skipBrowse,
+    offers.status,
+    offers.data?.offers?.length,
+    delivery.status,
+    delivery.data?.deliverySettings,
+    storeConfig.status,
+    storeConfig.data?.storeConfig,
+    carousel.status,
+    carousel.data?.banners?.length,
+    categories.status,
+    categories.data?.categories?.length,
+  ]);
 
   return null;
 }

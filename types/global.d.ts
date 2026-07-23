@@ -60,6 +60,7 @@ interface RootState {
   auth: AuthState;
   appSync: {
     ready: boolean;
+    localHydrated: boolean;
     inProgress: boolean;
     lastSyncedAt: number | null;
     fetch: AppSyncFetchFlags | null;

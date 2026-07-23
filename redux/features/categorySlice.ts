@@ -6,7 +6,7 @@ import { createApiBaseQuery } from "../createApiBaseQuery";
 export const categoryApi = createApi({
   reducerPath: "categoryApi",
   baseQuery: createApiBaseQuery(),
-   keepUnusedDataFor: 60,
+  keepUnusedDataFor: 20,
   refetchOnReconnect: true,
   endpoints: (builder) => ({
     fetchCategories: builder.query({
