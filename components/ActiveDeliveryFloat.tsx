@@ -558,10 +558,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
+  cancelAnimation,
+  Easing,
+  interpolate,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
+  withSequence,
   withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { useFetchActiveDeliveriesQuery } from "@/redux/features/orderSlice";
 import { OrderStatus } from "@/constants/Order";
@@ -583,13 +589,36 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const FLOAT_GAP = 12;
 const HORIZONTAL_MARGIN = 12;
 const HOME_TAB_ROUTE = "/home";
-const SPRING_CONFIG = { damping: 22, stiffness: 220 };
+const SPRING_CONFIG = { damping: 20, stiffness: 180, mass: 0.85 };
+const RUBBER_BAND = 0.35;
+/** How far a fling projects Y before spring settle (seconds of velocity). */
+const FLING_Y_SECONDS = 0.14;
 const PILL_HEIGHT = 52;
 const COMPACT_SIZE = 56;
 const FULL_PILL_WIDTH = SCREEN_WIDTH - HORIZONTAL_MARGIN * 2;
 
 function isHomeTab(pathname: string) {
   return pathname === HOME_TAB_ROUTE || pathname.endsWith(HOME_TAB_ROUTE);
+}
+
+function clamp(value: number, min: number, max: number) {
+  "worklet";
+  return Math.min(Math.max(value, min), max);
+}
+
+/** Soft resistance past edges while dragging. */
+function rubberBand(value: number, min: number, max: number) {
+  "worklet";
+  if (value < min) return min - (min - value) * RUBBER_BAND;
+  if (value > max) return max + (value - max) * RUBBER_BAND;
+  return value;
+}
+
+function getOrdersSignature(orders: ActiveFloatOrder[]) {
+  return orders
+    .map((order) => `${order._id}:${(order.orderStatus ?? "").toLowerCase()}`)
+    .sort()
+    .join("|");
 }
 
 export type ActiveDeliveryFloatHomeVariant = "full" | "compact";
@@ -616,6 +645,7 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
   const [hasCustomPosition, setHasCustomPosition] = useState(false);
   const prevIsCompactRef = useRef<boolean | null>(null);
   const prevPathnameRef = useRef(pathname);
+  const prevOrdersSignatureRef = useRef<string | null>(null);
 
   const isCompact = isHomeTab(pathname) ? homeVariant === "compact" : true;
   const pillHeight = isCompact ? COMPACT_SIZE : PILL_HEIGHT;
@@ -630,10 +660,87 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
   const posY = useSharedValue(defaultY);
   const dragStartX = useSharedValue(defaultX);
   const dragStartY = useSharedValue(defaultY);
-  const isDragging = useSharedValue(false);
+  const scale = useSharedValue(1);
+  const pulseScale = useSharedValue(1);
+  const shakeX = useSharedValue(0);
+  const shakeRotate = useSharedValue(0);
+  const glow = useSharedValue(0);
+  const rippleA = useSharedValue(0);
+  const rippleB = useSharedValue(0);
   const minYShared = useSharedValue(minY);
   const maxYShared = useSharedValue(maxY);
   const pillWidthShared = useSharedValue(pillWidth);
+
+  const resetAttentionScale = useCallback(() => {
+    cancelAnimation(pulseScale);
+    pulseScale.value = 1;
+  }, [pulseScale]);
+
+  useEffect(() => {
+    const signature = getOrdersSignature(activeOrders);
+    const previous = prevOrdersSignatureRef.current;
+    prevOrdersSignatureRef.current = signature;
+
+    // Skip first paint / remount baseline — only alert on real changes.
+    if (previous === null || previous === signature) return;
+
+    const ringEase = Easing.out(Easing.cubic);
+    const wobble = { duration: 70 };
+    const settle = { duration: 280, easing: Easing.out(Easing.cubic) };
+
+    cancelAnimation(shakeX);
+    cancelAnimation(shakeRotate);
+    cancelAnimation(pulseScale);
+    cancelAnimation(glow);
+    cancelAnimation(rippleA);
+    cancelAnimation(rippleB);
+    pulseScale.value = 1;
+
+    shakeX.value = withSequence(
+      withTiming(-11, wobble),
+      withTiming(11, wobble),
+      withTiming(-10, wobble),
+      withTiming(10, wobble),
+      withTiming(-8, wobble),
+      withTiming(8, wobble),
+      withTiming(-5, wobble),
+      withTiming(5, { duration: 80 }),
+      withTiming(0, settle),
+    );
+    shakeRotate.value = withSequence(
+      withTiming(-10, wobble),
+      withTiming(10, wobble),
+      withTiming(-8, wobble),
+      withTiming(8, wobble),
+      withTiming(-5, wobble),
+      withTiming(5, { duration: 80 }),
+      withTiming(0, settle),
+    );
+    // Timing only — springs inside withSequence often never "finish", so settle never runs.
+    pulseScale.value = withSequence(
+      withTiming(1.14, { duration: 180, easing: Easing.out(Easing.quad) }),
+      withTiming(0.97, { duration: 160, easing: Easing.inOut(Easing.quad) }),
+      withTiming(1.08, { duration: 150, easing: Easing.out(Easing.quad) }),
+      withTiming(1, settle, (finished) => {
+        "worklet";
+        if (finished) pulseScale.value = 1;
+      }),
+    );
+    glow.value = withSequence(
+      withTiming(1, { duration: 140 }),
+      withTiming(0.55, { duration: 260 }),
+      withTiming(1, { duration: 140 }),
+      withTiming(0.35, { duration: 280 }),
+      withTiming(0, { duration: 720, easing: ringEase }),
+    );
+    rippleA.value = 0;
+    rippleB.value = 0;
+    rippleA.value = withTiming(1, { duration: 1400, easing: ringEase });
+    rippleB.value = withDelay(
+      260,
+      withTiming(1, { duration: 1400, easing: ringEase }),
+    );
+  }, [activeOrders, pulseScale]);
 
   useEffect(() => {
     minYShared.value = minY;
@@ -720,6 +827,9 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
     const tapGesture = Gesture.Tap()
       .maxDuration(250)
       .maxDistance(12)
+      .onStart(() => {
+        runOnJS(resetAttentionScale)();
+      })
       .onEnd(() => {
         runOnJS(openDelivery)();
       });
@@ -729,42 +839,45 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
       .onStart(() => {
         dragStartX.value = posX.value;
         dragStartY.value = posY.value;
-        isDragging.value = true;
+        runOnJS(resetAttentionScale)();
+        scale.value = withSpring(1.06, SPRING_CONFIG);
       })
       .onUpdate((event) => {
         const maxX = SCREEN_WIDTH - pillWidthShared.value - HORIZONTAL_MARGIN;
         const nextX = dragStartX.value + event.translationX;
         const nextY = dragStartY.value + event.translationY;
 
-        posX.value = Math.min(Math.max(HORIZONTAL_MARGIN, nextX), maxX);
-        posY.value = Math.min(
-          Math.max(minYShared.value, nextY),
-          maxYShared.value,
-        );
+        posX.value = rubberBand(nextX, HORIZONTAL_MARGIN, maxX);
+        posY.value = rubberBand(nextY, minYShared.value, maxYShared.value);
       })
-      .onEnd(() => {
-        isDragging.value = false;
+      .onEnd((event) => {
+        scale.value = withSpring(1, SPRING_CONFIG);
         runOnJS(markCustomPosition)();
 
         const width = pillWidthShared.value;
+        const maxX = SCREEN_WIDTH - width - HORIZONTAL_MARGIN;
         const centerX = posX.value + width / 2;
         const snapX =
-          centerX < SCREEN_WIDTH / 2
-            ? HORIZONTAL_MARGIN
-            : SCREEN_WIDTH - width - HORIZONTAL_MARGIN;
+          centerX < SCREEN_WIDTH / 2 ? HORIZONTAL_MARGIN : maxX;
 
-        posX.value = withSpring(snapX, SPRING_CONFIG);
-        posY.value = withSpring(
-          Math.min(Math.max(minYShared.value, posY.value), maxYShared.value),
-          SPRING_CONFIG,
-        );
+        // Fling projects Y, then spring settles into bounds.
+        const projectedY = posY.value + event.velocityY * FLING_Y_SECONDS;
+        const targetY = clamp(projectedY, minYShared.value, maxYShared.value);
+
+        posX.value = withSpring(snapX, {
+          ...SPRING_CONFIG,
+          velocity: event.velocityX,
+        });
+        posY.value = withSpring(targetY, {
+          ...SPRING_CONFIG,
+          velocity: event.velocityY,
+        });
       });
 
     return Gesture.Exclusive(tapGesture, panGesture);
   }, [
     dragStartX,
     dragStartY,
-    isDragging,
     markCustomPosition,
     minYShared,
     maxYShared,
@@ -772,60 +885,117 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
     pillWidthShared,
     posX,
     posY,
+    resetAttentionScale,
+    scale,
   ]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
+  const wrapperStyle = useAnimatedStyle(() => ({
     position: "absolute",
     left: posX.value,
     top: posY.value,
     zIndex: 100,
-    transform: [{ scale: isDragging.value ? 1.02 : 1 }],
+    width: pillWidth,
   }));
 
+  const pillMotionStyle = useAnimatedStyle(() => {
+    const glowStrength = glow.value;
+    return {
+      transform: [
+        { translateX: shakeX.value },
+        { rotate: `${shakeRotate.value}deg` },
+        { scale: scale.value * pulseScale.value },
+      ],
+      borderColor: glowStrength > 0.05 ? "#F57F17" : "#FFE082",
+      borderWidth: glowStrength > 0.05 ? 2 : 1,
+      shadowColor: glowStrength > 0.05 ? "#F57F17" : "#000",
+      shadowOpacity: 0.12 + glowStrength * 0.45,
+      shadowRadius: 8 + glowStrength * 14,
+      elevation: 6 + glowStrength * 8,
+    };
+  });
+
+  const rippleStyleA = useAnimatedStyle(() => {
+    const p = rippleA.value;
+    return {
+      opacity: interpolate(p, [0, 0.12, 1], [0, 0.75, 0]),
+      transform: [{ scale: interpolate(p, [0, 1], [1, 1.9]) }],
+    };
+  });
+
+  const rippleStyleB = useAnimatedStyle(() => {
+    const p = rippleB.value;
+    return {
+      opacity: interpolate(p, [0, 0.12, 1], [0, 0.55, 0]),
+      transform: [{ scale: interpolate(p, [0, 1], [1, 2.25]) }],
+    };
+  });
+
+  const rippleRadius = isCompact ? COMPACT_SIZE / 2 : 16;
+
   return (
-    <GestureDetector gesture={composedGesture}>
-      <Animated.View
-        style={[
-          isCompact ? styles.compactContainer : styles.container,
-          { width: pillWidth, height: isCompact ? COMPACT_SIZE : undefined },
-          animatedStyle,
-        ]}
-      >
-        {isCompact ? (
-          <View style={styles.compactContent}>
-            <MaterialCommunityIcons
-              name="truck-delivery"
-              size={26}
-              color="#F57F17"
-            />
-            {activeOrders.length > 1 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{activeOrders.length}</Text>
+    <Animated.View style={wrapperStyle} pointerEvents="box-none">
+      <View style={styles.pillAnchor}>
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.ripple,
+            { borderRadius: rippleRadius },
+            rippleStyleA,
+          ]}
+        />
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.ripple,
+            { borderRadius: rippleRadius },
+            rippleStyleB,
+          ]}
+        />
+        <GestureDetector gesture={composedGesture}>
+          <Animated.View
+            style={[
+              isCompact ? styles.compactContainer : styles.container,
+              { width: pillWidth, height: isCompact ? COMPACT_SIZE : undefined },
+              pillMotionStyle,
+            ]}
+          >
+            {isCompact ? (
+              <View style={styles.compactContent}>
+                <MaterialCommunityIcons
+                  name="truck-delivery"
+                  size={26}
+                  color="#F57F17"
+                />
+                {activeOrders.length > 1 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{activeOrders.length}</Text>
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View style={styles.content}>
+                <MaterialCommunityIcons
+                  name="truck-delivery"
+                  size={22}
+                  color="#F57F17"
+                />
+                <Text style={styles.label} numberOfLines={1}>
+                  {label}
+                </Text>
+                <View style={styles.actionPill}>
+                  <Text style={styles.actionText}>{actionLabel}</Text>
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={16}
+                    color="#fff"
+                  />
+                </View>
               </View>
             )}
-          </View>
-        ) : (
-          <View style={styles.content}>
-            <MaterialCommunityIcons
-              name="truck-delivery"
-              size={22}
-              color="#F57F17"
-            />
-            <Text style={styles.label} numberOfLines={1}>
-              {label}
-            </Text>
-            <View style={styles.actionPill}>
-              <Text style={styles.actionText}>{actionLabel}</Text>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={16}
-                color="#fff"
-              />
-            </View>
-          </View>
-        )}
-      </Animated.View>
-    </GestureDetector>
+          </Animated.View>
+        </GestureDetector>
+      </View>
+    </Animated.View>
   );
 });
 
@@ -903,6 +1073,19 @@ const ActiveDeliveryFloat = ({
 };
 
 const styles = StyleSheet.create({
+  pillAnchor: {
+    position: "relative",
+  },
+  ripple: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderWidth: 2.5,
+    borderColor: "#F57F17",
+    backgroundColor: "rgba(245, 127, 23, 0.14)",
+  },
   container: {
     backgroundColor: "#FFF7CD",
     borderRadius: 16,
