@@ -27,6 +27,10 @@ import recentSearchSlice, {
 import recentlyViewedSlice from "./features/recentlyViewedSlice";
 import appSyncSlice from "./features/appSyncSlice";
 import driverOrderSlice, { driverOrderApi } from "./features/driverOrderSlice";
+import homePromoSlice, { homePromoApi } from "./features/homePromoSlice";
+import adminHomePromoSlice, {
+  adminHomePromoApi,
+} from "./features/adminHomePromoSlice";
 import handle401Middleware from "./handle401Middleware";
 import handleLogoutMiddleware from "./handleLogoutMiddleware";
 import asyncStorageMiddleware from "./asyncStorageMiddleware";
@@ -84,6 +88,10 @@ const store = configureStore({
     appSync: appSyncSlice,
     driverOrder: driverOrderSlice,
     [driverOrderApi.reducerPath]: driverOrderApi.reducer,
+    homePromo: homePromoSlice,
+    [homePromoApi.reducerPath]: homePromoApi.reducer,
+    adminHomePromo: adminHomePromoSlice,
+    [adminHomePromoApi.reducerPath]: adminHomePromoApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -111,6 +119,8 @@ const store = configureStore({
       .concat(adminSyncVersionsApi.middleware)
       .concat(driverOrderApi.middleware)
       .concat(khataApi.middleware)
+      .concat(homePromoApi.middleware)
+      .concat(adminHomePromoApi.middleware)
       .concat(asyncStorageMiddleware)
       .concat(handle401Middleware)
       //.concat(handleLogoutMiddleware),

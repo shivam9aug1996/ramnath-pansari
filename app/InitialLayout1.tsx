@@ -24,28 +24,7 @@ type GestureSummary = {
   dirty: boolean;
 };
 
-function logJitter(event: JitterEvent) {
-  console.log("[scroll-jitter]", {
-    y: event.y.toFixed(1),
-    dy: event.dy.toFixed(1),
-    dt: event.dt.toFixed(1),
-    avg: event.avg.toFixed(1),
-    jump: event.jump,
-    hitch: event.hitch,
-  });
-}
 
-function logSummary(summary: GestureSummary) {
-  console.log("[scroll-jitter-summary]", {
-    samples: summary.samples,
-    jumpCount: summary.jumpCount,
-    hitchCount: summary.hitchCount,
-    maxAbsDy: summary.maxAbsDy.toFixed(1),
-    maxDt: summary.maxDt.toFixed(1),
-    deltaY: summary.deltaY.toFixed(1),
-    dirty: summary.dirty,
-  });
-}
 
 export function InitialLayout1() {
   const data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -107,31 +86,11 @@ export function InitialLayout1() {
       if (jump) jumpCount.value += 1;
       if (hitch) hitchCount.value += 1;
 
-      if (jump || hitch) {
-        runOnJS(logJitter)({
-          y,
-          dy,
-          dt,
-          avg: avgAbsDy.value,
-          jump,
-          hitch,
-        });
-      }
-
       lastY.value = y;
       lastT.value = t;
     },
     onEndDrag: () => {
       isDragging.value = 0;
-      runOnJS(logSummary)({
-        samples: samples.value,
-        jumpCount: jumpCount.value,
-        hitchCount: hitchCount.value,
-        maxAbsDy: maxAbsDy.value,
-        maxDt: maxDt.value,
-        deltaY: endY.value - startY.value,
-        dirty: jumpCount.value > 0 || hitchCount.value > 0,
-      });
     },
   });
 

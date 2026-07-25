@@ -534,7 +534,7 @@ export const findMaxQuantityChanges = (prevCart, nextCart) =&gt; {
           nextMaxQuantity &lt; prevMaxQuantity &amp;&amp;
           (prevQty &gt; nextMaxQuantity || <span class="branch-2 cbranch-no" title="branch not covered" >qtyWasCapped)</span>
         ) {
-          console.log("[cart-sync] maxQuantity:block checkout", {
+          <!-- console.log("[cart-sync] maxQuantity:block checkout", {
             productId: nextItem.productId,
             productName: nextItem.productDetails.name,
             prevMaxQuantity,
@@ -542,7 +542,7 @@ export const findMaxQuantityChanges = (prevCart, nextCart) =&gt; {
             prevQty,
             nextQty,
             qtyWasCapped,
-          });
+          }); -->
           maxQuantityChanges.push({
             productId: nextItem.productId,
             productName: nextItem.productDetails.name,

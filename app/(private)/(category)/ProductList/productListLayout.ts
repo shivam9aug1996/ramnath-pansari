@@ -1,7 +1,8 @@
 /** Shared product grid layout — keep placeholder and list in sync on every screen size. */
 import { Product } from "@/types/global";
-
-export const PRODUCT_CARD_HEIGHT = 280;
+import { Dimensions, Platform } from "react-native";
+/** Must fit square image + name (3 lines) + discount + price; was 280 and clipped price on web. */
+export const PRODUCT_CARD_HEIGHT = Dimensions.get("window").width > 390 ? 320 : 280;
 /** Space reserved for category/subcategory chrome — keep in sync with list paddingTop */
 export const CATEGORY_CHROME_ESTIMATED_HEIGHT = 170;
 export const PRODUCT_LIST_PADDING_TOP = CATEGORY_CHROME_ESTIMATED_HEIGHT;

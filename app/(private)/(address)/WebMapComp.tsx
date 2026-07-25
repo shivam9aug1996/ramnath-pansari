@@ -1,8 +1,14 @@
-import { ActivityIndicator, AppState, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  AppState,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { devError, devLog } from "@/utils/devLog";
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
-import WebView from "react-native-webview";
 import { hostUrl } from "@/redux/constants";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/types/global";
@@ -15,6 +21,7 @@ import {
   LocationPermissionError,
   openAppSettings,
 } from "@/utils/locationPermission";
+import AddressMapEmbed from "@/components/address/AddressMapEmbed";
 
 const WebMapComp = ({
   latitude,
@@ -30,7 +37,7 @@ const WebMapComp = ({
   const [mapKey, setMapKey] = useState(0);
   const [currentLocation, setCurrentLocation] = useState<any>(null);
   const currentAddressData = useSelector(
-    (state: RootState) => state?.address?.currentAddressData
+    (state: RootState) => state?.address?.currentAddressData,
   );
   const dispatch = useDispatch();
   const [loc, setLoc] = useState<any>(null);
@@ -84,8 +91,18 @@ const WebMapComp = ({
     setIsLoading(false);
   }, []);
 
+  const handleMapLoadStart = useCallback(() => {
+    setIsLoading(true);
+  }, []);
+
+  const handleMapLoadEnd = useCallback(() => {
+    setIsLoading(false);
+  }, []);
+
   const handleRetry = useCallback(() => {
-    if (needsSettings) {
+    // Native: open OS settings when permanently denied.
+    // Web: browsers can't deep-link site settings — user enables via lock icon, then retries.
+    if (needsSettings && Platform.OS !== "web") {
       openAppSettings();
       return;
     }
@@ -98,6 +115,35 @@ const WebMapComp = ({
     setMapKey((key) => key + 1);
   }, [fetchLocation1, loc, needsSettings]);
 
+  const mapUri = useMemo(() => {
+    if (!loc) return "";
+    return `${hostUrl}/addressMap?lat=${loc.latitude}&lng=${loc.longitude}&cLat=${currentLocation?.latitude}&cLng=${currentLocation?.longitude}`;
+  }, [loc, currentLocation?.latitude, currentLocation?.longitude]);
+
+  const handleLocationMessage = useCallback(
+    (raw: string) => {
+      try {
+        const data = JSON.parse(raw);
+        devLog("Received location:", data);
+        dispatch(
+          setCurrentAddressData({
+            ...currentAddressData,
+            form: {
+              ...currentAddressData?.form,
+              address: data.address,
+              latitude: data?.lat,
+              longitude: data?.lng,
+            },
+          }),
+        );
+        router.back();
+      } catch (err) {
+        devError("Invalid JSON from map embed", err);
+      }
+    },
+    [currentAddressData, dispatch],
+  );
+
   return (
     <ScreenSafeWrapper title="Select Address">
       {loadError ? (
@@ -105,71 +151,30 @@ const WebMapComp = ({
           refetch={handleRetry}
           title={needsSettings ? "Location permission needed" : undefined}
           message={loadError}
-          actionTitle={needsSettings ? "Open Settings" : "Try Again"}
+          actionTitle={
+            needsSettings && Platform.OS !== "web" ? "Open Settings" : "Try Again"
+          }
         />
       ) : (
-        <>
-          {isLoading && (
-            <View style={styles.loaderContainer}>
+        <View style={styles.mapArea}>
+          {loc && mapUri ? (
+            <AddressMapEmbed
+              uri={mapUri}
+              mapKey={mapKey}
+              authToken={token}
+              isLoading={isLoading}
+              onLoadStart={handleMapLoadStart}
+              onLoadEnd={handleMapLoadEnd}
+              onError={handleMapError}
+              onLocationMessage={handleLocationMessage}
+            />
+          ) : (
+            <View style={styles.centeredFill}>
               <ActivityIndicator size="small" color={Colors.light.lightGreen} />
               <Text style={styles.loaderText}>Loading map...</Text>
             </View>
           )}
-          <View style={{ flex: 1, marginTop: 20 }}>
-            {loc && (
-              <WebView
-                key={mapKey}
-                cacheMode="LOAD_CACHE_ELSE_NETWORK"
-                onContentSizeChange={(event) => {
-                  devLog("onContentSizeChange", event);
-                }}
-                onLoad={() => {
-                  devLog("onLoad");
-                  setIsLoading(false);
-                }}
-                cacheEnabled={true}
-                onLoadStart={() => {
-                  devLog("onLoadStart");
-                  setIsLoading(true);
-                }}
-                onLoadEnd={() => {
-                  devLog("onLoadEnd");
-                  setIsLoading(false);
-                }}
-                onError={handleMapError}
-                onHttpError={handleMapError}
-                source={{
-                  uri: `${hostUrl}/addressMap?lat=${loc?.latitude}&lng=${loc?.longitude}&cLat=${currentLocation?.latitude}&cLng=${currentLocation?.longitude}`,
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                  },
-                }}
-                onMessage={(event) => {
-                  try {
-                    const data = JSON.parse(event.nativeEvent.data);
-                    devLog("Received location:", data);
-                    dispatch(
-                      setCurrentAddressData({
-                        ...currentAddressData,
-                        form: {
-                          ...currentAddressData?.form,
-                          address: data.address,
-                          latitude: data?.lat,
-                          longitude: data?.lng,
-                        },
-                      })
-                    );
-                    router.back();
-                  } catch (err) {
-                    devError("Invalid JSON from WebView", err);
-                  }
-                }}
-                style={{ flex: 1, borderRadius: 20, overflow: "hidden" }}
-              />
-            )}
-          </View>
-        </>
+        </View>
       )}
     </ScreenSafeWrapper>
   );
@@ -178,12 +183,16 @@ const WebMapComp = ({
 export default memo(WebMapComp);
 
 const styles = StyleSheet.create({
-  loaderContainer: {
+  mapArea: {
+    flex: 1,
+    marginTop: 20,
+    minHeight: 0,
+  },
+  centeredFill: {
+    flex: 1,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 12,
-    flex: 1,
   },
   loaderText: {
     marginLeft: 8,

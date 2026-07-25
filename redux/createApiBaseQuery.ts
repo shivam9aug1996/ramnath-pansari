@@ -36,16 +36,23 @@ function summarizeAuthToken(token: string | null | undefined) {
   };
 }
 
+function hasSendableAuthToken(token: string | null | undefined) {
+  return Boolean(token && token !== "null");
+}
+
 /**
  * Shared RTK Query baseQuery: Bearer auth + X-Firebase-AppCheck when available.
  * `cache: "no-store"` avoids browser 304 empty bodies that make RTK see `{ data: undefined }`.
+ *
+ * 401s from requests that went out with no token are tagged `skipClearAuth` so
+ * handle401Middleware does not wipe a session that hydrates mid-flight.
  */
 export function createApiBaseQuery(): BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
 > {
-  return fetchBaseQuery({
+  const rawBaseQuery = fetchBaseQuery({
     baseUrl: `${baseUrl}`,
     credentials: "include",
     fetchFn: (input, init) =>
@@ -74,4 +81,32 @@ export function createApiBaseQuery(): BaseQueryFn<
       return headers;
     },
   });
+
+  return async (args, api, extraOptions) => {
+    const tokenAtStart = (api.getState() as RootLike)?.auth?.token;
+    const sentAuth = hasSendableAuthToken(tokenAtStart);
+    const result = await rawBaseQuery(args, api, extraOptions);
+
+    if (result.error?.status === 401 && !sentAuth) {
+      const prevData = result.error.data;
+      const data =
+        prevData && typeof prevData === "object" && !Array.isArray(prevData)
+          ? { ...(prevData as Record<string, unknown>), skipClearAuth: true }
+          : { skipClearAuth: true, raw: prevData };
+
+      devLog("[api] 401 without token at send — skipClearAuth", {
+        endpoint: api.endpoint,
+      });
+
+      return {
+        ...result,
+        error: {
+          ...result.error,
+          data,
+        },
+      };
+    }
+
+    return result;
+  };
 }

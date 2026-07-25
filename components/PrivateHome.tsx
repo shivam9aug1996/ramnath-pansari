@@ -34,6 +34,8 @@ import {
 import { syncCarouselConfig } from "@/utils/carouselConfigCache";
 import { useFetchActiveDeliveriesQuery } from "@/redux/features/orderSlice";
 import { ACTIVE_FLOAT_STATUS_QUERY } from "@/utils/activeOrderFloat";
+import HomeProductPromo from "@/components/HomeProductPromo";
+import { setPromoDockedInline } from "@/redux/features/homePromoSlice";
 
 const CATEGORY_PLACEHOLDER_COUNT = 3;
 const WEATHER_SECTION_HEIGHT = 100;
@@ -47,6 +49,7 @@ const PrivateHome = () => {
   const categoriesScrollY = useRef(0);
   const layoutOffsets = useRef({ top: 0, sticky: 0, categoriesInMain: 0 });
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const promoDockedInline = useSelector((state: RootState) => state.homePromo.promoDockedInline);
   const token = useSelector((state: RootState) => state?.auth?.token);
   const appSyncReady = useSelector((state: RootState) => state.appSync?.ready);
   const userData = useSelector((state: RootState) => state?.auth?.userData);
@@ -168,6 +171,7 @@ const PrivateHome = () => {
   }, [updateCategoriesScrollOffset]);
 
   return (
+    <>
     <ScreenSafeWrapper
       showBackButton={false}
       wrapperStyle={{ paddingHorizontal: 0 }}
@@ -272,12 +276,21 @@ const PrivateHome = () => {
             </View>
           </DeferredFadeIn>
 
+          {promoDockedInline ? (
+            <DeferredFadeIn delay={250}>
+              <HomeProductPromo variant="inline" />
+            </DeferredFadeIn>
+          ) : null}
+
           <DeferredFadeIn delay={500}>
             <RecentlyViewedProducts variant="compact" />
           </DeferredFadeIn>
         </View>
       </ScrollView>
     </ScreenSafeWrapper>
+    {/* Kill switch: comment out + set ENABLE_HOME_PRODUCT_PROMO=false */}
+    
+    </>
   );
 };
 

@@ -68,11 +68,18 @@ const handle401Middleware = (store: any) => (next: any) => (action: any) => {
     const auth = authSnapshot(store);
     // In-flight requests (e.g. fetchGreetingMessage) often 401 during/after logout —
     // don't toast / clearAuth again.
-    if (auth.tokenKind === "none" || auth.isClearingAuth) {
-      devLog("[api-error] 401 ignored (logout in progress or already logged out)", {
+    // Also ignore 401s from requests that left with no bearer (auth still hydrating);
+    // otherwise a late JWT hydrate gets wiped by middleware's missing-token 401.
+    if (
+      auth.tokenKind === "none" ||
+      auth.isClearingAuth ||
+      responseData?.skipClearAuth
+    ) {
+      devLog("[api-error] 401 ignored (logout in progress, already logged out, or no token sent)", {
         endpointName,
         status,
         errorMessage,
+        skipClearAuth: Boolean(responseData?.skipClearAuth),
         actionType: action?.type,
         ...auth,
       });

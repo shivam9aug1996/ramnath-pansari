@@ -7,7 +7,7 @@ export const recentSearchApi = createApi({
   reducerPath: "recentSearchApi",
   baseQuery: createApiBaseQuery(),
   tagTypes: ["recentSearch"],
-  //keepUnusedDataFor: 0,
+  keepUnusedDataFor: 20,
   endpoints: (builder) => ({
     fetchRecentSearch: builder.query({
       query: (data) => ({

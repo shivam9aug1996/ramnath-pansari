@@ -385,6 +385,14 @@ const Home = () => {
               iconBg="#CCFBF1"
             />
             <ActionCard
+              title="Home promo"
+              subtitle="Product video ad bubble"
+              href="/admin/home-promo"
+              icon="play-circle-outline"
+              tint="#C2410C"
+              iconBg="#FFEDD5"
+            />
+            <ActionCard
               title="Delivery"
               subtitle="Shipping & free delivery"
               href="/admin/delivery-settings"

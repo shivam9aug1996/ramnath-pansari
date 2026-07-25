@@ -8,7 +8,8 @@ const CategorySelector = ({
   selectedCategory,
   onSelectCategory,
   contentContainerStyle,
-  variant = "small"
+  variant = "small",
+  flatListRef,
 }: CategorySelectorProps) => {
   const renderCategory = ({ item, index }: { item: any; index: number }) => {
     const isSelected = item._id === selectedCategory?._id;
@@ -25,7 +26,8 @@ const CategorySelector = ({
 
   return (
     <FlatList
-    nestedScrollEnabled={true}
+      ref={flatListRef}
+      nestedScrollEnabled={true}
       horizontal
       bounces={Platform.OS !== "android"}
       contentContainerStyle={contentContainerStyle}
@@ -33,6 +35,15 @@ const CategorySelector = ({
       keyExtractor={(item) => item._id}
       renderItem={renderCategory}
       showsHorizontalScrollIndicator={false}
+      onScrollToIndexFailed={(info) => {
+        setTimeout(() => {
+          flatListRef?.current?.scrollToIndex?.({
+            index: info.index,
+            animated: true,
+            viewPosition: 0.3,
+          });
+        }, 100);
+      }}
     />
   );
 };

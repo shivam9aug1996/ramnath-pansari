@@ -1,72 +1,19 @@
 import React from "react";
-import { Platform, StyleSheet, useWindowDimensions, View } from "react-native";
-import ContentLoader, { Rect } from "react-content-loader/native";
+import { StyleSheet, View } from "react-native";
 
 export const DEFAULT_MAP_LOADER_HEIGHT = 324;
 
 type Props = {
   height?: number;
-  width?: number;
 };
 
-const MapLoaderSkeleton = ({
-  height = DEFAULT_MAP_LOADER_HEIGHT,
-  width,
-}: Props) => {
-  const { width: windowWidth } = useWindowDimensions();
-  const mapWidth = width ?? windowWidth;
-
-  if (Platform.OS === "web") {
-    return (
-      <View style={[styles.wrap, { height, width: mapWidth }]}>
-        <View style={styles.webMapFill} />
-        <View
-          style={[
-            styles.webSearchBar,
-            {
-              width: mapWidth * 0.84,
-              left: mapWidth * 0.08,
-            },
-          ]}
-        />
-        <View
-          style={[
-            styles.webPin,
-            {
-              left: mapWidth * 0.35,
-              top: height * 0.55,
-            },
-          ]}
-        />
-      </View>
-    );
-  }
-
+/** Static map placeholder — same on iOS, Android, and web. Fills parent width. */
+const MapLoaderSkeleton = ({ height = DEFAULT_MAP_LOADER_HEIGHT }: Props) => {
   return (
     <View style={[styles.wrap, { height }]}>
-      <ContentLoader
-        speed={1}
-        width={mapWidth}
-        height={height}
-        backgroundColor="#E8EDEA"
-        foregroundColor="#D4DDD8"
-      >
-        <Rect x="0" y="0" width={mapWidth} height={height} rx={0} />
-        <Rect
-          x={mapWidth * 0.08}
-          y={52}
-          width={mapWidth * 0.84}
-          height={44}
-          rx={12}
-        />
-        <Rect
-          x={mapWidth * 0.35}
-          y={height * 0.55}
-          width={48}
-          height={48}
-          rx={24}
-        />
-      </ContentLoader>
+      <View style={styles.mapFill} />
+      <View style={styles.searchBar} />
+      {/* <View style={styles.pin} /> */}
     </View>
   );
 };
@@ -75,28 +22,34 @@ export default MapLoaderSkeleton;
 
 const styles = StyleSheet.create({
   wrap: {
+    width: "100%",
+    alignSelf: "stretch",
     overflow: "hidden",
     backgroundColor: "#EEF2EF",
   },
-  webMapFill: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  mapFill: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "#E8EDEA",
   },
-  webSearchBar: {
-    position: "absolute",
-    top: 52,
-    height: 44,
+  searchBar: {
+   // position: "absolute",
+    
+    // left: "8%",
+    // right: "8%",
+    // width: "100%",
+    height: 55,
     borderRadius: 12,
     backgroundColor: "#D4DDD8",
+    marginHorizontal:12,
+    marginTop:12,
   },
-  webPin: {
+  pin: {
     position: "absolute",
+    top: "55%",
+    left: "35%",
     width: 48,
     height: 48,
+    marginTop: -24,
     borderRadius: 24,
     backgroundColor: "#D4DDD8",
   },

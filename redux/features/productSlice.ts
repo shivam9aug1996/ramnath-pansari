@@ -102,7 +102,7 @@ export const productApi = createApi({
         if (page === 1) {
 
           if (arg?.reset === true) {
-            console.log("reset is true");
+           // console.log("reset is true");
             // drop scrolled pages 2+; keep only fresh page-1 result
             currentCache.products = [...(newItems.products ?? [])];
             currentCache.currentPage = newItems.currentPage;

@@ -1,5 +1,5 @@
-import { StyleSheet } from "react-native";
-import { devError, devLog, devWarn } from "@/utils/devLog";
+import { Platform, StyleSheet } from "react-native";
+import { devError, devLog } from "@/utils/devLog";
 import { useState } from "react";
 import {
   useCreatePreOrderMutation,
@@ -23,6 +23,7 @@ import {
   getStoreClosedMessage,
   canAcceptOrders,
 } from "@/utils/storeConfig";
+import { openRazorpayWebCheckout } from "@/utils/razorpayWeb";
 
 interface PreOrderResponse {
   data: {
@@ -31,65 +32,22 @@ interface PreOrderResponse {
   };
 }
 
-interface RazorpayOptions {
-  description: string;
-  currency: string;
-  key: string;
-  amount: number;
-  name: string;
-  order_id: string;
-  prefill: {
-    email: string;
-    contact: string;
-    name: string;
-  };
-  theme: {
-    color: string;
-  };
-}
-
 const isLive =
   !process.env.NODE_ENV || process.env.NODE_ENV === "development"
     ? false
     : true;
 
-// Function to safely get Razorpay key
 const getRazorpayKey = () => {
   const key = isLive
     ? process.env.EXPO_PUBLIC_RAZORPAY_KEY_LIVE
     : process.env.EXPO_PUBLIC_RAZORPAY_KEY_TEST;
-  
+
   if (!key) {
-    throw new Error('Razorpay key is not configured. Please check your environment variables.');
+    throw new Error(
+      "Razorpay key is not configured. Please check your environment variables.",
+    );
   }
   return key;
-};
-
-// Separate function to create Razorpay options
-const getRazorpayOptions = (
-  amount: number,
-  orderId: string,
-  userInfo: { name: string; mobileNumber: string | undefined }
-): RazorpayOptions => {
-  try {
-    return {
-      description: "shopping",
-      currency: "INR",
-      key: getRazorpayKey(),
-      amount: isLive ? 2 : amount,
-      name: "Ramnath Kirana",
-      order_id: orderId,
-      prefill: {
-        email: "",
-        contact: userInfo?.mobileNumber ?? "",
-        name: userInfo?.name ?? "",
-      },
-      theme: { color: Colors.light.lightGreen },
-    };
-  } catch (error) {
-    devError('Error creating Razorpay options:', error);
-    throw error;
-  }
 };
 
 const usePayment = () => {
@@ -97,15 +55,7 @@ const usePayment = () => {
   const userInfo = useSelector((state: RootState) => state.auth?.userData);
   const userId = userInfo?._id;
   const [clearCart] = useClearCartMutation();
-  const [
-    fetchCartData,
-    // {
-    //   data: cartData,
-    //   isLoading: isCartLoading,
-    //   isSuccess: isCartSuccess,
-    //   error: isCartError,
-    // },
-  ] = useLazyFetchCartQuery();
+  const [fetchCartData] = useLazyFetchCartQuery();
 
   const [
     createPreOrder,
@@ -148,6 +98,133 @@ const usePayment = () => {
   const extractProductIds = (cartData: any) =>
     getLockableProductIds(cartData?.cart?.items ?? []);
 
+  const buildCheckoutOptions = (razorpayOrderId: string, amount: number) => ({
+    description: "shopping",
+    currency: "INR",
+    key: getRazorpayKey(),
+    amount: isLive ? 2 : amount,
+    name: "Ramnath Kirana",
+    order_id: razorpayOrderId,
+    prefill: {
+      email: "",
+      contact: userInfo?.mobileNumber ?? "",
+      name: userInfo?.name ?? "",
+    },
+    theme: { color: Colors.light.lightGreen },
+  });
+
+  const completeVerifiedPayment = async (
+    paymentData: Record<string, unknown>,
+    razorpayOrderId: string,
+    addressData: any,
+  ) => {
+    dispatch(setOrderSuccessView(true));
+    const cartData = await fetchCartData({ userId }, true)?.unwrap();
+    const verifyResponse = await verifyPreOrder({
+      ...paymentData,
+      isLive,
+      order_id: razorpayOrderId,
+      cartData,
+      addressData,
+      userId,
+    }).unwrap();
+
+    if (verifyResponse?.verified) {
+      await clearCart({
+        body: {},
+        params: { userId },
+      }).unwrap();
+      await fetchCartData({ userId }, false)?.unwrap();
+      if (verifyResponse?.orderId) {
+        router.dismissTo("/(tabs)/home");
+        router.push("/(order)/order");
+        router.push(`/(orderDetail)/${verifyResponse?.orderId}`);
+      } else {
+        router.dismissAll();
+      }
+    } else {
+      dispatch(setOrderSuccessView(false));
+      showToast({ type: "error", text2: "Payment not verified" });
+    }
+  };
+
+  const openNativeRazorpay = async (
+    options: ReturnType<typeof buildCheckoutOptions>,
+    razorpayOrderId: string,
+    addressData: any,
+  ) => {
+    const RazorpayCheckout = (await import("react-native-razorpay")).default;
+    setIsRazorpayOpened(true);
+
+    return RazorpayCheckout.open(options)
+      .then(async (data) => {
+        try {
+          await completeVerifiedPayment(data, razorpayOrderId, addressData);
+        } catch (verifyError: any) {
+          dispatch(setOrderSuccessView(false));
+          devLog("[product-lock] payment:online:verify-failed", {
+            userId,
+            status: verifyError?.status,
+            data: verifyError?.data,
+          });
+          showToast({
+            type: "error",
+            text2:
+              verifyError?.data?.message ||
+              "Payment received but order could not be placed. Please contact support.",
+          });
+        }
+      })
+      .catch((error) => {
+        devError("Payment failed:", error);
+        showToast({
+          type: "error",
+          text2: error?.description || "Payment failed",
+        });
+      })
+      .finally(() => {
+        setIsPaymentProcessing(false);
+        setIsRazorpayOpened(false);
+      });
+  };
+
+  const openWebRazorpay = async (
+    options: ReturnType<typeof buildCheckoutOptions>,
+    razorpayOrderId: string,
+    addressData: any,
+  ) => {
+    setIsRazorpayOpened(true);
+    try {
+      const data = await openRazorpayWebCheckout(options);
+      try {
+        await completeVerifiedPayment(data, razorpayOrderId, addressData);
+      } catch (verifyError: any) {
+        dispatch(setOrderSuccessView(false));
+        devLog("[product-lock] payment:online:verify-failed", {
+          userId,
+          platform: "web",
+          status: verifyError?.status,
+          data: verifyError?.data,
+        });
+        showToast({
+          type: "error",
+          text2:
+            verifyError?.data?.message ||
+            "Payment received but order could not be placed. Please contact support.",
+        });
+      }
+    } catch (error: any) {
+      devError("Payment failed (web):", error);
+      showToast({
+        type: "error",
+        text2: error?.description || error?.message || "Payment failed",
+      });
+    } finally {
+      setIsPaymentProcessing(false);
+      setIsRazorpayOpened(false);
+    }
+  };
+
   const handleOnClick = async (amount: number, addressData: any) => {
     try {
       const placementError = validateBeforePayment(addressData);
@@ -158,14 +235,13 @@ const usePayment = () => {
 
       setIsPaymentProcessing(true);
 
-      amount = amount;
-
       const cartData = await fetchCartData({ userId }, true)?.unwrap();
       const productIds = extractProductIds(cartData);
       devLog("[product-lock] payment:online:start", {
         userId,
         productIds,
         amount,
+        platform: Platform.OS,
       });
 
       const res: PreOrderResponse = await createPreOrder({
@@ -179,80 +255,13 @@ const usePayment = () => {
         razorpayOrderId: res.data.id,
       });
 
+      const options = buildCheckoutOptions(res.data.id, amount);
 
-      const options = {
-        description: "shopping",
-        currency: "INR",
-        key: getRazorpayKey(),
-        amount: isLive ? 2 : amount,
-        name: "Ramnath Kirana",
-        order_id: res.data.id,
-        prefill: {
-          email: "",
-          contact: userInfo?.mobileNumber ?? "",
-          name: userInfo?.name ?? "",
-        },
-        theme: { color: Colors.light.lightGreen },
+      if (Platform.OS === "web") {
+        await openWebRazorpay(options, res.data.id, addressData);
+      } else {
+        await openNativeRazorpay(options, res.data.id, addressData);
       }
-
-      const RazorpayCheckout = (await import("react-native-razorpay")).default;
-
-      RazorpayCheckout.open(options)
-        .then(async (data) => {
-          try {
-            dispatch(setOrderSuccessView(true));
-            const cartData = await fetchCartData({ userId }, true)?.unwrap();
-            const verifyResponse = await verifyPreOrder({
-              ...data,
-              isLive,
-              order_id: res.data.id,
-              cartData,
-              addressData,
-              userId,
-            }).unwrap();
-            if (verifyResponse?.verified) {
-              await clearCart({
-                body: {},
-                params: { userId },
-              }).unwrap();
-              await fetchCartData({ userId }, false)?.unwrap();
-              if (verifyResponse?.orderId) {
-                router.dismissTo("/(tabs)/home");
-                router.push("/(order)/order");
-                router.push(`/(orderDetail)/${verifyResponse?.orderId}`);
-              } else {
-                router.dismissAll();
-              }
-            } else {
-              dispatch(setOrderSuccessView(false));
-              showToast({ type: "error", text2: "Payment not verified" });
-            }
-          } catch (verifyError: any) {
-            dispatch(setOrderSuccessView(false));
-            devLog("[product-lock] payment:online:verify-failed", {
-              userId,
-              status: verifyError?.status,
-              data: verifyError?.data,
-            });
-            showToast({
-              type: "error",
-              text2:
-                verifyError?.data?.message ||
-                "Payment received but order could not be placed. Please contact support.",
-            });
-          }
-        })
-        .catch((error) => {
-          devError("Payment failed:", error);
-          showToast({
-            type: "error",
-            text2: error?.description || "Payment failed",
-          });
-        })
-        .finally(() => {
-          setIsPaymentProcessing(false);
-          setIsRazorpayOpened(false);
-        });
     } catch (error: any) {
       devLog("[product-lock] payment:online:pre-order-failed", {
         userId,
@@ -321,9 +330,6 @@ const usePayment = () => {
       });
     } finally {
       setIsPaymentProcessing(false);
-      // setTimeout(() => {
-      //   dispatch(setOrderSuccessView(false));
-      // }, 2500);
     }
   };
 

@@ -7,6 +7,7 @@ import { useFetchCarouselQuery } from "@/redux/features/carouselSlice";
 import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
 import { RootState } from "@/types/global";
 import { devLog } from "@/utils/devLog";
+import { useFetchRecentSearchQuery } from "@/redux/features/recentSearchSlice";
 
 const NO_AUTO_REFETCH = {
   refetchOnMountOrArgChange: false,
@@ -35,10 +36,20 @@ export default function PromoConfigCacheRetainer() {
     !localHydrated ||
     Boolean(isAdminUser) ||
     Boolean(isDriverUser);
+  
+  const skipRecentSearch = skipBase; 
 
   // Guests only sync carousel + category; skip promo/store for them.
   const skipPromo = skipBase || Boolean(isGuestUser);
   const skipBrowse = skipBase;
+
+  const recentSearch = useFetchRecentSearchQuery(
+    { userId: userId! },
+    {
+      ...NO_AUTO_REFETCH,
+      skip: skipRecentSearch || !userId,
+    },
+  );
 
   const offers = useFetchOffersQuery(undefined, {
     ...NO_AUTO_REFETCH,

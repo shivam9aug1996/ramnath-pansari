@@ -1,4 +1,5 @@
 import * as Location from "expo-location";
+import { Platform } from "react-native";
 import {
   checkDeliveryRadius,
   resolveDeliveryRadius,
@@ -20,6 +21,16 @@ export const getLatLng = (
   return { latitude, longitude };
 };
 
+function isGeolocationDeniedMessage(message: string) {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("denied") ||
+    lower.includes("permission") ||
+    lower.includes("secure origins") ||
+    lower.includes("only secure origins")
+  );
+}
+
 export const fetchLocation = async () => {
   const permission = await ensureForegroundLocationPermission();
   if (permission.status !== "granted") {
@@ -31,7 +42,16 @@ export const fetchLocation = async () => {
       await Location.getCurrentPositionAsync({});
     return getLatLng(location);
   } catch (error: any) {
-    throw Error(error?.message || "Error while fetching lat and long");
+    const message = String(error?.message || "");
+    if (isGeolocationDeniedMessage(message)) {
+      throw new LocationPermissionError(
+        false,
+        Platform.OS === "web"
+          ? "Location is blocked for this site. Click the lock icon in the address bar → Site settings → Location → Allow, then tap Try Again."
+          : undefined,
+      );
+    }
+    throw Error(message || "Error while fetching lat and long");
   }
 };
 

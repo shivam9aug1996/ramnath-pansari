@@ -33,6 +33,7 @@ const CategoryList = ({
   const [selectedSubCategory, setSelectedSubCategory] =
     useState<SubCategory | null>(null);
   const subCatFlatListRef = useRef(null);
+  const catFlatListRef = useRef(null);
 
   const dispatch = useDispatch();
  // console.log("selectedCategoryIdIndex234567890878-",selectedSubCategory)
@@ -51,8 +52,16 @@ const CategoryList = ({
   // }, [selectedCategoryIdIndex, categories, parentCategory]);
 
   useEffect(() => {
-    if (selectedCategoryIdIndex!==undefined && categories) {
+    if (
+      selectedCategoryIdIndex !== undefined &&
+      categories?.length &&
+      selectedCategoryIdIndex >= 0 &&
+      selectedCategoryIdIndex < categories.length
+    ) {
       setSelectedCategory(categories[selectedCategoryIdIndex]);
+      requestAnimationFrame(() => {
+        scrollToIndex(catFlatListRef, selectedCategoryIdIndex, 0.3);
+      });
     }
   }, [selectedCategoryIdIndex, categories]);
 
@@ -213,6 +222,7 @@ const handleSelectCategory = useCallback((category: Category) => {
             selectedCategory={selectedCategory}
             onSelectCategory={handleSelectCategory}
             contentContainerStyle={contentContainerStyle}
+            flatListRef={catFlatListRef}
          />
         //  </DeferredFadeIn>
         

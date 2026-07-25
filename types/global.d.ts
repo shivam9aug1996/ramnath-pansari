@@ -117,6 +117,7 @@ export interface CategorySelectorProps {
   onSelectCategory: (category: Category) => void;
   contentContainerStyle?: StyleProp<ViewStyle>;
   variant?: "small" | "large";
+  flatListRef?: any;
 }
 
 export interface SubCategorySelectorProps {
@@ -582,6 +583,29 @@ export interface CarouselBannerDocument {
 
 export interface CarouselResponse {
   banners: CarouselBannerDocument[];
+}
+
+export interface HomeProductPromoDocument {
+  id: string;
+  enabled: boolean;
+  productId?: string;
+  productName?: string;
+  title?: string;
+  ctaLabel?: string;
+  videoUrl?: string;
+  posterUrl?: string;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HomeProductPromoResponse {
+  promo: HomeProductPromoDocument | null;
+}
+
+export interface AdminHomeProductPromoResponse {
+  promo: HomeProductPromoDocument;
 }
 
 export type AdminCarouselDocument = CarouselBannerDocument;

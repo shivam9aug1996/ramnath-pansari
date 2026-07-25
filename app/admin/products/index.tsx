@@ -1,10 +1,11 @@
 import React, { useCallback, useState } from 'react'
 import { FlatList, RefreshControl, TouchableOpacity, View } from 'react-native'
 import Ionicons from '@expo/vector-icons/Ionicons'
+import { useSelector } from 'react-redux'
 import AdminScreen from '@/app/admin/components/AdminScreen'
 import { useRouter } from 'expo-router'
 import { useListAdminProductsQuery } from '@/redux/features/adminProductSlice'
-import { AdminProductDocument } from '@/types/global'
+import { AdminProductDocument, RootState } from '@/types/global'
 import { adminListStyles, adminTheme } from '@/app/admin/theme'
 import HeaderBar from '@/app/admin/components/HeaderBar'
 import AdminAddButton from '@/app/admin/components/AdminAddButton'
@@ -25,6 +26,10 @@ const STOCK_FILTERS = [
 const AdminProductsScreen = () => {
   const listRef = React.useRef<FlatList<AdminProductDocument>>(null)
   const router = useRouter()
+  const token = useSelector((state: RootState) => state?.auth?.token)
+  const isAdminUser = useSelector(
+    (state: RootState) => state?.auth?.userData?.isAdminUser,
+  )
   const [page, setPage] = useState(1)
   const [stock, setStock] = useState<string | undefined>(undefined)
   const [search, setSearch] = useState('')
@@ -36,15 +41,18 @@ const AdminProductsScreen = () => {
     listRef.current?.scrollToOffset({ offset: 0, animated: false })
   }, [stock, debouncedSearch])
 
-  const { data, isFetching, isLoading, refetch } = useListAdminProductsQuery({
-    page,
-    limit: 20,
-    search: debouncedSearch || undefined,
-    stock:
-      stock === 'promo_only' || stock === 'deleted' ? undefined : stock,
-    promoOnly: stock === 'promo_only' ? 'true' : undefined,
-    deleted: stock === 'deleted' ? 'true' : undefined,
-  })
+  const { data, isFetching, isLoading, refetch } = useListAdminProductsQuery(
+    {
+      page,
+      limit: 20,
+      search: debouncedSearch || undefined,
+      stock:
+        stock === 'promo_only' || stock === 'deleted' ? undefined : stock,
+      promoOnly: stock === 'promo_only' ? 'true' : undefined,
+      deleted: stock === 'deleted' ? 'true' : undefined,
+    },
+    { skip: !token || !isAdminUser },
+  )
 
   React.useEffect(() => {
     if (pullRefreshing && !isFetching) setPullRefreshing(false)
