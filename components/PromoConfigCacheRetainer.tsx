@@ -37,7 +37,6 @@ export default function PromoConfigCacheRetainer() {
     Boolean(isAdminUser) ||
     Boolean(isDriverUser);
   
-  const skipRecentSearch = skipBase; 
 
   // Guests only sync carousel + category; skip promo/store for them.
   const skipPromo = skipBase || Boolean(isGuestUser);
@@ -47,7 +46,7 @@ export default function PromoConfigCacheRetainer() {
     { userId: userId! },
     {
       ...NO_AUTO_REFETCH,
-      skip: skipRecentSearch || !userId,
+      skip: skipPromo || !userId,
     },
   );
 

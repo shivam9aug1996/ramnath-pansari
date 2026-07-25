@@ -54,7 +54,6 @@ const styles = StyleSheet.create({
     width: CARD_W,
     height: CARD_H,
     right: 14,
-    backgroundColor: "red",
     borderRadius: CARD_RADIUS,
   },
 });
