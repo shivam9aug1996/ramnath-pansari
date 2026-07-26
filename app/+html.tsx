@@ -31,7 +31,7 @@ export default function Root({ children }: PropsWithChildren) {
             <span className="web-brand-skel-text" />
           </div>
           <div className="web-brand-content">
-            <img src="/web-logo1.webp" alt="" />
+            <img src="/brand-logo.webp" alt="" />
             <span>Ramnath Pansari</span>
           </div>
         </div>
