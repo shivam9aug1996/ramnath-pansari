@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import {
   createApi,
   fakeBaseQuery,
@@ -358,6 +358,7 @@ const authSlice = createSlice({
     token: null,
     userData: null,
     lastSavedPushToken: null, // Add this new field
+    hasSeenOnboarding: false,
     saveAuthData: {
       data: null,
       isLoading: false,
@@ -394,6 +395,9 @@ const authSlice = createSlice({
     },
     setLastSavedPushToken: (state, action) => {
       state.lastSavedPushToken = action.payload;
+    },
+    setOnboardingSeen: (state, action: PayloadAction<boolean>) => {
+      state.hasSeenOnboarding = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -433,6 +437,7 @@ const authSlice = createSlice({
         state.loadAuthData.isSuccess = true;
         state.token = action.payload.token;
         state.userData = action.payload.userData;
+        state.hasSeenOnboarding = Boolean(action.payload.hasSeenOnboarding);
       })
       .addCase(loadAuthData.rejected, (state, action) => {
         state.loadAuthData.isLoading = false;
@@ -468,6 +473,7 @@ const authSlice = createSlice({
         state.token = action.payload.token;
         state.userData = action.payload.userData;
         state.successModalOnAccountCreation = false;
+        state.hasSeenOnboarding = Boolean(action.payload.hasSeenOnboarding);
       })
       .addCase(clearAuthData.rejected, (state, action) => {
         state.clearAuthData.isLoading = false;
@@ -555,6 +561,10 @@ export const {
   useSavePushTokenMutation,
 } = authApi;
 
-export const { setAuth, setLastSavedPushToken } = authSlice.actions;
+export const {
+  setAuth,
+  setLastSavedPushToken,
+  setOnboardingSeen,
+} = authSlice.actions;
 
 export default authSlice.reducer;

@@ -28,6 +28,7 @@ export interface AuthState {
   token: string | null;
   userData: UserData | null;
   lastSavedPushToken?: string | null;
+  hasSeenOnboarding?: boolean;
   saveAuthData: AsyncState<any>;
   loadAuthData: AsyncState<any>;
   clearAuthData: AsyncState<any>;

@@ -20,10 +20,10 @@ const PromoDocked = () => {
   const bottom = getTabBarReservedHeight(insets.bottom)+ CARD_BOTTOM_OFFSET;
 
   const userData = useSelector((state: RootState) => state?.auth?.userData);
-  const onboardingDone = Boolean(
-    useSelector((s: RootState) => s.auth.loadAuthData?.data?.hasSeenOnboarding),
+  const onboardingDone = useSelector(
+    (s: RootState) => Boolean(s.auth.hasSeenOnboarding),
   );
- const isCustomer = !userData?.isAdminUser && !userData?.isDriverUser;
+  const isCustomer = !userData?.isAdminUser && !userData?.isDriverUser;
 
 
   const dispatch = useDispatch();

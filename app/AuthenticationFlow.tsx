@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
-import { GUEST_AUTH, loadAuthData } from "@/redux/features/authSlice";
+import {
+  GUEST_AUTH,
+  loadAuthData,
+  setOnboardingSeen,
+} from "@/redux/features/authSlice";
 import { RootState } from "@/types/global";
 import { getAppHomeRoute } from "@/utils/authRoles";
 import { getHasSeenOnboarding, setHasSeenOnboarding } from "@/utils/onboardingStorage";
@@ -68,6 +72,7 @@ export const AuthenticationFlow = ({
           // Backfill for users who finished onboarding before this flag existed
           if (!hasSeenOnboarding) {
             await setHasSeenOnboarding(true);
+            dispatch(setOnboardingSeen(true));
           }
           router.replace(
             getAppHomeRoute(

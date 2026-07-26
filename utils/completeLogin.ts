@@ -1,5 +1,8 @@
 import { router } from "expo-router";
-import { saveAuthData } from "@/redux/features/authSlice";
+import {
+  saveAuthData,
+  setOnboardingSeen,
+} from "@/redux/features/authSlice";
 import { getAppHomeRoute } from "@/utils/authRoles";
 import { setHasSeenOnboarding } from "@/utils/onboardingStorage";
 
@@ -20,6 +23,7 @@ export async function persistAuthAndNavigate(
 ) {
   await dispatch(saveAuthData(data) as any).unwrap();
   await setHasSeenOnboarding(true);
+  dispatch(setOnboardingSeen(true));
 
   if (data.userData?.name) {
     router.replace(
