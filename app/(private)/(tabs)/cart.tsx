@@ -1,5 +1,6 @@
 import { Platform, StyleSheet, Text, View } from "react-native";
 import React, { lazy, Suspense, useMemo } from "react";
+import AppHead from "@/components/AppHead";
 import Cart from "@/components/cart/Cart";
 import { useBottomTabBarHeight } from "expo-router/build/react-navigation/bottom-tabs";
 
@@ -14,7 +15,12 @@ const cart = () => {
   //   }
   // }, [tabBarHeight]);
   // console.log(paddingBottomValue);
-  return <Cart tabBarHeight={tabBarHeight} paddingBottomValue={0} />;
+  return (
+    <>
+      <AppHead title="Cart" />
+      <Cart tabBarHeight={tabBarHeight} paddingBottomValue={0} />
+    </>
+  );
 };
 
 export default cart;

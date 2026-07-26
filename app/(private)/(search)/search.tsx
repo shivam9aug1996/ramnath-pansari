@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
+import AppHead from "@/components/AppHead";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import CustomTextInput from "@/components/CustomTextInput";
 // import RecentSearch from "./RecentSearch";
@@ -100,6 +101,7 @@ const Search = () => {
   }, []);
   return (
     <>
+      <AppHead title="Search" />
       <ScreenSafeWrapper
         useKeyboardAvoidingView
         title="Search for products"

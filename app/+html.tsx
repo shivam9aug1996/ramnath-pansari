@@ -13,34 +13,61 @@ export default function Root({ children }: PropsWithChildren) {
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1, shrink-to-fit=no"
+          content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover"
         />
 
         {/*
           Disable body scrolling on web. This makes ScrollView components work closer to how they do on native.
-          However, body scrolling is often nice to have for mobile web. If you want to enable it, remove this line.
         */}
         <ScrollViewStyleReset />
 
-        {/* Using raw CSS styles as an escape-hatch to ensure the background color never flickers in dark-mode. */}
+        {/* Using raw CSS styles as an escape-hatch to ensure background color never flickers in dark-mode */}
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
-        {/* Add any additional <head> elements that you want globally available on web... */}
       </head>
       <body>
         <div id="web-brand-bar" aria-hidden="true">
-          <img src="/web-logo.png" alt="" />
-          <span>Ramnath Pansari</span>
+          <div className="web-brand-skeleton">
+            <span className="web-brand-skel-logo" />
+            <span className="web-brand-skel-text" />
+          </div>
+          <div className="web-brand-content">
+            <img src="/web-logo1.webp" alt="" />
+            <span>Ramnath Pansari</span>
+          </div>
         </div>
         {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function () {
+  function ready() {
+    requestAnimationFrame(function () {
+      document.documentElement.classList.add("web-shell-ready");
+    });
+  }
+  if (document.readyState === "complete") ready();
+  else window.addEventListener("load", ready, { once: true });
+})();
+`,
+          }}
+        />
       </body>
     </html>
   );
 }
 
 const responsiveBackground = `
-html, body, #root {
+/* Base resets for browser consistency */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
   height: 100%;
+  width: 100%;
   margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 body {
@@ -49,74 +76,194 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Desktop-only brand chip above the phone frame — never clipped by side gutters */
+/* Default mobile container layout */
+#root {
+  width: 100%;
+  max-width: 430px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  background-color: #ffffff;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.14);
+}
+
+/* Desktop-only brand chip above the phone frame */
 #web-brand-bar {
   display: none;
   align-items: center;
-  gap: 10px;
   flex-shrink: 0;
   margin-top: 20px;
   margin-bottom: 12px;
   padding: 8px 16px 8px 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
   z-index: 2;
+  position: relative;
+  overflow: hidden;
+  min-height: 52px;
+  min-width: 180px;
+  width: max-content;
 }
 
-#web-brand-bar img {
+.web-brand-skeleton,
+.web-brand-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.web-brand-content {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.web-brand-skel-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #e4ebe5;
+  flex-shrink: 0;
+}
+
+.web-brand-skel-text {
+  width: 118px;
+  height: 12px;
+  border-radius: 999px;
+  background: #e4ebe5;
+  flex-shrink: 0;
+}
+
+.web-brand-content img {
   width: 36px;
   height: 36px;
   border-radius: 10px;
   object-fit: cover;
+  flex-shrink: 0;
 }
 
-#web-brand-bar span {
-  font-family: system-ui, -apple-system, sans-serif;
+.web-brand-content span {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
   font-weight: 600;
   color: #2f3a2f;
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
+@keyframes web-brand-skel-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes web-brand-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-50% + 6px));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes web-brand-skel-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes web-brand-logo-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/* Desktop framing tweaks */
 @media (min-width: 520px) {
   #web-brand-bar {
     display: flex;
+  }
+
+  .web-brand-skel-logo,
+  .web-brand-skel-text {
+    animation: web-brand-skel-pulse 1.1s ease-in-out infinite;
+  }
+
+  /* Swap skeleton → real brand after load (no #root animation) */
+  html.web-shell-ready .web-brand-skeleton {
+    animation: web-brand-skel-out 220ms ease forwards;
+    pointer-events: none;
+  }
+
+  html.web-shell-ready .web-brand-content {
+    pointer-events: auto;
+    animation: web-brand-content-in 420ms cubic-bezier(0.22, 1, 0.36, 1) 80ms forwards;
+  }
+
+  html.web-shell-ready .web-brand-content img {
+    animation: web-brand-logo-float 3.2s ease-in-out 600ms infinite;
   }
 
   #root {
     height: calc(100% - 88px);
     max-height: 920px;
     border-radius: 28px;
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    overflow: hidden;
   }
 }
 
-/* Keep the web app phone-sized on wide screens (no stretch) */
-#root {
-  width: 100%;
-  max-width: 430px;
-  height: 100%;
-  overflow: hidden;
-  position: relative;
-  z-index: 1;
-  background-color: #fff;
-  /* Contain fixed/absolute overlays (modals, sheets, toast) inside the phone frame */
-  transform: translateZ(0);
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.14);
+@media (prefers-reduced-motion: reduce) {
+  .web-brand-skel-logo,
+  .web-brand-skel-text,
+  .web-brand-skeleton,
+  .web-brand-content,
+  .web-brand-content img {
+    animation: none !important;
+  }
+
+  html.web-shell-ready .web-brand-skeleton {
+    opacity: 0;
+  }
+
+  html.web-shell-ready .web-brand-content {
+    opacity: 1;
+  }
 }
 
+/* Fix specific slider/input browser defaults */
 [data-testid="onboarding-slider"] > div > div {
   display: contents !important;
 }
 
-input:focus {
-  outline: none;
-}
-
-textarea:focus {
+input:focus, textarea:focus, select:focus {
   outline: none;
 }
 `;

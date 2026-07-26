@@ -9,4 +9,6 @@ export const StorageKeys = {
     activeDriverOrderId: "activeDriverOrderId",
     activeDriverId: "activeDriverId",
     greeting_cache_v2:"greeting_cache_v2",
+    /** Survives logout when preserved in clearAuthData */
+    hasSeenOnboarding: "hasSeenOnboarding",
   } as const;

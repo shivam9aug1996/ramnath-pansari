@@ -8,10 +8,9 @@ import { Provider } from "react-redux";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
 import { StatusBar } from "expo-status-bar";
-
 import store from "@/redux/store";
 
-
+import AppHead from "@/components/AppHead";
 import Push1 from "@/components/Push1";
 import AppStateExample from "@/components/AppStateExample";
 import PromoConfigSync from "@/components/PromoConfigSync";
@@ -69,7 +68,6 @@ export function InitialLayout() {
 
   return (
     <AuthenticationFlow>
-      
       <Slot />
     </AuthenticationFlow>
   );
@@ -92,6 +90,10 @@ const RootLayout = () => {
 
   return (
     <Fragment>
+      <AppHead
+        title="Ramnath Pansari – Grocery Delivery"
+        description="Order groceries, pooja items, herbal products, chemicals, wedding essentials and daily needs online from Ramnath Pansari."
+      />
       <View style={{ flex: 1, backgroundColor: SPLASH_BACKGROUND }}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           {fontsLoaded ? (

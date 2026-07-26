@@ -67,6 +67,7 @@ import DeferredFadeIn from "@/components/DeferredFadeIn";
 import ProductItemWrapper from "../(category)/ProductList/ProductItemWrapper";
 import { useGoToCartListPadding } from "@/contexts/DeliveryFloatContext";
 import { clearVisibleProductIds, updateVisibleProductIds } from "../(category)/ProductList/productVisibilityStore";
+import AppHead from "@/components/AppHead";
 
 const QueryResult = ({query}:{query:string}) => {
   const scrollEndedRef = useRef(0);
@@ -434,6 +435,8 @@ const listContentContainerStyle = useMemo(
 
   return (
     <>
+    <AppHead title={query?.trim() ? `“${query.trim()}”` : "Search"} />
+
       <ScreenSafeWrapper showCartIcon>
         
           <DeferredFadeIn delay={100} style={{flex:1}}>

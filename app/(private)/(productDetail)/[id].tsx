@@ -1,13 +1,24 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
-import { useLocalSearchParams } from 'expo-router';
-import ProductDetail from './ProductDetail';
+import { StyleSheet } from "react-native";
+import React from "react";
+import { useLocalSearchParams } from "expo-router";
+import AppHead from "@/components/AppHead";
+import ProductDetail from "./ProductDetail";
+import { getProductTitleFromExtraData } from "@/utils/appHeadUtils";
 
 const Product = () => {
-  const { id, extraData } = useLocalSearchParams<{ id: string, extraData: any }>();
-  return <ProductDetail id={id} extraData={extraData}/>
-}
+  const { id, extraData } = useLocalSearchParams<{
+    id: string;
+    extraData: any;
+  }>();
 
-export default Product
+  return (
+    <>
+      <AppHead title={getProductTitleFromExtraData(extraData)} />
+      <ProductDetail id={id} extraData={extraData} />
+    </>
+  );
+};
 
-const styles = StyleSheet.create({})
+export default Product;
+
+const styles = StyleSheet.create({});

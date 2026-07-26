@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect } from "react";
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
@@ -22,6 +22,7 @@ import { RootState } from "@/types/global";
 type GoToCartWrapperProps = {
   showGoToCart?: boolean;
   isCart?: boolean;
+  extraBottomOffset?: number;
 };
 
 const HIDE_DURATION = 280;
@@ -32,6 +33,7 @@ const SHOW_EASING = Easing.bezier(0, 0, 0.2, 1);
 const GoToCartWrapper = ({
   showGoToCart = true,
   isCart = false,
+  extraBottomOffset = 0,
 }: GoToCartWrapperProps) => {
   const dispatch = useDispatch();
   const measuredInset = useGoToCartMeasuredInset();
@@ -97,7 +99,7 @@ const GoToCartWrapper = ({
   return (
     <Animated.View
       pointerEvents={shouldHideChrome ? "none" : "box-none"}
-      style={[styles.wrapper, animatedStyle]}
+      style={[styles.wrapper, animatedStyle, { bottom: extraBottomOffset }]}
     >
       <GoToCart isCart={isCart} embedded />
     </Animated.View>

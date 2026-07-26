@@ -16,6 +16,7 @@ import React, {
   useState,
   useTransition,
 } from "react";
+import AppHead from "@/components/AppHead";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import { router } from "expo-router";
 import {
@@ -167,6 +168,7 @@ const addressList = () => {
 
   return (
     <>
+      <AppHead title="Addresses" />
       <ScreenSafeWrapper>
         <>
           <DeferredFadeIn delay={100}>

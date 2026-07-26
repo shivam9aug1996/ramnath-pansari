@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import AppHead from "@/components/AppHead";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import { ThemedView } from "@/components/ThemedView";
 import { fonts } from "@/constants/Fonts";
@@ -192,8 +193,10 @@ const profile = () => {
 
   // console.log(form?.image && Object.keys(form?.image));
   return (
-    <ScreenSafeWrapper useKeyboardAvoidingView={true}>
-      
+    <>
+      <AppHead title="Edit Profile" />
+      <ScreenSafeWrapper useKeyboardAvoidingView={true}>
+
         <ScrollView
           bounces={Platform.OS === "android" ? false : true}
           ref={scrollViewRef}
@@ -297,6 +300,7 @@ const profile = () => {
         />
       
     </ScreenSafeWrapper>
+    </>
   );
 };
 

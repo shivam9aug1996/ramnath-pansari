@@ -16,6 +16,7 @@ import { setSubCategoryActionClicked } from "@/redux/features/categorySlice";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
 import { router } from "expo-router";
 import { devLog } from "@/utils/devLog";
+import AppHead from "@/components/AppHead";
 const CategoryList = ({
   categories,
   isCategoryFetching,
@@ -204,10 +205,14 @@ const handleSelectCategory = useCallback((category: Category) => {
   // router.setParams({
   //   selectedCategoryIdIndex: index?.toString()
   // })
+  if (index >= 0) {
+    scrollToIndex(catFlatListRef, index, 0.3); // 0.5 = center
+  }
 },[categories])
 
   return (
     <View>
+       <AppHead title={selectedCategory?.name} />
       {isCategoryFetching ? (
         <CategorySelectorPlaceholder
           contentContainerStyle={{ paddingHorizontal: 30 }}

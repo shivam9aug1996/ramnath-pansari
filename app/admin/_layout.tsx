@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { adminTheme } from "@/app/admin/theme";
 import { useRoleRouteGuard } from "@/hooks/useRoleRouteGuard";
+import AppHead from "@/components/AppHead";
 
 export default function AdminLayout() {
   const insets = useSafeAreaInsets();
@@ -17,6 +18,7 @@ export default function AdminLayout() {
         paddingBottom: insets.bottom,
       }}
     >
+      <AppHead title="Admin" />
       <Stack
         screenOptions={{
           headerShown: false,

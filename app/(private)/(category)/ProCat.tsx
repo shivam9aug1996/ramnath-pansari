@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import React, { memo, useEffect } from "react";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import TryAgain from "./CategoryList/TryAgain";
@@ -72,7 +72,7 @@ const ProCat = ({
 
       </ScreenSafeWrapper>
 
-      <GoToCartWrapper showGoToCart={true} />
+      <GoToCartWrapper showGoToCart={true} extraBottomOffset={Platform.OS === "web" ? -10 : 0} />
     </>
   );
 };

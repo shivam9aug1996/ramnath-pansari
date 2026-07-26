@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Platform,
 } from "react-native";
+import AppHead from "@/components/AppHead";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -66,6 +67,7 @@ const Account: React.FC = () => {
   );
   return (
     <>
+      <AppHead title="Account" />
       <ScreenSafeWrapper title="Profile">
         <DeferredFadeIn delay={100} style={{ flex: 1 }}>
           {userInfo?._id ? (

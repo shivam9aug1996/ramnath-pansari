@@ -17,7 +17,10 @@ import { categoryApi } from "./categorySlice";
 import { resetAppSync } from "./appSyncSlice";
 import { clearRecentlyViewed } from "./recentlyViewedSlice";
 import { storage } from "@/utils/storage";
-import { StorageKeys } from "@/utils/storageKeys";
+import {
+  getHasSeenOnboarding,
+  setHasSeenOnboarding,
+} from "@/utils/onboardingStorage";
 
 /** Shared guest session — used after logout and for guest login. */
 export const GUEST_AUTH = {
@@ -72,6 +75,7 @@ export const loadAuthData = createAsyncThunk(
       await cleanOldProductCache(CACHE_DURATION);
       
       userData = userData ? JSON.parse(userData) : null;
+      const hasSeenOnboarding = await getHasSeenOnboarding();
   
       
       // if (userData?.isGuestUser) {
@@ -80,7 +84,7 @@ export const loadAuthData = createAsyncThunk(
       //   await AsyncStorage.removeItem("recentlyViewedItems");
       //   return { token: null, userData: null };
       // }
-      return { token, userData };
+      return { token, userData, hasSeenOnboarding };
     } catch (error) {
       return rejectWithValue("error in loadAuthData: " + JSON.stringify(error));
     }
@@ -100,6 +104,8 @@ export const clearAuthData = createAsyncThunk(
 
       // Wipe user session storage, then install guest auth before any screen
       // sees a null token. saveAuthData also triggers savePushToken1 via middleware.
+      // Preserve onboarding flag — AsyncStorage.clear would otherwise erase it on web.
+      const hasSeenOnboarding = await getHasSeenOnboarding();
       await storage.removeItem("token");
       await AsyncStorage?.clear();
       await dispatch(
@@ -108,10 +114,14 @@ export const clearAuthData = createAsyncThunk(
           userData: { ...GUEST_AUTH.userData },
         }) as any,
       ).unwrap();
+      if (hasSeenOnboarding) {
+        await setHasSeenOnboarding(true);
+      }
 
       return {
         token: GUEST_AUTH.token,
         userData: { ...GUEST_AUTH.userData },
+        hasSeenOnboarding,
       };
     } catch (error) {
       devLog("[auth] clearAuthData fallback failed", error);

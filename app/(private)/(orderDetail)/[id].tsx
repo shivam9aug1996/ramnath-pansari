@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native'
 import React from 'react'
 import { useLocalSearchParams } from 'expo-router';
+import AppHead from '@/components/AppHead';
 import OrderDetailComp from './OrderDetailComp';
 
 const OrderDetail = () => {
@@ -9,7 +10,10 @@ const OrderDetail = () => {
     prevStatus: string;
   }>();
   return (
-    <OrderDetailComp id={id} prevStatus={prevStatus} />
+    <>
+      <AppHead title="Order Details" />
+      <OrderDetailComp id={id} prevStatus={prevStatus} />
+    </>
   )
 }
 

@@ -6,6 +6,7 @@ import {
   View,
 } from "react-native";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import AppHead from "@/components/AppHead";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import { useFetchOrdersQuery } from "@/redux/features/orderSlice";
 import { RootState } from "@/types/global";
@@ -172,6 +173,7 @@ const Order = () => {
 
   return (
     <>
+      <AppHead title="My Orders" />
       <ScreenSafeWrapper title="My Orders">
       <DeferredFadeIn delay={0} style={{ flex: 1 }}>
         <View style={{ height: 10 }} />

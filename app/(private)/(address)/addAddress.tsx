@@ -17,6 +17,7 @@ import {
   ScrollView,
   Keyboard,
 } from "react-native";
+import AppHead from "@/components/AppHead";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import { devError, devLog, devWarn } from "@/utils/devLog";
 import { ThemedView } from "@/components/ThemedView";
@@ -368,10 +369,12 @@ const AddAddress: React.FC = () => {
   }, [userInfo, forceUpdate]);
 
   return (
-    <ScreenSafeWrapper
-      title={`${itemId ? "Edit" : "Add"} delivery address`}
-      useKeyboardAvoidingView={true}
-    >
+    <>
+      <AppHead title={itemId ? "Edit Address" : "Add Address"} />
+      <ScreenSafeWrapper
+        title={`${itemId ? "Edit" : "Add"} delivery address`}
+        useKeyboardAvoidingView={true}
+      >
       <MapPreloaderWrapper />
         <ScrollView
           bounces={Platform.OS === "android" ? false : true}
@@ -448,6 +451,7 @@ const AddAddress: React.FC = () => {
           </DeferredFadeIn>
         </ScrollView>
     </ScreenSafeWrapper>
+    </>
   );
 };
 
