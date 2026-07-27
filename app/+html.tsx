@@ -47,6 +47,34 @@ export default function Root({ children }: PropsWithChildren) {
   }
   if (document.readyState === "complete") ready();
   else window.addEventListener("load", ready, { once: true });
+
+  // Async routes: stale/missing chunks can 404 after deploy. Reload once to pick up new hashes.
+  var CHUNK_RELOAD_KEY = "__expo_async_chunk_reload";
+  var alreadyReloaded = false;
+  try {
+    alreadyReloaded = sessionStorage.getItem(CHUNK_RELOAD_KEY) === "1";
+  } catch (e) {}
+  if (alreadyReloaded) {
+    setTimeout(function () {
+      try {
+        sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+      } catch (e) {}
+    }, 5000);
+  }
+  window.addEventListener("unhandledrejection", function (event) {
+    var reason = event && event.reason;
+    var name = (reason && reason.name) || "";
+    var message = String((reason && reason.message) || reason || "");
+    var isChunkError =
+      name === "AsyncRequireError" ||
+      message.indexOf("AsyncRequireError") !== -1 ||
+      message.indexOf("Loading module") !== -1;
+    if (!isChunkError || alreadyReloaded) return;
+    try {
+      sessionStorage.setItem(CHUNK_RELOAD_KEY, "1");
+    } catch (e) {}
+    window.location.reload();
+  });
 })();
 `,
           }}
