@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Platform.OS === "ios" ? 14 : 12,
     fontFamily: "Montserrat_500Medium",
-    fontSize: 15,
+    fontSize: Platform.OS === "web" ? 16 : 15,
     color: Colors.light.darkGrey,
   },
   actions: {

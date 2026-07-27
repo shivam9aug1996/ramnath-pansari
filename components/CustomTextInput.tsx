@@ -218,7 +218,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
               styles.textInput,
               {
                 fontFamily: "Raleway_600SemiBold",
-                fontSize: 14,
+                fontSize: Platform.OS === "web" ? 16 : 14,
                 color: Colors.light.darkGreen,
                 paddingRight: 20,
 
