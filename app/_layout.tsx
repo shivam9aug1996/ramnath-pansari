@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
 import { StatusBar } from "expo-status-bar";
 import store from "@/redux/store";
+import { Analytics } from "@vercel/analytics/react"
 
 import AppHead from "@/components/AppHead";
 import Push1 from "@/components/Push1";
@@ -31,6 +32,7 @@ import { InitialLayout1 } from "./InitialLayout1";
 import PromoConfigCacheRetainer from "@/components/PromoConfigCacheRetainer";
 import PromoDocked from "@/components/PromoDocked";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
+import { Platform } from "react-native";
 
 Sentry.init({
   dsn: 'https://8a0bdb898eda3ee8f4694903e1cf94f0@o4511749906300928.ingest.us.sentry.io/4511749911347200',
@@ -90,6 +92,7 @@ const RootLayout = () => {
 
   return (
     <Fragment>
+      {Platform.OS === "web" && <Analytics />}
       <AppHead
         title="Ramnath Pansari – Grocery Delivery"
         description="Order groceries, pooja items, herbal products, chemicals, wedding essentials and daily needs online from Ramnath Pansari."
