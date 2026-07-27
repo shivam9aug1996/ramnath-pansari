@@ -51,7 +51,16 @@
     "plugins": [
       "@react-native-firebase/app/app.plugin.js",
       "@react-native-firebase/app-check/app.plugin.js",
-      "expo-router",
+      [
+        "expo-router",
+        {
+          "origin": "https://www.ramnathpansari.com",
+          "asyncRoutes": {
+            "web": true,
+            "default": false
+          }
+        }
+      ],
       [
         "expo-location",
         {
