@@ -101,7 +101,7 @@ const RootLayout = () => {
       />
       <View style={{ flex: 1, backgroundColor: SPLASH_BACKGROUND }}>
         <GestureHandlerRootView style={{ flex: 1 }}>
-          {fontsLoaded ? (
+          {(Platform.OS === "web" || fontsLoaded) ? (
             <Provider store={store}>
               <SplashScreenGate fontsLoaded={fontsLoaded} />
               <Push1 />
