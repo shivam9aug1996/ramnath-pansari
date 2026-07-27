@@ -10,6 +10,7 @@ import Toast from "react-native-toast-message";
 import { StatusBar } from "expo-status-bar";
 import store from "@/redux/store";
 import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 import AppHead from "@/components/AppHead";
 import Push1 from "@/components/Push1";
@@ -93,6 +94,7 @@ const RootLayout = () => {
   return (
     <Fragment>
       {Platform.OS === "web" && <Analytics />}
+      {Platform.OS === "web" && <SpeedInsights />}
       <AppHead
         title="Ramnath Pansari – Grocery Delivery"
         description="Order groceries, pooja items, herbal products, chemicals, wedding essentials and daily needs online from Ramnath Pansari."
