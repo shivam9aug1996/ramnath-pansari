@@ -4,7 +4,9 @@ import { Stack } from "expo-router";
 import ActiveDeliveryFloat from "@/components/ActiveDeliveryFloat";
 import { DeliveryFloatProvider } from "@/contexts/DeliveryFloatContext";
 import { useRoleRouteGuard } from "@/hooks/useRoleRouteGuard";
-export { ErrorBoundary } from "expo-router";
+import { IsolateErrorBoundary } from "@/components/IsolateErrorBoundary";
+
+export { ErrorBoundary } from "@/components/RouteErrorBoundary";
 
 const MainNavigator = () => {
   useRoleRouteGuard("customer");
@@ -130,7 +132,9 @@ const MainNavigator = () => {
         }}
       />
     </Stack>
-    <ActiveDeliveryFloat homeVariant="compact" />
+    <IsolateErrorBoundary name="ActiveDeliveryFloat">
+      <ActiveDeliveryFloat homeVariant="compact" />
+    </IsolateErrorBoundary>
     </View>
     </DeliveryFloatProvider>
   );

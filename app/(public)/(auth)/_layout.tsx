@@ -29,5 +29,5 @@ const AuthLayout = () => {
   );
 };
 
-export { ErrorBoundary } from "expo-router";
+export { ErrorBoundary } from "@/components/RouteErrorBoundary";
 export default AuthLayout;

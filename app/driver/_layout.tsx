@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { adminTheme } from "@/app/admin/theme";
 import { useRoleRouteGuard } from "@/hooks/useRoleRouteGuard";
 
+export { ErrorBoundary } from "@/components/RouteErrorBoundary";
+
 export default function DriverLayout() {
   const insets = useSafeAreaInsets();
   useRoleRouteGuard("driver");

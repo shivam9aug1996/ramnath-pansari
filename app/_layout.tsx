@@ -1,4 +1,5 @@
 import { Slot } from "expo-router";
+export { ErrorBoundary } from "@/components/RouteErrorBoundary";
 import * as SplashScreen from "expo-splash-screen";
 import { Fragment, useEffect } from "react";
 import { ScrollView, View } from "react-native";
@@ -32,7 +33,7 @@ import { Text } from "react-native";
 import { InitialLayout1 } from "./InitialLayout1";
 import PromoConfigCacheRetainer from "@/components/PromoConfigCacheRetainer";
 import PromoDocked from "@/components/PromoDocked";
-import DeferredFadeIn from "@/components/DeferredFadeIn";
+import { IsolateErrorBoundary } from "@/components/IsolateErrorBoundary";
 import { Platform } from "react-native";
 
 Sentry.init({
@@ -104,12 +105,22 @@ const RootLayout = () => {
           {(Platform.OS === "web" || fontsLoaded) ? (
             <Provider store={store}>
               <SplashScreenGate fontsLoaded={fontsLoaded} />
-              <Push1 />
+              <IsolateErrorBoundary name="Push1">
+                <Push1 />
+              </IsolateErrorBoundary>
               <StatusBar style="dark" />
-              <AppStateExample />
-              <PromoConfigSync />
-              <PromoConfigCacheRetainer />
-              <PromoDocked />
+              <IsolateErrorBoundary name="AppStateExample">
+                <AppStateExample />
+              </IsolateErrorBoundary>
+              <IsolateErrorBoundary name="PromoConfigSync">
+                <PromoConfigSync />
+              </IsolateErrorBoundary>
+              <IsolateErrorBoundary name="PromoConfigCacheRetainer">
+                <PromoConfigCacheRetainer />
+              </IsolateErrorBoundary>
+              <IsolateErrorBoundary name="PromoDocked">
+                <PromoDocked />
+              </IsolateErrorBoundary>
               <InitialLayout />
             </Provider>
           ) : null}

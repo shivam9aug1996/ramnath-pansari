@@ -72,7 +72,6 @@ const PrivateHome = () => {
     { skip: !userData?._id || Boolean(userData?.isGuestUser) },
   );
 
-  const hasActiveDelivery = (activeDeliveries?.orders?.length ?? 0) > 0;
 
   const {
     isLoading: isCategoriesLoading,

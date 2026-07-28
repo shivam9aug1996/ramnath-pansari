@@ -5,6 +5,8 @@ import { adminTheme } from "@/app/admin/theme";
 import { useRoleRouteGuard } from "@/hooks/useRoleRouteGuard";
 import AppHead from "@/components/AppHead";
 
+export { ErrorBoundary } from "@/components/RouteErrorBoundary";
+
 export default function AdminLayout() {
   const insets = useSafeAreaInsets();
   useRoleRouteGuard("admin");

@@ -68,7 +68,9 @@ export default function Root({ children }: PropsWithChildren) {
     var isChunkError =
       name === "AsyncRequireError" ||
       message.indexOf("AsyncRequireError") !== -1 ||
-      message.indexOf("Loading module") !== -1;
+      message.indexOf("Loading module") !== -1 ||
+      message.indexOf("Failed to fetch dynamically imported module") !== -1 ||
+      message.indexOf("Importing a module script failed") !== -1;
     if (!isChunkError || alreadyReloaded) return;
     try {
       sessionStorage.setItem(CHUNK_RELOAD_KEY, "1");
