@@ -100,7 +100,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
         <Text style={styles.description}>{description}</Text>
 
         <View style={styles.actions}>
-          {chunkLoad ? (
+          {/* {chunkLoad ? (
             <Pressable
               accessibilityRole="button"
               onPress={handleGoBack}
@@ -111,7 +111,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
             >
               <Text style={styles.secondaryButtonText}>Go back</Text>
             </Pressable>
-          ) : null}
+          ) : null} */}
 
           <Pressable
             accessibilityRole="button"
