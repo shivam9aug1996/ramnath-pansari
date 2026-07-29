@@ -34,6 +34,7 @@ import {
 } from "@/utils/utils";
 import { clearCategoryProductCacheFromMemoryAndAsyncStorage } from "@/utils/productCache";
 import { devLog } from "@/utils/devLog";
+import AsyncRouteLoader from "@/components/AsyncRouteLoader";
 
 interface ProductsProps {
   isCategoryFetching: boolean;
@@ -307,7 +308,10 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
     <View style={styles.container}>
       {showOverlaySpinner && (
         <View style={styles.overlay}>
-          <ActivityIndicator size="large" color={Colors.light.lightGreen} />
+          <AsyncRouteLoader style={{
+            width: '100%',
+            backgroundColor: 'transparent'
+          }} message="" showBrand={false} />
         </View>
       )}
       <ProductList3
