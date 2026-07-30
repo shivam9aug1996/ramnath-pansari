@@ -21,7 +21,6 @@ import { StyleSheet, Text, View, ActivityIndicator } from "react-native";
   import { addProductView } from "@/redux/features/recentlyViewedSlice";
   import RecentlyViewedProducts from "./RecentlyViewedProducts";
   import DeferredFadeIn from "@/components/DeferredFadeIn";
-  import ParallaxScrollView from "@/components/ParallaxScrollView";
   import ProductInfoSections from "./ProductInfoSections";
   import FoodTypeBadge from "./FoodTypeBadge";
   import { ProductDetailBodySkeleton } from "./ProductDetailPlaceholder";
@@ -127,35 +126,28 @@ import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
       <>
         <ScreenSafeWrapper showCartIcon>
           <DeferredFadeIn delay={100} style={{ flex: 1 }}>
-            <ParallaxScrollView
-              scrollRef={scrollRef}
-              headerHeight={300}
-              headerBackgroundColor={{
-                light: Colors.light.background,
-                dark: Colors.light.background,
-              }}
+            <Animated.ScrollView
+              ref={scrollRef}
+              showsVerticalScrollIndicator={false}
               contentContainerStyle={{
                 paddingBottom:
                   PRODUCT_DETAIL_SCROLL_PADDING_BOTTOM + goToCartListPadding,
                 paddingTop: 10,
               }}
-              contentStyle={{
-                padding: 0,
-                gap: 0,
-              }}
-              headerImage={
+            >
+              <View style={styles.headerImage}>
                 <Image
                   transition={500}
                   blurRadius={showImage ? 0 : 10}
                   source={{
                     uri: showImage ? image : productStaleData?.image,
                   }}
-                  style={styles.parallaxImage}
+                  style={styles.productImage}
                   contentFit="contain"
                   cachePolicy="disk"
                 />
-              }
-            >
+              </View>
+
               <View
                 style={{
                   opacity: data?.product?.isOutOfStock ? 0.6 : 1,
@@ -242,7 +234,7 @@ import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
                 scrollRef={scrollRef}
                 filterProductIds={[id]}
               />
-            </ParallaxScrollView>
+            </Animated.ScrollView>
           </DeferredFadeIn>
         </ScreenSafeWrapper>
   
@@ -268,7 +260,12 @@ import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
     textContainer: {
       position: "relative",
     },
-    parallaxImage: {
+    headerImage: {
+      height: 300,
+      overflow: "hidden",
+      backgroundColor: Colors.light.background,
+    },
+    productImage: {
       width: "100%",
       height: "100%",
     },

@@ -245,7 +245,7 @@ const HomeProductPromo = ({ variant, onFloatClose }: Props) => {
         <Pressable
           onPress={handleCloseFloat}
           style={styles.dismissBtn}
-          hitSlop={8}
+          hitSlop={12}
           accessibilityLabel="Move promo to home"
         >
           <Ionicons name="close" size={14} color="#fff" />
