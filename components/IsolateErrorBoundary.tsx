@@ -1,5 +1,5 @@
 import React, { Component, type ErrorInfo, type ReactNode } from "react";
-import * as Sentry from "@sentry/react-native";
+import { captureException } from "@/utils/sentry";
 
 type Props = {
   children: ReactNode;
@@ -24,7 +24,7 @@ export class IsolateErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    Sentry.captureException(error, {
+    captureException(error, {
       tags: { isolateBoundary: this.props.name ?? "unknown" },
       extra: { componentStack: info.componentStack },
     });

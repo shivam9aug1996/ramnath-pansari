@@ -27,33 +27,13 @@ import {
   markStartupCheckpoint,
 } from "@/utils/startupDiagnostics";
 import { initAppCheck } from "@/utils/appCheck";
-import "@/utils/driverLocationTask";
-import * as Sentry from '@sentry/react-native';
-import { Text } from "react-native";
+import "@/utils/registerDriverLocationTask";
+import { initSentryAfterFirstPaint, wrapRoot } from "@/utils/sentry";
 import { InitialLayout1 } from "./InitialLayout1";
 import PromoConfigCacheRetainer from "@/components/PromoConfigCacheRetainer";
 import PromoDocked from "@/components/PromoDocked";
 import { IsolateErrorBoundary } from "@/components/IsolateErrorBoundary";
 import { Platform } from "react-native";
-
-Sentry.init({
-  dsn: 'https://8a0bdb898eda3ee8f4694903e1cf94f0@o4511749906300928.ingest.us.sentry.io/4511749911347200',
-
-  // Adds more context data to events (IP address, cookies, user, etc.)
-  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
-  sendDefaultPii: true,
-
-  // Enable Logs
-  enableLogs: true,
-
-  // Configure Session Replay
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1,
-  integrations: [Sentry.mobileReplayIntegration(), Sentry.feedbackIntegration()],
-
-  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
-  // spotlight: __DEV__,
-});
 
 const SPLASH_BACKGROUND = "#FFFFFF";
 
@@ -83,6 +63,8 @@ const RootLayout = () => {
   useEffect(() => {
     initStartupDiagnostics().catch(() => {});
   }, []);
+
+  useEffect(() => initSentryAfterFirstPaint(), []);
 
   useEffect(() => {
     if (fontsLoaded) {
@@ -134,4 +116,4 @@ const RootLayout = () => {
   );
 };
 
-export default Sentry.wrap(RootLayout);
+export default wrapRoot(RootLayout);

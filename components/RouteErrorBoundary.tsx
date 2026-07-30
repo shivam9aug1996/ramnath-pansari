@@ -8,9 +8,8 @@ import {
 } from "react-native";
 import { router, type ErrorBoundaryProps } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as Sentry from "@sentry/react-native";
-
 import { Colors } from "@/constants/Colors";
+import { captureException } from "@/utils/sentry";
 import { fonts } from "@/constants/Fonts";
 import useNetworkStatus from "@/hooks/useNetworkStatus";
 
@@ -50,7 +49,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   useEffect(() => {
     if (reported.current) return;
     reported.current = true;
-    Sentry.captureException(error, {
+    captureException(error, {
       tags: {
         routeErrorBoundary: "true",
         chunkLoadError: chunkLoad ? "true" : "false",
