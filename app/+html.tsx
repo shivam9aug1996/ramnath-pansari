@@ -17,6 +17,22 @@ export default function Root({ children }: PropsWithChildren) {
         />
 
         {/*
+          Warm cross-origin connections used early on /home (API + product/promo CDNs).
+          Skip same-origin (www.ramnathpansari.com). Keep this list short — too many hurts.
+        */}
+        <link
+          rel="preconnect"
+          href="https://ramnath-pansari-nextjs.vercel.app"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://ramnath-pansari-nextjs.vercel.app" />
+        {/* Image/video CDNs: no crossOrigin — <img>/<video> use non-CORS connections */}
+        <link rel="preconnect" href="https://cdn1.jiomartjcp.com" />
+        <link rel="dns-prefetch" href="https://cdn1.jiomartjcp.com" />
+        <link rel="preconnect" href="https://res.cloudinary.com" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+
+        {/*
           Disable body scrolling on web. This makes ScrollView components work closer to how they do on native.
         */}
         <ScrollViewStyleReset />

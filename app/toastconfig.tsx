@@ -1,5 +1,5 @@
 import { BaseToast } from "react-native-toast-message";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { fonts } from "@/constants/Fonts";
 
 const baseStyles = {
