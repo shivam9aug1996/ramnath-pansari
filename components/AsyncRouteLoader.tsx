@@ -3,6 +3,7 @@ import {
   Animated,
   Easing,
   Image,
+  Platform,
   StyleSheet,
   Text,
   View,
@@ -10,6 +11,11 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Colors } from "@/constants/Colors";
+
+const brandLogo =
+  Platform.OS === "web"
+    ? { uri: "/brand-logo.webp" }
+    : require("@/assets/images/brand-logo-128.webp");
 
 type Props = {
   title?: string;
@@ -89,7 +95,7 @@ export default function AsyncRouteLoader({
         />
         <View style={styles.logoDisc}>
           <Image
-            source={{ uri: "/brand-logo.webp" }}
+            source={brandLogo}
             style={styles.logo}
             resizeMode="cover"
           />

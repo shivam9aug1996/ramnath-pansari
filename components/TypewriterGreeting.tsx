@@ -17,7 +17,7 @@ const CHAR_MS = 45;
 const HOLD_MS = 1200;
 
 const BRAND = "Ramnath Pansari";
-const brandIcon = require("@/assets/images/icon2.png");
+const brandIcon = require("@/assets/images/brand-logo-128.webp");
 
 function clipOneLine(text: string, max = MAX_CHARS) {
   const normalized = text.trim().replace(/\s+/g, " ");
