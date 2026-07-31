@@ -100,6 +100,38 @@ const MainNavigator = () => {
         }}
       />
       <Stack.Screen
+        name="(support)/support"
+        options={{
+          headerShown: false,
+          animation: "ios_from_right",
+          animationDuration: 0,
+        }}
+      />
+      <Stack.Screen
+        name="(about)/about"
+        options={{
+          headerShown: false,
+          animation: "ios_from_right",
+          animationDuration: 0,
+        }}
+      />
+      <Stack.Screen
+        name="(legal)/terms"
+        options={{
+          headerShown: false,
+          animation: "ios_from_right",
+          animationDuration: 0,
+        }}
+      />
+      <Stack.Screen
+        name="(legal)/privacy"
+        options={{
+          headerShown: false,
+          animation: "ios_from_right",
+          animationDuration: 0,
+        }}
+      />
+      <Stack.Screen
         name="(order)/order"
         options={{
           headerShown: false,

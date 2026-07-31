@@ -25,6 +25,7 @@ const AuthLayout = () => {
       <Stack.Screen name="verify" />
       <Stack.Screen name="name" options={nameScreenOptions} />
       <Stack.Screen name="terms" />
+      <Stack.Screen name="privacy" />
     </Stack>
   );
 };

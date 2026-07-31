@@ -65,7 +65,7 @@ import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
         skip: !userId,
       }
     );
-    const productStaleData = JSON.parse(extraData);
+    const productStaleData = extraData ? JSON.parse(extraData) : null;
   
     const [showImage, setShowImage] = useState(false);
     // const isLoading = cartButtonProductId.includes(id);
@@ -161,10 +161,11 @@ import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
                   ) : (
                     <>
                       <View style={contentStyles.textContainer}>
-                      <ProductCategoryBreadcrumbs
+                        {productStaleData&&<ProductCategoryBreadcrumbs
                         breadcrumbs={breadcrumbs}
                         categories={categoriesData?.categories ?? []}
-                      />
+                      />}
+                      
                         <View style={contentStyles.titleRow}>
                           <FoodTypeBadge foodType={foodType} size="md" />
                           <ThemedText

@@ -110,24 +110,6 @@ const Account: React.FC = () => {
                       />
                     )}
 
-                    {/* {userInfo?.khataUrl == "NA" ? null : (
-                    <Suspense fallback={null}>
-                      <AccountOption
-                        onPress={async () => {
-                          router.push("khata/56789");
-                        }}
-                        icon={
-                          <MaterialIcons
-                            name="manage-accounts"
-                            size={20}
-                            color={Colors.light.lightGreen}
-                          />
-                        }
-                        label="Khata"
-                      />
-                    </Suspense>
-                  )} */}
-
                     {!userInfo?.isGuestUser && (
                       <>
                         <AccountOption
@@ -173,8 +155,69 @@ const Account: React.FC = () => {
                           }
                           label="Saved Addresses"
                         />
+                      </>
+                    )}
+
+                    <AccountOption
+                      onPress={() => {
+                        router.push("/(support)/support");
+                      }}
+                      icon={
+                        <Ionicons
+                          name="headset-outline"
+                          size={20}
+                          color={Colors.light.gradientGreen_2}
+                        />
+                      }
+                      label="Help & Support"
+                    />
+
+                    <AccountOption
+                      onPress={() => {
+                        router.push("/(about)/about");
+                      }}
+                      icon={
+                        <Ionicons
+                          name="information-circle-outline"
+                          size={20}
+                          color={Colors.light.gradientGreen_2}
+                        />
+                      }
+                      label="About"
+                    />
+
+                    <AccountOption
+                      onPress={() => {
+                        router.push("/(legal)/terms");
+                      }}
+                      icon={
+                        <Ionicons
+                          name="document-text-outline"
+                          size={20}
+                          color={Colors.light.gradientGreen_2}
+                        />
+                      }
+                      label="Terms & Conditions"
+                    />
+
+                    <AccountOption
+                      onPress={() => {
+                        router.push("/(legal)/privacy");
+                      }}
+                      icon={
+                        <Ionicons
+                          name="shield-checkmark-outline"
+                          size={20}
+                          color={Colors.light.gradientGreen_2}
+                        />
+                      }
+                      label="Privacy Policy"
+                    />
+
+                    {!userInfo?.isGuestUser && (
+                      <>
                         <AccountOption
-                          onPress={async() => {
+                          onPress={async () => {
                             setLogoutConfirm(true);
                           }}
                           icon={
