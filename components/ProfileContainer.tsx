@@ -1,11 +1,10 @@
 import { StyleSheet, Text, View } from "react-native";
 import React from "react";
-import { TextStyle } from "react-native";
-import { ViewStyle } from "react-native";
+import { TextStyle, ViewStyle } from "react-native";
 import { Colors } from "@/constants/Colors";
 import { Image } from "expo-image";
 
-const ProfileContainer = ({ userInfo }) => {
+const ProfileContainer = ({ userInfo }: { userInfo: any }) => {
   return (
     <View style={styles.profileContainer}>
       <Image
@@ -16,10 +15,12 @@ const ProfileContainer = ({ userInfo }) => {
         }}
         style={styles.profileImage}
       />
-      <Text style={styles.profileName}>{userInfo?.name}</Text>
-      {!userInfo?.isGuestUser && (
-        <Text style={styles.profilePhone}>{`+91 ${userInfo?.mobileNumber}`}</Text>
-      )}
+      <View style={styles.textBlock}>
+        <Text style={styles.profileName}>{userInfo?.name}</Text>
+        {!userInfo?.isGuestUser && (
+          <Text style={styles.profilePhone}>{`+91 ${userInfo?.mobileNumber}`}</Text>
+        )}
+      </View>
     </View>
   );
 };
@@ -28,34 +29,35 @@ export default ProfileContainer;
 
 const styles = StyleSheet.create({
   profileContainer: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 24,
-    minHeight: 40,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    marginTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 14,
   } as ViewStyle,
   profileImage: {
-    height: 100,
-    width: 100,
-    borderRadius: 50,
-    marginBottom: 20,
-    borderWidth: 3,
+    height: 64,
+    width: 64,
+    borderRadius: 32,
+    borderWidth: 2.5,
     borderColor: Colors.light.gradientGreen_2,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
+  },
+  textBlock: {
+    flex: 1,
+    gap: 4,
   },
   profileName: {
     fontFamily: "Montserrat_700Bold",
-    fontSize: 20,
+    fontSize: 18,
     color: Colors.light.darkGrey,
-    marginBottom: 8,
-    letterSpacing: 0.3,
-    textAlign: 'center',
+    letterSpacing: 0.2,
   } as TextStyle,
   profilePhone: {
     fontFamily: "Montserrat_600SemiBold",
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.light.mediumGrey,
-    letterSpacing: 0.8,
-    textAlign: 'center',
+    letterSpacing: 0.5,
   } as TextStyle,
 });

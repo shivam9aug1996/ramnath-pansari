@@ -17,6 +17,15 @@ export default function Root({ children }: PropsWithChildren) {
         />
 
         {/*
+          Explicit icons for Chrome tabs + Google Search (needs a square PNG, multiple of 48px).
+          Expo also injects /favicon.ico from app.json web.favicon; keep both.
+        */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/png" href="/favicon-48.png" sizes="48x48" />
+        <link rel="icon" type="image/png" href="/favicon-192.png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+        {/*
           Warm cross-origin connections used early on /home (API + product/promo CDNs).
           Skip same-origin (www.ramnathpansari.com). Keep this list short — too many hurts.
         */}

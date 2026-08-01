@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -7,6 +7,7 @@ import {
   Text,
   TouchableOpacity,
   Platform,
+  Pressable,
 } from "react-native";
 import AppHead from "@/components/AppHead";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
@@ -24,20 +25,43 @@ import {
   useDeleteAccountMutation,
 } from "@/redux/features/authSlice";
 import Feather from "@expo/vector-icons/Feather";
-import CustomSuspense from "@/components/CustomSuspense";
 import BottomSheet from "@/components/BottomSheet";
-import Button from "@/components/Button";
 import AccountOption from "@/components/AccountOption";
-// import AccountOption from "@/components/AccountOption";
-// import ProfileContainer from "@/components/ProfileContainer";
-// const ProfileContainer = lazy(() => import("@/components/ProfileContainer"));
-// const AccountOption = lazy(() => import("@/components/AccountOption"));
-// const NotFound = lazy(() => import("../(result)/NotFound"));
 import ProfileContainer from "@/components/ProfileContainer";
 import NotFound from "../(result)/NotFound";
-import useAccountStageLoad from "@/hooks/useAccountStageLoad";
-import FadeSlideIn from "@/app/components/FadeSlideIn";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
+import GetTheApp from "@/components/GetTheApp";
+
+function SectionLabel({ children }: { children: string }) {
+  return <Text style={styles.sectionLabel}>{children}</Text>;
+}
+
+function QuickAction({
+  label,
+  icon,
+  onPress,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.quickAction,
+        pressed && styles.quickActionPressed,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <View style={styles.quickActionIcon}>{icon}</View>
+      <Text style={styles.quickActionLabel} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
 
 const Account: React.FC = () => {
   const dispatch = useDispatch();
@@ -45,26 +69,35 @@ const Account: React.FC = () => {
   const logoutSessionPending = useSelector(
     (state: RootState) => state.auth?.logoutSessionPending,
   );
-  
+
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
   const [deleteAccount, { isLoading: isAccountDeleting }] =
     useDeleteAccountMutation();
-  const [isAnimating, setIsAnimating] = useState(true);
-  // console.log(userInfo);
-  useFocusEffect(
-    // Callback should be wrapped in `React.useCallback` to avoid running the effect too often.
-    useCallback(() => {
-      // Invoked whenever the route is focused.
 
-      // Return function is invoked whenever the route gets out of focus.
+  useFocusEffect(
+    useCallback(() => {
       return () => {
-        //  console.log("This route is now unfocused.");
         setDeleteConfirm(false);
         setLogoutConfirm(false);
       };
     }, []),
   );
+
+  const goOrders = useCallback(() => {
+    dispatch(setCheckoutFlow(false));
+    router.push("/(order)/order");
+  }, [dispatch]);
+
+  const goAddresses = useCallback(() => {
+    dispatch(setCheckoutFlow(false));
+    router.push("/(address)/addressList");
+  }, [dispatch]);
+
+  const goSupport = useCallback(() => {
+    router.push("/(support)/support");
+  }, []);
+
   return (
     <>
       <AppHead title="Account" />
@@ -82,23 +115,20 @@ const Account: React.FC = () => {
                 subtitle={"Please wait while we securely log you out."}
               />
             ) : (
-              <>
-                <ProfileContainer userInfo={userInfo} animate={isAnimating} />
+              <ScrollView
+                bounces={Platform.OS === "android" ? false : true}
+                style={{ flex: 1 }}
+                contentContainerStyle={styles.scrollContent}
+                pinchGestureEnabled={false}
+                showsVerticalScrollIndicator={Platform.OS === "web"}
+              >
+                <ProfileContainer userInfo={userInfo} />
 
-                <ScrollView
-                  bounces={Platform.OS === "android" ? false : true}
-                  style={{ flex: 1, marginTop: 10 }}
-                  contentContainerStyle={{ paddingBottom: 100 }}
-                  pinchGestureEnabled={false}
-                  showsVerticalScrollIndicator={false}
-                >
-                  <DeferredFadeIn delay={100}>
-                  <View style={styles.optionsContainer}>
-                    {userInfo?.isGuestUser && (
+                <DeferredFadeIn delay={80}>
+                  <View style={styles.body}>
+                    {userInfo?.isGuestUser ? (
                       <AccountOption
-                        onPress={() => {
-                          router.push("/login");
-                        }}
+                        onPress={() => router.push("/login")}
                         icon={
                           <MaterialCommunityIcons
                             name="login"
@@ -108,14 +138,49 @@ const Account: React.FC = () => {
                         }
                         label="Login/Signup"
                       />
+                    ) : (
+                      <View style={styles.quickRow}>
+                        <QuickAction
+                          label="Orders"
+                          onPress={goOrders}
+                          icon={
+                            <Feather
+                              name="package"
+                              size={22}
+                              color={Colors.light.darkGreen}
+                            />
+                          }
+                        />
+                        <QuickAction
+                          label="Addresses"
+                          onPress={goAddresses}
+                          icon={
+                            <Ionicons
+                              name="location-sharp"
+                              size={22}
+                              color={Colors.light.darkGreen}
+                            />
+                          }
+                        />
+                        <QuickAction
+                          label="Support"
+                          onPress={goSupport}
+                          icon={
+                            <Ionicons
+                              name="headset-outline"
+                              size={22}
+                              color={Colors.light.darkGreen}
+                            />
+                          }
+                        />
+                      </View>
                     )}
 
                     {!userInfo?.isGuestUser && (
-                      <>
+                      <View style={styles.section}>
+                        <SectionLabel>Account</SectionLabel>
                         <AccountOption
-                          onPress={() => {
-                            router.push("/profile");
-                          }}
+                          onPress={() => router.push("/profile")}
                           icon={
                             <MaterialCommunityIcons
                               name="account"
@@ -125,101 +190,75 @@ const Account: React.FC = () => {
                           }
                           label="My Profile"
                         />
-
-                        <AccountOption
-                          onPress={() => {
-                            dispatch(setCheckoutFlow(false));
-                            router.push("/(order)/order");
-                          }}
-                          icon={
-                            <Feather
-                              name="package"
-                              size={20}
-                              color={Colors.light.gradientGreen_2}
-                            />
-                          }
-                          label="Orders"
-                        />
-
-                        <AccountOption
-                          onPress={() => {
-                            dispatch(setCheckoutFlow(false));
-                            router.push("/(address)/addressList");
-                          }}
-                          icon={
-                            <Ionicons
-                              name="location-sharp"
-                              size={20}
-                              color={Colors.light.gradientGreen_2}
-                            />
-                          }
-                          label="Saved Addresses"
-                        />
-                      </>
+                      </View>
                     )}
 
-                    <AccountOption
-                      onPress={() => {
-                        router.push("/(support)/support");
-                      }}
-                      icon={
-                        <Ionicons
-                          name="headset-outline"
-                          size={20}
-                          color={Colors.light.gradientGreen_2}
+                    {userInfo?.isGuestUser && (
+                      <View style={styles.section}>
+                        <SectionLabel>Help</SectionLabel>
+                        <AccountOption
+                          onPress={goSupport}
+                          icon={
+                            <Ionicons
+                              name="headset-outline"
+                              size={20}
+                              color={Colors.light.gradientGreen_2}
+                            />
+                          }
+                          label="Help & Support"
                         />
-                      }
-                      label="Help & Support"
-                    />
+                      </View>
+                    )}
 
-                    <AccountOption
-                      onPress={() => {
-                        router.push("/(about)/about");
-                      }}
-                      icon={
-                        <Ionicons
-                          name="information-circle-outline"
-                          size={20}
-                          color={Colors.light.gradientGreen_2}
-                        />
-                      }
-                      label="About"
-                    />
+                    {Platform.OS === "web" && (
+                      <View style={styles.section}>
+                        <SectionLabel>App</SectionLabel>
+                        <GetTheApp hideIntro />
+                      </View>
+                    )}
 
-                    <AccountOption
-                      onPress={() => {
-                        router.push("/(legal)/terms");
-                      }}
-                      icon={
-                        <Ionicons
-                          name="document-text-outline"
-                          size={20}
-                          color={Colors.light.gradientGreen_2}
-                        />
-                      }
-                      label="Terms & Conditions"
-                    />
-
-                    <AccountOption
-                      onPress={() => {
-                        router.push("/(legal)/privacy");
-                      }}
-                      icon={
-                        <Ionicons
-                          name="shield-checkmark-outline"
-                          size={20}
-                          color={Colors.light.gradientGreen_2}
-                        />
-                      }
-                      label="Privacy Policy"
-                    />
+                    <View style={styles.section}>
+                      <SectionLabel>Info</SectionLabel>
+                      <AccountOption
+                        onPress={() => router.push("/(about)/about")}
+                        icon={
+                          <Ionicons
+                            name="information-circle-outline"
+                            size={20}
+                            color={Colors.light.gradientGreen_2}
+                          />
+                        }
+                        label="About"
+                      />
+                      <AccountOption
+                        onPress={() => router.push("/(legal)/terms")}
+                        icon={
+                          <Ionicons
+                            name="document-text-outline"
+                            size={20}
+                            color={Colors.light.gradientGreen_2}
+                          />
+                        }
+                        label="Terms & Conditions"
+                      />
+                      <AccountOption
+                        onPress={() => router.push("/(legal)/privacy")}
+                        icon={
+                          <Ionicons
+                            name="shield-checkmark-outline"
+                            size={20}
+                            color={Colors.light.gradientGreen_2}
+                          />
+                        }
+                        label="Privacy Policy"
+                      />
+                    </View>
 
                     {!userInfo?.isGuestUser && (
-                      <>
+                      <View style={styles.section}>
+                        <SectionLabel>Session</SectionLabel>
                         <AccountOption
-                          onPress={async () => {
-                            setLogoutConfirm(true);
-                          }}
+                          onPress={() => setLogoutConfirm(true)}
                           icon={
                             <MaterialIcons
                               name="logout"
@@ -229,11 +268,8 @@ const Account: React.FC = () => {
                           }
                           label="Logout"
                         />
-
                         <AccountOption
-                          onPress={async () => {
-                            setDeleteConfirm(true);
-                          }}
+                          onPress={() => setDeleteConfirm(true)}
                           icon={
                             <MaterialIcons
                               name="delete-forever"
@@ -243,12 +279,11 @@ const Account: React.FC = () => {
                           }
                           label="Delete Account"
                         />
-                      </>
+                      </View>
                     )}
                   </View>
-                  </DeferredFadeIn>
-                </ScrollView>
-              </>
+                </DeferredFadeIn>
+              </ScrollView>
             )
           ) : (
             <NotFound
@@ -259,80 +294,70 @@ const Account: React.FC = () => {
         </DeferredFadeIn>
       </ScreenSafeWrapper>
 
-      <>
-        {deleteConfirm && (
-          <BottomSheet
-            onClose={() => {
-              setDeleteConfirm(false);
-            }}
-            wrapperStyle={{ height: "100%" }}
-          >
-            <View style={styles.content}>
-              <Text style={styles.title}>Confirm Deletion</Text>
-              <Text style={styles.message}>
-                Are you sure you want to delete your account? This action cannot
-                be undone.
-              </Text>
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => {
-                    setDeleteConfirm(false);
-                  }}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={async () => {
-                    setDeleteConfirm(false);
-                    await deleteAccount({
-                      userId: userInfo?._id,
-                    })?.unwrap();
-                    dispatch(clearAuthData());
-                  }}
-                >
-                  <Text style={styles.deleteButtonText}>Delete</Text>
-                </TouchableOpacity>
-              </View>
+      {deleteConfirm && (
+        <BottomSheet
+          onClose={() => setDeleteConfirm(false)}
+          wrapperStyle={{ height: "100%" }}
+        >
+          <View style={styles.content}>
+            <Text style={styles.title}>Confirm Deletion</Text>
+            <Text style={styles.message}>
+              Are you sure you want to delete your account? This action cannot
+              be undone.
+            </Text>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setDeleteConfirm(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={async () => {
+                  setDeleteConfirm(false);
+                  await deleteAccount({
+                    userId: userInfo?._id,
+                  })?.unwrap();
+                  dispatch(clearAuthData());
+                }}
+              >
+                <Text style={styles.deleteButtonText}>Delete</Text>
+              </TouchableOpacity>
             </View>
-          </BottomSheet>
-        )}
-        {logoutConfirm && (
-          <BottomSheet
-            onClose={() => {
-              setLogoutConfirm(false);
-            }}
-            wrapperStyle={{ height: "100%" }}
-          >
-            <View style={styles.content}>
-              <Text style={styles.title}>Confirm Logout</Text>
-              <Text style={styles.message}>
-                Are you sure you want to log out of your account?
-              </Text>
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => {
-                    setLogoutConfirm(false);
-                  }}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={async () => {
-                    setLogoutConfirm(false);
-                    await dispatch(logoutSession() as any).unwrap();
-                  }}
-                >
-                  <Text style={styles.deleteButtonText}>Logout</Text>
-                </TouchableOpacity>
-              </View>
+          </View>
+        </BottomSheet>
+      )}
+      {logoutConfirm && (
+        <BottomSheet
+          onClose={() => setLogoutConfirm(false)}
+          wrapperStyle={{ height: "100%" }}
+        >
+          <View style={styles.content}>
+            <Text style={styles.title}>Confirm Logout</Text>
+            <Text style={styles.message}>
+              Are you sure you want to log out of your account?
+            </Text>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setLogoutConfirm(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={async () => {
+                  setLogoutConfirm(false);
+                  await dispatch(logoutSession() as any).unwrap();
+                }}
+              >
+                <Text style={styles.deleteButtonText}>Logout</Text>
+              </TouchableOpacity>
             </View>
-          </BottomSheet>
-        )}
-      </>
+          </View>
+        </BottomSheet>
+      )}
     </>
   );
 };
@@ -340,13 +365,65 @@ const Account: React.FC = () => {
 export default Account;
 
 const styles = StyleSheet.create({
-  optionsContainer: {
-    flex: 0.75,
-    gap: 16,
-    marginTop: 20,
+  scrollContent: {
+    paddingBottom: Platform.OS === "web" ? 160 : 140,
+    flexGrow: 1,
+  },
+  body: {
     paddingHorizontal: 10,
-    marginBottom: 24,
-  } as ViewStyle,
+    gap: 8,
+    marginTop: 4,
+  },
+  quickRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  quickAction: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 6,
+    backgroundColor: Colors.light.softGreen,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.light.lightGrey,
+  },
+  quickActionPressed: {
+    opacity: 0.85,
+  },
+  quickActionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.light.white,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.light.lightGrey,
+  },
+  quickActionLabel: {
+    fontFamily: "Raleway_600SemiBold",
+    fontSize: 12,
+    color: Colors.light.darkGrey,
+    letterSpacing: 0.2,
+  },
+  section: {
+    marginTop: 10,
+    gap: 2,
+  },
+  sectionLabel: {
+    fontFamily: "Montserrat_700Bold",
+    fontSize: 12,
+    color: Colors.light.mediumGrey,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    marginBottom: 4,
+    marginLeft: 4,
+  },
   content: {
     backgroundColor: "#FFFFFF",
     padding: 28,
@@ -354,7 +431,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 32,
     flex: 1,
     marginTop: "6%",
-  },
+  } as ViewStyle,
   title: {
     fontSize: 22,
     fontFamily: "Montserrat_800ExtraBold",

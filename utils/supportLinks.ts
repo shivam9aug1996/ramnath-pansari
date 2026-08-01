@@ -1,5 +1,9 @@
 import { Linking, Platform } from "react-native";
 import {
+  ANDROID_PLAY_STORE_URL,
+  IOS_APP_STORE_URL,
+} from "@/constants/AppStores";
+import {
   STORE_MAPS_URL,
   SUPPORT_EMAIL,
   SUPPORT_EMAIL_SUBJECT,
@@ -57,4 +61,14 @@ export async function openSupportEmail() {
 /** Opens the store location in Google Maps (app or browser). */
 export async function openStoreMaps() {
   await openExternalUrl(STORE_MAPS_URL);
+}
+
+/** Opens the iOS App Store listing. */
+export async function openIosAppStore() {
+  await openExternalUrl(IOS_APP_STORE_URL);
+}
+
+/** Opens the Google Play Store listing. */
+export async function openAndroidPlayStore() {
+  await openExternalUrl(ANDROID_PLAY_STORE_URL);
 }

@@ -17,6 +17,7 @@ import {
 } from "@/constants/SupportContact";
 import { useStoreConfig } from "@/hooks/useStoreConfig";
 import { openStoreMaps } from "@/utils/supportLinks";
+import GetTheApp from "@/components/GetTheApp";
 
 const ABOUT_COPY =
   "Ramnath Pansari is your neighbourhood grocery store — fresh staples, daily essentials, and trusted brands delivered to your door. We keep it simple: fair prices, careful packing, and friendly local service.";
@@ -101,6 +102,8 @@ export default function AboutScreen() {
               place an order.
             </Text>
           </View>
+
+          <GetTheApp />
         </ScrollView>
       </ScreenSafeWrapper>
     </>
