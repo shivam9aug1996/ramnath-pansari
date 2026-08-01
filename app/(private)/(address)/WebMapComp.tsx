@@ -44,11 +44,22 @@ const WebMapComp = ({
   const wasInBackground = useRef(false);
 
   const fetchLocation1 = useCallback(async () => {
+    const startedAt = Date.now();
+    devLog("[WebMapComp] fetchLocation start", {
+      platform: Platform.OS,
+      latitude,
+      longitude,
+      hasParamCoords: !!(latitude && longitude),
+    });
     setLoadError(null);
     setNeedsSettings(false);
     setIsLoading(true);
     try {
       const deviceLocation = await fetchLocation();
+      devLog("[WebMapComp] fetchLocation ok", {
+        ms: Date.now() - startedAt,
+        deviceLocation,
+      });
       setCurrentLocation(deviceLocation);
       const locInfo =
         latitude && longitude
@@ -58,8 +69,15 @@ const WebMapComp = ({
             }
           : deviceLocation;
       setLoc(locInfo);
+      devLog("[WebMapComp] loc set", locInfo);
     } catch (err: any) {
-      devLog("err", err);
+      devLog("[WebMapComp] fetchLocation error", {
+        ms: Date.now() - startedAt,
+        name: err?.name,
+        message: err?.message,
+        canAskAgain: err?.canAskAgain,
+        err,
+      });
       const isPermissionError = err instanceof LocationPermissionError;
       setNeedsSettings(isPermissionError && !err.canAskAgain);
       setLoadError(err?.message || "Error fetching location");
@@ -86,16 +104,19 @@ const WebMapComp = ({
   }, [fetchLocation1, needsSettings]);
 
   const handleMapError = useCallback(() => {
+    devLog("[WebMapComp] map embed error");
     setLoadError("Couldn't load the map. Please try again.");
     setNeedsSettings(false);
     setIsLoading(false);
   }, []);
 
   const handleMapLoadStart = useCallback(() => {
+    devLog("[WebMapComp] map embed load start");
     setIsLoading(true);
   }, []);
 
   const handleMapLoadEnd = useCallback(() => {
+    devLog("[WebMapComp] map embed load end");
     setIsLoading(false);
   }, []);
 
@@ -119,6 +140,37 @@ const WebMapComp = ({
     if (!loc) return "";
     return `${hostUrl}/addressMap?lat=${loc.latitude}&lng=${loc.longitude}&cLat=${currentLocation?.latitude}&cLng=${currentLocation?.longitude}`;
   }, [loc, currentLocation?.latitude, currentLocation?.longitude]);
+
+  useEffect(() => {
+    const phase = loadError
+      ? "error"
+      : !loc || !mapUri
+        ? "waiting_for_location"
+        : isLoading
+          ? "iframe_loading"
+          : "ready";
+    devLog("[WebMapComp] render state", {
+      phase,
+      platform: Platform.OS,
+      isLoading,
+      loadError,
+      needsSettings,
+      loc,
+      currentLocation,
+      mapUri,
+      mapKey,
+      hasToken: !!token,
+    });
+  }, [
+    currentLocation,
+    isLoading,
+    loadError,
+    loc,
+    mapKey,
+    mapUri,
+    needsSettings,
+    token,
+  ]);
 
   const handleLocationMessage = useCallback(
     (raw: string) => {

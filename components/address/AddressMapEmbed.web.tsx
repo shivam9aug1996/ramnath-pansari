@@ -45,8 +45,15 @@ export default function AddressMapEmbed({
   }, [uri, authToken, mapKey]);
 
   useEffect(() => {
+    devLog("[AddressMapEmbed.web] iframe src set", {
+      iframeSrc,
+      mapKey,
+      parentOrigin:
+        typeof window !== "undefined" ? window.location.origin : "",
+      hostUrl,
+    });
     onLoadStartRef.current();
-  }, [iframeSrc]);
+  }, [iframeSrc, mapKey]);
 
   useEffect(() => {
     const allowedOrigin = (() => {
@@ -99,8 +106,14 @@ export default function AddressMapEmbed({
           borderRadius: 20,
           display: "block",
         }}
-        onLoad={() => onLoadEnd()}
-        onError={() => onError()}
+        onLoad={() => {
+          devLog("[AddressMapEmbed.web] iframe onLoad", { iframeSrc });
+          onLoadEnd();
+        }}
+        onError={() => {
+          devLog("[AddressMapEmbed.web] iframe onError", { iframeSrc });
+          onError();
+        }}
         allow="geolocation"
       />
       {isLoading ? (
