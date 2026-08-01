@@ -16,12 +16,25 @@ import { fetchLocation } from "./utils";
 import { setCurrentAddressData } from "@/redux/features/addressSlice";
 import { router } from "expo-router";
 import { Colors } from "@/constants/Colors";
+import { DEFAULT_DELIVERY_RADIUS } from "@/constants/StoreConfig";
 import TryAgain from "../(category)/CategoryList/TryAgain";
 import {
   LocationPermissionError,
   openAppSettings,
 } from "@/utils/locationPermission";
 import AddressMapEmbed from "@/components/address/AddressMapEmbed";
+
+function parseCoordPair(latitude: unknown, longitude: unknown) {
+  const lat = parseFloat(String(latitude ?? ""));
+  const lng = parseFloat(String(longitude ?? ""));
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { latitude: lat, longitude: lng };
+}
+
+const FALLBACK_LOC = {
+  latitude: DEFAULT_DELIVERY_RADIUS.centerLatitude,
+  longitude: DEFAULT_DELIVERY_RADIUS.centerLongitude,
+};
 
 const WebMapComp = ({
   latitude,
@@ -40,32 +53,42 @@ const WebMapComp = ({
     (state: RootState) => state?.address?.currentAddressData,
   );
   const dispatch = useDispatch();
-  const [loc, setLoc] = useState<any>(null);
+  const paramLoc = useMemo(
+    () => parseCoordPair(latitude, longitude),
+    [latitude, longitude],
+  );
+  const [loc, setLoc] = useState<any>(
+    () => paramLoc ?? (Platform.OS === "web" ? FALLBACK_LOC : null),
+  );
   const wasInBackground = useRef(false);
 
   const fetchLocation1 = useCallback(async () => {
     setLoadError(null);
     setNeedsSettings(false);
-    setIsLoading(true);
+    if (Platform.OS !== "web" && !paramLoc) {
+      setIsLoading(true);
+    }
     try {
       const deviceLocation = await fetchLocation();
       setCurrentLocation(deviceLocation);
-      const locInfo =
-        latitude && longitude
-          ? {
-              latitude: parseFloat(latitude as string),
-              longitude: parseFloat(longitude as string),
-            }
-          : deviceLocation;
-      setLoc(locInfo);
+      setLoc(paramLoc ?? deviceLocation);
     } catch (err: any) {
       devLog("err", err);
+      // Web: still show the map (store center). GPS is best-effort.
+      if (Platform.OS === "web") {
+        setLoc(paramLoc ?? FALLBACK_LOC);
+        return;
+      }
+      if (paramLoc) {
+        setLoc(paramLoc);
+        return;
+      }
       const isPermissionError = err instanceof LocationPermissionError;
       setNeedsSettings(isPermissionError && !err.canAskAgain);
       setLoadError(err?.message || "Error fetching location");
       setIsLoading(false);
     }
-  }, [latitude, longitude]);
+  }, [paramLoc]);
 
   useEffect(() => {
     fetchLocation1();
