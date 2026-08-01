@@ -3,6 +3,7 @@ import {
   ANDROID_PLAY_STORE_URL,
   IOS_APP_STORE_URL,
 } from "@/constants/AppStores";
+import { FSSAI_VERIFY_URL } from "@/constants/Licenses";
 import {
   STORE_MAPS_URL,
   SUPPORT_EMAIL,
@@ -71,4 +72,9 @@ export async function openIosAppStore() {
 /** Opens the Google Play Store listing. */
 export async function openAndroidPlayStore() {
   await openExternalUrl(ANDROID_PLAY_STORE_URL);
+}
+
+/** Opens FoSCoS so customers can verify the store FSSAI license. */
+export async function openFssaiVerify() {
+  await openExternalUrl(FSSAI_VERIFY_URL);
 }

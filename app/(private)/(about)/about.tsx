@@ -15,8 +15,18 @@ import {
   STORE_ADDRESS_LINES,
   STORE_NAME,
 } from "@/constants/SupportContact";
+import {
+  FSSAI_CATEGORY,
+  FSSAI_KIND_OF_BUSINESS,
+  FSSAI_LICENSE_NUMBER,
+  FSSAI_LICENSEE_NAME,
+  FSSAI_VALID_UPTO,
+  UDYAM_ENTERPRISE_NAME,
+  UDYAM_REGISTRATION_NUMBER,
+  UDYAM_TYPE,
+} from "@/constants/Licenses";
 import { useStoreConfig } from "@/hooks/useStoreConfig";
-import { openStoreMaps } from "@/utils/supportLinks";
+import { openFssaiVerify, openStoreMaps } from "@/utils/supportLinks";
 import GetTheApp from "@/components/GetTheApp";
 
 const ABOUT_COPY =
@@ -28,6 +38,10 @@ export default function AboutScreen() {
 
   const onOpenMaps = useCallback(() => {
     void openStoreMaps();
+  }, []);
+
+  const onVerifyFssai = useCallback(() => {
+    void openFssaiVerify();
   }, []);
 
   return (
@@ -101,6 +115,59 @@ export default function AboutScreen() {
               Checkout checks your saved address against this area before you
               place an order.
             </Text>
+          </View>
+
+          <View style={styles.areaCard}>
+            <View style={styles.areaHeader}>
+              <Ionicons
+                name="shield-checkmark-outline"
+                size={20}
+                color={Colors.light.darkGreen}
+              />
+              <Text style={styles.areaTitle}>Licenses</Text>
+            </View>
+            <Text style={styles.areaMeta}>
+              We are a licensed food retailer. You can verify our FSSAI license
+              on the government portal.
+            </Text>
+
+            <View style={styles.licenseBlock}>
+              <Text style={styles.licenseLabel}>FSSAI</Text>
+              <Text style={styles.licenseNumber}>{FSSAI_LICENSE_NUMBER}</Text>
+              <Text style={styles.addressLine}>{FSSAI_LICENSEE_NAME}</Text>
+              <Text style={styles.addressLine}>{FSSAI_KIND_OF_BUSINESS}</Text>
+              <Text style={styles.addressLine}>{FSSAI_CATEGORY}</Text>
+              <Text style={styles.addressLine}>
+                Valid up to{" "}
+                <Text style={styles.licenseNumberInline}>{FSSAI_VALID_UPTO}</Text>
+              </Text>
+            </View>
+
+            <View style={styles.licenseBlock}>
+              <Text style={styles.licenseLabel}>Udyam (MSME)</Text>
+              <Text style={styles.licenseNumber}>
+                {UDYAM_REGISTRATION_NUMBER}
+              </Text>
+              <Text style={styles.addressLine}>{UDYAM_ENTERPRISE_NAME}</Text>
+              <Text style={styles.addressLine}>{UDYAM_TYPE}</Text>
+            </View>
+
+            <Pressable
+              onPress={onVerifyFssai}
+              style={({ pressed }) => [
+                styles.mapsRow,
+                pressed && styles.areaCardPressed,
+              ]}
+              accessibilityRole="link"
+              accessibilityLabel="Verify FSSAI license on FoSCoS"
+            >
+              <Ionicons
+                name="open-outline"
+                size={16}
+                color={Colors.light.mediumGreen}
+              />
+              <Text style={styles.mapsLink}>Verify on FoSCoS</Text>
+            </Pressable>
           </View>
 
           <GetTheApp />
@@ -192,5 +259,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     color: Colors.light.mediumGrey,
+  },
+  licenseBlock: {
+    gap: 2,
+    paddingTop: 4,
+  },
+  licenseLabel: {
+    fontFamily: "Montserrat_700Bold",
+    fontSize: 11,
+    color: Colors.light.mediumGrey,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    marginBottom: 2,
+  },
+  licenseNumber: {
+    fontFamily: "Montserrat_700Bold",
+    fontSize: 16,
+    color: Colors.light.darkGrey,
+    letterSpacing: 0.4,
+    marginBottom: 2,
+  },
+  licenseNumberInline: {
+    fontFamily: "Montserrat_600SemiBold",
+    color: Colors.light.darkGrey,
+    letterSpacing: 0.2,
   },
 });

@@ -1,20 +1,30 @@
-import React, { useCallback } from "react";
+import React, { ReactNode } from "react";
 import { TouchableOpacity } from "react-native";
 import { ThemedView } from "@/components/ThemedView";
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { Colors } from "@/constants/Colors";
-import { router, useRouter } from "expo-router";
-import { debounce } from "@/utils/utils";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import usePreventDoubleTap from "@/hooks/usePreventDoubleTap";
 import { Image } from "expo-image";
 
 type Props = {
   onPress?: () => void;
+  /** Used when there is no history (e.g. web refresh on a deep link). */
+  fallbackHref?: string;
+  /** Icon when there is no history. Defaults to home. */
+  fallbackIcon?: ReactNode;
 };
 
-const HeaderBackButton: React.FC<Props> = ({ onPress }) => {
-  const colorScheme = useColorScheme();
+const DEFAULT_FALLBACK = "/(private)/(tabs)/home";
+const ICON_COLOR = "#777777";
+
+const HeaderBackButton: React.FC<Props> = ({
+  onPress,
+  fallbackHref = DEFAULT_FALLBACK,
+  fallbackIcon,
+}) => {
   const debouncedPress = usePreventDoubleTap();
+  const canGoBack = router.canGoBack();
+  const useFallback = !onPress && !canGoBack;
 
   const handleBack = () => {
     if (onPress) {
@@ -23,18 +33,22 @@ const HeaderBackButton: React.FC<Props> = ({ onPress }) => {
       });
       return;
     }
-    if (!router.canGoBack()) return;
     debouncedPress(() => {
-      router.back();
+      if (router.canGoBack()) {
+        router.back();
+        return;
+      }
+      router.replace(fallbackHref as Parameters<typeof router.replace>[0]);
     });
   };
 
-  if (!onPress && !router.canGoBack()) {
-    return null;
-  }
-
   return (
-    <TouchableOpacity onPress={handleBack} style={{ alignSelf: "flex-start" }}>
+    <TouchableOpacity
+      onPress={handleBack}
+      style={{ alignSelf: "flex-start" }}
+      accessibilityRole="button"
+      accessibilityLabel={useFallback ? "Home" : "Back"}
+    >
       <ThemedView
         style={{
           borderWidth: 1,
@@ -42,20 +56,24 @@ const HeaderBackButton: React.FC<Props> = ({ onPress }) => {
           paddingHorizontal: 21,
           paddingVertical: 11,
           borderRadius: 100,
-          backgroundColor:"transparent"
-
-          // marginLeft: 10,
+          backgroundColor: "transparent",
         }}
       >
-        <Image
-          tintColor={"#777777"}
-          source={require("../assets/images/bi_arrow-right.png")}
-          style={{
-            width: 18,
-            height: 18,
-            transform: [{ rotate: "180deg" }],
-          }}
-        />
+        {useFallback ? (
+          fallbackIcon ?? (
+            <Ionicons name="home-outline" size={18} color={ICON_COLOR} />
+          )
+        ) : (
+          <Image
+            tintColor={ICON_COLOR}
+            source={require("../assets/images/bi_arrow-right.png")}
+            style={{
+              width: 18,
+              height: 18,
+              transform: [{ rotate: "180deg" }],
+            }}
+          />
+        )}
       </ThemedView>
     </TouchableOpacity>
   );

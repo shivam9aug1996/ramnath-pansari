@@ -35,6 +35,7 @@ import { syncCarouselConfig } from "@/utils/carouselConfigCache";
 import { useFetchActiveDeliveriesQuery } from "@/redux/features/orderSlice";
 import { ACTIVE_FLOAT_STATUS_QUERY } from "@/utils/activeOrderFloat";
 import HomeProductPromo from "@/components/HomeProductPromo";
+import GetTheApp from "@/components/GetTheApp";
 import { setPromoDockedInline } from "@/redux/features/homePromoSlice";
 
 const CATEGORY_PLACEHOLDER_COUNT = 3;
@@ -242,6 +243,12 @@ const PrivateHome = () => {
               <WeatherSection />
             </DeferredFadeIn>
           </View>
+
+          {Platform.OS === "web" ? (
+            <DeferredFadeIn delay={150}>
+              <GetTheApp variant="banner" />
+            </DeferredFadeIn>
+          ) : null}
 
           <DeferredFadeIn delay={200}>
             <View

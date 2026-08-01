@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import {
   GUEST_AUTH,
@@ -13,11 +13,37 @@ import { getHasSeenOnboarding, setHasSeenOnboarding } from "@/utils/onboardingSt
 
 const CUSTOMER_HOME = "/(private)/(tabs)/home" as const;
 
+/**
+ * Explicit paths that survive web page refresh instead of the normal
+ * auth bootstrap redirect (home / onboarding / name).
+ *
+ * - onboardingDone: logged-in users, or guests who finished onboarding
+ * - onboardingNotDone: first-time users who have not finished onboarding
+ *
+ * Use URL pathnames (no route groups), e.g. "/about" not "/(about)/about".
+ */
+const REFRESH_PERSIST_PATHS = {
+  onboardingDone: ["/terms", "/privacy", "/about", "/support"],
+  onboardingNotDone: ["/terms", "/privacy"],
+} as const;
+
 function isGuestSession(
   token: string | null | undefined,
   userData: { isGuestUser?: boolean } | null | undefined,
 ) {
   return Boolean(userData?.isGuestUser) || token === GUEST_AUTH.token;
+}
+
+function shouldPersistOnRefresh(
+  pathname: string,
+  hasSeenOnboarding: boolean,
+): boolean {
+  const allowed = hasSeenOnboarding
+    ? REFRESH_PERSIST_PATHS.onboardingDone
+    : REFRESH_PERSIST_PATHS.onboardingNotDone;
+  return allowed.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
 }
 
 export const AuthenticationFlow = ({
@@ -26,6 +52,7 @@ export const AuthenticationFlow = ({
   children: React.ReactNode;
 }) => {
   const dispatch = useDispatch();
+  const pathname = usePathname();
 
   const [isLoggedIn, setIsLoggedIn] = useState(0);
   const [isReady, setIsReady] = useState(false);
@@ -74,6 +101,7 @@ export const AuthenticationFlow = ({
             await setHasSeenOnboarding(true);
             dispatch(setOnboardingSeen(true));
           }
+          if (shouldPersistOnRefresh(pathname, true)) return;
           router.replace(
             getAppHomeRoute(
               authUser,
@@ -84,14 +112,17 @@ export const AuthenticationFlow = ({
         }
 
         if (authToken && authUser?.userAlreadyRegistered === false) {
+          if (shouldPersistOnRefresh(pathname, hasSeenOnboarding)) return;
           setIsLoggedIn(2);
           return;
         }
 
         // Guest / logged out: skip intro if already completed once
         if (hasSeenOnboarding) {
+          if (shouldPersistOnRefresh(pathname, true)) return;
           router.replace(CUSTOMER_HOME);
         } else {
+          if (shouldPersistOnRefresh(pathname, false)) return;
           setIsLoggedIn(1);
         }
         return;
@@ -100,14 +131,18 @@ export const AuthenticationFlow = ({
       if (loadAuthDataState?.isError) {
         const hasSeenOnboarding = await getHasSeenOnboarding();
         if (hasSeenOnboarding) {
+          if (shouldPersistOnRefresh(pathname, true)) return;
           router.replace(CUSTOMER_HOME);
         } else {
+          if (shouldPersistOnRefresh(pathname, false)) return;
           setIsLoggedIn(1);
         }
       }
     };
 
     void routeAfterAuthLoad();
+    // pathname read once when auth load settles (refresh deep-link decision)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadAuthDataState, isReady]);
 
   useEffect(() => {

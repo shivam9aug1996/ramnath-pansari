@@ -101,7 +101,12 @@ const Account: React.FC = () => {
   return (
     <>
       <AppHead title="Account" />
-      <ScreenSafeWrapper title="Profile">
+      <ScreenSafeWrapper
+        title="Profile"
+        // On web, keep ScrollView full-bleed so the scrollbar sits on the screen edge.
+        wrapperStyle={Platform.OS === "web" ? styles.webWrapper : undefined}
+        headerStyle={Platform.OS === "web" ? styles.webHeaderPad : undefined}
+      >
         <DeferredFadeIn delay={100} style={{ flex: 1 }}>
           {userInfo?._id ? (
             isAccountDeleting ? (
@@ -117,7 +122,7 @@ const Account: React.FC = () => {
             ) : (
               <ScrollView
                 bounces={Platform.OS === "android" ? false : true}
-                style={{ flex: 1 }}
+                style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
                 pinchGestureEnabled={false}
                 showsVerticalScrollIndicator={Platform.OS === "web"}
@@ -365,8 +370,18 @@ const Account: React.FC = () => {
 export default Account;
 
 const styles = StyleSheet.create({
+  webWrapper: {
+    paddingHorizontal: 0,
+  },
+  webHeaderPad: {
+    paddingHorizontal: 20,
+  },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
     paddingBottom: Platform.OS === "web" ? 160 : 140,
+    paddingHorizontal: Platform.OS === "web" ? 20 : 0,
     flexGrow: 1,
   },
   body: {

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ActivityIndicator } from "react-native";
+import { StyleSheet, Text, View, ActivityIndicator, Platform } from "react-native";
   import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
   import Animated, { useAnimatedRef } from "react-native-reanimated";
   import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
@@ -245,7 +245,7 @@ import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
             isOutOfStock={data?.product?.isOutOfStock}
           />
         ) : data?.product !== null ? (
-          <GoToCartWrapper showGoToCart={true} />
+          <GoToCartWrapper showGoToCart={true} extraBottomOffset={Platform.OS === "web" ? -10 : 0} />
         ) : // </CustomSuspense>
         null}
       </>

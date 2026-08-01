@@ -40,6 +40,10 @@ interface ScreenSafeWrapperProps {
   showWeatherSection?: boolean;
   showGradient?: boolean;
   showCartItemsCount?: boolean;
+  /** Used by HeaderBackButton when there is no history. */
+  backFallbackHref?: string;
+  /** Icon when there is no history. Defaults to home. */
+  backFallbackIcon?: ReactNode;
 }
 
 const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
@@ -54,6 +58,8 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
   headerVisible,
   showGradient = false,
   showCartItemsCount = false,
+  backFallbackHref,
+  backFallbackIcon,
 }) => {
   //console.log("uytrf5698765434567890ghjk", showCartIcon);
   const WrapperComponent = useKeyboardAvoidingView
@@ -115,7 +121,12 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
                 headerStyle,
               ]}
             >
-              {showBackButton && <HeaderBackButton />}
+              {showBackButton && (
+                <HeaderBackButton
+                  fallbackHref={backFallbackHref}
+                  fallbackIcon={backFallbackIcon}
+                />
+              )}
               {!!title && (
                 <Animated.View
                   style={[
@@ -208,6 +219,10 @@ function areEqual(prevProps: ScreenSafeWrapperProps, nextProps: ScreenSafeWrappe
     prevProps.showGradient === nextProps.showGradient
     &&
     prevProps.showCartItemsCount === nextProps.showCartItemsCount
+    &&
+    prevProps.backFallbackHref === nextProps.backFallbackHref
+    &&
+    prevProps.backFallbackIcon === nextProps.backFallbackIcon
   );
 }
 
