@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Platform, StyleSheet, View } from "react-native";
 import { router, usePathname } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -10,22 +10,12 @@ import {
 import { RootState } from "@/types/global";
 import { getAppHomeRoute } from "@/utils/authRoles";
 import { getHasSeenOnboarding, setHasSeenOnboarding } from "@/utils/onboardingStorage";
+import {
+  RefreshPersistAudience,
+  shouldPersistOnRefresh,
+} from "@/utils/refreshPersistPaths";
 
 const CUSTOMER_HOME = "/(private)/(tabs)/home" as const;
-
-/**
- * Explicit paths that survive web page refresh instead of the normal
- * auth bootstrap redirect (home / onboarding / name).
- *
- * - onboardingDone: logged-in users, or guests who finished onboarding
- * - onboardingNotDone: first-time users who have not finished onboarding
- *
- * Use URL pathnames (no route groups), e.g. "/about" not "/(about)/about".
- */
-const REFRESH_PERSIST_PATHS = {
-  onboardingDone: ["/terms", "/privacy", "/about", "/support"],
-  onboardingNotDone: ["/terms", "/privacy"],
-} as const;
 
 function isGuestSession(
   token: string | null | undefined,
@@ -34,16 +24,13 @@ function isGuestSession(
   return Boolean(userData?.isGuestUser) || token === GUEST_AUTH.token;
 }
 
-function shouldPersistOnRefresh(
-  pathname: string,
-  hasSeenOnboarding: boolean,
-): boolean {
-  const allowed = hasSeenOnboarding
-    ? REFRESH_PERSIST_PATHS.onboardingDone
-    : REFRESH_PERSIST_PATHS.onboardingNotDone;
-  return allowed.some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`),
-  );
+/** Prefer the browser URL on web — usePathname can still be "/" during auth bootstrap. */
+function getBootstrapPathname(hookPathname: string) {
+  if (Platform.OS === "web" && typeof window !== "undefined") {
+    const browserPath = window.location.pathname;
+    if (browserPath) return browserPath;
+  }
+  return hookPathname || "/";
 }
 
 export const AuthenticationFlow = ({
@@ -53,6 +40,12 @@ export const AuthenticationFlow = ({
 }) => {
   const dispatch = useDispatch();
   const pathname = usePathname();
+
+  // Capture the refresh URL once, before role-guard / other redirects can change it.
+  const initialPathRef = useRef<string | null>(null);
+  if (initialPathRef.current === null) {
+    initialPathRef.current = getBootstrapPathname(pathname);
+  }
 
   const [isLoggedIn, setIsLoggedIn] = useState(0);
   const [isReady, setIsReady] = useState(false);
@@ -72,6 +65,19 @@ export const AuthenticationFlow = ({
 
   const isLoggingOut = logoutSessionPending;
 
+  const stayOnPersistPath = (
+    decisionPath: string,
+    audience: RefreshPersistAudience,
+  ) => {
+    if (!shouldPersistOnRefresh(decisionPath, audience)) return false;
+    const livePath = getBootstrapPathname(pathname);
+    // Role guard may have already bounced to /login — restore the refresh URL.
+    if (livePath !== decisionPath) {
+      router.replace(decisionPath as Parameters<typeof router.replace>[0]);
+    }
+    return true;
+  };
+
   useEffect(() => {
     dispatch(loadAuthData() as any);
     const timer = setTimeout(() => {
@@ -83,6 +89,9 @@ export const AuthenticationFlow = ({
   useEffect(() => {
     if (!isReady) return;
 
+    const decisionPath =
+      initialPathRef.current || getBootstrapPathname(pathname);
+
     const routeAfterAuthLoad = async () => {
       if (loadAuthDataState?.isSuccess) {
         const authToken = loadAuthDataState?.data?.token;
@@ -90,18 +99,16 @@ export const AuthenticationFlow = ({
         const hasSeenOnboarding =
           loadAuthDataState?.data?.hasSeenOnboarding ??
           (await getHasSeenOnboarding());
+        const guest = isGuestSession(authToken, authUser);
 
-        if (
-          authToken &&
-          authUser?.name &&
-          !isGuestSession(authToken, authUser)
-        ) {
+        if (authToken && authUser?.name && !guest) {
           // Backfill for users who finished onboarding before this flag existed
           if (!hasSeenOnboarding) {
             await setHasSeenOnboarding(true);
             dispatch(setOnboardingSeen(true));
           }
-          if (shouldPersistOnRefresh(pathname, true)) return;
+          // Onboarding done + logged-in token → nonGuest
+          if (stayOnPersistPath(decisionPath, "nonGuest")) return;
           router.replace(
             getAppHomeRoute(
               authUser,
@@ -112,17 +119,25 @@ export const AuthenticationFlow = ({
         }
 
         if (authToken && authUser?.userAlreadyRegistered === false) {
-          if (shouldPersistOnRefresh(pathname, hasSeenOnboarding)) return;
+          // Mid-signup (has token, not fully registered yet)
+          if (
+            stayOnPersistPath(
+              decisionPath,
+              hasSeenOnboarding ? "nonGuest" : "onboardingNotDone",
+            )
+          ) {
+            return;
+          }
           setIsLoggedIn(2);
           return;
         }
 
-        // Guest / logged out: skip intro if already completed once
+        // Onboarding done ⇒ guest token; otherwise still in intro
         if (hasSeenOnboarding) {
-          if (shouldPersistOnRefresh(pathname, true)) return;
+          if (stayOnPersistPath(decisionPath, "guest")) return;
           router.replace(CUSTOMER_HOME);
         } else {
-          if (shouldPersistOnRefresh(pathname, false)) return;
+          if (stayOnPersistPath(decisionPath, "onboardingNotDone")) return;
           setIsLoggedIn(1);
         }
         return;
@@ -131,17 +146,17 @@ export const AuthenticationFlow = ({
       if (loadAuthDataState?.isError) {
         const hasSeenOnboarding = await getHasSeenOnboarding();
         if (hasSeenOnboarding) {
-          if (shouldPersistOnRefresh(pathname, true)) return;
+          // Onboarding done normally implies a token; treat as guest fallback
+          if (stayOnPersistPath(decisionPath, "guest")) return;
           router.replace(CUSTOMER_HOME);
         } else {
-          if (shouldPersistOnRefresh(pathname, false)) return;
+          if (stayOnPersistPath(decisionPath, "onboardingNotDone")) return;
           setIsLoggedIn(1);
         }
       }
     };
 
     void routeAfterAuthLoad();
-    // pathname read once when auth load settles (refresh deep-link decision)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadAuthDataState, isReady]);
 
