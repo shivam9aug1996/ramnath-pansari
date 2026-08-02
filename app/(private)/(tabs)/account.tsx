@@ -218,7 +218,7 @@ const Account: React.FC = () => {
                     {Platform.OS === "web" && (
                       <View style={styles.section}>
                         <SectionLabel>App</SectionLabel>
-                        <GetTheApp hideIntro />
+                        <GetTheApp variant="compact" />
                       </View>
                     )}
 

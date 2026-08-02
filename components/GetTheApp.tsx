@@ -18,11 +18,45 @@ type Props = {
   /** When true, skip the heading (parent already shows a section title). */
   hideIntro?: boolean;
   /**
-   * `list` — account/about rows.
-   * `banner` — compact home strip with both store buttons.
+   * `list` — about-page rows.
+   * `compact` — account section: one row of store chips.
+   * `banner` — home strip with both store buttons.
    */
-  variant?: "list" | "banner";
+  variant?: "list" | "compact" | "banner";
 };
+
+function StoreChip({
+  onPress,
+  label,
+  accessibilityLabel,
+  icon,
+  fill,
+}: {
+  onPress: () => void;
+  label: string;
+  accessibilityLabel: string;
+  icon: React.ReactNode;
+  /** Stretch to fill row (account compact). */
+  fill?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.storeChip,
+        fill && styles.storeChipFill,
+        pressed && styles.storeChipPressed,
+      ]}
+      accessibilityRole="link"
+      accessibilityLabel={accessibilityLabel}
+    >
+      {icon}
+      <Text style={[styles.storeChipText, fill && styles.storeChipTextFill]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
 
 /**
  * Web-only prompt with App Store / Play Store download links.
@@ -43,7 +77,7 @@ function GetTheApp({ hideIntro = false, variant = "list" }: Props) {
 
   if (variant === "banner") {
     return (
-      <View style={styles.banner} accessibilityRole="complementary">
+      <View style={styles.banner}>
         <View style={styles.bannerCopy}>
           <Text style={styles.bannerTitle}>Shop easier in the app</Text>
           <Text style={styles.bannerSub} numberOfLines={1}>
@@ -51,39 +85,64 @@ function GetTheApp({ hideIntro = false, variant = "list" }: Props) {
           </Text>
         </View>
         <View style={styles.bannerActions}>
-          <Pressable
+          <StoreChip
             onPress={onIos}
-            style={({ pressed }) => [
-              styles.storeChip,
-              pressed && styles.storeChipPressed,
-            ]}
-            accessibilityRole="link"
+            label="App Store"
             accessibilityLabel="Download on the App Store"
-          >
+            icon={
+              <Ionicons
+                name="logo-apple"
+                size={15}
+                color={Colors.light.darkGreen}
+              />
+            }
+          />
+          <StoreChip
+            onPress={onAndroid}
+            label="Play"
+            accessibilityLabel="Get it on Google Play"
+            icon={
+              <MaterialCommunityIcons
+                name="google-play"
+                size={15}
+                color={Colors.light.darkGreen}
+              />
+            }
+          />
+        </View>
+      </View>
+    );
+  }
+
+  if (variant === "compact") {
+    return (
+      <View style={styles.compactRow}>
+        <StoreChip
+          fill
+          onPress={onIos}
+          label="iOS"
+          accessibilityLabel="Download on the App Store"
+          icon={
             <Ionicons
               name="logo-apple"
-              size={15}
-              color={Colors.light.darkGreen}
+              size={18}
+              color={Colors.light.gradientGreen_2}
             />
-            <Text style={styles.storeChipText}>App Store</Text>
-          </Pressable>
-          <Pressable
-            onPress={onAndroid}
-            style={({ pressed }) => [
-              styles.storeChip,
-              pressed && styles.storeChipPressed,
-            ]}
-            accessibilityRole="link"
-            accessibilityLabel="Get it on Google Play"
-          >
+          }
+        />
+        <StoreChip
+          fill
+          onPress={onAndroid}
+          label="Android"
+          accessibilityLabel="Get it on Google Play"
+          icon={
             <MaterialCommunityIcons
               name="google-play"
-              size={15}
-              color={Colors.light.darkGreen}
+              size={18}
+              color={Colors.light.gradientGreen_2}
             />
-            <Text style={styles.storeChipText}>Play</Text>
-          </Pressable>
-        </View>
+          }
+        />
       </View>
     );
   }
@@ -97,11 +156,7 @@ function GetTheApp({ hideIntro = false, variant = "list" }: Props) {
             For the best experience on your phone, download Ramnath Pansari.
           </Text>
         </>
-      ) : (
-        <Text style={styles.sub}>
-          Best experience on your phone — download the app.
-        </Text>
-      )}
+      ) : null}
       <AccountOption
         onPress={onIos}
         icon={
@@ -133,6 +188,11 @@ export default memo(GetTheApp);
 const styles = StyleSheet.create({
   wrap: {
     gap: 4,
+  },
+  compactRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 8,
   },
   heading: {
     fontFamily: "Montserrat_700Bold",
@@ -197,6 +257,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(25, 75, 56, 0.12)",
   },
+  storeChipFill: {
+    flex: 1,
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderColor: Colors.light.lightGrey,
+  },
   storeChipPressed: {
     backgroundColor: "rgba(44, 175, 127, 0.12)",
     borderColor: "rgba(44, 175, 127, 0.28)",
@@ -205,5 +274,10 @@ const styles = StyleSheet.create({
     fontFamily: "Raleway_600SemiBold",
     fontSize: 11,
     color: Colors.light.darkGreen,
+  },
+  storeChipTextFill: {
+    fontSize: 13,
+    color: Colors.light.darkGrey,
+    letterSpacing: 0.2,
   },
 });

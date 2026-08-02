@@ -62,8 +62,14 @@ export const AuthenticationFlow = ({
   const logoutSessionPending = useSelector((state: RootState) =>
     Boolean(state.auth?.logoutSessionPending),
   );
+  const hasSeenOnboarding = useSelector((state: RootState) =>
+    Boolean(state.auth?.hasSeenOnboarding),
+  );
 
   const isLoggingOut = logoutSessionPending;
+  const authReady =
+    Boolean(loadAuthDataState?.isSuccess) ||
+    Boolean(loadAuthDataState?.isError);
 
   const stayOnPersistPath = (
     decisionPath: string,
@@ -170,6 +176,33 @@ export const AuthenticationFlow = ({
       router.replace(CUSTOMER_HOME);
     }
   }, [isLoggedIn, isReady]);
+
+  /**
+   * Ongoing gate (not only refresh): if intro is unfinished, block escapes to
+   * home / other app routes. Persist paths like /terms stay allowed.
+   */
+  useEffect(() => {
+    if (!isReady || !authReady || isLoggingOut || hasSeenOnboarding) return;
+
+    const livePath = getBootstrapPathname(pathname);
+    if (shouldPersistOnRefresh(livePath, "onboardingNotDone")) return;
+
+    const allowedWhileOnboarding =
+      livePath === "/onboarding" ||
+      livePath.startsWith("/onboarding/") ||
+      livePath === "/login" ||
+      livePath === "/verify" ||
+      livePath === "/name";
+    if (allowedWhileOnboarding) return;
+
+    router.replace("/(onboarding)/onboarding");
+  }, [
+    pathname,
+    isReady,
+    authReady,
+    hasSeenOnboarding,
+    isLoggingOut,
+  ]);
 
   // After logout, guest auth is already set — skip onboarding if already seen.
   useEffect(() => {
