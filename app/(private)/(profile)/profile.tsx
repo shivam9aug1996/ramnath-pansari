@@ -156,31 +156,32 @@ const profile = () => {
 
   const pickImage = async () => {
     // No permissions request is necessary for launching the image library
-    let result = await ImagePicker.launchImageLibraryAsync({
+    const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
       //aspect: [1, 1],
       quality: 0.1,
       base64: true,
     });
-    let g = await ImagePicker.getPendingResultAsync();
-    // console.log(result);
-    // console.log("98765rfghjkl", result?.assets[0]?.fileSize);
-    let fileSize = result?.assets[0]?.fileSize;
-    fileSize = (fileSize / 1024 / 1024)?.toFixed(2);
-    if (fileSize > 1) {
-      showToast({ type: "info", text2: `Sorry this image cannot be uploaded` });
+
+    // On cancel (and some platforms), assets is null — result?.assets[0] still throws
+    const asset = result.assets?.[0];
+    if (result.canceled || !asset) {
+      return;
     }
 
-    if (!result.canceled) {
-      setForm({
-        ...form,
-        image: result.assets[0],
-        imageSize: fileSize,
-        removeImage: false,
-      });
-      //setImage(result.assets[0].uri);
+    const fileSize = Number(((asset.fileSize ?? 0) / 1024 / 1024).toFixed(2));
+    if (fileSize > 1) {
+      showToast({ type: "info", text2: `Sorry this image cannot be uploaded` });
+      return;
     }
+
+    setForm({
+      ...form,
+      image: asset,
+      imageSize: fileSize,
+      removeImage: false,
+    });
   };
 
   const removeImage = () => {
