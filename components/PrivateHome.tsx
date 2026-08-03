@@ -1,11 +1,18 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   StyleSheet,
   View,
-  ScrollView,
+  FlatList,
   Platform,
   RefreshControl,
   useWindowDimensions,
+  ViewToken,
 } from "react-native";
 import { router } from "expo-router";
 import { useDispatch, useSelector, shallowEqual } from "react-redux";
@@ -32,25 +39,53 @@ import {
   markStartupCheckpoint,
 } from "@/utils/startupDiagnostics";
 import { syncCarouselConfig } from "@/utils/carouselConfigCache";
-import { useFetchActiveDeliveriesQuery } from "@/redux/features/orderSlice";
-import { ACTIVE_FLOAT_STATUS_QUERY } from "@/utils/activeOrderFloat";
 import HomeProductPromo from "@/components/HomeProductPromo";
 import GetTheApp from "@/components/GetTheApp";
-import { setPromoDockedInline } from "@/redux/features/homePromoSlice";
+import HomeProductRail from "@/components/HomeProductRail";
 
 const CATEGORY_PLACEHOLDER_COUNT = 3;
 const WEATHER_SECTION_HEIGHT = 100;
+/** Prefetch first N product rails so the initial viewport isn't empty. */
+const INITIAL_ENABLED_RAIL_COUNT = 2;
+
+type HomeFeedItem =
+  | { type: "dashboard"; id: string }
+  | { type: "search"; id: string }
+  | { type: "carousel"; id: string }
+  | { type: "weather"; id: string }
+  | { type: "getTheApp"; id: string }
+  | { type: "categorySkeleton"; id: string; index: number }
+  | {
+      type: "categoryCard";
+      id: string;
+      category: Category;
+      index: number;
+      length: number;
+    }
+  | {
+      type: "productRail";
+      id: string;
+      parent: Category;
+      subCategory: Category;
+      subCategoryIndex: number;
+    }
+  | { type: "promo"; id: string }
+  | { type: "recentlyViewed"; id: string };
 
 const PrivateHome = () => {
   const { width: windowWidth } = useWindowDimensions();
   const carouselFallbackHeight = getCarouselSlotHeight(windowWidth);
   const dispatch = useDispatch<typeof store.dispatch>();
-  const scrollRef = useRef<ScrollView>(null);
-  const categoriesRef = useRef<View>(null);
-  const categoriesScrollY = useRef(0);
-  const layoutOffsets = useRef({ top: 0, sticky: 0, categoriesInMain: 0 });
+  const listRef = useRef<FlatList<HomeFeedItem>>(null);
+  const firstCategoryIndexRef = useRef(0);
+  const layoutOffsets = useRef({ sticky: 0 });
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const promoDockedInline = useSelector((state: RootState) => state.homePromo.promoDockedInline);
+  const [enabledRails, setEnabledRails] = useState<Record<string, true>>({});
+  const enabledRailsRef = useRef(enabledRails);
+  enabledRailsRef.current = enabledRails;
+  const promoDockedInline = useSelector(
+    (state: RootState) => state.homePromo.promoDockedInline,
+  );
   const token = useSelector((state: RootState) => state?.auth?.token);
   const appSyncReady = useSelector((state: RootState) => state.appSync?.ready);
   const userData = useSelector((state: RootState) => state?.auth?.userData);
@@ -60,19 +95,6 @@ const PrivateHome = () => {
         ?.categories ?? []
     );
   }, shallowEqual);
-
-
-
-  const { data: activeDeliveries } = useFetchActiveDeliveriesQuery(
-    {
-      userId: userData?._id,
-      status: ACTIVE_FLOAT_STATUS_QUERY,
-      limit: 20,
-      page: 1,
-    },
-    { skip: !userData?._id || Boolean(userData?.isGuestUser) },
-  );
-
 
   const {
     isLoading: isCategoriesLoading,
@@ -85,6 +107,88 @@ const PrivateHome = () => {
     !categories.length &&
     (!appSyncReady || isCategoriesLoading || isCategoriesFetching);
 
+  const feedItems = useMemo((): HomeFeedItem[] => {
+    const items: HomeFeedItem[] = [
+      { type: "dashboard", id: "dashboard" },
+      { type: "search", id: "search" },
+    ];
+
+    if (Platform.OS !== "web") {
+      items.push({ type: "carousel", id: "carousel" });
+    }
+
+    items.push({ type: "weather", id: "weather" });
+
+    if (Platform.OS === "web") {
+      items.push({ type: "getTheApp", id: "getTheApp" });
+    }
+
+    firstCategoryIndexRef.current = items.length;
+
+    if (showCategorySkeleton) {
+      for (let index = 0; index < CATEGORY_PLACEHOLDER_COUNT; index += 1) {
+        items.push({
+          type: "categorySkeleton",
+          id: `category-skeleton-${index}`,
+          index,
+        });
+      }
+    } else {
+      const length = categories.length;
+
+      categories.forEach((parent, index) => {
+        items.push({
+          type: "categoryCard",
+          id: `category-${parent._id}`,
+          category: parent,
+          index,
+          length,
+        });
+
+        (parent.children ?? []).forEach((subCategory, subCategoryIndex) => {
+          items.push({
+            type: "productRail",
+            id: `rail-${subCategory._id}`,
+            parent,
+            subCategory,
+            subCategoryIndex,
+          });
+        });
+      });
+    }
+
+    if (promoDockedInline) {
+      items.push({ type: "promo", id: "promo" });
+    }
+
+    items.push({ type: "recentlyViewed", id: "recentlyViewed" });
+
+    return items;
+  }, [categories, showCategorySkeleton, promoDockedInline]);
+
+  // Prefetch first rails once the feed is known.
+  useEffect(() => {
+    if (showCategorySkeleton) return;
+    const firstRailIds = feedItems
+      .filter((item) => item.type === "productRail")
+      .slice(0, INITIAL_ENABLED_RAIL_COUNT)
+      .map((item) => item.id);
+
+    if (!firstRailIds.length) return;
+
+    setEnabledRails((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const id of firstRailIds) {
+        if (!next[id]) {
+          next[id] = true;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [feedItems, showCategorySkeleton]);
+
   useEffect(() => {
     store.dispatch(loadRecentlyViewed());
   }, []);
@@ -94,28 +198,31 @@ const PrivateHome = () => {
     finalizeStartupReady({ screen: "home" }).catch(() => {});
   }, []);
 
-  const handleCategorySelect = (
-    selectedCategory: Category,
-    parentCategory: Category,
-    _index: number,
-  ) => {
-    const selectedIndex = parentCategory.children.findIndex(
-      (item) => item?._id === selectedCategory?._id,
-    );
-    const selectedCategory1 = categories.find(
-      (item) => item?._id == parentCategory?._id,
-    );
-    dispatch(setCategoryData(selectedCategory1));
-    router.push(
-      `/(category)/${parentCategory?._id?.toString()}?name=${parentCategory?.name}&selectedCategoryIdIndex=${selectedIndex?.toString()}`,
-    );
-  };
+  const handleCategorySelect = useCallback(
+    (
+      selectedCategory: Category,
+      parentCategory: Category,
+      _index: number,
+    ) => {
+      const selectedIndex = parentCategory.children.findIndex(
+        (item) => item?._id === selectedCategory?._id,
+      );
+      const selectedCategory1 = categories.find(
+        (item) => item?._id == parentCategory?._id,
+      );
+      dispatch(setCategoryData(selectedCategory1));
+      router.push(
+        `/(category)/${parentCategory?._id?.toString()}?name=${parentCategory?.name}&selectedCategoryIdIndex=${selectedIndex?.toString()}`,
+      );
+    },
+    [categories, dispatch],
+  );
 
-  const handleProfilePress = () => {
+  const handleProfilePress = useCallback(() => {
     router.navigate("/(tabs)/account");
-  };
+  }, []);
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
       await Promise.all([
@@ -129,100 +236,83 @@ const PrivateHome = () => {
           : refetch(),
         syncCarouselConfig(dispatch, { force: true }),
       ]);
+      setEnabledRails({});
     } catch {
       // optional toast
     } finally {
       setIsRefreshing(false);
     }
-  };
-
-  const updateCategoriesScrollOffset = useCallback(() => {
-    const { top, sticky, categoriesInMain } = layoutOffsets.current;
-    categoriesScrollY.current = top + sticky + categoriesInMain;
-  }, []);
+  }, [dispatch, isCategoriesUninitialized, refetch]);
 
   const scrollToCategories = useCallback(() => {
-    const scrollView = scrollRef.current;
-    const categories = categoriesRef.current;
-    if (!scrollView) return;
-
+    const index = firstCategoryIndexRef.current;
     const stickyHeight = layoutOffsets.current.sticky;
-    const scrollToY = (measuredY: number) => {
-      const targetY = Math.max(0, measuredY - stickyHeight);
-      requestAnimationFrame(() => {
-        scrollView.scrollTo({ y: targetY, animated: true });
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToIndex({
+        index,
+        animated: true,
+        viewOffset: stickyHeight,
       });
-    };
+    });
+  }, []);
 
-    if (!categories) {
-      updateCategoriesScrollOffset();
-      scrollToY(categoriesScrollY.current);
-      return;
-    }
-
-    categories.measureLayout(
-      scrollView,
-      (_x, measuredY) => scrollToY(measuredY),
-      () => {
-        updateCategoriesScrollOffset();
-        scrollToY(categoriesScrollY.current);
-      },
-    );
-  }, [updateCategoriesScrollOffset]);
-
-  return (
-    <>
-    <ScreenSafeWrapper
-      showBackButton={false}
-      wrapperStyle={{ paddingHorizontal: 0 }}
-      showWeatherSection={true}
-      showGradient={true}
-    >
-      <ScrollView
-      keyboardShouldPersistTaps="handled"
-        ref={scrollRef}
-        style={{ flex: 1 }}
-        stickyHeaderIndices={[1]}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      setEnabledRails((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        for (const token of viewableItems) {
+          const item = token.item as HomeFeedItem | undefined;
+          if (item?.type === "productRail" && !next[item.id]) {
+            next[item.id] = true;
+            changed = true;
+          }
         }
-        bounces={Platform.OS === "android" ? false : true}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 60 }]}
-      >
-        <View
-          style={styles.topSection}
-          onLayout={(event) => {
-            layoutOffsets.current.top = event.nativeEvent.layout.height;
-            updateCategoriesScrollOffset();
-          }}
-        >
-          <DeferredFadeIn delay={100}>
-            <DashboardHeader
-              userName={truncateText(userData?.name?.split(" ")[0], 10)}
-              profileImage={userData?.profileImage}
-              onProfilePress={handleProfilePress}
-              isGuestUser={userData?.isGuestUser}
-            />
-          </DeferredFadeIn>
-        </View>
+        return changed ? next : prev;
+      });
+    },
+  ).current;
 
-        <View
-          style={styles.stickySearchBar}
-          onLayout={(event) => {
-            layoutOffsets.current.sticky = event.nativeEvent.layout.height;
-            updateCategoriesScrollOffset();
-          }}
-        >
-          <DeferredFadeIn delay={100}>
-            <View style={styles.stickySearchBarContent}>
-              <HomeSearch compact />
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 15,
+    minimumViewTime: 80,
+  }).current;
+
+  const keyExtractor = useCallback((item: HomeFeedItem) => item.id, []);
+
+  const renderItem = useCallback(
+    ({ item }: { item: HomeFeedItem }) => {
+      switch (item.type) {
+        case "dashboard":
+          return (
+            <View style={styles.topSection}>
+              <DeferredFadeIn delay={100}>
+                <DashboardHeader
+                  userName={truncateText(userData?.name?.split(" ")[0], 10)}
+                  profileImage={userData?.profileImage}
+                  onProfilePress={handleProfilePress}
+                  isGuestUser={userData?.isGuestUser}
+                />
+              </DeferredFadeIn>
             </View>
-          </DeferredFadeIn>
-        </View>
-
-        <View style={styles.mainContent}>
-          {Platform.OS !== "web" && (
+          );
+        case "search":
+          return (
+            <View
+              style={styles.stickySearchBar}
+              onLayout={(event) => {
+                layoutOffsets.current.sticky = event.nativeEvent.layout.height;
+              }}
+            >
+              <DeferredFadeIn delay={100}>
+                <View style={styles.stickySearchBarContent}>
+                  <HomeSearch compact />
+                </View>
+              </DeferredFadeIn>
+            </View>
+          );
+        case "carousel":
+          return (
             <DeferredFadeIn
               delay={100}
               fallback={
@@ -236,66 +326,115 @@ const PrivateHome = () => {
             >
               <Carasole onScrollToCategories={scrollToCategories} />
             </DeferredFadeIn>
-          )}
-
-          <View style={styles.weatherSection}>
-            <DeferredFadeIn delay={100}>
-              <WeatherSection />
-            </DeferredFadeIn>
-          </View>
-
-          {Platform.OS === "web" ? (
+          );
+        case "weather":
+          return (
+            <View style={styles.weatherSection}>
+              <DeferredFadeIn delay={100}>
+                <WeatherSection />
+              </DeferredFadeIn>
+            </View>
+          );
+        case "getTheApp":
+          return (
             <DeferredFadeIn delay={150}>
               <GetTheApp variant="banner" />
             </DeferredFadeIn>
-          ) : null}
-
-          <DeferredFadeIn delay={200}>
-            <View
-              ref={categoriesRef}
-              collapsable={false}
-              onLayout={(event) => {
-                layoutOffsets.current.categoriesInMain =
-                  event.nativeEvent.layout.y;
-                updateCategoriesScrollOffset();
-              }}
-            >
-              {showCategorySkeleton
-                ? Array.from({ length: CATEGORY_PLACEHOLDER_COUNT }).map(
-                    (_, index) => (
-                      <CategoryCardPlaceholder
-                        key={`category-skeleton-${index}`}
-                        index={index}
-                        length={CATEGORY_PLACEHOLDER_COUNT}
-                      />
-                    ),
-                  )
-                : categories.map((category: Category, index: number) => (
-                    <CategoryCard
-                      key={category?._id?.toString()}
-                      category={category}
-                      index={index}
-                      onSelect={handleCategorySelect}
-                      length={categories.length}
-                    />
-                  ))}
-            </View>
-          </DeferredFadeIn>
-
-          {promoDockedInline ? (
-            <DeferredFadeIn delay={250}>
+          );
+        case "categorySkeleton":
+          return (
+            <CategoryCardPlaceholder
+              index={item.index}
+              length={CATEGORY_PLACEHOLDER_COUNT}
+            />
+          );
+        case "categoryCard":
+          return (
+            <CategoryCard
+              category={item.category}
+              index={item.index}
+              onSelect={handleCategorySelect}
+              length={item.length}
+            />
+          );
+        case "productRail":
+          return (
+            <HomeProductRail
+              parentCategory={item.parent}
+              subCategory={item.subCategory}
+              subCategoryIndex={item.subCategoryIndex}
+              enabled={Boolean(enabledRailsRef.current[item.id])}
+              onViewMore={handleCategorySelect}
+            />
+          );
+        case "promo":
+          return (
+            <DeferredFadeIn delay={200}>
               <HomeProductPromo variant="inline" />
             </DeferredFadeIn>
-          ) : null}
+          );
+        case "recentlyViewed":
+          return (
+           
+              <RecentlyViewedProducts variant="compact" />
+            
+          );
+        default:
+          return null;
+      }
+    },
+    [
+      userData,
+      handleProfilePress,
+      windowWidth,
+      carouselFallbackHeight,
+      scrollToCategories,
+      handleCategorySelect,
+    ],
+  );
 
-          <DeferredFadeIn delay={500}>
-            <RecentlyViewedProducts variant="compact" />
-          </DeferredFadeIn>
-        </View>
-      </ScrollView>
-    </ScreenSafeWrapper>
-    {/* Kill switch: comment out + set ENABLE_HOME_PRODUCT_PROMO=false */}
-    
+  return (
+    <>
+      <ScreenSafeWrapper
+        showBackButton={false}
+        wrapperStyle={{ paddingHorizontal: 0 }}
+        showWeatherSection={true}
+        showGradient={true}
+      >
+        <FlatList
+          ref={listRef}
+          data={feedItems}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+          extraData={enabledRails}
+          stickyHeaderIndices={[1]}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+            />
+          }
+          bounces={Platform.OS === "android" ? false : true}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          initialNumToRender={6}
+          maxToRenderPerBatch={4}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === "android"}
+          onScrollToIndexFailed={(info) => {
+            setTimeout(() => {
+              listRef.current?.scrollToIndex({
+                index: info.index,
+                animated: true,
+                viewOffset: layoutOffsets.current.sticky,
+              });
+            }, 100);
+          }}
+        />
+      </ScreenSafeWrapper>
     </>
   );
 };
@@ -310,25 +449,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   stickySearchBar: {
-    // paddingHorizontal: 16,
-    // paddingTop: 12,
-    // paddingBottom: 12,
     zIndex: 10,
-    //backgroundColor: 'rgba(179, 229, 252, 0.6)',
-    // ...Platform.select({
-    //   ios: {
-    //     shadowColor: "#000",
-    //     shadowOffset: { width: 0, height: 2 },
-    //     shadowOpacity: 0.06,
-    //     shadowRadius: 4,
-    //   },
-    //   android: {
-    //     elevation: 3,
-    //   },
-    // }),
-  },
-  mainContent: {
-    paddingTop: 4,
   },
   weatherSection: {
     minHeight: WEATHER_SECTION_HEIGHT,
