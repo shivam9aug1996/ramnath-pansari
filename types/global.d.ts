@@ -75,6 +75,30 @@ interface RootState {
   cart: {
     cartButtonProductId: string[];
   };
+  voiceOs?: {
+    sessionId: string;
+    isProcessing: boolean;
+    pendingUiAction: unknown;
+    messages: unknown[];
+    context: {
+      business: string;
+      customerId: string | null;
+      customerName: string | null;
+      language: string;
+      cartItemCount: number;
+      cartItems: unknown[];
+      addressSelected: boolean;
+      paymentPending: boolean;
+      currentScreen: string | null;
+      pendingConfirmation: unknown;
+      pendingTool: string | null;
+      lastSearchQuery: string | null;
+      lastSearchProducts: unknown[];
+      pendingProductSelection: boolean;
+      selectedProduct: unknown;
+      pendingQuantity: boolean;
+    };
+  };
 }
 
 export interface AuthData {

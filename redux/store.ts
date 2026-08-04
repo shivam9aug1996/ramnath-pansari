@@ -36,9 +36,11 @@ import handleLogoutMiddleware from "./handleLogoutMiddleware";
 import asyncStorageMiddleware from "./asyncStorageMiddleware";
 import weatherSlice from "./features/weatherSlice";
 import productApiMiddleware from "./productApiMiddleware";
+import voiceOsReducer from "@/voiceOs/conversationSlice";
 
 const store = configureStore({
   reducer: {
+    voiceOs: voiceOsReducer,
     auth: authSlice,
     [authApi.reducerPath]: authApi.reducer,
     category: categorySlice,

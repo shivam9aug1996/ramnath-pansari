@@ -98,6 +98,10 @@ const Account: React.FC = () => {
     router.push("/(support)/support");
   }, []);
 
+  const goVoiceOs = useCallback(() => {
+    router.push("/(voiceOs)");
+  }, []);
+
   return (
     <>
       <AppHead title="Account" />
@@ -185,6 +189,17 @@ const Account: React.FC = () => {
                       <View style={styles.section}>
                         <SectionLabel>Account</SectionLabel>
                         <AccountOption
+                          onPress={goVoiceOs}
+                          icon={
+                            <Ionicons
+                              name="chatbubble-ellipses-outline"
+                              size={20}
+                              color={Colors.light.gradientGreen_2}
+                            />
+                          }
+                          label="Shop Assist"
+                        />
+                        <AccountOption
                           onPress={() => router.push("/profile")}
                           icon={
                             <MaterialCommunityIcons
@@ -201,6 +216,17 @@ const Account: React.FC = () => {
                     {userInfo?.isGuestUser && (
                       <View style={styles.section}>
                         <SectionLabel>Help</SectionLabel>
+                        <AccountOption
+                          onPress={goVoiceOs}
+                          icon={
+                            <Ionicons
+                              name="chatbubble-ellipses-outline"
+                              size={20}
+                              color={Colors.light.gradientGreen_2}
+                            />
+                          }
+                          label="Shop Assist"
+                        />
                         <AccountOption
                           onPress={goSupport}
                           icon={

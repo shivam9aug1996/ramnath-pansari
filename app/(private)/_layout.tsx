@@ -163,6 +163,14 @@ const MainNavigator = () => {
           animationDuration: 0,
         }}
       />
+      <Stack.Screen
+        name="(voiceOs)/index"
+        options={{
+          headerShown: false,
+          animation: "ios_from_right",
+          animationDuration: 0,
+        }}
+      />
     </Stack>
     <IsolateErrorBoundary name="ActiveDeliveryFloat">
       <ActiveDeliveryFloat homeVariant="compact" />
