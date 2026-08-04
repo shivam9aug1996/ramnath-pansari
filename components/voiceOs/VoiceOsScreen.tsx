@@ -635,7 +635,8 @@ const styles = StyleSheet.create({
     paddingVertical: Platform.OS === "ios" ? 12 : 10,
     backgroundColor: Colors.light.softGrey_1,
     ...fonts.defaultMedium,
-    fontSize: 15,
+    // iOS Safari zooms focused inputs when font-size < 16px on mobile web
+    fontSize: Platform.OS === "web" ? 16 : 15,
     color: Colors.light.darkGreen,
   },
   sendBtn: {
