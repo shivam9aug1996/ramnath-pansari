@@ -22,6 +22,7 @@ export { sizeMatchesProduct } from "../searchQuality";
 export { parseSizeHint, parseProductIndices, extractSearchKeyword, extractGroceryList, extractGroceryListWithBrands, parseMultiProductQuery, parseMultiProductKeywords, parseQuantity, parseAddQuantity, isBrandOnlyKeyword } from "./extractEntities";
 export { wantsAddToCart, wantsCheckout } from "./intentPlanner";
 export { classifyUtterance, CATEGORY_PRECEDENCE } from "./utteranceClassifier";
+export { getBroadCategoryClarify } from "./broadCategories";
 export type {
   UtteranceCategory,
   UtteranceClassification,

@@ -14,6 +14,7 @@ import {
   isAffirm,
   isChitchat,
   isShoppingDecline,
+  isShoppingAdvice,
   isShoppingUtterance,
   isSoftNo,
   wantsAddToCart,
@@ -40,6 +41,7 @@ export type UtteranceCategory =
   | "CHECKOUT"
   | "CART"
   | "SOFT_ESCAPE"
+  | "SHOPPING_ADVICE"
   | "SHOPPING"
   | "UNKNOWN";
 
@@ -47,10 +49,11 @@ export type UtteranceCategory =
  * Deterministic primary-category precedence (highest first).
  *
  * Mental model for QA:
- *   AFFIRM > DENY > DECLINE > GREETING > CHAT > … > SHOPPING > UNKNOWN
+ *   AFFIRM > DENY > DECLINE > GREETING > CHAT > … > SHOPPING_ADVICE > SHOPPING > UNKNOWN
  *
  * Example: "ok" matches affirm (and is sometimes chatty) → AFFIRM wins.
  * Example: "later" is DECLINE, never UNKNOWN or SOFT_ESCAPE.
+ * Example: "Which oil should I buy?" → SHOPPING_ADVICE (not SHOPPING).
  * Example: "Fortune oil" at confirm → SOFT_ESCAPE (pivot) before bare SHOPPING.
  */
 export const CATEGORY_PRECEDENCE: readonly UtteranceCategory[] = [
@@ -66,6 +69,7 @@ export const CATEGORY_PRECEDENCE: readonly UtteranceCategory[] = [
   "CHECKOUT",
   "CART",
   "SOFT_ESCAPE",
+  "SHOPPING_ADVICE",
   "SHOPPING",
   "UNKNOWN",
 ] as const;
@@ -87,6 +91,7 @@ export type UtteranceClassification = {
     quantity: boolean;
     index: boolean;
     shopping: boolean;
+    shoppingAdvice: boolean;
     checkout: boolean;
   };
 };
@@ -147,6 +152,10 @@ function decisionLabel(
       return writeGated ? "Hold conversation — resume shopping gate" : "Conversation only";
     case "SOFT_ESCAPE":
       return "Soft-escape — clear write gate, pivot to new intent";
+    case "SHOPPING_ADVICE":
+      return writeGated
+        ? "Advice — hold write gate, then resume"
+        : "Shopping advice — recommend first, search on follow-up";
     case "SHOPPING":
       return "Plan catalog search";
     case "QUANTITY":
@@ -201,6 +210,7 @@ export function classifyUtterance(
       raw.toLowerCase().replace(/[?!.,]+$/g, ""),
     ),
     shopping: false,
+    shoppingAdvice: isShoppingAdvice(raw),
     checkout: wantsCheckout(raw),
   };
 
@@ -271,6 +281,14 @@ export function classifyUtterance(
       category: "SOFT_ESCAPE",
       subtype: "PIVOT",
       confidence: 0.85,
+      flags,
+    };
+  }
+  if (flags.shoppingAdvice) {
+    return {
+      category: "SHOPPING_ADVICE",
+      subtype: "RECOMMEND",
+      confidence: 0.92,
       flags,
     };
   }

@@ -11,6 +11,7 @@ import {
   isAffirm,
   isChitchat,
   isShoppingDecline,
+  isShoppingAdvice,
   isShoppingUtterance,
   normalizeChitchatText,
   wantsCheckout,
@@ -286,8 +287,9 @@ export function isSoftEscapeIntent(
   }
   // Pure conversation must hold the write gate — never clear shopping state.
   if (isHeldConversation(t)) return false;
-  // Soft declines are not a product pivot
+  // Soft declines / advice are not a product pivot
   if (isShoppingDecline(t)) return false;
+  if (isShoppingAdvice(t)) return false;
   if (wantsCheckout(t)) return true;
   if (LIST_CART_HINTS.test(t) && !/\b(add|daal|dal)\b/i.test(t)) return true;
   if (OPEN_CART_HINTS.test(t) && !/\b(add|daal|dal)\b/i.test(t)) return true;

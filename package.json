@@ -27,7 +27,8 @@
       "^.+\\.(js|jsx|ts|tsx)$": "babel-jest"
     },
     "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/$1"
+      "^@/(.*)$": "<rootDir>/$1",
+      "^expo/virtual/env$": "<rootDir>/test/mocks/expoVirtualEnv.js"
     },
     "testMatch": [
       "**/__tests__/**/*.test.(ts|tsx)"

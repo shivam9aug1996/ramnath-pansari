@@ -136,6 +136,8 @@ export function isShoppingUtterance(
 ): boolean {
   const t = text.trim();
   if (!t) return false;
+  // Advice is grocery-related but must not hit the catalog immediately
+  if (isShoppingAdvice(t)) return false;
   if (opts?.intentAdd) return true;
   if (opts?.preferSize) return true;
   const kw = (opts?.keyword ?? "").trim();
@@ -149,9 +151,73 @@ export function isShoppingUtterance(
 }
 
 function isGroceryishFromIntent(s: string): boolean {
-  return /\b(oil|tel|atta|aata|flour|sugar|chini|dal|rice|chawal|milk|doodh|ghee|salt|namak|tea|chai|honey|shahad|soap|detergent|biscuits?|namkeen|masala|spice|powder|wheat|mustard|sarso|sarson|sunflower|coconut|nariyal|toor|arhar|moong|chana|besan|maida|poha|noodles?|pasta|juice|butter|curd|dahi|paneer|eggs?|ande?|bread|pav|ketchup|sauce|pickle|achar|haldi|jeera|mirch|turmeric|cumin|basmati|fortune|patanjali|aashirvaad|tata|dabur|amul|saffola|parle|maggi|nestle|india\s*gate|mother\s*dairy|good\s*life|zandu|sacha|moti)\b/i.test(
+  return /\b(oil|tel|atta|aata|flour|sugar|chini|dal|rice|chawal|milk|doodh|ghee|salt|namak|tea|chai|honey|shahad|soap|detergent|biscuits?|namkeen|masala|masale|spice|spices|powder|wheat|mustard|sarso|sarson|sunflower|coconut|nariyal|toor|arhar|moong|chana|besan|maida|poha|noodles?|pasta|juice|butter|curd|dahi|paneer|eggs?|ande?|bread|pav|ketchup|sauce|pickle|achar|haldi|jeera|mirch|turmeric|cumin|basmati|shampoo|toothpaste|fortune|patanjali|aashirvaad|tata|dabur|amul|saffola|parle|maggi|nestle|india\s*gate|mother\s*dairy|good\s*life|zandu|sacha|moti)\b/i.test(
     s,
   );
+}
+
+/**
+ * Recommendation / advice — NOT an immediate catalog search.
+ * "Which brand oil should I buy?" → advice; "Fortune oil" → search.
+ */
+export function isShoppingAdvice(text: string): boolean {
+  const raw = text.trim();
+  if (!raw) return false;
+  // Transactional overrides — user already knows what to buy
+  if (wantsAddToCart(raw)) return false;
+  if (/\b(\d+(?:\.\d+)?)\s*(l|ltr|liter|litre|ml|kg|g|gm)\b/i.test(raw)) {
+    return false;
+  }
+
+  const t = raw
+    .toLowerCase()
+    .replace(/[?!.,]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!isGroceryishFromIntent(t)) return false;
+
+  if (
+    /\b(recommend|suggest|recommendation|suggestion|recommend\s+me|suggest\s+me|sugges?t\s+karo|recommend\s+karo)\b/i.test(
+      t,
+    )
+  ) {
+    return true;
+  }
+  if (/\b(which|kaunsa|kounsa|konsa|kis\s+brand|kaunsi)\b/i.test(t)) {
+    return true;
+  }
+  if (
+    /\b(should\s+i|kya\s+(lena|le|lu|lehu|buy|purchase)|kya\s+achha|kya\s+sahi)\b/i.test(
+      t,
+    )
+  ) {
+    return true;
+  }
+  if (
+    /^(best|cheapest|healthiest|healthy)\s+[\w\s]{1,40}$/i.test(t) ||
+    /^(good)\s+(tea|oil|tel|atta|ghee|rice|chawal|biscuits?|shampoo|detergent|toothpaste|dal|milk|doodh)$/i.test(
+      t,
+    )
+  ) {
+    return true;
+  }
+  if (
+    /\b(difference\s+between|vs\.?|versus|compare|better\s+than|ya\s+phir)\b/i.test(
+      t,
+    )
+  ) {
+    return true;
+  }
+  if (/\bis\s+[\w\s]{1,30}\s+better(\s+than)?\b/i.test(t)) return true;
+  if (
+    /\b(good|better|best)\s+for\s+(health|cholesterol|heart|frying|cooking|daily)\b/i.test(
+      t,
+    )
+  ) {
+    return true;
+  }
+  return false;
 }
 
 function stripConversationFillers(text: string): string {
@@ -274,6 +340,7 @@ export function detectShopIntent(
   if (!t) return "unknown";
   if (GREETING_ONLY.test(t)) return "greeting";
   if (isConversationIntent(t) || isChitchat(t)) return "chitchat";
+  if (isShoppingAdvice(t)) return "advice";
   if (wantsCheckout(t)) return "checkout";
   if (wantsAddToCart(t)) return "buy";
   if (CART_TOTAL_HINTS.test(t)) return "cart_total";

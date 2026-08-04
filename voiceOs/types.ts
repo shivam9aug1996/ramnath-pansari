@@ -21,6 +21,7 @@ export type ConversationPhase =
 export type AssistantPromptType =
   | "shopping_prompt"
   | "broad_category"
+  | "category_list"
   | "product_selection"
   | "quantity"
   | "confirmation"
@@ -46,6 +47,7 @@ export type ShopIntent =
   | "product_detail"
   | "clarify"
   | "decline"
+  | "advice"
   | "unknown";
 
 export type UiAction =

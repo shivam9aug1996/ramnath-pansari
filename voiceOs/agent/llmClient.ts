@@ -2,8 +2,8 @@
  * Shop Assist LLM client — calls Next.js /shop-assist/plan (HF Novita behind the proxy).
  * Local agent remains primary; this is fallback only.
  */
+import { resolveApiBaseUrl } from "@/config/apiBase";
 import type { ConversationContext, ToolCall } from "../types";
-import { baseUrl } from "@/redux/constants";
 import { TOOL_DEFINITIONS } from "../tools/definitions";
 import { mapShopAssistPlanToToolCalls } from "./shopAssistPlanMap";
 import type { ShopAssistPlanResult } from "./shopAssistPlanSanitize";
@@ -35,18 +35,7 @@ const FALLBACK_NONE: ShopAssistPlanResult = {
     "Samajh nahi aaya. Product ka naam bolo — jaise Fortune mustard oil.",
 };
 
-/**
- * EXPO_PUBLIC_* must use static `process.env.EXPO_PUBLIC_FOO` access.
- * babel-preset-expo inlines those at build time. Dynamic `process.env[key]`
- * is NOT replaced, so production always sees undefined.
- */
-function apiBaseUrl(): string {
-  const fromEnv = process.env.EXPO_PUBLIC_API_BASE?.replace(/\/$/, "");
-  if (fromEnv) return fromEnv.endsWith("/api") ? fromEnv : `${fromEnv}/api`;
-  return baseUrl.replace(/\/$/, "");
-}
-
-/** Feature flag — set EXPO_PUBLIC_SHOP_ASSIST_LLM=1 to enable HF fallback. */
+/** Feature flag — set EXPO_PUBLIC_SHOP_ASSIST_LLM=1 at *build* time to enable HF fallback. */
 export function isShopAssistLlmEnabled(): boolean {
   const flag = (process.env.EXPO_PUBLIC_SHOP_ASSIST_LLM ?? "")
     .trim()
@@ -63,7 +52,7 @@ export async function callShopAssistLlm(
   }
 
   try {
-    const res = await fetch(`${apiBaseUrl()}/shop-assist/plan`, {
+    const res = await fetch(`${resolveApiBaseUrl()}/shop-assist/plan`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

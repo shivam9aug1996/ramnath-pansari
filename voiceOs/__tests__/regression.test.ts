@@ -170,22 +170,23 @@ describe("QA Suite 8 — End-to-end regression", () => {
     ]);
   });
 
-  it("Oil → Fortune filters toward Fortune when listed", async () => {
+  it("Oil clarifies type — then mustard oil searches", async () => {
     await runScript(mockedExecute, [
       {
         user: "Oil",
         assert: {
-          phase: "awaiting_product_selection",
-          tools: ["searchProducts"],
-          searchKeyword: /oil/i,
+          phase: "idle",
+          tools: [],
+          toolsNot: ["searchProducts"],
+          messageMatch: /Which oil|Kaunsa oil|mustard|sunflower/i,
         },
       },
       {
-        user: "Fortune",
+        user: "mustard oil",
         assert: {
-          // Name filter may pick Fortune SKUs or re-clarify — never add
-          toolsNot: ["addToCart"],
-          messageNotMatch: /added to cart|Cart mein add ho/i,
+          phase: "awaiting_product_selection",
+          tools: ["searchProducts"],
+          searchKeyword: /mustard oil/i,
         },
       },
     ]);

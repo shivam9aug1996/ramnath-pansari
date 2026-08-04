@@ -11,6 +11,7 @@ import {
   DENY,
   SEARCH_HINTS,
   isShoppingDecline,
+  isShoppingAdvice,
 } from "./intentPlanner";
 
 /**
@@ -347,6 +348,7 @@ export function parseMultiProductQuery(text: string): MultiProductQuery | null {
     isConversationIntent(text.trim()) ||
     isChitchat(text.trim()) ||
     isShoppingDecline(text.trim()) ||
+    isShoppingAdvice(text.trim()) ||
     OPEN_CART_HINTS.test(trimmed) ||
     LIST_CART_HINTS.test(trimmed) ||
     CART_TOTAL_HINTS.test(trimmed) ||

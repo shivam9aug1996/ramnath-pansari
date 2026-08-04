@@ -58,7 +58,8 @@ describe("CATEGORY_PRECEDENCE", () => {
     expect(idx("DECLINE")).toBeLessThan(idx("GREETING"));
     expect(idx("GREETING")).toBeLessThan(idx("CHAT"));
     expect(idx("CHAT")).toBeLessThan(idx("SOFT_ESCAPE"));
-    expect(idx("SOFT_ESCAPE")).toBeLessThan(idx("SHOPPING"));
+    expect(idx("SOFT_ESCAPE")).toBeLessThan(idx("SHOPPING_ADVICE"));
+    expect(idx("SHOPPING_ADVICE")).toBeLessThan(idx("SHOPPING"));
     expect(idx("SHOPPING")).toBeLessThan(idx("UNKNOWN"));
   });
 
@@ -152,12 +153,21 @@ describe("category positive + negative examples", () => {
     {
       category: "SHOPPING",
       positive: ["Fortune oil", "Need atta"],
-      negative: ["How are you?", "fine", "later", "asdfasdf"],
+      negative: ["How are you?", "fine", "later", "asdfasdf", "Which oil should I buy?"],
+    },
+    {
+      category: "SHOPPING_ADVICE",
+      positive: [
+        "Which brand oil should I buy?",
+        "Best atta?",
+        "Recommend a shampoo",
+      ],
+      negative: ["Fortune oil", "Need atta", "How are you?", "later"],
     },
     {
       category: "UNKNOWN",
       positive: ["asdfasdf", "What's today's weather?", "I want happiness"],
-      negative: ["Fortune oil", "How are you?", "later", "haan"],
+      negative: ["Fortune oil", "How are you?", "later", "haan", "Best atta?"],
     },
   ];
 

@@ -1,15 +1,16 @@
 import { Platform } from "react-native";
-//export const baseUrl = "https://ramnath-pansari-nextjs.vercel.app/api";
+import { DEFAULT_API_BASE, resolveApiBaseUrl } from "@/config/apiBase";
 
-const LAN_API = "https://ramnath-pansari-nextjs.vercel.app/api";
-const WEB_DEV_API = "https://ramnath-pansari-nextjs.vercel.app/api";
-const PROD_API = "https://ramnath-pansari-nextjs.vercel.app/api";
+/** Override these when LAN / web-dev hosts diverge from production. */
+const LAN_API = DEFAULT_API_BASE;
+const WEB_DEV_API = DEFAULT_API_BASE;
 
-export const baseUrl =
-  !process.env.NODE_ENV || process.env.NODE_ENV === "development"
+export const baseUrl = process.env.EXPO_PUBLIC_API_BASE
+  ? resolveApiBaseUrl()
+  : !process.env.NODE_ENV || process.env.NODE_ENV === "development"
     ? Platform.OS === "web"
       ? WEB_DEV_API
       : LAN_API
-    : PROD_API;
+    : DEFAULT_API_BASE;
 
-export const hostUrl = baseUrl.replace("/api", "");
+export const hostUrl = baseUrl.replace(/\/api$/, "");

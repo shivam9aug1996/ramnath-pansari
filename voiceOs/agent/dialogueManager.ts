@@ -16,6 +16,7 @@ import {
   DETAIL_HINTS,
   isShoppingDecline,
   isSoftNo,
+  isShoppingAdvice,
   INDEX_WORDS,
 } from "./intentPlanner";
 import {
@@ -40,6 +41,13 @@ import {
   CONFIDENCE_CLARIFY_THRESHOLD,
   scoreProductPickConfidence,
 } from "./confidence";
+import { buildShoppingAdviceMessage } from "./shoppingAdvice";
+import {
+  buildCategoryListMessage,
+  isCategoryCatalogQuestion,
+  matchCategoryListSelection,
+} from "./storeCategories";
+import { buildBroadCategoryClarifyTurn } from "./broadCategories";
 
 export type PlanTurnResult = {
   toolCalls: ToolCall[];
@@ -145,7 +153,7 @@ export function tryHandleDialogueGates(
       .replace(/\s+/g, " ")
       .trim();
     const CATEGORY_FOLLOW =
-      /^(oil|tel|atta|aata|besan|rice|chawal|dal|daal|sugar|chini|ghee|flour|milk|doodh|salt|namak|tea|chai|masala|powder|biscuit|biscuits|namkeen)$/i;
+      /^(oil|tel|atta|aata|besan|rice|chawal|dal|daal|sugar|chini|ghee|flour|milk|doodh|salt|namak|tea|chai|masala|masale|spice|spices|powder|biscuit|biscuits|namkeen)$/i;
     if (CATEGORY_FOLLOW.test(cat)) {
       const brand = context.pendingBrand;
       const keyword = `${brand} ${cat}`.replace(/\s+/g, " ").trim();
@@ -221,6 +229,20 @@ export function tryHandleDialogueGates(
       cocoa: "cocoa powder",
       chocolate: "cocoa powder",
       garam: "garam masala",
+      mirch: "red chilli powder",
+      mirchi: "red chilli powder",
+      chilli: "red chilli powder",
+      chili: "red chilli powder",
+      jeera: "cumin",
+      cumin: "cumin",
+      hing: "hing",
+      asafoetida: "hing",
+      sarso: "mustard oil",
+      mustard: "mustard oil",
+      sunflower: "sunflower oil",
+      nariyal: "coconut oil",
+      coconut: "coconut oil",
+      groundnut: "groundnut oil",
     };
     const aliased = BROAD_ALIASES[lower] ?? BROAD_ALIASES[lower.split(/\s+/)[0] ?? ""];
     const byName =
@@ -245,6 +267,35 @@ export function tryHandleDialogueGates(
           pendingBroadOptions: null,
         },
         intent: "search",
+      };
+    }
+  }
+
+  // Category-list follow-up: after "which category?", "Masale" / "5" / "Oil"
+  if (context.lastAssistantPromptType === "category_list") {
+    const selected = matchCategoryListSelection(text);
+    if (selected) {
+      if (selected.useBroadClarify) {
+        const broadTurn = buildBroadCategoryClarifyTurn(
+          selected.keyword,
+          hi,
+          langPatch,
+        );
+        if (broadTurn) return broadTurn;
+      }
+      return {
+        toolCalls: [
+          {
+            id: nanoid(),
+            name: "searchProducts",
+            args: { keyword: selected.keyword, limit: 8 },
+          },
+        ],
+        sessionPatch: {
+          lastAssistantPromptType: null,
+        },
+        intent: "search",
+        confidence: 0.9,
       };
     }
   }
@@ -403,6 +454,22 @@ export function tryHandleDialogueGates(
         intent: "chitchat",
       };
     }
+    if (isShoppingAdvice(text)) {
+      const advice = buildShoppingAdviceMessage(text, context);
+      const resume = resumeWriteGatePrompt(context, hi);
+      return {
+        toolCalls: [],
+        earlyResult: {
+          assistantMessage: `${advice}\n\n${resume}`,
+          toolCalls: [],
+          toolResults: [],
+          contextPatch: languagePatch(context, text),
+          uiAction: null,
+        },
+        sessionPatch: {},
+        intent: "advice",
+      };
+    }
     if (isSoftEscapeIntent(text, context)) {
       const cleared = clearPendingWriteState(context);
       const next = tryHandleDialogueGates(text, cleared);
@@ -516,6 +583,22 @@ export function tryHandleDialogueGates(
         },
         sessionPatch: {},
         intent: "chitchat",
+      };
+    }
+    if (isShoppingAdvice(text)) {
+      const advice = buildShoppingAdviceMessage(text, context);
+      const resume = resumeWriteGatePrompt(context, hi);
+      return {
+        toolCalls: [],
+        earlyResult: {
+          assistantMessage: `${advice}\n\n${resume}`,
+          toolCalls: [],
+          toolResults: [],
+          contextPatch: languagePatch(context, text),
+          uiAction: null,
+        },
+        sessionPatch: {},
+        intent: "advice",
       };
     }
     if (isSoftEscapeIntent(text, context)) {
@@ -668,7 +751,8 @@ export function tryHandleDialogueGates(
   // Declined shopping after we asked what they need ("koi bhi nahi")
   const promptedShop =
     context.lastAssistantPromptType === "shopping_prompt" ||
-    context.lastAssistantPromptType === "broad_category";
+    context.lastAssistantPromptType === "broad_category" ||
+    context.lastAssistantPromptType === "category_list";
   if (
     isShoppingDecline(text) ||
     (promptedShop && isSoftNo(text))
@@ -694,6 +778,89 @@ export function tryHandleDialogueGates(
       },
       sessionPatch: {},
       intent: "decline",
+    };
+  }
+
+  // "What categories do you have?" → numbered list, then category_list selection
+  if (isCategoryCatalogQuestion(text)) {
+    return {
+      toolCalls: [],
+      earlyResult: {
+        assistantMessage: buildCategoryListMessage(context, hi),
+        toolCalls: [],
+        toolResults: [],
+        contextPatch: {
+          ...langPatch,
+          lastAssistantPromptType: "category_list",
+        },
+        uiAction: null,
+      },
+      sessionPatch: {},
+      intent: "clarify",
+      confidence: 0.95,
+    };
+  }
+
+  // Shopping advice / recommendation — never search immediately
+  if (isShoppingAdvice(text)) {
+    // During write gates: advise briefly, keep shopping state
+    if (
+      context.pendingConfirmation ||
+      (context.pendingQuantity && context.selectedProduct)
+    ) {
+      const advice = buildShoppingAdviceMessage(text, context);
+      const resume = resumeWriteGatePrompt(context, hi);
+      return {
+        toolCalls: [],
+        earlyResult: {
+          assistantMessage: `${advice}\n\n${resume}`,
+          toolCalls: [],
+          toolResults: [],
+          contextPatch: languagePatch(context, text),
+          uiAction: null,
+        },
+        sessionPatch: {},
+        intent: "advice",
+      };
+    }
+    if (
+      context.pendingProductSelection &&
+      context.lastSearchProducts.length > 0
+    ) {
+      const advice = buildShoppingAdviceMessage(text, context);
+      const lines = context.lastSearchProducts
+        .map((p, i) => formatProductLine(p, i))
+        .join("\n");
+      return {
+        toolCalls: [],
+        earlyResult: {
+          assistantMessage: hi
+            ? `${advice}\n\nYa list se number bolo:\n${lines}`
+            : `${advice}\n\nOr pick a number from the list:\n${lines}`,
+          toolCalls: [],
+          toolResults: [],
+          contextPatch: languagePatch(context, text),
+          uiAction: null,
+          products: context.lastSearchProducts,
+        },
+        sessionPatch: {},
+        intent: "advice",
+      };
+    }
+    return {
+      toolCalls: [],
+      earlyResult: {
+        assistantMessage: buildShoppingAdviceMessage(text, context),
+        toolCalls: [],
+        toolResults: [],
+        contextPatch: {
+          ...languagePatch(context, text),
+          lastAssistantPromptType: "shopping_prompt",
+        },
+        uiAction: null,
+      },
+      sessionPatch: {},
+      intent: "advice",
     };
   }
 

@@ -16,50 +16,7 @@ import {
   isGroceryishKeyword,
   scoreSearchConfidence,
 } from "./confidence";
-
-/** Single-token queries that match too many SKUs — clarify first. */
-const BROAD_CATEGORIES: Record<
-  string,
-  { label: string; options: string[] }
-> = {
-  powder: {
-    label: "powder",
-    options: [
-      "talcum powder",
-      "turmeric powder",
-      "coriander powder",
-      "cocoa powder",
-    ],
-    labelsHi: [
-      "Talcum powder",
-      "Haldi (turmeric) powder",
-      "Dhaniya (coriander) powder",
-      "Cocoa powder",
-    ],
-  },
-  masala: {
-    label: "masala",
-    options: [
-      "garam masala",
-      "kitchen king masala",
-      "chicken masala",
-      "sambhar masala",
-    ],
-    labelsHi: [
-      "Garam masala",
-      "Kitchen king masala",
-      "Chicken masala",
-      "Sambhar masala",
-    ],
-  },
-};
-
-export function getBroadCategoryClarify(
-  keyword: string,
-): { label: string; options: string[]; labelsHi: string[] } | null {
-  const key = keyword.trim().toLowerCase();
-  return BROAD_CATEGORIES[key] ?? null;
-}
+import { buildBroadCategoryClarifyTurn } from "./broadCategories";
 
 function uncertainClarify(
   hi: boolean,
@@ -177,29 +134,9 @@ export function planToolsFromUtterance(
   }
 
   // Very broad single-token categories → clarify before dumping 90+ results
-  const broad = getBroadCategoryClarify(keyword);
-  if (broad && !preferSize && !addIntent && searchRest.length === 0) {
-    const display = hi ? broad.labelsHi : broad.options;
-    const options = display.map((o, i) => `${i + 1}. ${o}`).join("\n");
-    return {
-      toolCalls: [],
-      earlyResult: {
-        assistantMessage: hi
-          ? `Kaunsa ${broad.label} chahiye?\n${options}\nNaam ya number bolo.`
-          : `Which ${broad.label} do you want?\n${options}\nSay a name or number.`,
-        toolCalls: [],
-        toolResults: [],
-        contextPatch: {
-          ...langPatch,
-          lastAssistantPromptType: "broad_category",
-          pendingBroadOptions: broad.options,
-        },
-        uiAction: null,
-      },
-      sessionPatch: {},
-      intent: "clarify",
-      confidence: 0.65,
-    };
+  if (!preferSize && !addIntent && searchRest.length === 0) {
+    const broadTurn = buildBroadCategoryClarifyTurn(keyword, hi, langPatch);
+    if (broadTurn) return broadTurn;
   }
 
   const confidence = scoreSearchConfidence({
