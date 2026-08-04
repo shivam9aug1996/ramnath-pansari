@@ -2,6 +2,7 @@
  * Broad grocery categories that match too many SKUs — clarify before search.
  */
 import type { AgentTurnResult, ConversationContext, ShopIntent } from "../types";
+import { clearChoiceAwaitingState } from "./dialogueHelpers";
 import { normalizeCategoryKeyword } from "./storeCategories";
 
 const BROAD_CATEGORIES: Record<
@@ -96,6 +97,7 @@ export function buildBroadCategoryClarifyTurn(
       toolResults: [],
       contextPatch: {
         ...langPatch,
+        ...clearChoiceAwaitingState(),
         lastAssistantPromptType: "broad_category",
         pendingBroadOptions: broad.options,
       },

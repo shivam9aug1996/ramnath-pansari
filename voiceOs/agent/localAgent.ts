@@ -15,7 +15,7 @@ import { preferHi, languagePatch } from "./language";
 import { isAffirm } from "./intentPlanner";
 import { tryHandleDialogueGates } from "./dialogueManager";
 import { planToolsFromUtterance } from "./toolPlanner";
-import { maxQtyFor, oilVariantHints, sharedBrandPrefix, formatProductLine, askQuantityResult } from "./dialogueHelpers";
+import { maxQtyFor, oilVariantHints, sharedBrandPrefix, formatProductLine, askQuantityResult, clearChoiceAwaitingState } from "./dialogueHelpers";
 
 // Re-export for tests
 export { sizeMatchesProduct } from "../searchQuality";
@@ -749,6 +749,7 @@ export function buildResponseAfterTools(params: {
         contextPatch: syncPhaseIntoPatch(context, {
           ...langPatch,
           ...queuePatch,
+          ...clearChoiceAwaitingState(),
           lastSearchQuery: resolvedQuery,
           lastSearchProducts: products,
           pendingProductSelection: true,
@@ -805,6 +806,7 @@ export function buildResponseAfterTools(params: {
       contextPatch: syncPhaseIntoPatch(context, {
         ...langPatch,
         ...queuePatch,
+        ...clearChoiceAwaitingState(),
         lastSearchQuery: resolvedQuery,
         lastSearchProducts: products,
         pendingProductSelection: true,

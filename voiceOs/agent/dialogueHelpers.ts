@@ -325,6 +325,26 @@ export function clearPendingWriteState(
   };
 }
 
+/**
+ * Mutual exclusion for choice prompts (product pick / broad / brand / category list).
+ * Starting a new awaiting-input interaction must clear the others so "yes" cannot
+ * resume a stale drink list while masala broad options are showing.
+ * Write gates (qty/confirm) use clearPendingWriteState instead.
+ */
+export function clearChoiceAwaitingState(): Partial<ConversationContext> {
+  return {
+    pendingProductSelection: false,
+    lastSearchProducts: [],
+    lastSearchQuery: null,
+    pendingBroadOptions: null,
+    pendingBrand: null,
+    lastAssistantPromptType: null,
+    pendingMultiProductConfirm: null,
+    pendingTool: null,
+    pendingAddQuantity: null,
+  };
+}
+
 export function oilVariantHints(products: SessionProduct[]): string[] {
   const variants = [
     "mustard",

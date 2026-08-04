@@ -17,6 +17,7 @@ import {
   isShoppingDecline,
   isSoftNo,
   isShoppingAdvice,
+  isShoppingUtterance,
   INDEX_WORDS,
 } from "./intentPlanner";
 import {
@@ -32,6 +33,7 @@ import {
   buildAddConfirmation,
   isSoftEscapeIntent,
   clearPendingWriteState,
+  clearChoiceAwaitingState,
   maxQtyFor,
   isHeldConversation,
   buildShortChitchatLine,
@@ -192,13 +194,16 @@ export function tryHandleDialogueGates(
           },
         ],
         sessionPatch: {
-          lastAssistantPromptType: null,
-          pendingBroadOptions: null,
+          ...clearChoiceAwaitingState(),
         },
         intent: "search",
       };
     }
-    const lower = text.toLowerCase().replace(/[?!.,]/g, " ").replace(/\s+/g, " ").trim();
+    const lower = text
+      .toLowerCase()
+      .replace(/[?!.,]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
     const wordIdx = INDEX_WORDS[lower];
     if (typeof wordIdx === "number") {
       const idx = wordIdx === -1 ? options.length - 1 : wordIdx;
@@ -212,8 +217,7 @@ export function tryHandleDialogueGates(
             },
           ],
           sessionPatch: {
-            lastAssistantPromptType: null,
-            pendingBroadOptions: null,
+            ...clearChoiceAwaitingState(),
           },
           intent: "search",
         };
@@ -236,6 +240,8 @@ export function tryHandleDialogueGates(
       jeera: "cumin",
       cumin: "cumin",
       hing: "hing",
+      heeng: "hing",
+      hingh: "hing",
       asafoetida: "hing",
       sarso: "mustard oil",
       mustard: "mustard oil",
@@ -244,15 +250,38 @@ export function tryHandleDialogueGates(
       coconut: "coconut oil",
       groundnut: "groundnut oil",
     };
-    const aliased = BROAD_ALIASES[lower] ?? BROAD_ALIASES[lower.split(/\s+/)[0] ?? ""];
+    const parsedKw =
+      parseMultiProductQuery(text)?.keywords?.[0]?.toLowerCase().trim() ?? "";
+    const stripped = lower
+      .replace(/^(i\s+(want|need)|mujhe|mujhko|please)\s+/i, "")
+      .replace(/\s+(chahiye|please)$/i, "")
+      .trim();
+    const pickTokens = [stripped, parsedKw]
+      .map((t) => t.trim())
+      .filter((t) => t.length >= 3);
+    // Bare exact utterance only when short replies like "hing" / "haldi"
+    if (lower.length >= 3 && !/\s/.test(lower)) {
+      pickTokens.push(lower);
+    }
+    let aliased: string | undefined;
+    for (const tok of pickTokens) {
+      if (BROAD_ALIASES[tok]) {
+        aliased = BROAD_ALIASES[tok];
+        break;
+      }
+    }
     const byName =
       (aliased && options.includes(aliased) ? aliased : null) ||
-      options.find(
-        (o) =>
-          o.toLowerCase() === lower ||
-          o.toLowerCase().includes(lower) ||
-          lower.includes(o.toLowerCase().split(/\s+/)[0] ?? ""),
-      );
+      options.find((o) => {
+        const ol = o.toLowerCase();
+        return pickTokens.some(
+          (tok) =>
+            ol === tok ||
+            ol.startsWith(`${tok} `) ||
+            ol.includes(` ${tok}`) ||
+            tok === ol.split(/\s+/)[0],
+        );
+      });
     if (byName) {
       return {
         toolCalls: [
@@ -263,10 +292,75 @@ export function tryHandleDialogueGates(
           },
         ],
         sessionPatch: {
-          lastAssistantPromptType: null,
-          pendingBroadOptions: null,
+          ...clearChoiceAwaitingState(),
         },
         intent: "search",
+      };
+    }
+
+    // Affirm/soft-no without a pick — re-ask; do not fall through to a stale product list
+    if (isAffirm(text) || isSoftNo(text)) {
+      const display = hi
+        ? options.map((o, i) => `${i + 1}. ${o}`).join("\n")
+        : options.map((o, i) => `${i + 1}. ${o}`).join("\n");
+      return {
+        toolCalls: [],
+        earlyResult: {
+          assistantMessage: hi
+            ? `Kaunsa option?\n${display}\nNaam ya number bolo.`
+            : `Which option?\n${display}\nSay a name or number.`,
+          toolCalls: [],
+          toolResults: [],
+          contextPatch: {
+            ...langPatch,
+            lastAssistantPromptType: "broad_category",
+            pendingBroadOptions: options,
+            pendingProductSelection: false,
+          },
+          uiAction: null,
+        },
+        sessionPatch: {},
+        intent: "clarify",
+        confidence: 0.9,
+      };
+    }
+
+    // New shopping intent while broad is open — clear and re-plan (exclusive awaiting)
+    if (isSoftEscapeIntent(text, context) || isShoppingUtterance(text, { keyword: parsedKw || stripped })) {
+      const cleared: ConversationContext = {
+        ...context,
+        ...clearChoiceAwaitingState(),
+        phase: "idle",
+      };
+      const next = tryHandleDialogueGates(text, cleared);
+      if (next) {
+        return {
+          ...next,
+          sessionPatch: {
+            ...clearChoiceAwaitingState(),
+            ...(next.sessionPatch ?? {}),
+          },
+          earlyResult: next.earlyResult
+            ? {
+                ...next.earlyResult,
+                contextPatch: {
+                  ...clearChoiceAwaitingState(),
+                  ...next.earlyResult.contextPatch,
+                },
+              }
+            : next.earlyResult,
+        };
+      }
+      const { planToolsFromUtterance } = require("./toolPlanner") as {
+        planToolsFromUtterance: typeof import("./toolPlanner").planToolsFromUtterance;
+      };
+      const tools = planToolsFromUtterance(text, cleared);
+      return {
+        ...tools,
+        sessionPatch: {
+          ...clearChoiceAwaitingState(),
+          ...(tools.sessionPatch ?? {}),
+        },
       };
     }
   }
@@ -292,7 +386,7 @@ export function tryHandleDialogueGates(
           },
         ],
         sessionPatch: {
-          lastAssistantPromptType: null,
+          ...clearChoiceAwaitingState(),
         },
         intent: "search",
         confidence: 0.9,
@@ -791,6 +885,7 @@ export function tryHandleDialogueGates(
         toolResults: [],
         contextPatch: {
           ...langPatch,
+          ...clearChoiceAwaitingState(),
           lastAssistantPromptType: "category_list",
         },
         uiAction: null,
@@ -1164,6 +1259,29 @@ export function tryHandleDialogueGates(
         ),
         sessionPatch: {},
         intent: "affirm",
+      };
+    }
+
+    // Affirm with multiple results — re-ask; never fall through to LLM/stale flows
+    if (isAffirm(text) && context.lastSearchProducts.length > 1) {
+      const lines = context.lastSearchProducts
+        .map((p, i) => formatProductLine(p, i))
+        .join("\n");
+      return {
+        toolCalls: [],
+        earlyResult: {
+          assistantMessage: hi
+            ? `Kaunsa product? Number bolo (1-${context.lastSearchProducts.length}):\n${lines}`
+            : `Which one? Reply with a number (1-${context.lastSearchProducts.length}):\n${lines}`,
+          toolCalls: [],
+          toolResults: [],
+          contextPatch: languagePatch(context, text),
+          uiAction: null,
+          products: context.lastSearchProducts,
+        },
+        sessionPatch: {},
+        intent: "clarify",
+        confidence: 0.9,
       };
     }
 

@@ -531,7 +531,7 @@ describe("voiceOs localAgent — extra edge cases", () => {
       expect(result.contextPatch.pendingProductSelection).toBe(true);
       expect(result.assistantMessage).toMatch(/Kaunsa|Which/i);
       expect(result.assistantMessage).toMatch(/mustard|groundnut/i);
-      expect(result.contextPatch.pendingAddQuantity).toBeUndefined();
+      expect(result.contextPatch.pendingAddQuantity ?? null).toBeNull();
     });
 
     it("getCart list formats items", () => {

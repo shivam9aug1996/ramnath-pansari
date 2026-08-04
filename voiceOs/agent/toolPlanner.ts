@@ -17,6 +17,7 @@ import {
   scoreSearchConfidence,
 } from "./confidence";
 import { buildBroadCategoryClarifyTurn } from "./broadCategories";
+import { clearChoiceAwaitingState } from "./dialogueHelpers";
 
 function uncertainClarify(
   hi: boolean,
@@ -122,6 +123,7 @@ export function planToolsFromUtterance(
         toolResults: [],
         contextPatch: {
           ...langPatch,
+          ...clearChoiceAwaitingState(),
           lastAssistantPromptType: "shopping_prompt",
           pendingBrand: keyword.toLowerCase(),
         },
