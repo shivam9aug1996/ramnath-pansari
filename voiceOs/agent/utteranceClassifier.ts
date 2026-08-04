@@ -324,9 +324,8 @@ function readDebugFlag(): boolean {
     /* ignore */
   }
   try {
-    const flag = (
-      process.env as Record<string, string | undefined>
-    ).EXPO_PUBLIC_SHOP_ASSIST_DEBUG;
+    // Static access so Expo can inline EXPO_PUBLIC_* at build time
+    const flag = process.env.EXPO_PUBLIC_SHOP_ASSIST_DEBUG;
     return flag === "1" || flag === "true";
   } catch {
     return false;

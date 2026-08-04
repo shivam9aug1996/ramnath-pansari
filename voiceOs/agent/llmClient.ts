@@ -3,6 +3,7 @@
  * Local agent remains primary; this is fallback only.
  */
 import type { ConversationContext, ToolCall } from "../types";
+import { baseUrl } from "@/redux/constants";
 import { TOOL_DEFINITIONS } from "../tools/definitions";
 import { mapShopAssistPlanToToolCalls } from "./shopAssistPlanMap";
 import type { ShopAssistPlanResult } from "./shopAssistPlanSanitize";
@@ -34,26 +35,22 @@ const FALLBACK_NONE: ShopAssistPlanResult = {
     "Samajh nahi aaya. Product ka naam bolo — jaise Fortune mustard oil.",
 };
 
-function readEnv(key: string): string | undefined {
-  // Bracket access — avoids babel-preset-expo rewriting EXPO_PUBLIC_* to expo/virtual/env
-  try {
-    return typeof process !== "undefined"
-      ? (process.env as Record<string, string | undefined>)[key]
-      : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
+/**
+ * EXPO_PUBLIC_* must use static `process.env.EXPO_PUBLIC_FOO` access.
+ * babel-preset-expo inlines those at build time. Dynamic `process.env[key]`
+ * is NOT replaced, so production always sees undefined.
+ */
 function apiBaseUrl(): string {
-  const fromEnv = readEnv("EXPO_PUBLIC_API_BASE")?.replace(/\/$/, "");
+  const fromEnv = process.env.EXPO_PUBLIC_API_BASE?.replace(/\/$/, "");
   if (fromEnv) return fromEnv.endsWith("/api") ? fromEnv : `${fromEnv}/api`;
-  return "https://ramnath-pansari-nextjs.vercel.app/api";
+  return baseUrl.replace(/\/$/, "");
 }
 
 /** Feature flag — set EXPO_PUBLIC_SHOP_ASSIST_LLM=1 to enable HF fallback. */
 export function isShopAssistLlmEnabled(): boolean {
-  const flag = (readEnv("EXPO_PUBLIC_SHOP_ASSIST_LLM") ?? "").trim().toLowerCase();
+  const flag = (process.env.EXPO_PUBLIC_SHOP_ASSIST_LLM ?? "")
+    .trim()
+    .toLowerCase();
   return flag === "1" || flag === "true";
 }
 
