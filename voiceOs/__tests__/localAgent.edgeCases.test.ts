@@ -960,9 +960,7 @@ describe("voiceOs localAgent — extra edge cases", () => {
       expect(r.sessionPatch?.pendingConfirmation).toBeNull();
     });
 
-    it("deny during qty cancels via soft-escape only if product intent — nahi stays", () => {
-      // DENY during qty is not specially handled as cancel in qty gate;
-      // "nahi" may parse as search null or soft-escape. Ensure no crash.
+    it("deny during qty cancels write gate", () => {
       const r = planTurn(
         "nahi",
         createInitialContext({
@@ -971,7 +969,10 @@ describe("voiceOs localAgent — extra edge cases", () => {
           selectedProduct: sugar,
         }),
       );
-      expect(r.earlyResult || r.toolCalls).toBeTruthy();
+      expect(r.toolCalls).toHaveLength(0);
+      expect(r.earlyResult?.contextPatch.pendingQuantity).toBe(false);
+      expect(r.earlyResult?.contextPatch.selectedProduct).toBeNull();
+      expect(r.earlyResult?.assistantMessage).toMatch(/cancel|Theek/i);
     });
   });
 

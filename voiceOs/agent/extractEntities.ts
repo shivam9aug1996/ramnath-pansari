@@ -25,7 +25,7 @@ function stripSearchNoise(text: string): string {
     )
     // Pronouns / infinitive "to" left after "want to buy"
     .replace(
-      /\b(i|i'?m|am|is|are|was|were|my|we|us|our|it|this|that|just|also|only|really|very)\b/gi,
+      /\b(i|i'?m|am|is|are|was|were|my|we|us|our|it|this|that|just|also|only|really|very|actually|basically|perhaps|maybe)\b/gi,
       " ",
     )
     .replace(/\bto\b/gi, " ")
@@ -51,6 +51,8 @@ export const KNOWN_BRANDS = new Set([
   "patanjali",
   "aashirvaad",
   "aashirvad",
+  "ashirwad",
+  "ashirvaad",
   "tata",
   "dabur",
   "amul",

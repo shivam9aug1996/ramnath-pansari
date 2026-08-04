@@ -10,6 +10,10 @@ import { mapShopAssistPlanToToolCalls } from "./agent/shopAssistPlanMap";
 import { getPhase, isWriteGatedPhase, syncPhaseIntoPatch } from "./agent/phase";
 import { detectShopIntent } from "./agent/intentPlanner";
 import { emitTurnAnalytics } from "./agent/analytics";
+import {
+  buildTurnDecisionDebug,
+  logTurnDecisionDebug,
+} from "./agent/utteranceClassifier";
 import type {
   AgentTurnResult,
   ConversationContext,
@@ -113,6 +117,14 @@ export async function handleUserMessage(
   let notePrefix = planned.notePrefix?.trim();
   let llmUsed = false;
   let fallbackReason: string | null = null;
+
+  logTurnDecisionDebug(
+    buildTurnDecisionDebug(
+      userText,
+      session,
+      toolCalls.map((t) => t.name),
+    ),
+  );
 
   // LLM when local is unsure — never after a confident shopping plan.
   // Triggers: unclear copy, weak search (safety), or low-confidence clarify.

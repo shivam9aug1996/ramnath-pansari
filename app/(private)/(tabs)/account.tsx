@@ -217,17 +217,6 @@ const Account: React.FC = () => {
                       <View style={styles.section}>
                         <SectionLabel>Help</SectionLabel>
                         <AccountOption
-                          onPress={goVoiceOs}
-                          icon={
-                            <Ionicons
-                              name="chatbubble-ellipses-outline"
-                              size={20}
-                              color={Colors.light.gradientGreen_2}
-                            />
-                          }
-                          label="Shop Assist"
-                        />
-                        <AccountOption
                           onPress={goSupport}
                           icon={
                             <Ionicons

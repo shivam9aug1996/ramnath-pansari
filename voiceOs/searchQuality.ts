@@ -81,7 +81,14 @@ export function sizeMatchesProduct(
  * Preserves brand prefixes: "patanjali sarso tel" → "patanjali mustard oil".
  */
 export function rewriteSearchKeyword(keyword: string): string {
-  let k = keyword.replace(/\btek\b/gi, "tel").replace(/\s+/g, " ").trim();
+  let k = keyword
+    .replace(/\btek\b/gi, "tel")
+    .replace(/\bfortun\b/gi, "fortune")
+    .replace(/\bmusterd\b/gi, "mustard")
+    .replace(/\bashirwad\b/gi, "aashirvaad")
+    .replace(/\bashirvaad\b/gi, "aashirvaad")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!k) return k;
 
   // Phrase-level mustard rewrite — keep surrounding brand words

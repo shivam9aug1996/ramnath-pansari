@@ -10,6 +10,8 @@ import {
   INDEX_WORDS,
   isAffirm,
   isChitchat,
+  isShoppingDecline,
+  isShoppingUtterance,
   normalizeChitchatText,
   wantsCheckout,
   LIST_CART_HINTS,
@@ -232,6 +234,14 @@ export function buildShortChitchatLine(
       ? `Bas aapki shopping mein madad kar raha hoon${name}.`
       : `Just helping you shop${name}.`;
   }
+  // User wellbeing reply ("fine", "i am fine") after we asked how they are
+  if (
+    /^(i\s+(am|'m|m)\s+)?(doing\s+)?(fine|good|well|great|alright|ok|okay)\b/i.test(
+      t,
+    )
+  ) {
+    return hi ? `Achha laga sunke${name}!` : `Glad to hear${name}!`;
+  }
   return hi ? `Main badhiya hoon${name}!` : `I'm doing well${name}!`;
 }
 
@@ -276,6 +286,8 @@ export function isSoftEscapeIntent(
   }
   // Pure conversation must hold the write gate — never clear shopping state.
   if (isHeldConversation(t)) return false;
+  // Soft declines are not a product pivot
+  if (isShoppingDecline(t)) return false;
   if (wantsCheckout(t)) return true;
   if (LIST_CART_HINTS.test(t) && !/\b(add|daal|dal)\b/i.test(t)) return true;
   if (OPEN_CART_HINTS.test(t) && !/\b(add|daal|dal)\b/i.test(t)) return true;
@@ -285,8 +297,14 @@ export function isSoftEscapeIntent(
   const parsed = parseMultiProductQuery(t);
   if (parsed && parsed.keywords.length >= 1) {
     const kw = parsed.keywords.join(" ").trim();
-    // Need a real product-ish phrase, not confirm filler
-    if (kw.length >= 3 && !/^(hmm+|uh+|um+|aa+|huh+)$/i.test(kw)) return true;
+    // Only escape for a real shopping signal — not leftover words like "fine"/"weather"
+    if (
+      kw.length >= 3 &&
+      !/^(hmm+|uh+|um+|aa+|huh+)$/i.test(kw) &&
+      isShoppingUtterance(t, { keyword: kw })
+    ) {
+      return true;
+    }
   }
   return false;
 }

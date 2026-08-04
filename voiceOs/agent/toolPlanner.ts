@@ -166,6 +166,7 @@ export function planToolsFromUtterance(
         contextPatch: {
           ...langPatch,
           lastAssistantPromptType: "shopping_prompt",
+          pendingBrand: keyword.toLowerCase(),
         },
         uiAction: null,
       },

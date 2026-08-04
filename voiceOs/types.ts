@@ -132,6 +132,8 @@ export type ConversationContext = {
   lastAssistantPromptType: AssistantPromptType;
   /** Options offered for a broad-category clarify (e.g. powder types). */
   pendingBroadOptions: string[] | null;
+  /** Brand waiting for category follow-up (e.g. "Fortune" → "oil"). */
+  pendingBrand: string | null;
 };
 
 export type ChatMessage = {
@@ -223,6 +225,7 @@ export function createInitialContext(
     pendingMultiProductConfirm: null,
     lastAssistantPromptType: null,
     pendingBroadOptions: null,
+    pendingBrand: null,
     ...partial,
   };
   base.phase = derivePhase(base);

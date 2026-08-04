@@ -39,7 +39,7 @@ const CHECKOUT_BUY_ONLY =
 export const DETAIL_HINTS = /\b(detail|details|kholo|open\s*product|product\s*page)\b/i;
 
 export const GREETING_ONLY =
-  /^(hi|hello|hey|namaste|namaskar|hii+|good\s*(morning|evening|afternoon))[\s!.]*$/i;
+  /^(hi|hello|hey|namaste|namaskar|hii+|good\s*(morning|evening|afternoon)|happy\s+(diwali|holi|new\s+year)|shubh\s+(diwali|holi)|merry\s+christmas)[\s!.]*$/i;
 
 /**
  * Whole-utterance conversation / small-talk.
@@ -98,6 +98,22 @@ export function isChitchat(text: string): boolean {
     return true;
   }
   if (/^sab\s+theek(\s+(hai|ho|na))?$/.test(t)) return true;
+  // Wellbeing replies after "how are you?" — "fine", "i am fine", "doing well"
+  // (Keep ok/okay out — those are affirm at confirm/qty gates.)
+  if (
+    /^(i\s+(am|'m|m)\s+)?(doing\s+)?(fine|good|well|great|alright)(\s+(thanks?|too|yaar|ji))?$/.test(
+      t,
+    )
+  ) {
+    return true;
+  }
+  if (/^i'?m\s+(doing\s+)?(fine|good|well|great|alright)$/.test(t)) {
+    return true;
+  }
+  // Day-going family
+  if (/^how'?s\s+your\s+day(\s+going)?(\s+today)?$/.test(t)) return true;
+  if (/^how\s+is\s+your\s+day(\s+going)?(\s+today)?$/.test(t)) return true;
+  if (/^how\s+has\s+your\s+day\s+been$/.test(t)) return true;
   if (/^(aap|tum)\s+kaun\s+(ho|hai)$/.test(t)) return true;
   if (/^(aap|tum)\s+kya\s+kar\s+sakte\s+ho$/.test(t)) return true;
   if (/^kaise\s+kaam\s+karte\s+ho$/.test(t)) return true;
@@ -133,7 +149,7 @@ export function isShoppingUtterance(
 }
 
 function isGroceryishFromIntent(s: string): boolean {
-  return /\b(oil|tel|atta|aata|flour|sugar|chini|dal|rice|chawal|milk|doodh|ghee|salt|namak|tea|chai|honey|shahad|soap|detergent|biscuit|namkeen|masala|spice|powder|wheat|mustard|sarso|sarson|sunflower|coconut|nariyal|toor|arhar|moong|chana|besan|maida|poha|noodles?|pasta|juice|butter|curd|dahi|paneer|eggs?|ande?|bread|pav|ketchup|sauce|pickle|achar|haldi|jeera|mirch|turmeric|cumin|basmati|fortune|patanjali|aashirvaad|tata|dabur|amul|saffola|parle|maggi|nestle|india\s*gate|mother\s*dairy|good\s*life|zandu|sacha|moti)\b/i.test(
+  return /\b(oil|tel|atta|aata|flour|sugar|chini|dal|rice|chawal|milk|doodh|ghee|salt|namak|tea|chai|honey|shahad|soap|detergent|biscuits?|namkeen|masala|spice|powder|wheat|mustard|sarso|sarson|sunflower|coconut|nariyal|toor|arhar|moong|chana|besan|maida|poha|noodles?|pasta|juice|butter|curd|dahi|paneer|eggs?|ande?|bread|pav|ketchup|sauce|pickle|achar|haldi|jeera|mirch|turmeric|cumin|basmati|fortune|patanjali|aashirvaad|tata|dabur|amul|saffola|parle|maggi|nestle|india\s*gate|mother\s*dairy|good\s*life|zandu|sacha|moti)\b/i.test(
     s,
   );
 }
@@ -180,13 +196,12 @@ export function isShoppingDecline(text: string): boolean {
     .trim();
   if (!t) return false;
   if (
-    /^(koi\s+bhi\s+nahi+|koi\s+bhi\s+nhi+|kuch\s+nahi+|kuch\s+nhi+|kuch\s+bhi\s+nahi+|nothing|no\s+thanks?|not\s+now|baad\s+mein|baad\s+me|nahi+\s+chahiye|nhi+\s+chahiye|no\s+need|abhi\s+nahi+|abhi\s+nhi+|maybe\s+later|i\s+don'?t\s+need\s+anything(\s+right\s+now)?|don'?t\s+need\s+anything)$/i.test(
+    /^(koi\s+bhi\s+nahi+|koi\s+bhi\s+nhi+|kuch\s+nahi+(\s+chahiye)?|kuch\s+nhi+(\s+chahiye)?|kuch\s+bhi\s+nahi+|nothing(\s+(today|for\s+today|much))?|no\s+thanks?|not\s+now|not\s+interested|baad\s+mein|baad\s+me|nahi+\s+chahiye|nhi+\s+chahiye|no\s+need|abhi\s+nahi+|abhi\s+nhi+|maybe\s+later|later|another\s+time|phir\s+kabhi|i\s+don'?t\s+(need|want)\s+anything(\s+right\s+now)?|don'?t\s+(need|want)\s+anything|aaj\s+kuch\s+nahi+|aaj\s+kuch\s+nhi+)$/i.test(
       t,
     )
   ) {
     return true;
   }
-  // Short "nahi" / "no" only as decline when we just prompted for shopping
   return false;
 }
 

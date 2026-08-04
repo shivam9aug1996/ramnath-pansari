@@ -16,6 +16,7 @@ import {
   DETAIL_HINTS,
   isShoppingDecline,
   isSoftNo,
+  INDEX_WORDS,
 } from "./intentPlanner";
 import {
   parseProductIndices,
@@ -79,6 +80,92 @@ export function tryHandleDialogueGates(
     };
   }
 
+  // Payment gate — cancel without searching
+  if (context.paymentPending) {
+    if (DENY.test(text) || isSoftNo(text) || isShoppingDecline(text)) {
+      return {
+        toolCalls: [],
+        earlyResult: {
+          assistantMessage: hi
+            ? "Theek hai, payment cancel. Cart mein items rehne do — aur kuch chahiye?"
+            : "Okay, cancelled payment. Your cart is unchanged — need anything else?",
+          toolCalls: [],
+          toolResults: [],
+          contextPatch: {
+            ...langPatch,
+            paymentPending: false,
+            lastAssistantPromptType: "shopping_prompt",
+          },
+          uiAction: null,
+        },
+        sessionPatch: {},
+        intent: "deny",
+      };
+    }
+    if (isHeldConversation(text) || GREETING_ONLY.test(text)) {
+      const short = buildShortChitchatLine(text, context);
+      return {
+        toolCalls: [],
+        earlyResult: {
+          assistantMessage: hi
+            ? `${short}\nPayment screen open hai — complete karo, ya "Nahi" bolo cancel ke liye.`
+            : `${short}\nPayment is open — finish it, or say "No" to cancel.`,
+          toolCalls: [],
+          toolResults: [],
+          contextPatch: languagePatch(context, text),
+          uiAction: null,
+        },
+        sessionPatch: {},
+        intent: "chitchat",
+      };
+    }
+    if (isAffirm(text)) {
+      return {
+        toolCalls: [],
+        earlyResult: {
+          assistantMessage: hi
+            ? "Payment screen pe address choose karke pay complete karo."
+            : "On the payment screen, pick an address and complete payment.",
+          toolCalls: [],
+          toolResults: [],
+          contextPatch: {},
+          uiAction: { action: "OPEN_PAYMENT" },
+        },
+        sessionPatch: {},
+        intent: "affirm",
+      };
+    }
+  }
+
+  // Brand → category follow-up ("Fortune" then "oil")
+  if (context.pendingBrand) {
+    const cat = text
+      .toLowerCase()
+      .replace(/[?!.,]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const CATEGORY_FOLLOW =
+      /^(oil|tel|atta|aata|besan|rice|chawal|dal|daal|sugar|chini|ghee|flour|milk|doodh|salt|namak|tea|chai|masala|powder|biscuit|biscuits|namkeen)$/i;
+    if (CATEGORY_FOLLOW.test(cat)) {
+      const brand = context.pendingBrand;
+      const keyword = `${brand} ${cat}`.replace(/\s+/g, " ").trim();
+      return {
+        toolCalls: [
+          {
+            id: nanoid(),
+            name: "searchProducts",
+            args: { keyword, limit: 8 },
+          },
+        ],
+        sessionPatch: {
+          pendingBrand: null,
+          lastAssistantPromptType: null,
+        },
+        intent: "search",
+      };
+    }
+  }
+
   // Broad-category follow-up: user picks "1" / "haldi" / "turmeric powder"
   if (
     context.lastAssistantPromptType === "broad_category" &&
@@ -104,6 +191,26 @@ export function tryHandleDialogueGates(
       };
     }
     const lower = text.toLowerCase().replace(/[?!.,]/g, " ").replace(/\s+/g, " ").trim();
+    const wordIdx = INDEX_WORDS[lower];
+    if (typeof wordIdx === "number") {
+      const idx = wordIdx === -1 ? options.length - 1 : wordIdx;
+      if (options[idx]) {
+        return {
+          toolCalls: [
+            {
+              id: nanoid(),
+              name: "searchProducts",
+              args: { keyword: options[idx], limit: 8 },
+            },
+          ],
+          sessionPatch: {
+            lastAssistantPromptType: null,
+            pendingBroadOptions: null,
+          },
+          intent: "search",
+        };
+      }
+    }
     const BROAD_ALIASES: Record<string, string> = {
       haldi: "turmeric powder",
       turmeric: "turmeric powder",
@@ -256,7 +363,7 @@ export function tryHandleDialogueGates(
         intent: "affirm",
       };
     }
-    if (DENY.test(text)) {
+    if (DENY.test(text) || isShoppingDecline(text)) {
       return {
         toolCalls: [],
         earlyResult: {
@@ -369,6 +476,31 @@ export function tryHandleDialogueGates(
 
   // Quantity gate
   if (context.pendingQuantity && context.selectedProduct) {
+    if (DENY.test(text) || isShoppingDecline(text)) {
+      return {
+        toolCalls: [],
+        earlyResult: {
+          assistantMessage: hi
+            ? "Theek hai, cancel. Aur kuch chahiye?"
+            : "Cancelled. Want something else?",
+          toolCalls: [],
+          toolResults: [],
+          contextPatch: {
+            ...langPatch,
+            pendingConfirmation: null,
+            pendingQuantity: false,
+            selectedProduct: null,
+            pendingTool: null,
+            pendingAddQuantity: null,
+            pendingProductSelection: false,
+            lastAssistantPromptType: "shopping_prompt",
+          },
+          uiAction: null,
+        },
+        sessionPatch: {},
+        intent: "deny",
+      };
+    }
     // Chitchat / greeting: answer without clearing quantity state
     if (isHeldConversation(text)) {
       const short = buildShortChitchatLine(text, context);
@@ -502,12 +634,24 @@ export function tryHandleDialogueGates(
   // Greeting
   if (GREETING_ONLY.test(text)) {
     const name = context.customerName ? `, ${context.customerName}` : "";
+    const festive =
+      /happy\s+(diwali|holi|new\s+year)|shubh\s+(diwali|holi)|merry\s+christmas/i.test(
+        text,
+      );
+    let assistantMessage: string;
+    if (festive) {
+      assistantMessage = preferHi(context.language, text)
+        ? `Shukriya${name}! Aapko bhi shubhkamnayein. Grocery chahiye to product naam bolo.`
+        : `Thank you${name}! Same to you. Name a product whenever you want groceries.`;
+    } else {
+      assistantMessage = preferHi(context.language, text)
+        ? `Namaste${name}! Product bolo — jaise "Fortune oil". Phir quantity confirm karke cart mein add karunga.`
+        : `Hello${name}! Search a product — e.g. "Fortune oil". I'll ask quantity, then add to cart.`;
+    }
     return {
       toolCalls: [],
       earlyResult: {
-        assistantMessage: preferHi(context.language, text)
-          ? `Namaste${name}! Product bolo — jaise "Fortune oil". Phir quantity confirm karke cart mein add karunga.`
-          : `Hello${name}! Search a product — e.g. "Fortune oil". I'll ask quantity, then add to cart.`,
+        assistantMessage,
         toolCalls: [],
         toolResults: [],
         contextPatch: {
@@ -544,6 +688,7 @@ export function tryHandleDialogueGates(
           lastSearchProducts: [],
           lastSearchQuery: null,
           pendingBroadOptions: null,
+          pendingBrand: null,
         },
         uiAction: null,
       },
@@ -554,6 +699,31 @@ export function tryHandleDialogueGates(
 
   // Conversation intent (greeting already handled) — never search
   if (isChitchat(text)) {
+    // Hold product-selection list instead of dropping into idle shopping nudge
+    if (
+      context.pendingProductSelection &&
+      context.lastSearchProducts.length > 0
+    ) {
+      const short = buildShortChitchatLine(text, context);
+      const lines = context.lastSearchProducts
+        .map((p, i) => formatProductLine(p, i))
+        .join("\n");
+      return {
+        toolCalls: [],
+        earlyResult: {
+          assistantMessage: hi
+            ? `${short}\nKaunsa product?\n${lines}`
+            : `${short}\nWhich product?\n${lines}`,
+          toolCalls: [],
+          toolResults: [],
+          contextPatch: languagePatch(context, text),
+          uiAction: null,
+          products: context.lastSearchProducts,
+        },
+        sessionPatch: {},
+        intent: "chitchat",
+      };
+    }
     const name = context.customerName ? `, ${context.customerName}` : "";
     const t = normalizeChitchatText(text);
     const thanks = /thanks?|thank\s+you|thx|ty|shukriya|dhanyavaad|dhanyavad/i.test(t);
@@ -768,6 +938,52 @@ export function tryHandleDialogueGates(
 
   // Product selection from search results
   if (context.pendingProductSelection && context.lastSearchProducts.length > 0) {
+    if (DENY.test(text) || isShoppingDecline(text)) {
+      return {
+        toolCalls: [],
+        earlyResult: {
+          assistantMessage: hi
+            ? "Theek hai, cancel. Aur kuch chahiye?"
+            : "Cancelled. Want something else?",
+          toolCalls: [],
+          toolResults: [],
+          contextPatch: {
+            ...langPatch,
+            pendingProductSelection: false,
+            lastSearchProducts: [],
+            lastSearchQuery: null,
+            pendingTool: null,
+            pendingAddQuantity: null,
+            pendingBrand: null,
+            lastAssistantPromptType: "shopping_prompt",
+          },
+          uiAction: null,
+        },
+        sessionPatch: {},
+        intent: "deny",
+      };
+    }
+    if (isHeldConversation(text)) {
+      const short = buildShortChitchatLine(text, context);
+      const lines = context.lastSearchProducts
+        .map((p, i) => formatProductLine(p, i))
+        .join("\n");
+      return {
+        toolCalls: [],
+        earlyResult: {
+          assistantMessage: hi
+            ? `${short}\nKaunsa product?\n${lines}`
+            : `${short}\nWhich product?\n${lines}`,
+          toolCalls: [],
+          toolResults: [],
+          contextPatch: languagePatch(context, text),
+          uiAction: null,
+          products: context.lastSearchProducts,
+        },
+        sessionPatch: {},
+        intent: "chitchat",
+      };
+    }
     const preferQty = context.pendingAddQuantity;
     // Affirm single result
     if (context.lastSearchProducts.length === 1 && isAffirm(text)) {

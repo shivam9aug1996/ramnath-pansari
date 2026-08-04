@@ -21,6 +21,11 @@ import { maxQtyFor, oilVariantHints, sharedBrandPrefix, formatProductLine, askQu
 export { sizeMatchesProduct } from "../searchQuality";
 export { parseSizeHint, parseProductIndices, extractSearchKeyword, extractGroceryList, extractGroceryListWithBrands, parseMultiProductQuery, parseMultiProductKeywords, parseQuantity, parseAddQuantity, isBrandOnlyKeyword } from "./extractEntities";
 export { wantsAddToCart, wantsCheckout } from "./intentPlanner";
+export { classifyUtterance, CATEGORY_PRECEDENCE } from "./utteranceClassifier";
+export type {
+  UtteranceCategory,
+  UtteranceClassification,
+} from "./utteranceClassifier";
 
 import type { ShopIntent } from "../types";
 import { derivePhase } from "../types";
@@ -632,6 +637,56 @@ export function buildResponseAfterTools(params: {
         ? `\nTop ${products.length} dikha raha hoon (${totalResults} total). Aur dekhne ke liye neeche "Aur results" dabao ya "aur dikhao" bolo.`
         : `\nShowing top ${products.length} of ${totalResults}. Tap "More results" below or say "view all".`
       : "";
+
+    // Unique size match → confirm qty 1 (skip separate qty ask)
+    if (preferSize && products.length === 1 && fullSetLoaded) {
+      const product = products[0];
+      if (product.isOutOfStock) {
+        return {
+          assistantMessage: hi
+            ? `${queueNote ? queueNote.trim() + "\n" : ""}${product.name}${
+                product.size ? ` (${product.size})` : ""
+              } abhi out of stock hai. Koi aur size/brand bolo ya "aur dikhao".${moreNote}`
+            : `${queueNote ? queueNote.trim() + "\n" : ""}${product.name}${
+                product.size ? ` (${product.size})` : ""
+              } is out of stock. Try another size/brand or say "view all".${moreNote}`,
+          toolCalls,
+          toolResults,
+          contextPatch: syncPhaseIntoPatch(context, {
+            ...langPatch,
+            ...queuePatch,
+            lastSearchQuery: resolvedQuery,
+            lastSearchProducts: products,
+            pendingProductSelection: false,
+            pendingConfirmation: null,
+            pendingQuantity: false,
+            selectedProduct: null,
+            pendingAddQuantity: null,
+            pendingBrand: null,
+          }),
+          uiAction: moreUiAction,
+          products,
+        };
+      }
+      const qty = addIntent ? preferQty : 1;
+      const confirmed = askQuantityResult(product, hi, [], qty);
+      return {
+        ...confirmed,
+        assistantMessage: `${queueNote ? queueNote.trim() + "\n" : ""}${confirmed.assistantMessage}`,
+        toolCalls,
+        toolResults,
+        contextPatch: syncPhaseIntoPatch(context, {
+          ...langPatch,
+          lastSearchQuery: resolvedQuery,
+          lastSearchProducts: products,
+          ...confirmed.contextPatch,
+          ...queuePatch,
+          pendingAddQuantity: null,
+          pendingBrand: null,
+        }),
+        products,
+      };
+    }
 
     // One-shot add: unique SKU only when the full result set is loaded
     if (addIntent && products.length === 1 && fullSetLoaded) {
