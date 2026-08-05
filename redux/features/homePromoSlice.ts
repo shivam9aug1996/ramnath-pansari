@@ -23,15 +23,21 @@ const homePromoSlice = createSlice({
   name: "homePromo",
   initialState: {
     promoDockedInline: false,
+    /** Set while PrivateHome is mounted; gates lazy PromoDocked in root layout. */
+    privateHomeMounted: false,
   },
   reducers: {
     setPromoDockedInline: (state, action: PayloadAction<boolean>) => {
       state.promoDockedInline = action.payload;
     },
+    setPrivateHomeMounted: (state, action: PayloadAction<boolean>) => {
+      state.privateHomeMounted = action.payload;
+    },
   },
 });
 
-export const { setPromoDockedInline } = homePromoSlice.actions;
+export const { setPromoDockedInline, setPrivateHomeMounted } =
+  homePromoSlice.actions;
 
 export const { useFetchHomePromoQuery } = homePromoApi;
 export default homePromoSlice.reducer;

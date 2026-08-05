@@ -2,10 +2,10 @@ import { Slot } from "expo-router";
 export { ErrorBoundary } from "@/components/RouteErrorBoundary";
 import * as SplashScreen from "expo-splash-screen";
 import { Fragment, lazy, Suspense, useEffect } from "react";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 import "react-native-reanimated";
 import "react-native-get-random-values";
-import { Provider } from "react-redux";
+import { Provider, useSelector } from "react-redux";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
 import { StatusBar } from "expo-status-bar";
@@ -29,12 +29,27 @@ import {
 import { initAppCheck } from "@/utils/appCheck";
 import "@/utils/registerDriverLocationTask";
 import { initSentryAfterFirstPaint, wrapRoot } from "@/utils/sentry";
-import { InitialLayout1 } from "./InitialLayout1";
 import PromoConfigCacheRetainer from "@/components/PromoConfigCacheRetainer";
 import { IsolateErrorBoundary } from "@/components/IsolateErrorBoundary";
 import { Platform } from "react-native";
+import { RootState } from "@/types/global";
+
 const PromoDocked = lazy(() => import("@/components/PromoDocked"));
 const SPLASH_BACKGROUND = "#FFFFFF";
+
+function PromoDockedHost() {
+  const privateHomeMounted = useSelector(
+    (state: RootState) => state.homePromo.privateHomeMounted,
+  );
+  if (!privateHomeMounted) return null;
+  return (
+    <Suspense fallback={null}>
+      <IsolateErrorBoundary name="PromoDocked">
+        <PromoDocked />
+      </IsolateErrorBoundary>
+    </Suspense>
+  );
+}
 
 SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({
@@ -99,11 +114,7 @@ const RootLayout = () => {
               <IsolateErrorBoundary name="PromoConfigCacheRetainer">
                 <PromoConfigCacheRetainer />
               </IsolateErrorBoundary>
-              <Suspense>
-                <IsolateErrorBoundary name="PromoDocked">
-                  <PromoDocked />
-                </IsolateErrorBoundary>
-              </Suspense>
+              <PromoDockedHost />
               <InitialLayout />
             </Provider>
           ) : null}

@@ -40,6 +40,7 @@ import {
   markStartupCheckpoint,
 } from "@/utils/startupDiagnostics";
 import { syncCarouselConfig } from "@/utils/carouselConfigCache";
+import { setPrivateHomeMounted } from "@/redux/features/homePromoSlice";
 
 const Carasole = lazy(() => import("./Carasole"));
 const WeatherSection = lazy(() => import("./WeatherSection/WeatherSection"));
@@ -215,6 +216,10 @@ const PrivateHome = () => {
     finalizeStartupReady({ screen: "home" }).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    dispatch(setPrivateHomeMounted(true));
+  }, [dispatch]);
+
   const handleCategorySelect = useCallback(
     (
       selectedCategory: Category,
@@ -347,7 +352,7 @@ const PrivateHome = () => {
           return (
             <View style={styles.weatherSection}>
               <DeferredFadeIn
-                delay={250}
+                delay={Platform.OS === "web" ? 0 : 250}
                 fallback={<View style={styles.weatherSlotFallback} />}
               >
                 <Suspense
@@ -362,7 +367,7 @@ const PrivateHome = () => {
           return (
             <View style={styles.getTheAppSection}>
               <DeferredFadeIn
-                delay={150}
+                delay={Platform.OS === "web" ? 0 : 150}
                 fallback={<View style={styles.getTheAppSlotFallback} />}
               >
                 <Suspense
