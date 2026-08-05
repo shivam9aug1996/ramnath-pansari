@@ -34,6 +34,7 @@ import {
   buildProductListData,
   isProductSkeleton,
   PRODUCT_LIST_PADDING_BOTTOM,
+  PRODUCT_FILTER_FAB_CLEARANCE,
   ProductListRow,
 } from "../(category)/ProductList/productListLayout";
 import NotFound from "./NotFound";
@@ -54,7 +55,9 @@ import { useGoToCartListPadding } from "@/contexts/DeliveryFloatContext";
 import { clearVisibleProductIds } from "../(category)/ProductList/productVisibilityStore";
 import AppHead from "@/components/AppHead";
 import ProductFilterFab from "@/components/productFilters/ProductFilterFab";
-import ProductFilterSheet from "@/components/productFilters/ProductFilterSheet";
+import LazyProductFilterSheet, {
+  preloadProductFilterSheet,
+} from "@/components/productFilters/LazyProductFilterSheet";
 import { useProductListFilters } from "@/components/productFilters/useProductListFilters";
 import { DEFAULT_PRODUCT_FILTERS } from "@/utils/productFilters";
 
@@ -99,6 +102,11 @@ const QueryResult = ({query}:{query:string}) => {
     searchQuery: query,
     onFiltersApplied: resetSearchToPageOne,
   });
+
+  const handleOpenFilters = useCallback(() => {
+    void preloadProductFilterSheet();
+    openFilters();
+  }, [openFilters]);
 
   const { data, isFetching, error, isSuccess, isLoading } =
     useFetchProductsBySearchQuery(
@@ -299,7 +307,12 @@ const listContentContainerStyle = useMemo(
   () => [
     styles.listContent,
     isRefreshingFirstPage && styles.listRefreshing,
-    { paddingBottom: PRODUCT_LIST_PADDING_BOTTOM + goToCartListPadding },
+    {
+      paddingBottom:
+        PRODUCT_LIST_PADDING_BOTTOM +
+        PRODUCT_FILTER_FAB_CLEARANCE +
+        goToCartListPadding,
+    },
   ],
   [isRefreshingFirstPage, goToCartListPadding],
 );
@@ -307,7 +320,12 @@ const listContentContainerStyle = useMemo(
   const listContentStyle = useMemo(
     () => [
       styles.listContent,
-      { paddingBottom: PRODUCT_LIST_PADDING_BOTTOM + goToCartListPadding },
+      {
+        paddingBottom:
+          PRODUCT_LIST_PADDING_BOTTOM +
+          PRODUCT_FILTER_FAB_CLEARANCE +
+          goToCartListPadding,
+      },
     ],
     [goToCartListPadding],
   );
@@ -483,11 +501,11 @@ const listContentContainerStyle = useMemo(
 
       <ProductFilterFab
         filters={applied}
-        onPress={openFilters}
+        onPress={handleOpenFilters}
         onClear={clearAll}
       />
 
-      <ProductFilterSheet
+      <LazyProductFilterSheet
         visible={filterVisible}
         draft={draft}
         onChange={setDraft}

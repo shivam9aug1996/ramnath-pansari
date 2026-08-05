@@ -28,6 +28,7 @@ import {
   PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT,
   PRODUCT_LIST_MARGIN_TOP,
   PRODUCT_LIST_PADDING_BOTTOM,
+  PRODUCT_FILTER_FAB_CLEARANCE,
   PRODUCT_LIST_PADDING_TOP,
   isProductSkeleton,
   ProductListRow,
@@ -123,7 +124,12 @@ const listContentContainerStyle = useMemo(
   () => [
     styles.flatList,
     isRefreshingFirstPage && !showInitialSkeleton &&  styles.listRefreshing,
-    { paddingBottom: PRODUCT_LIST_PADDING_BOTTOM + goToCartListPadding },
+    {
+      paddingBottom:
+        PRODUCT_LIST_PADDING_BOTTOM +
+        PRODUCT_FILTER_FAB_CLEARANCE +
+        goToCartListPadding,
+    },
   ],
   [isRefreshingFirstPage, goToCartListPadding, showInitialSkeleton],
 );

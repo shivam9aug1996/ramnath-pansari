@@ -8,6 +8,8 @@ export const CATEGORY_CHROME_ESTIMATED_HEIGHT = 170;
 export const PRODUCT_LIST_PADDING_TOP = CATEGORY_CHROME_ESTIMATED_HEIGHT;
 export const PRODUCT_LIST_MARGIN_TOP = 6;
 export const PRODUCT_LIST_PADDING_BOTTOM = 24;
+/** Sort & Filters FAB sits above the cart bar (~48px) + 12px gap — keep list clear of it */
+export const PRODUCT_FILTER_FAB_CLEARANCE = 60;
 export const PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT = 20;
 export const PRODUCT_COLUMN_GAP = 4;
 export const PRODUCT_ITEM_MARGIN_BOTTOM = 8;

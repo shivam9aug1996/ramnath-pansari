@@ -13,7 +13,9 @@ import { setSelectedSubCategoryId } from "@/redux/features/productSlice";
 import { DEFAULT_PRODUCT_FILTERS } from "@/utils/productFilters";
 import { devLog } from "@/utils/devLog";
 import ProductFilterFab from "@/components/productFilters/ProductFilterFab";
-import ProductFilterSheet from "@/components/productFilters/ProductFilterSheet";
+import LazyProductFilterSheet, {
+  preloadProductFilterSheet,
+} from "@/components/productFilters/LazyProductFilterSheet";
 import { useProductListFilters } from "@/components/productFilters/useProductListFilters";
 
 const ProCat = ({
@@ -63,6 +65,11 @@ const ProCat = ({
     categoryId: selectedSubCategory?._id,
     onFiltersApplied,
   });
+
+  const handleOpenFilters = useCallback(() => {
+    void preloadProductFilterSheet();
+    openFilters();
+  }, [openFilters]);
 
   useEffect(() => {
     devLog("[products] ProCat mount → reset selectedSubCategoryId to null", {
@@ -114,11 +121,11 @@ const ProCat = ({
 
       <ProductFilterFab
         filters={applied}
-        onPress={openFilters}
+        onPress={handleOpenFilters}
         onClear={clearAll}
       />
 
-      <ProductFilterSheet
+      <LazyProductFilterSheet
         visible={filterVisible}
         draft={draft}
         onChange={setDraft}
