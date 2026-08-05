@@ -1,6 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CACHE_DURATION } from "@/utils/utils";
+import { getProductCacheKey } from "@/utils/productFilters";
 import { devLog } from "@/utils/devLog";
+
+export { getProductCacheKey } from "@/utils/productFilters";
 
 type CacheEntry<T = any> = {
   data: T;
@@ -9,14 +12,12 @@ type CacheEntry<T = any> = {
 
 const memoryCache = new Map<string, CacheEntry>();
 
-export const getProductCacheKey = (categoryId: string, page: number) =>
-  `products-${categoryId}-${page}`;
-
 export async function getCachedProducts<T = any>(
   categoryId: string,
   page: number,
+  filterKey: string = "default",
 ): Promise<T | null> {
-  const localKey = getProductCacheKey(categoryId, page);
+  const localKey = getProductCacheKey(categoryId, page, filterKey);
   const now = Date.now();
   if (page > 1) {
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -29,6 +30,7 @@ export async function getCachedProducts<T = any>(
     devLog("[products] cache check (memory)", {
       categoryId,
       page,
+      filterKey,
       localKey,
       ageMs: age,
       expiresInMs: CACHE_DURATION - age,
@@ -42,7 +44,12 @@ export async function getCachedProducts<T = any>(
   const cached = await AsyncStorage.getItem(localKey);
 
   if (!cached) {
-    devLog("[products] cache miss (no entry)", { categoryId, page, localKey });
+    devLog("[products] cache miss (no entry)", {
+      categoryId,
+      page,
+      filterKey,
+      localKey,
+    });
     return null;
   }
 
@@ -53,6 +60,7 @@ export async function getCachedProducts<T = any>(
     devLog("[products] cache check (disk)", {
       categoryId,
       page,
+      filterKey,
       localKey,
       ageMs: age,
       expiresInMs: CACHE_DURATION - age,
@@ -68,11 +76,17 @@ export async function getCachedProducts<T = any>(
     devLog("[products] cache expired", {
       categoryId,
       page,
+      filterKey,
       ageMs: age,
       cacheDurationMs: CACHE_DURATION,
     });
   } catch {
-    devLog("[products] cache parse error", { categoryId, page, localKey });
+    devLog("[products] cache parse error", {
+      categoryId,
+      page,
+      filterKey,
+      localKey,
+    });
     return null;
   }
 
@@ -83,8 +97,9 @@ export function setCachedProducts<T = any>(
   categoryId: string,
   page: number,
   data: T,
+  filterKey: string = "default",
 ): void {
-  const localKey = getProductCacheKey(categoryId, page);
+  const localKey = getProductCacheKey(categoryId, page, filterKey);
   const entry: CacheEntry<T> = { data, timestamp: Date.now() };
 
   memoryCache.set(localKey, entry);
@@ -123,27 +138,3 @@ export async function clearCategoryProductCacheFromMemoryAndAsyncStorage(
     await AsyncStorage.multiRemove(categoryKeys);
   }
 }
-
-/** Clears RTK Query `fetchProducts` cache for one category (not disk/memory). */
-// export function clearCategoryProductCacheFromRedux(
-//   dispatch: AppDispatch,
-//   categoryId: string,
-// ): void {
-//   // Lazy import — productSlice imports this module for get/setCachedProducts.
-//   const { productApi } =
-//     require("@/redux/features/productSlice") as typeof import("@/redux/features/productSlice");
-
-//   dispatch(
-//     productApi.util.upsertQueryData(
-//       "fetchProducts",
-//       { categoryId, page: 1, limit: 10, reset: false },
-//       {
-//         products: [],
-//         currentPage: 1,
-//         totalPages: 0,
-//         totalResults: 0,
-//       },
-//     ),
-//   );
-// }
-

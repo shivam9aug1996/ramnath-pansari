@@ -1,18 +1,20 @@
-import { Platform, StyleSheet, Text, View } from "react-native";
-import React, { memo, useEffect } from "react";
+import { Platform } from "react-native";
+import React, { memo, useCallback, useEffect, useRef } from "react";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import TryAgain from "./CategoryList/TryAgain";
-import { Colors } from "@/constants/Colors";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
 import CategoryList from "./CategoryList/CategoryList";
 import Products from "./ProductList/Products";
 import CategoryListWrapper from "./ProductList/CategoryListWrapper";
 import GoToCartWrapper from "./ProductList/GoToCartWrapper";
-import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import { setSelectedSubCategoryId } from "@/redux/features/productSlice";
+import { DEFAULT_PRODUCT_FILTERS } from "@/utils/productFilters";
 import { devLog } from "@/utils/devLog";
+import ProductFilterFab from "@/components/productFilters/ProductFilterFab";
+import ProductFilterSheet from "@/components/productFilters/ProductFilterSheet";
+import { useProductListFilters } from "@/components/productFilters/useProductListFilters";
 
 const ProCat = ({
   id,
@@ -27,10 +29,41 @@ const ProCat = ({
   const isCategoryFetchingError = false;
 
   const categoryData = useSelector(
-    (state: RootState) => state?.category?.catgeoryData
+    (state: RootState) => state?.category?.catgeoryData,
   );
   const getCategories = categoryData;
+  const selectedSubCategory = useSelector(
+    (state: RootState) => state.product.selectedSubCategoryId,
+  );
   const dispatch = useDispatch();
+
+  const productsResetRef = useRef<(() => void) | null>(null);
+  const registerProductsReset = useCallback((fn: () => void) => {
+    productsResetRef.current = fn;
+  }, []);
+
+  const onFiltersApplied = useCallback(() => {
+    productsResetRef.current?.();
+  }, []);
+
+  const {
+    applied,
+    draft,
+    setDraft,
+    brands,
+    brandsLoading,
+    filterKey,
+    apiParams,
+    filterVisible,
+    openFilters,
+    closeFilters,
+    applyDraft,
+    clearAll,
+  } = useProductListFilters({
+    categoryId: selectedSubCategory?._id,
+    onFiltersApplied,
+  });
+
   useEffect(() => {
     devLog("[products] ProCat mount → reset selectedSubCategoryId to null", {
       id,
@@ -40,12 +73,18 @@ const ProCat = ({
     });
     dispatch(setSelectedSubCategoryId("null"));
   }, []);
+
   return (
     <>
-      <ScreenSafeWrapper showCartIcon={true} title={name} showSearchIcon={true} wrapperStyle={{paddingBottom:0,marginBottom:0}} >
+      <ScreenSafeWrapper
+        showCartIcon={true}
+        title={name}
+        showSearchIcon={true}
+        wrapperStyle={{ paddingBottom: 0, marginBottom: 0 }}
+      >
         <>
           {isCategoryFetchingError ? (
-            <TryAgain refetch={()=>{}} />
+            <TryAgain refetch={() => {}} />
           ) : (
             <>
               <CategoryListWrapper>
@@ -59,24 +98,46 @@ const ProCat = ({
                   />
                 </DeferredFadeIn>
               </CategoryListWrapper>
-             
 
               <DeferredFadeIn style={{ flex: 1 }} delay={200}>
-                <Products isCategoryFetching={isCategoryFetching} />
+                <Products
+                  isCategoryFetching={isCategoryFetching}
+                  filterKey={filterKey}
+                  apiParams={apiParams}
+                  registerReset={registerProductsReset}
+                />
               </DeferredFadeIn>
             </>
           )}
         </>
-        {/* )} */}
-        
-
       </ScreenSafeWrapper>
 
-      <GoToCartWrapper showGoToCart={true} extraBottomOffset={Platform.OS === "web" ? -10 : 0} />
+      <ProductFilterFab
+        filters={applied}
+        onPress={openFilters}
+        onClear={clearAll}
+      />
+
+      <ProductFilterSheet
+        visible={filterVisible}
+        draft={draft}
+        onChange={setDraft}
+        brands={brands}
+        brandsLoading={brandsLoading}
+        onApply={applyDraft}
+        onClear={() => {
+          setDraft(DEFAULT_PRODUCT_FILTERS);
+          clearAll();
+        }}
+        onClose={closeFilters}
+      />
+
+      <GoToCartWrapper
+        showGoToCart={true}
+        extraBottomOffset={Platform.OS === "web" ? -10 : 0}
+      />
     </>
   );
 };
 
 export default memo(ProCat);
-
-const styles = StyleSheet.create({});

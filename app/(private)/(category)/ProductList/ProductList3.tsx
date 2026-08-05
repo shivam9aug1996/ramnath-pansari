@@ -79,6 +79,8 @@ interface ProductList3Props {
   paginationState: PaginationState;
   showInitialSkeleton?: boolean;
   handleRefresh1?: () => void;
+  listKeySuffix?: string;
+  refetch?: () => void;
 }
 
 interface CartData {
@@ -96,7 +98,8 @@ const ProductList3 = ({
   paginationState,
   refetch,
   showInitialSkeleton = false,
-  handleRefresh1=()=>{}
+  handleRefresh1=()=>{},
+  listKeySuffix = "default",
 }: ProductList3Props) => {
    //const visibleIds = useSelector((state: RootState) => state.product.visibleIds);
   // console.log("visibleIds98767890",visibleIds);
@@ -229,7 +232,7 @@ const onViewableItemsChanged = useRef(
 
   useEffect(() => {
     clearVisibleProductIds();
-  }, [paginationState.categoryId]);
+  }, [paginationState.categoryId, listKeySuffix]);
 
   useEffect(() => {
     dispatch(setVisibleIds([]));
@@ -364,6 +367,7 @@ const onViewableItemsChanged = useRef(
     setPaginationState((prevState) => ({
       ...prevState,
       page: prevState.page + 1,
+      reset: false,
     }));
   }, [setPaginationState]);
 
@@ -435,7 +439,7 @@ const onViewableItemsChanged = useRef(
   return (
     <FlatList
     //ListHeaderComponent={<Button title="Refresh" onPress={handleRefresh1} />}
-      key={paginationState.categoryId ?? "product-list"}
+      key={`${paginationState.categoryId ?? "product-list"}-${listKeySuffix}`}
      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh1} />}
 
       // onRefresh={refetch}

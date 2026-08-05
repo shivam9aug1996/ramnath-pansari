@@ -6,7 +6,7 @@ export const PRODUCT_CARD_HEIGHT = Dimensions.get("window").width > 390 ? 320 : 
 /** Space reserved for category/subcategory chrome — keep in sync with list paddingTop */
 export const CATEGORY_CHROME_ESTIMATED_HEIGHT = 170;
 export const PRODUCT_LIST_PADDING_TOP = CATEGORY_CHROME_ESTIMATED_HEIGHT;
-export const PRODUCT_LIST_MARGIN_TOP = 20;
+export const PRODUCT_LIST_MARGIN_TOP = 6;
 export const PRODUCT_LIST_PADDING_BOTTOM = 24;
 export const PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT = 20;
 export const PRODUCT_COLUMN_GAP = 4;

@@ -134,6 +134,8 @@ export interface CategoryListProps {
   categories: Category[];
   isCategoryFetching: boolean;
   selectedCategoryIdIndex?: number;
+  parentCategory?: { _id: string; name: string };
+  contentContainerStyle?: StyleProp<ViewStyle>;
 }
 
 export interface CategorySelectorProps {

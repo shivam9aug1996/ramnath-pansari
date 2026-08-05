@@ -1,18 +1,14 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   StyleSheet,
   Text,
   View,
-  Alert,
   FlatList,
   Platform,
-  ViewToken,
 } from "react-native";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  searchApi,
   setCurrentSearchQuery,
   useFetchProductsBySearchQuery,
   useLazyFetchProductsBySearchQuery,
@@ -27,47 +23,40 @@ import {
   writeRecentSearchCache,
 } from "@/utils/recentSearchConfigCache";
 import { useFetchCartQuery } from "@/redux/features/cartSlice";
-import { FlashList } from "@shopify/flash-list";
 
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import CustomTextInput from "@/components/CustomTextInput";
-import ProductItem from "../(category)/ProductList/ProductItem";
 import ProductListPlaceholder, {
-  ProductItemSkeleton,
   ProductItemSkeletonStatic,
   ProductPaginationSkeleton,
 } from "../(category)/ProductList/ProductListPlaceholder";
 import {
   buildProductListData,
   isProductSkeleton,
-  PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT,
-  PRODUCT_LIST_MARGIN_TOP,
   PRODUCT_LIST_PADDING_BOTTOM,
   ProductListRow,
-  withPaginationSkeletons,
 } from "../(category)/ProductList/productListLayout";
 import NotFound from "./NotFound";
 import GoToCartWrapper from "../(category)/ProductList/GoToCartWrapper";
 import { useHideOnScroll } from "@/hooks/useHideOnScroll";
-import { usePaginationSkeleton } from "@/hooks/usePaginationSkeleton";
 
 import { Colors } from "@/constants/Colors";
 import { ThemedText } from "@/components/ThemedText";
-import { RootState, CartItem, Product } from "@/types/global";
+import { RootState, CartItem } from "@/types/global";
 import {
   setProductListScrollParams,
-  setQueryResultVisibleIds,
   setResetPagination,
-  setVisibleIds,
-  useLazyFetchProductsQuery,
 } from "@/redux/features/productSlice";
 import { addSearchQuery } from "@/redux/features/recentlyViewedSlice";
-import useResultStageLoad from "@/hooks/useResultStageLoad";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
 import ProductItemWrapper from "../(category)/ProductList/ProductItemWrapper";
 import { useGoToCartListPadding } from "@/contexts/DeliveryFloatContext";
-import { clearVisibleProductIds, updateVisibleProductIds } from "../(category)/ProductList/productVisibilityStore";
+import { clearVisibleProductIds } from "../(category)/ProductList/productVisibilityStore";
 import AppHead from "@/components/AppHead";
+import ProductFilterFab from "@/components/productFilters/ProductFilterFab";
+import ProductFilterSheet from "@/components/productFilters/ProductFilterSheet";
+import { useProductListFilters } from "@/components/productFilters/useProductListFilters";
+import { DEFAULT_PRODUCT_FILTERS } from "@/utils/productFilters";
 
 const QueryResult = ({query}:{query:string}) => {
   const scrollEndedRef = useRef(0);
@@ -80,39 +69,51 @@ const QueryResult = ({query}:{query:string}) => {
     (state: RootState) => state.product?.resetPagination
   );
   const [fetchRecentSearch] = useLazyFetchRecentSearchQuery();
-  // const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
-  // const visibleIdsRef = useRef(visibleIds);
-  // const onViewableItemsChanged = useRef(
-  //   ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-  //     const visibleNow = new Set<string>();
-  //     viewableItems.forEach((v) => {
-  //       const id = v?.item?._id;
-  //       if (typeof id === "string" && id.length) visibleNow.add(id);
-  //     });
-  //     dispatch(setVisibleIds(Array.from(visibleNow) as string[]));
-  //   }
-  // ).current;
-
-  const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 1, // consider visible when 20% is on screen
-    waitForInteraction: false,
-  }).current;
- // visibleIdsRef.current = visibleIds;
 
   const [page, setPage] = useState(1);
+  const [searchReset, setSearchReset] = useState(false);
   const dispatch = useDispatch();
   const goToCartListPadding = useGoToCartListPadding();
   const { data: cartData } = useFetchCartQuery({ userId }, { skip: !userId });
   const [fetchProductsBySearch] = useLazyFetchProductsBySearchQuery();
 
+  const resetSearchToPageOne = useCallback(() => {
+    setPage(1);
+    setSearchReset(true);
+  }, []);
+
+  const {
+    applied,
+    draft,
+    setDraft,
+    brands,
+    brandsLoading,
+    filterKey,
+    apiParams,
+    filterVisible,
+    openFilters,
+    closeFilters,
+    applyDraft,
+    clearAll,
+  } = useProductListFilters({
+    searchQuery: query,
+    onFiltersApplied: resetSearchToPageOne,
+  });
+
   const { data, isFetching, error, isSuccess, isLoading } =
     useFetchProductsBySearchQuery(
-      { query, type: "autocomplete", page, limit: 10 },
-      { skip: !query 
-        
-       && scrollEndedRef.current !== 1 
-      
-      }
+      {
+        query,
+        type: "autocomplete",
+        page,
+        limit: 10,
+        reset: searchReset,
+        filterKey,
+        ...apiParams,
+      },
+      {
+        skip: !query && scrollEndedRef.current !== 1,
+      },
     );
 
   const hasNextPage = data?.currentPage < data?.totalPages;
@@ -133,25 +134,12 @@ const QueryResult = ({query}:{query:string}) => {
 
   const onChromeVisibilityChange = useCallback(
     (hidden: boolean) => {
-     // if (!hidden && isLoadingMoreRef.current) return;
       dispatch(setProductListScrollParams({ shouldHideChrome: hidden }));
     },
     [dispatch],
   );
 
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      const ids: string[] = [];
-      for (const v of viewableItems) {
-        const item = v.item as ProductListRow | undefined;
-        if (!item || isProductSkeleton(item)) continue;
-        ids.push(item._id);
-      }
-      updateVisibleProductIds(ids);
-    },
-  ).current;
-
-  const { handleScroll, reset: resetScrollChrome } = useHideOnScroll(
+  const { reset: resetScrollChrome } = useHideOnScroll(
     onChromeVisibilityChange,
   );
 
@@ -162,16 +150,15 @@ const QueryResult = ({query}:{query:string}) => {
     }, [resetScrollChrome]),
   );
 
-
-
   useEffect(() => {
     setPage(1);
+    setSearchReset(true);
     resetScrollChrome();
   }, [query, resetScrollChrome]);
 
   useEffect(() => {
     clearVisibleProductIds();
-  }, []);
+  }, [query, filterKey]);
 
   const [createRecentSearch] = useCreateRecentSearchMutation();
 
@@ -211,10 +198,6 @@ const QueryResult = ({query}:{query:string}) => {
   }, [query]);
 
   useEffect(() => {
-    clearVisibleProductIds();
-  }, [query]); 
-
-  useEffect(() => {
     if (resetPagination?.status) {
       let id = resetPagination?.item?._id;
       let index = data?.results?.findIndex((item: any) => {
@@ -231,6 +214,8 @@ const QueryResult = ({query}:{query:string}) => {
           page: page,
           limit: 10,
           reset: true,
+          filterKey,
+          ...apiParams,
         },
         false
       )
@@ -244,10 +229,13 @@ const QueryResult = ({query}:{query:string}) => {
       // }, 500);
       //dispatch(setResetPagination(false));
     }
-  }, [resetPagination?.status, query]);
+  }, [resetPagination?.status, query, filterKey, apiParams]);
 
   // Handlers
-  const fetchNextPage = () => setPage((prev) => prev + 1);
+  const fetchNextPage = () => {
+    setSearchReset(false);
+    setPage((prev) => prev + 1);
+  };
 
   // const cartItemsMap = useMemo(() => {
   //   // console.log("cartDatashivam---------->");
@@ -465,9 +453,8 @@ const listContentContainerStyle = useMemo(
             ) : (
               <View style={styles.container}>
                 <FlatList
-                  key={query}
+                  key={`${query}-${filterKey}`}
                   bounces={Platform.OS === "android" ? false : true}
-                  //disableAutoLayout
                   initialNumToRender={6}
                   data={data?.results}
                   extraData={{ cartItemsMap }}
@@ -487,21 +474,32 @@ const listContentContainerStyle = useMemo(
                   onMomentumScrollBegin={onMomentumScrollBegin}
                   onScrollBeginDrag={onScrollBeginDrag}
                   onScrollEndDrag={onScrollEndDrag}
-
-                  // ItemSeparatorComponent={() => (
-                  //   <View style={{ height: PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT }} />
-                  // )}
-                  // viewabilityConfig={viewabilityConfig}
-                  // onViewableItemsChanged={onViewableItemsChanged}
-                  // scrollEventThrottle={50}
-                  // onScroll={handleScroll}
-
                 />
               </View>
             )}
           </DeferredFadeIn>
        
       </ScreenSafeWrapper>
+
+      <ProductFilterFab
+        filters={applied}
+        onPress={openFilters}
+        onClear={clearAll}
+      />
+
+      <ProductFilterSheet
+        visible={filterVisible}
+        draft={draft}
+        onChange={setDraft}
+        brands={brands}
+        brandsLoading={brandsLoading}
+        onApply={applyDraft}
+        onClear={() => {
+          setDraft(DEFAULT_PRODUCT_FILTERS);
+          clearAll();
+        }}
+        onClose={closeFilters}
+      />
 
       <GoToCartWrapper />
     </>

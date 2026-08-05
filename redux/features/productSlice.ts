@@ -1,11 +1,9 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { baseUrl } from "../constants";
 import { createApiBaseQuery } from "../createApiBaseQuery";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { CACHE_DURATION, cleanOldProductCache } from "@/utils/utils";
 import type { Product } from "@/types/global";
 import { getCachedProducts, setCachedProducts } from "@/utils/productCache";
+import { getProductFilterKey } from "@/utils/productFilters";
 import { devLog } from "@/utils/devLog";
 
 export type SyncedProductOverride = Partial<
@@ -15,65 +13,87 @@ export type SyncedProductOverride = Partial<
   >
 >;
 
+function filterKeyFromArg(arg: Record<string, unknown> | undefined): string {
+  if (!arg) return "default";
+  if (typeof arg.filterKey === "string" && arg.filterKey) {
+    return arg.filterKey;
+  }
+  return getProductFilterKey({
+    brands:
+      typeof arg.brand === "string" && arg.brand
+        ? String(arg.brand)
+            .split(",")
+            .map((b) => b.trim())
+            .filter(Boolean)
+        : [],
+    sort: (arg.sort as "relevance") || "relevance",
+    inStockOnly: arg.inStock === true || arg.inStock === "true",
+    priceMin:
+      arg.priceMin != null && arg.priceMin !== ""
+        ? String(arg.priceMin)
+        : "",
+    priceMax:
+      arg.priceMax != null && arg.priceMax !== ""
+        ? String(arg.priceMax)
+        : "",
+  });
+}
+
 export const productApi = createApi({
   reducerPath: "productApi",
   baseQuery: createApiBaseQuery(),
-  tagTypes: ["Products"],
+  tagTypes: ["Products", "ProductBrands"],
   endpoints: (builder) => ({
     fetchProducts: builder.query({
       async queryFn(arg, _queryApi, _extraOptions, baseQuery) {
-        
-        const { page, clear, categoryId, ...rest } = arg;
-        // const localKey = `products-${categoryId}-${page}`;
-        // const now = Date.now();
-        // const cached = await AsyncStorage.getItem(localKey);
+        const { page, clear, categoryId, filterKey: _fk, reset, refreshKey, ...rest } =
+          arg;
+        const filterKey = filterKeyFromArg(arg);
 
-        
-        // if (cached) {
-        //   const { data, timestamp } = JSON.parse(cached);
-        //   const age = now - timestamp;
-        //   if (age < CACHE_DURATION) {
-        //     return { data };
-        //   }
-        // }
-        const cachedData = await getCachedProducts(categoryId, page);
+        const cachedData = await getCachedProducts(categoryId, page, filterKey);
         if (cachedData) {
           devLog("[products] cache hit", {
             categoryId,
             page,
+            filterKey,
             productCount: cachedData?.products?.length ?? null,
             totalResults: cachedData?.totalResults ?? null,
           });
           return { data: cachedData };
         }
 
-        // else, proceed with the normal baseQuery
         const result = await baseQuery({
           url: "/products",
           method: "GET",
           params: { page, categoryId, ...rest },
         });
         const networkData = result.data as
-          | { products?: unknown[]; totalResults?: number }
+          | { products?: unknown[]; totalResults?: number; totalProducts?: number }
           | undefined;
+        // Normalize backend totalProducts → totalResults for the client merge path.
+        if (
+          result.data &&
+          typeof result.data === "object" &&
+          networkData &&
+          networkData.totalResults == null &&
+          networkData.totalProducts != null
+        ) {
+          (result.data as { totalResults: number }).totalResults =
+            networkData.totalProducts;
+        }
         devLog("[products] network", {
           categoryId,
           page,
+          filterKey,
           productCount: networkData?.products?.length ?? null,
-          totalResults: networkData?.totalResults ?? null,
+          totalResults:
+            networkData?.totalResults ?? networkData?.totalProducts ?? null,
           hasError: Boolean(result.error),
           errorStatus: (result.error as { status?: unknown } | undefined)
             ?.status ?? null,
         });
         if (result.data) {
-          // await AsyncStorage.setItem(
-          //   localKey,
-          //   JSON.stringify({
-          //     data: result.data,
-          //     timestamp: now,
-          //   })
-          // );
-          setCachedProducts(categoryId, page, result.data);
+          setCachedProducts(categoryId, page, result.data, filterKey);
         }
 
         return result;
@@ -81,163 +101,76 @@ export const productApi = createApi({
       keepUnusedDataFor: 0,
 
       serializeQueryArgs: ({ endpointName, queryArgs }) => {
-        // Serialize by categoryId (this could avoid conflicts if categoryId changes)
-        return `${endpointName}-${queryArgs.categoryId}`;
+        const filterKey = filterKeyFromArg(queryArgs);
+        return `${endpointName}-${queryArgs.categoryId}-${filterKey}`;
       },
       providesTags: (result, error, { categoryId }) => {
-        // console.log("iuytredsxcvbnm", categoryId);
         return [{ type: "Products", id: categoryId }];
       },
 
       merge: (currentCache, newItems, { arg }) => {
-        // console.log("jhgfg567890hjkl");
         let page = arg?.page;
-        let categoryId = arg?.categoryId;
-
-        // console.log("765redfghjkl page", page, arg);
-        // console.log("765redfghjkl categoryId", categoryId);
-        // console.log("765redfghjkl newItems", JSON.stringify(newItems));
-        // console.log("765redfghjkl currentCache", JSON.stringify(currentCache));
 
         if (page === 1) {
-
           if (arg?.reset === true) {
-           // console.log("reset is true");
-            // drop scrolled pages 2+; keep only fresh page-1 result
             currentCache.products = [...(newItems.products ?? [])];
             currentCache.currentPage = newItems.currentPage;
             currentCache.totalPages = newItems.totalPages;
-            currentCache.totalResults = newItems.totalResults;
+            currentCache.totalResults =
+              newItems.totalResults ?? newItems.totalProducts;
             return;
           }
-          
+
           const startIndex = (page - 1) * 10;
-          // let updatedProducts = [...currentCache.products];
-          // for (let i = 0; i < newItems.products.length; i++) {
-          //   const index = startIndex + i;
-          //   if (index < updatedProducts.length) {
-          //     console.log(
-          //       "in567890dex",
-          //       index,
-          //       updatedProducts.length,
-          //       newItems.products.length,
-          //       newItems.products[i]
-          //     );
-          //     updatedProducts[index] = newItems.products[i];
-          //   }
-          // }
-          // console.log("updatedProducts67890", JSON.stringify(updatedProducts));
-          // currentCache.products = updatedProducts;
           devLog("currentCache.currentPage > newItems?.currentPage");
           let updatedProducts = [...currentCache.products];
 
-          // Clear out all items from the start index
           updatedProducts.splice(startIndex, 10);
-
-          // Insert new items at the correct position
           updatedProducts.splice(startIndex, 0, ...newItems.products);
 
           currentCache.products = updatedProducts;
+          currentCache.totalPages = newItems.totalPages;
+          currentCache.totalResults =
+            newItems.totalResults ?? newItems.totalProducts;
         } else {
-          const startIndex = (page - 1) * 10; // Assuming limit is 10
+          const startIndex = (page - 1) * 10;
 
           if (currentCache.currentPage < newItems?.currentPage) {
             currentCache?.products?.push(...newItems?.products);
             currentCache.currentPage = newItems?.currentPage;
+            currentCache.totalPages = newItems.totalPages;
+            currentCache.totalResults =
+              newItems.totalResults ?? newItems.totalProducts;
           } else if (currentCache.currentPage >= newItems?.currentPage) {
-            // console.log("currentCache.currentPage > newItems?.currentPage");
-            // let updatedProducts = [...currentCache.products];
-            // for (let i = 0; i < newItems.products.length; i++) {
-            //   const index = startIndex + i;
-            //   if (index < updatedProducts.length) {
-            //     console.log(
-            //       "in567890dex",
-            //       index,
-            //       updatedProducts.length,
-            //       newItems.products.length,
-            //       newItems.products[i]
-            //     );
-            //     updatedProducts[index] = newItems.products[i];
-            //   }
-            // }
-            // console.log(
-            //   "updatedProducts67890",
-            //   JSON.stringify(updatedProducts)
-            // );
-            // currentCache.products = updatedProducts;
             devLog("currentCache.currentPage > newItems?.currentPage");
             let updatedProducts = [...currentCache.products];
 
-            // Clear out all items from the start index
             updatedProducts.splice(startIndex, 10);
-
-            // Insert new items at the correct position
             updatedProducts.splice(startIndex, 0, ...newItems.products);
 
             currentCache.products = updatedProducts;
-            // currentCache.currentPage = newItems?.currentPage;
           }
         }
       },
-      // merge: (currentCache, newItems, { arg }) => {
-      //   console.log("jhgfg567890hjkl");
-      //   let page = arg?.page;
-      //   let categoryId = arg?.categoryId;
-
-      //   console.log("765redfghjkl page", page, arg);
-      //   console.log("765redfghjkl categoryId", categoryId);
-      //   console.log("765redfghjkl newItems", JSON.stringify(newItems));
-      //   console.log("765redfghjkl currentCache", JSON.stringify(currentCache));
-      //   if (page == 1) {
-      //     currentCache.products = newItems?.products;
-      //     currentCache.currentPage = newItems?.currentPage;
-      //   } else {
-      //     currentCache?.products?.push(...newItems?.products);
-      //     currentCache.currentPage = newItems?.currentPage;
-      //   }
-      // },
-      forceRefetch: ({ currentArg, previousArg, state, endpointState }) => {
+      forceRefetch: ({ currentArg, previousArg }) => {
         return (
           currentArg?.categoryId !== previousArg?.categoryId ||
           currentArg?.page !== previousArg?.page ||
           currentArg?.reset == true ||
-          currentArg?.refreshKey !== previousArg?.refreshKey
+          currentArg?.refreshKey !== previousArg?.refreshKey ||
+          filterKeyFromArg(currentArg) !== filterKeyFromArg(previousArg)
         );
       },
     }),
 
-    // fetchProducts: builder.query({
-    //   query: ({ categoryId, page, limit }) => ({
-    //     url: "/products",
-    //     method: "GET",
-    //     params: { categoryId, page, limit },
-    //   }),
-    //   keepUnusedDataFor: 60,
-    //   serializeQueryArgs: ({ queryArgs }) => {
-    //     // Group cache by categoryId
-    //     return queryArgs.categoryId;
-    //   },
-    //   merge: (currentCache, newItems, { arg }) => {
-    //     console.log("merge", { currentCache, newItems }, { arg, newItems });
-    //     if (arg.page === 1) {
-    //       currentCache.products = [];
-    //     }
-
-    //     currentCache.products = [
-    //       ...(currentCache.products || []),
-    //       ...newItems.products,
-    //     ];
-    //     currentCache.currentPage = newItems.currentPage;
-    //     currentCache.totalPages = newItems.totalPages;
-    //   },
-    //   forceRefetch: ({ currentArg, previousArg }) => {
-    //     // Refetch when categoryId or page changes
-    //     return (
-    //       currentArg?.categoryId !== previousArg?.categoryId ||
-    //       currentArg?.page !== previousArg?.page
-    //     );
-    //   },
-    // }),
+    fetchProductBrands: builder.query({
+      query: (params: { categoryId?: string; query?: string }) => ({
+        url: "/products/brands",
+        method: "GET",
+        params,
+      }),
+      providesTags: ["ProductBrands"],
+    }),
 
     fetchProductDetail: builder.query({
       query: (data) => ({
@@ -337,6 +270,7 @@ export const {
 export const {
   useFetchProductsQuery,
   useLazyFetchProductsQuery,
+  useFetchProductBrandsQuery,
   useFetchProductDetailQuery,
   useLazyFetchProductDetailQuery,
 } = productApi;

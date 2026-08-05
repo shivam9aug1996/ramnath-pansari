@@ -5,72 +5,51 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { ActivityIndicator, View, FlatList, StyleSheet } from "react-native";
+import { View, FlatList, StyleSheet } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import {
   productApi,
   setResetPagination,
-  setSelectedCategoryClicked,
-  setSelectedSubCategoryId,
   useFetchProductsQuery,
   useLazyFetchProductsQuery,
 } from "@/redux/features/productSlice";
 import { RootState, Product } from "@/types/global";
 import { scrollToTop } from "./utils";
 import TryAgain from "../CategoryList/TryAgain";
-import ProductsPlaceholder from "./ProductListPlaceholder";
 import ProductList3 from "./ProductList3";
-import CustomSuspense from "@/components/CustomSuspense";
-import { Colors } from "@/constants/Colors";
-import { useFocusEffect, usePathname } from "expo-router";
-import { debounce } from "lodash";
-import { Text } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { setSubCategoryActionClicked } from "@/redux/features/categorySlice";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  CACHE_DURATION,
-  cleanAllProductCache,
-  cleanOldProductCache,
-} from "@/utils/utils";
+import { cleanAllProductCache } from "@/utils/utils";
 import { clearCategoryProductCacheFromMemoryAndAsyncStorage } from "@/utils/productCache";
 import { devLog } from "@/utils/devLog";
 import AsyncRouteLoader from "@/components/AsyncRouteLoader";
 
 interface ProductsProps {
   isCategoryFetching: boolean;
+  filterKey?: string;
+  apiParams?: Record<string, string | boolean | number>;
+  registerReset?: (fn: () => void) => void;
 }
 
 interface PaginationState {
   categoryId: string | null;
   page: number;
   reset: boolean;
+  refreshKey?: number;
 }
 
-interface ProductList3Props {
-  flatListRef: React.RefObject<FlatList>;
-  data: {
-    products: Product[];
-    currentPage: number;
-    totalPages: number;
-    totalResults: number;
-  };
-  setPaginationState: (
-    updater: (prev: PaginationState) => PaginationState,
-  ) => void;
-  isProductsFetching: boolean;
-  isProductsLoading: boolean;
-  paginationState: PaginationState;
-  headerVisible: boolean;
-}
-
-const Products = ({ isCategoryFetching }: ProductsProps) => {
+const Products = ({
+  isCategoryFetching,
+  filterKey = "default",
+  apiParams = {},
+  registerReset,
+}: ProductsProps) => {
   const subCategoryActionClicked = useSelector(
     (state: RootState) => state.category.subCategoryActionClicked,
   );
   const selectedSubCategory = useSelector(
     (state: RootState) => state.product.selectedSubCategoryId,
   );
-  //console.log("selectedSubCategory765434567890--", selectedSubCategory?._id);
   const selectedCategoryClicked = useSelector(
     (state: RootState) => state.product.selectedCategoryClicked,
   );
@@ -87,19 +66,42 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
 
   const flatListRef = useRef<FlatList>(null);
 
+  const resetToPageOne = useCallback(() => {
+    scrollToTop(flatListRef);
+    setPaginationState((prev) => ({
+      ...prev,
+      page: 1,
+      reset: true,
+      refreshKey: Date.now(),
+    }));
+  }, []);
+
+  useEffect(() => {
+    registerReset?.(resetToPageOne);
+  }, [registerReset, resetToPageOne]);
+
+  // When parent filter fingerprint changes, reset pagination.
+  const prevFilterKeyRef = useRef(filterKey);
+  useEffect(() => {
+    if (prevFilterKeyRef.current === filterKey) return;
+    prevFilterKeyRef.current = filterKey;
+    resetToPageOne();
+  }, [filterKey, resetToPageOne]);
+
   const {
     data,
     isFetching: isProductsFetching,
     isError: isProductError,
     isLoading: isProductsLoading,
-    refetch,
   } = useFetchProductsQuery(
     {
       categoryId: paginationState.categoryId,
       page: paginationState.page,
       limit: 10,
       reset: paginationState.reset,
-      refreshKey: paginationState.refreshKey, 
+      refreshKey: paginationState.refreshKey,
+      filterKey,
+      ...apiParams,
     },
     {
       skip:
@@ -111,34 +113,6 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
 
   const [fetchProducts] = useLazyFetchProductsQuery();
 
-  // // Handle category change
-  // useEffect(() => {
-  //   if (selectedSubCategory) {
-  //     startTransition(() => {
-  //       scrollToTop(flatListRef);
-  //       setPaginationState((prev) => ({
-  //         ...prev,
-  //         categoryId: selectedSubCategory._id,
-  //         page: 1,
-  //       }));
-  //     });
-  //   }
-  // }, [selectedSubCategory]);
-
-  // ✅ Debounced & rAF category change handler (No flicker, smooth)
-  // useEffect(() => {
-  //   requestAnimationFrame(() => {
-  //     if (selectedSubCategory) {
-  //       scrollToTop(flatListRef);
-  //       setPaginationState((prev) => ({
-  //         ...prev,
-  //         categoryId: selectedSubCategory._id,
-  //         page: 1,
-  //       }));
-  //       dispatch(setSubCategoryActionClicked(false));
-  //     }
-  //   });
-  // }, [selectedSubCategory]);
   useEffect(() => {
     const nextId = selectedSubCategory?._id;
     if (!nextId || nextId === "null") {
@@ -149,21 +123,11 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
       ...prev,
       categoryId: nextId,
       page: 1,
+      reset: true,
     }));
     dispatch(setSubCategoryActionClicked(false));
   }, [selectedSubCategory, dispatch]);
 
-  // useEffect(()=>{
-  //   if(isProductError){
-  //     dispatch(setSelectedCategoryClicked(false));
-  //   }
-  //   console.log("data567890---->",data);
-  //   if(data?.products?.length>0||data?.products?.length===0){
-  //     dispatch(setSelectedCategoryClicked(false));
-  //   }
-  // },[isProductError,data])
-
-  // Handle pagination reset
   useFocusEffect(
     useCallback(() => {
       requestAnimationFrame(() => {
@@ -179,6 +143,8 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
               categoryId: selectedSubCategory?._id,
               page,
               limit: 10,
+              filterKey,
+              ...apiParams,
             },
             false,
           )
@@ -188,70 +154,38 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
             });
         }
       });
-    }, [resetPagination?.status, data, selectedSubCategory?._id, dispatch]),
+    }, [
+      resetPagination?.status,
+      data,
+      selectedSubCategory?._id,
+      dispatch,
+      filterKey,
+      apiParams,
+      fetchProducts,
+    ]),
   );
 
-  // Outside JSX, inside your parent component
   const handleRefetchProducts = useCallback(async () => {
-    // 1️⃣ Clear product cache
     await cleanAllProductCache();
-    // await refetch()?.unwrap()
     setPaginationState((prev) => ({
       ...prev,
       page: 1,
     }));
-    // await dispatch(
-    //   productApi.endpoints.fetchProducts.initiate(
-    //     { categoryId: selectedSubCategory?._id, page: 1, limit: 10 },
-    //     { forceRefetch: true }
-    //   )
-    // );
     dispatch(productApi.util.resetApiState());
-    // dispatch(productApi.util.resetApiState())
+  }, [dispatch]);
 
-    // 2️⃣ Clear RTK Query cached data for this query
-    // dispatch(
-    //   productApi.util.updateQueryData(
-    //     "fetchProducts",
-    //     {
-    //       categoryId: selectedSubCategory?._id,
-
-    //     },
-    //     (draft) => {
-    //       draft.products = [];
-    //       draft.currentPage = 1;
-    //     }
-    //   )
-    // );
-
-    // 3️⃣ Reset pagination state
-    // setPaginationState((prev) => ({
-    //   ...prev,
-    //   page: 1,
-    // }));
-
-    // 4️⃣ Fetch fresh products
-    // await fetchProducts(
-    //   {
-    //     categoryId: selectedSubCategory?._id,
-    //     page: 1,
-    //     limit: 10,
-    //   },
-    //   false
-    // )?.unwrap();
-  }, [dispatch, selectedSubCategory?._id, setPaginationState, fetchProducts]);
-
-
-  const handleRefetchProducts1 = useCallback(async() => {
-    await clearCategoryProductCacheFromMemoryAndAsyncStorage(selectedSubCategory?._id);
+  const handleRefetchProducts1 = useCallback(async () => {
+    await clearCategoryProductCacheFromMemoryAndAsyncStorage(
+      selectedSubCategory?._id,
+    );
     setPaginationState((prev) => ({
       ...prev,
       categoryId: selectedSubCategory._id,
       page: 1,
-      reset: true, // was false in your file — that's why refresh did nothing
-      refreshKey: Date.now(), 
+      reset: true,
+      refreshKey: Date.now(),
     }));
-  }, [dispatch, selectedSubCategory]);
+  }, [selectedSubCategory]);
 
   const activeCategoryId = selectedSubCategory?._id ?? null;
   const isCategoryOutOfSync =
@@ -272,6 +206,7 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
       selectedSubCategoryId: selectedSubCategory?._id ?? selectedSubCategory,
       page: paginationState.page,
       reset: paginationState.reset,
+      filterKey,
       productCount: data?.products?.length ?? null,
       totalResults: data?.totalResults ?? null,
       isProductsLoading,
@@ -291,6 +226,7 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
     isCategoryOutOfSync,
     showInitialSkeleton,
     hasProductsToShow,
+    filterKey,
   ]);
 
   const showOverlaySpinner =
@@ -308,10 +244,14 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
     <View style={styles.container}>
       {showOverlaySpinner && (
         <View style={styles.overlay}>
-          <AsyncRouteLoader style={{
-            width: '100%',
-            backgroundColor: 'transparent'
-          }} message="" showBrand={false} />
+          <AsyncRouteLoader
+            style={{
+              width: "100%",
+              backgroundColor: "transparent",
+            }}
+            message=""
+            showBrand={false}
+          />
         </View>
       )}
       <ProductList3
@@ -328,101 +268,9 @@ const Products = ({ isCategoryFetching }: ProductsProps) => {
         isProductsLoading={isProductsLoading}
         paginationState={paginationState}
         showInitialSkeleton={showInitialSkeleton}
+        listKeySuffix={filterKey}
       />
     </View>
-
-    // <View style={{ flex: 1 }}>
-    //   {isLoading ? (
-    //     <ProductsPlaceholder />
-    //   ) : (
-    //     <>
-    //       {isProductsFetching && paginationState.page === 1 && (
-    //         <View
-    //           style={{
-    //             position: "absolute",
-    //             left: 0,
-    //             right: 0,
-    //             top: 0,
-    //             bottom: 0,
-    //             justifyContent: "center",
-    //             alignItems: "center",
-    //             zIndex: 10,
-    //           }}
-    //         >
-    //           <ActivityIndicator size="large" color={Colors.light.lightGreen} />
-    //         </View>
-    //       )}
-    //       {subCategoryActionClicked && (
-    //         <View
-    //           style={{
-    //             position: "absolute",
-    //             left: 0,
-    //             right: 0,
-    //             top: 0,
-    //             bottom: 0,
-    //             justifyContent: "center",
-    //             alignItems: "center",
-    //             zIndex: 10,
-    //           }}
-    //         >
-    //           <ActivityIndicator size="large" color={Colors.light.lightGreen} />
-    //         </View>
-    //       )}
-    //       {/* {(paginationState.page === 1 && isProductsFetching) ||
-    //       subCategoryActionClicked ? (
-    //         <View
-    //           style={{
-    //             position: "absolute",
-    //             left: 0,
-    //             right: 0,
-    //             top: 0,
-    //             bottom: 0,
-    //             justifyContent: "center",
-    //             alignItems: "center",
-    //             zIndex: 10,
-    //           }}
-    //         >
-    //           <ActivityIndicator size="large" color={Colors.light.lightRed} />
-    //         </View>
-    //       ) : ( */}
-    //       <ProductList3
-    //       refetch={handleRefetchProducts}
-    //         // refetch={async()=>{
-    //         //   await cleanAllProductCache()
-    //         //   dispatch(
-    //         //     productApi.util.updateQueryData("fetchProducts", { categoryId: selectedSubCategory?._id, page: 1, limit: 10 }, (draft) => {
-    //         //       draft.products = [];
-    //         //     })
-    //         //   )
-    //         //   setPaginationState((prev) => ({
-    //         //     ...prev,
-    //         //     page: 1,
-    //         //   }));
-
-    //         //   await fetchProducts(
-    //         //     {
-    //         //       categoryId: selectedSubCategory?._id,
-    //         //       page: 1,
-    //         //       limit: 10,
-    //         //     },
-    //         //     false
-    //         //   )?.unwrap()
-    //         // }}
-    //         flatListRef={flatListRef}
-    //         data={data}
-    //         setPaginationState={setPaginationState}
-    //         isProductsFetching={
-    //           isProductsFetching ||
-    //           selectedCategoryClicked ||
-    //           subCategoryActionClicked
-    //         }
-    //         isProductsLoading={isProductsLoading}
-    //         paginationState={paginationState}
-    //       />
-    //       {/* )} */}
-    //     </>
-    //   )}
-    // </View>
   );
 };
 
