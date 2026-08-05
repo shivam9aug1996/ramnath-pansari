@@ -1,4 +1,6 @@
 import React, {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -31,9 +33,6 @@ import DashboardHeader from "./DashboardHeader";
 import store from "@/redux/store";
 import { loadRecentlyViewed } from "@/redux/features/recentlyViewedSlice";
 import DeferredFadeIn from "./DeferredFadeIn";
-import RecentlyViewedProducts from "@/app/(private)/(productDetail)/RecentlyViewedProducts";
-import Carasole, { getCarouselSlotHeight } from "./Carasole";
-import WeatherSection from "./WeatherSection/WeatherSection";
 import { WEATHER_SLOT_HEIGHT } from "./WeatherSection/weatherLayout";
 import HomeSearch from "./HomeSearch";
 import {
@@ -41,15 +40,27 @@ import {
   markStartupCheckpoint,
 } from "@/utils/startupDiagnostics";
 import { syncCarouselConfig } from "@/utils/carouselConfigCache";
-import HomeProductPromo from "@/components/HomeProductPromo";
-import GetTheApp, {
-  GET_THE_APP_BANNER_HEIGHT,
-} from "@/components/GetTheApp";
-import HomeProductRail from "@/components/HomeProductRail";
+
+const Carasole = lazy(() => import("./Carasole"));
+const WeatherSection = lazy(() => import("./WeatherSection/WeatherSection"));
+const GetTheApp = lazy(() => import("@/components/GetTheApp"));
+const HomeProductPromo = lazy(() => import("@/components/HomeProductPromo"));
+const HomeProductRail = lazy(() => import("@/components/HomeProductRail"));
+const RecentlyViewedProducts = lazy(
+  () => import("@/app/(private)/(productDetail)/RecentlyViewedProducts"),
+);
 
 const CATEGORY_PLACEHOLDER_COUNT = 3;
 /** Prefetch first N product rails so the initial viewport isn't empty. */
 const INITIAL_ENABLED_RAIL_COUNT = 2;
+/** Matches `GetTheApp` banner export — keep local so that module stays lazy. */
+const GET_THE_APP_BANNER_HEIGHT = 72;
+/** Matches `Carasole` — keep local so that module stays lazy. */
+const CAROUSEL_PAGI_SLOT_HEIGHT = 40;
+
+function getCarouselSlotHeight(windowWidth: number): number {
+  return windowWidth / 2 + CAROUSEL_PAGI_SLOT_HEIGHT;
+}
 
 type HomeFeedItem =
   | { type: "dashboard"; id: string }
@@ -315,22 +326,23 @@ const PrivateHome = () => {
               </View>
             </View>
           );
-        case "carousel":
+        case "carousel": {
+          const carouselFallback = (
+            <View
+              style={{
+                width: windowWidth,
+                height: carouselFallbackHeight,
+              }}
+            />
+          );
           return (
-            <DeferredFadeIn
-              delay={100}
-              fallback={
-                <View
-                  style={{
-                    width: windowWidth,
-                    height: carouselFallbackHeight,
-                  }}
-                />
-              }
-            >
-              <Carasole onScrollToCategories={scrollToCategories} />
+            <DeferredFadeIn delay={100} fallback={carouselFallback}>
+              <Suspense fallback={carouselFallback}>
+                <Carasole onScrollToCategories={scrollToCategories} />
+              </Suspense>
             </DeferredFadeIn>
           );
+        }
         case "weather":
           return (
             <View style={styles.weatherSection}>
@@ -338,7 +350,11 @@ const PrivateHome = () => {
                 delay={250}
                 fallback={<View style={styles.weatherSlotFallback} />}
               >
-                <WeatherSection />
+                <Suspense
+                  fallback={<View style={styles.weatherSlotFallback} />}
+                >
+                  <WeatherSection />
+                </Suspense>
               </DeferredFadeIn>
             </View>
           );
@@ -349,7 +365,11 @@ const PrivateHome = () => {
                 delay={150}
                 fallback={<View style={styles.getTheAppSlotFallback} />}
               >
-                <GetTheApp variant="banner" />
+                <Suspense
+                  fallback={<View style={styles.getTheAppSlotFallback} />}
+                >
+                  <GetTheApp variant="banner" />
+                </Suspense>
               </DeferredFadeIn>
             </View>
           );
@@ -371,24 +391,30 @@ const PrivateHome = () => {
           );
         case "productRail":
           return (
-            <HomeProductRail
-              parentCategory={item.parent}
-              subCategory={item.subCategory}
-              subCategoryIndex={item.subCategoryIndex}
-              enabled={Boolean(enabledRailsRef.current[item.id])}
-              onViewMore={handleCategorySelect}
-            />
+            <Suspense fallback={null}>
+              <HomeProductRail
+                parentCategory={item.parent}
+                subCategory={item.subCategory}
+                subCategoryIndex={item.subCategoryIndex}
+                enabled={Boolean(enabledRailsRef.current[item.id])}
+                onViewMore={handleCategorySelect}
+              />
+            </Suspense>
           );
         case "promo":
           return (
             <DeferredFadeIn delay={200}>
-              <HomeProductPromo variant="inline" />
+              <Suspense fallback={null}>
+                <HomeProductPromo variant="inline" />
+              </Suspense>
             </DeferredFadeIn>
           );
         case "recentlyViewed":
           return (
             <DeferredFadeIn delay={450}>
-              <RecentlyViewedProducts variant="compact" />
+              <Suspense fallback={null}>
+                <RecentlyViewedProducts variant="compact" />
+              </Suspense>
             </DeferredFadeIn>
           );
         default:

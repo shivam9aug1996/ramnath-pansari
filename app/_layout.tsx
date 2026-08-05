@@ -1,7 +1,7 @@
 import { Slot } from "expo-router";
 export { ErrorBoundary } from "@/components/RouteErrorBoundary";
 import * as SplashScreen from "expo-splash-screen";
-import { Fragment, useEffect } from "react";
+import { Fragment, lazy, Suspense, useEffect } from "react";
 import { ScrollView, View } from "react-native";
 import "react-native-reanimated";
 import "react-native-get-random-values";
@@ -31,10 +31,9 @@ import "@/utils/registerDriverLocationTask";
 import { initSentryAfterFirstPaint, wrapRoot } from "@/utils/sentry";
 import { InitialLayout1 } from "./InitialLayout1";
 import PromoConfigCacheRetainer from "@/components/PromoConfigCacheRetainer";
-import PromoDocked from "@/components/PromoDocked";
 import { IsolateErrorBoundary } from "@/components/IsolateErrorBoundary";
 import { Platform } from "react-native";
-
+const PromoDocked = lazy(() => import("@/components/PromoDocked"));
 const SPLASH_BACKGROUND = "#FFFFFF";
 
 SplashScreen.preventAutoHideAsync();
@@ -100,9 +99,11 @@ const RootLayout = () => {
               <IsolateErrorBoundary name="PromoConfigCacheRetainer">
                 <PromoConfigCacheRetainer />
               </IsolateErrorBoundary>
-              <IsolateErrorBoundary name="PromoDocked">
-                <PromoDocked />
-              </IsolateErrorBoundary>
+              <Suspense>
+                <IsolateErrorBoundary name="PromoDocked">
+                  <PromoDocked />
+                </IsolateErrorBoundary>
+              </Suspense>
               <InitialLayout />
             </Provider>
           ) : null}
