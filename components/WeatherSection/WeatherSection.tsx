@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View } from "react-native";
+import { InteractionManager, View } from "react-native";
 import { useSelector } from "react-redux";
 import WeatherIcon from "./WeatherIcon";
 import { WEATHER_SLOT_HEIGHT } from "./weatherLayout";
@@ -18,6 +18,9 @@ import {
   ACTIVE_FLOAT_STATUS_QUERY,
   type ActiveFloatOrder,
 } from "@/utils/activeOrderFloat";
+
+/** Wait for home first paint before location / weather / greetings work. */
+const WEATHER_SIDE_EFFECT_DELAY_MS = 400;
 
 function uniqueMessages(messages: Array<string | null | undefined>): string[] {
   const seen = new Set<string>();
@@ -42,14 +45,14 @@ const WeatherSection = () => {
   const { fetchWeather } = useWeatherInfo();
   const { fetchBatchGreetings } = useBatchGreetings();
   const isFocused = useIsFocused();
+  const [sideEffectsReady, setSideEffectsReady] = useState(false);
 
   const userData = useSelector((state: RootState) => state.auth?.userData);
   const userId = userData?._id;
   const isGuest = Boolean(userData?.isGuestUser);
 
-
   // Same query as ActiveDeliveryFloat — RTK cache shared.
-  // Invalidated by useOrderStatusListener on Firebase status changes.
+  // Gated until after first paint so home feed isn't competing for bandwidth.
   const { data: activeDeliveries } = useFetchActiveDeliveriesQuery(
     {
       userId,
@@ -57,7 +60,7 @@ const WeatherSection = () => {
       limit: 20,
       page: 1,
     },
-    { skip: !userId || isGuest },
+    { skip: !userId || isGuest || !sideEffectsReady },
   );
 
   const activeOrders = useMemo(
@@ -152,10 +155,30 @@ const WeatherSection = () => {
     }
   }, []);
 
+  // Defer network / location work until home first paint settles.
   useEffect(() => {
-    if (!isFocused || hasLoadedRef.current) return;
+    if (!isFocused) return;
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const task = InteractionManager.runAfterInteractions(() => {
+      timer = setTimeout(() => {
+        if (!cancelled) setSideEffectsReady(true);
+      }, WEATHER_SIDE_EFFECT_DELAY_MS);
+    });
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      task.cancel();
+    };
+  }, [isFocused]);
+
+  // Run after sideEffectsReady so RTK can hydrate shared active-order cache first.
+  useEffect(() => {
+    if (!isFocused || !sideEffectsReady || hasLoadedRef.current) return;
     void load();
-  }, [isFocused, load]);
+  }, [isFocused, sideEffectsReady, load]);
 
   // useOrderStatusListener → invalidate activeDeliveries → fingerprint change → LLM again
   useEffect(() => {

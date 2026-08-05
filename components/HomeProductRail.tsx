@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  ScrollView,
   TouchableOpacity,
 } from "react-native";
 import { useSelector } from "react-redux";
@@ -41,7 +41,7 @@ type Props = {
   ) => void;
 };
 
-/** Cheap reserved block — no FlatList until fetch is allowed. */
+/** Cheap reserved block — no scroll chrome until fetch is allowed. */
 const RailPlaceholder = ({ title }: { title: string }) => (
   <View style={styles.rail}>
     <View style={styles.header}>
@@ -101,13 +101,6 @@ const HomeProductRail = ({
     onViewMore(subCategory, parentCategory, subCategoryIndex);
   }, [onViewMore, subCategory, parentCategory, subCategoryIndex]);
 
-  const renderItem = useCallback(
-    ({ item }: { item: Product }) => <HomeProductRailCard item={item} />,
-    [],
-  );
-
-  const keyExtractor = useCallback((item: Product) => item._id, []);
-
   if (!enabled || isLoadingProducts) {
     return <RailPlaceholder title={subCategory.name} />;
   }
@@ -139,20 +132,17 @@ const HomeProductRail = ({
         </View>
       </View>
 
-      <View style={styles.listArea}>
-        <FlatList
-          horizontal
-          data={products}
-          keyExtractor={keyExtractor}
-          renderItem={renderItem}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          initialNumToRender={4}
-          maxToRenderPerBatch={4}
-          windowSize={3}
-          nestedScrollEnabled
-        />
-      </View>
+      {/* Max 8 cards — ScrollView avoids nested FlatList virtualization cost. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        nestedScrollEnabled
+      >
+        {products.map((product) => (
+          <HomeProductRailCard key={product._id} item={product} />
+        ))}
+      </ScrollView>
     </View>
   );
 };
@@ -201,9 +191,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.light.lightGreen,
     lineHeight: 20,
-  },
-  listArea: {
-    flex: 1,
   },
   listContent: {
     paddingHorizontal: 20,

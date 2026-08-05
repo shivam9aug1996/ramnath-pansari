@@ -9,6 +9,7 @@ import {
   StyleSheet,
   View,
   FlatList,
+  InteractionManager,
   Platform,
   RefreshControl,
   useWindowDimensions,
@@ -192,7 +193,10 @@ const PrivateHome = () => {
   }, [feedItems, showCategorySkeleton]);
 
   useEffect(() => {
-    store.dispatch(loadRecentlyViewed());
+    const task = InteractionManager.runAfterInteractions(() => {
+      store.dispatch(loadRecentlyViewed());
+    });
+    return () => task.cancel();
   }, []);
 
   useEffect(() => {
@@ -331,7 +335,7 @@ const PrivateHome = () => {
           return (
             <View style={styles.weatherSection}>
               <DeferredFadeIn
-                delay={100}
+                delay={250}
                 fallback={<View style={styles.weatherSlotFallback} />}
               >
                 <WeatherSection />
@@ -383,9 +387,9 @@ const PrivateHome = () => {
           );
         case "recentlyViewed":
           return (
-           
+            <DeferredFadeIn delay={450}>
               <RecentlyViewedProducts variant="compact" />
-            
+            </DeferredFadeIn>
           );
         default:
           return null;
