@@ -43,6 +43,7 @@ export type ShopIntent =
   | "cart_total"
   | "cart_open"
   | "clear_cart"
+  | "remove_cart"
   | "more_results"
   | "product_detail"
   | "clarify"

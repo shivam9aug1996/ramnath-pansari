@@ -108,6 +108,7 @@ export function buildResponseAfterTools(params: {
 
   const searchResult = toolResults.find((r) => r.toolName === "searchProducts");
   const addResult = toolResults.find((r) => r.toolName === "addToCart");
+  const removeResult = toolResults.find((r) => r.toolName === "removeFromCart");
   const clearResult = toolResults.find((r) => r.toolName === "clearCart");
   const openUiResult = toolResults.find((r) => r.toolName === "openUi");
   const cartResult = toolResults.find((r) => r.toolName === "getCart");
@@ -261,6 +262,52 @@ export function buildResponseAfterTools(params: {
         pendingProductQueue: [],
         cartItemCount: 0,
         cartItems: [],
+      }),
+      uiAction: null,
+    };
+  }
+
+  if (removeResult) {
+    if (!removeResult.ok) {
+      const needsLogin = /login/i.test(removeResult.error ?? "");
+      return {
+        assistantMessage: hi
+          ? needsLogin
+            ? "Cart update ke liye login zaroori hai."
+            : `Remove fail: ${removeResult.error ?? "error"}`
+          : needsLogin
+            ? "Please login to update your cart."
+            : `Could not remove item: ${removeResult.error ?? "error"}`,
+        toolCalls,
+        toolResults,
+        contextPatch: syncPhaseIntoPatch(context, {
+          ...langPatch,
+          pendingConfirmation: null,
+          pendingTool: null,
+        }),
+        uiAction: needsLogin ? { action: "OPEN_LOGIN" } : null,
+      };
+    }
+    const data = removeResult.data as {
+      name?: string;
+      cartItemCount: number;
+      cartItems: ConversationContext["cartItems"];
+    };
+    return {
+      assistantMessage: hi
+        ? `"${data.name ?? "Item"}" cart se hata diya (${data.cartItemCount} items bache).`
+        : `Removed "${data.name ?? "item"}" from cart (${data.cartItemCount} left).`,
+      toolCalls,
+      toolResults,
+      contextPatch: syncPhaseIntoPatch(context, {
+        ...langPatch,
+        pendingConfirmation: null,
+        pendingTool: null,
+        pendingQuantity: false,
+        selectedProduct: null,
+        cartItemCount: data.cartItemCount,
+        cartItems: data.cartItems,
+        lastAssistantPromptType: "shopping_prompt",
       }),
       uiAction: null,
     };

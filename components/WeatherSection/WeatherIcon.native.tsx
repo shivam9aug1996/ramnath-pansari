@@ -2,8 +2,14 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import PagerView from "react-native-pager-view";
 import { truncateText } from "@/utils/utils";
+import {
+  WEATHER_DOTS_HEIGHT,
+  WEATHER_PAGER_HEIGHT,
+  WEATHER_SLOT_HEIGHT,
+} from "./weatherLayout";
 
 export const arrayColor = ["#F9FAFB", "#FAF9F6", "#FBFAFF"];
+export { WEATHER_SLOT_HEIGHT };
 
 type WeatherIconProps = {
   messages: string[];
@@ -170,7 +176,9 @@ const WeatherIcon: React.FC<WeatherIconProps> = ({
             </Pressable>
           ))}
         </View>
-      ) : null}
+      ) : (
+        <View style={styles.dotsSpacer} />
+      )}
     </View>
   );
 };
@@ -178,11 +186,12 @@ const WeatherIcon: React.FC<WeatherIconProps> = ({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
-    minHeight: 110,
+    height: WEATHER_SLOT_HEIGHT,
     justifyContent: "center",
+    overflow: "hidden",
   },
   pager: {
-    height: 88,
+    height: WEATHER_PAGER_HEIGHT,
     width: "100%",
   },
   page: {
@@ -216,7 +225,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 6,
-    paddingBottom: 4,
+    height: WEATHER_DOTS_HEIGHT,
+  },
+  dotsSpacer: {
+    height: WEATHER_DOTS_HEIGHT,
   },
   dot: {
     width: 6,

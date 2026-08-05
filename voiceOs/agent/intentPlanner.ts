@@ -17,6 +17,10 @@ export const CART_TOTAL_HINTS =
 export const CLEAR_CART_HINTS =
   /\b((cart|basket).{0,16}\b(khali|clear|empty|reset|remove\s*all|delete\s*all)\b|\b(khali|clear|empty)\s*(karo|krdo|kr\s*do|kardo|kar\s*do)?\s*(cart|basket)?\b|clear\s*cart|empty\s*cart)\b/i;
 
+/** Remove one (or named) item from cart — not clear-all, not catalog search. */
+export const REMOVE_FROM_CART_HINTS =
+  /\b(remove|delete|hatao|hata\s*do|hata\s*deo|nikal\s*do|nikalo|nikaal\s*do|hatado|hata\s*krdo|remove\s*krdo|delete\s*krdo|cart\s*se\s*(hatao|nikalo|remove)|se\s*hatao|mat\s*chahiye|nahi\s*chahiye)\b/i;
+
 export const ADD_TO_CART_HINTS =
   /\b(add(\s*kar(o|do)?)?|daal\s*do|dal\s*do|cart\s*me(in)?\s*add|add\s*(to\s*)?(cart|basket))\b/i;
 
@@ -138,6 +142,7 @@ export function isShoppingUtterance(
   if (!t) return false;
   // Advice is grocery-related but must not hit the catalog immediately
   if (isShoppingAdvice(t)) return false;
+  if (isRemoveFromCartIntent(t)) return false;
   if (opts?.intentAdd) return true;
   if (opts?.preferSize) return true;
   const kw = (opts?.keyword ?? "").trim();
@@ -304,10 +309,37 @@ export const INDEX_WORDS: Record<string, number> = {
 };
 
 export function wantsAddToCart(text: string): boolean {
+  if (isRemoveFromCartIntent(text)) return false;
   if (ADD_TO_CART_HINTS.test(text)) return true;
   // "sarso tel krdo cart me" — but not "cart khali krdo"
   if (CLEAR_CART_HINTS.test(text)) return false;
   return ADD_KRDO_CART.test(text) && /\b(cart|basket)\b/i.test(text);
+}
+
+/**
+ * "soybean oil remove krdo", "cart se maggi hatao", "remove fortune oil".
+ * Distinct from CLEAR_CART_HINTS (empty entire cart).
+ */
+export function isRemoveFromCartIntent(text: string): boolean {
+  const t = text.trim();
+  if (!t) return false;
+  if (CLEAR_CART_HINTS.test(t)) return false;
+  return REMOVE_FROM_CART_HINTS.test(t);
+}
+
+/** Product phrase to match against cart lines after stripping remove verbs. */
+export function extractRemoveCartQuery(text: string): string {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(REMOVE_FROM_CART_HINTS, " ")
+    .replace(
+      /\b(from\s+)?(my\s+)?(the\s+)?(cart|basket|please|pls|karo|kardo|krdo|kar\s*do|do|deo|ab|abhi|yeh|ye|isko|is|ko|se|ka|ki|ke|mera|mere|mujhe|mujhko)\b/gi,
+      " ",
+    )
+    .replace(/[?!.,']/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /**
@@ -345,6 +377,7 @@ export function detectShopIntent(
   if (wantsAddToCart(t)) return "buy";
   if (CART_TOTAL_HINTS.test(t)) return "cart_total";
   if (CLEAR_CART_HINTS.test(t)) return "clear_cart";
+  if (isRemoveFromCartIntent(t)) return "remove_cart";
   if (LIST_CART_HINTS.test(t)) return "cart_list";
   if (OPEN_CART_HINTS.test(t)) return "cart_open";
   if (MORE_RESULTS_HINTS.test(t) && context?.lastSearchQuery) {

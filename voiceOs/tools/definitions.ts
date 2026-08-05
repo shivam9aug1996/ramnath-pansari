@@ -74,6 +74,25 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
   },
   {
+    name: "removeFromCart",
+    description:
+      "Remove one product from the cart (set quantity to 0). Only after user confirms which cart line.",
+    parameters: {
+      type: "object",
+      properties: {
+        productId: {
+          type: "string",
+          description: "Product _id already in the cart",
+        },
+        name: {
+          type: "string",
+          description: "Product display name",
+        },
+      },
+      required: ["productId"],
+    },
+  },
+  {
     name: "getCart",
     description:
       "Return cart contents and/or total. mode=list for items, mode=total for payable amount, mode=summary for short count.",

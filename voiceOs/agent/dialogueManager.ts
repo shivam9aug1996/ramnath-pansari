@@ -18,6 +18,8 @@ import {
   isSoftNo,
   isShoppingAdvice,
   isShoppingUtterance,
+  isRemoveFromCartIntent,
+  extractRemoveCartQuery,
   INDEX_WORDS,
 } from "./intentPlanner";
 import {
@@ -28,6 +30,7 @@ import {
 } from "./extractEntities";
 import {
   matchPendingProduct,
+  matchCartItems,
   formatProductLine,
   askQuantityResult,
   buildAddConfirmation,
@@ -1112,6 +1115,7 @@ export function tryHandleDialogueGates(
         toolResults: [],
         contextPatch: {
           ...languagePatch(context, text),
+          ...clearChoiceAwaitingState(),
           pendingConfirmation: {
             title: hiClear ? "Cart clear?" : "Clear cart?",
             summary: {
@@ -1122,11 +1126,143 @@ export function tryHandleDialogueGates(
             toolArgs: {},
           },
           pendingTool: "clearCart",
+          lastAssistantPromptType: "confirmation",
         },
         uiAction: null,
       },
       sessionPatch: {},
       intent: "clear_cart",
+    };
+  }
+
+  // Remove a named item from cart (not catalog search)
+  if (isRemoveFromCartIntent(text)) {
+    const hiRm = preferHi(context.language, text);
+    const items = context.cartItems ?? [];
+    if (items.length === 0 || context.cartItemCount === 0) {
+      return {
+        toolCalls: [],
+        earlyResult: {
+          assistantMessage: hiRm
+            ? "Cart khali hai — remove karne ko kuch nahi."
+            : "Cart is empty — nothing to remove.",
+          toolCalls: [],
+          toolResults: [],
+          contextPatch: {
+            ...languagePatch(context, text),
+            ...clearChoiceAwaitingState(),
+            lastAssistantPromptType: "shopping_prompt",
+          },
+          uiAction: null,
+        },
+        sessionPatch: {},
+        intent: "remove_cart",
+      };
+    }
+
+    const query = extractRemoveCartQuery(text);
+    let matches = query ? matchCartItems(query, items) : [];
+
+    // Bare "remove" / "hatao" with a single cart line → that line
+    if (matches.length === 0 && !query && items.length === 1) {
+      matches = [items[0]];
+    }
+
+    if (matches.length === 0) {
+      const lines = items
+        .map((it, i) => {
+          const price =
+            it.lineTotal != null
+              ? ` — ₹${it.lineTotal}`
+              : it.unitPrice != null
+                ? ` — ₹${it.unitPrice} × ${it.quantity}`
+                : "";
+          return `${i + 1}. ${it.name ?? "Item"} × ${it.quantity}${price}`;
+        })
+        .join("\n");
+      return {
+        toolCalls: [],
+        earlyResult: {
+          assistantMessage: hiRm
+            ? query
+              ? `Cart mein "${query}" nahi mila.\nAbhi cart:\n${lines}\nKaunsa remove karun? Naam ya number bolo.`
+              : `Kaunsa item remove karun?\n${lines}\nNaam ya number bolo.`
+            : query
+              ? `Couldn't find "${query}" in your cart.\nCart:\n${lines}\nWhich should I remove? Name or number.`
+              : `Which item should I remove?\n${lines}\nSay a name or number.`,
+          toolCalls: [],
+          toolResults: [],
+          contextPatch: {
+            ...languagePatch(context, text),
+            ...clearChoiceAwaitingState(),
+            lastAssistantPromptType: "shopping_prompt",
+          },
+          uiAction: null,
+        },
+        sessionPatch: {},
+        intent: "remove_cart",
+        confidence: 0.85,
+      };
+    }
+
+    if (matches.length > 1) {
+      const lines = matches
+        .map((it, i) => `${i + 1}. ${it.name ?? "Item"} × ${it.quantity}`)
+        .join("\n");
+      return {
+        toolCalls: [],
+        earlyResult: {
+          assistantMessage: hiRm
+            ? `Kai matches:\n${lines}\nKaunsa remove karun? Number bolo.`
+            : `Several matches:\n${lines}\nWhich to remove? Reply with a number.`,
+          toolCalls: [],
+          toolResults: [],
+          contextPatch: {
+            ...languagePatch(context, text),
+            ...clearChoiceAwaitingState(),
+            lastAssistantPromptType: "shopping_prompt",
+          },
+          uiAction: null,
+        },
+        sessionPatch: {},
+        intent: "remove_cart",
+        confidence: 0.8,
+      };
+    }
+
+    const target = matches[0];
+    const label = target.name ?? "Item";
+    return {
+      toolCalls: [],
+      earlyResult: {
+        assistantMessage: hiRm
+          ? `Cart se "${label}" × ${target.quantity} hata du? (Haan / Nahi)`
+          : `Remove "${label}" × ${target.quantity} from cart? (Yes / No)`,
+        toolCalls: [],
+        toolResults: [],
+        contextPatch: {
+          ...languagePatch(context, text),
+          ...clearChoiceAwaitingState(),
+          pendingConfirmation: {
+            title: hiRm ? "Cart se hatao?" : "Remove from cart?",
+            summary: {
+              Item: label,
+              Qty: String(target.quantity),
+            },
+            toolName: "removeFromCart",
+            toolArgs: {
+              productId: target.productId,
+              name: label,
+            },
+          },
+          pendingTool: "removeFromCart",
+          lastAssistantPromptType: "confirmation",
+        },
+        uiAction: null,
+      },
+      sessionPatch: {},
+      intent: "remove_cart",
+      confidence: 0.95,
     };
   }
 

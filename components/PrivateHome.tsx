@@ -33,6 +33,7 @@ import DeferredFadeIn from "./DeferredFadeIn";
 import RecentlyViewedProducts from "@/app/(private)/(productDetail)/RecentlyViewedProducts";
 import Carasole, { getCarouselSlotHeight } from "./Carasole";
 import WeatherSection from "./WeatherSection/WeatherSection";
+import { WEATHER_SLOT_HEIGHT } from "./WeatherSection/weatherLayout";
 import HomeSearch from "./HomeSearch";
 import {
   finalizeStartupReady,
@@ -40,11 +41,12 @@ import {
 } from "@/utils/startupDiagnostics";
 import { syncCarouselConfig } from "@/utils/carouselConfigCache";
 import HomeProductPromo from "@/components/HomeProductPromo";
-import GetTheApp from "@/components/GetTheApp";
+import GetTheApp, {
+  GET_THE_APP_BANNER_HEIGHT,
+} from "@/components/GetTheApp";
 import HomeProductRail from "@/components/HomeProductRail";
 
 const CATEGORY_PLACEHOLDER_COUNT = 3;
-const WEATHER_SECTION_HEIGHT = 100;
 /** Prefetch first N product rails so the initial viewport isn't empty. */
 const INITIAL_ENABLED_RAIL_COUNT = 2;
 
@@ -284,16 +286,16 @@ const PrivateHome = () => {
     ({ item }: { item: HomeFeedItem }) => {
       switch (item.type) {
         case "dashboard":
+          // Mount immediately — deferred mount with no reserved height
+          // was pushing the category section down on first paint.
           return (
             <View style={styles.topSection}>
-              <DeferredFadeIn delay={100}>
-                <DashboardHeader
-                  userName={truncateText(userData?.name?.split(" ")[0], 10)}
-                  profileImage={userData?.profileImage}
-                  onProfilePress={handleProfilePress}
-                  isGuestUser={userData?.isGuestUser}
-                />
-              </DeferredFadeIn>
+              <DashboardHeader
+                userName={truncateText(userData?.name?.split(" ")[0], 10)}
+                profileImage={userData?.profileImage}
+                onProfilePress={handleProfilePress}
+                isGuestUser={userData?.isGuestUser}
+              />
             </View>
           );
         case "search":
@@ -304,11 +306,9 @@ const PrivateHome = () => {
                 layoutOffsets.current.sticky = event.nativeEvent.layout.height;
               }}
             >
-              <DeferredFadeIn delay={100}>
-                <View style={styles.stickySearchBarContent}>
-                  <HomeSearch compact />
-                </View>
-              </DeferredFadeIn>
+              <View style={styles.stickySearchBarContent}>
+                <HomeSearch compact />
+              </View>
             </View>
           );
         case "carousel":
@@ -330,16 +330,24 @@ const PrivateHome = () => {
         case "weather":
           return (
             <View style={styles.weatherSection}>
-              <DeferredFadeIn delay={100}>
+              <DeferredFadeIn
+                delay={100}
+                fallback={<View style={styles.weatherSlotFallback} />}
+              >
                 <WeatherSection />
               </DeferredFadeIn>
             </View>
           );
         case "getTheApp":
           return (
-            <DeferredFadeIn delay={150}>
-              <GetTheApp variant="banner" />
-            </DeferredFadeIn>
+            <View style={styles.getTheAppSection}>
+              <DeferredFadeIn
+                delay={150}
+                fallback={<View style={styles.getTheAppSlotFallback} />}
+              >
+                <GetTheApp variant="banner" />
+              </DeferredFadeIn>
+            </View>
           );
         case "categorySkeleton":
           return (
@@ -447,13 +455,31 @@ const styles = StyleSheet.create({
   },
   topSection: {
     paddingTop: 10,
+    // Avatar is 50; reserve so list layout doesn't jump if header paints late.
+    minHeight: 60,
   },
   stickySearchBar: {
     zIndex: 10,
+    // Search input padding + sticky bar padding (stable across platforms).
+    minHeight: Platform.OS === "android" ? 64 : 84,
   },
   weatherSection: {
-    minHeight: WEATHER_SECTION_HEIGHT,
+    height: WEATHER_SLOT_HEIGHT,
     minWidth: "100%",
+    overflow: "hidden",
+  },
+  weatherSlotFallback: {
+    height: WEATHER_SLOT_HEIGHT,
+    width: "100%",
+  },
+  getTheAppSection: {
+    height: GET_THE_APP_BANNER_HEIGHT,
+    width: "100%",
+    overflow: "hidden",
+  },
+  getTheAppSlotFallback: {
+    height: GET_THE_APP_BANNER_HEIGHT,
+    width: "100%",
   },
   stickySearchBarContent: {
     paddingHorizontal: 16,

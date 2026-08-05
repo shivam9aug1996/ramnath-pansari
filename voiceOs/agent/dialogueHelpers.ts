@@ -1,5 +1,6 @@
 import type {
   AgentTurnResult,
+  CartContextItem,
   ConfirmationPayload,
   ConversationContext,
   SessionProduct,
@@ -13,6 +14,7 @@ import {
   isShoppingDecline,
   isShoppingAdvice,
   isShoppingUtterance,
+  isRemoveFromCartIntent,
   normalizeChitchatText,
   wantsCheckout,
   LIST_CART_HINTS,
@@ -295,6 +297,7 @@ export function isSoftEscapeIntent(
   if (OPEN_CART_HINTS.test(t) && !/\b(add|daal|dal)\b/i.test(t)) return true;
   if (CART_TOTAL_HINTS.test(t)) return true;
   if (CLEAR_CART_HINTS.test(t) && !/\b(add|daal|dal)\b/i.test(t)) return true;
+  if (isRemoveFromCartIntent(t)) return true;
   if (MORE_RESULTS_HINTS.test(t) && context.lastSearchQuery) return true;
   const parsed = parseMultiProductQuery(t);
   if (parsed && parsed.keywords.length >= 1) {
@@ -343,6 +346,63 @@ export function clearChoiceAwaitingState(): Partial<ConversationContext> {
     pendingTool: null,
     pendingAddQuantity: null,
   };
+}
+
+function normalizeCartMatchText(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/soyabean/g, "soybean")
+    .replace(/soya\s*bean/g, "soybean")
+    .replace(/noddles/g, "noodles")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Match cart lines by name tokens (e.g. "soybean oil" → Fortune Soyabean Oil). */
+export function matchCartItems(
+  query: string,
+  cartItems: CartContextItem[],
+): CartContextItem[] {
+  const q = normalizeCartMatchText(query);
+  if (!q || cartItems.length === 0) return [];
+
+  // Index pick against current cart
+  const indexHit = INDEX_WORDS[q];
+  if (typeof indexHit === "number") {
+    const idx = indexHit === -1 ? cartItems.length - 1 : indexHit;
+    if (cartItems[idx]) return [cartItems[idx]];
+  }
+  const num = q.match(/^(\d+)$/);
+  if (num) {
+    const idx = Number(num[1]) - 1;
+    if (cartItems[idx]) return [cartItems[idx]];
+  }
+
+  const tokens = q.split(/\s+/).filter((t) => t.length >= 2);
+  if (tokens.length === 0) return [];
+
+  const scored = cartItems
+    .map((item) => {
+      const name = normalizeCartMatchText(item.name ?? "");
+      if (!name) return { item, score: 0 };
+      let score = 0;
+      for (const tok of tokens) {
+        if (name.includes(tok)) score += tok.length >= 4 ? 3 : 1;
+      }
+      // Prefer covering all tokens
+      const covered = tokens.every((tok) => name.includes(tok));
+      if (covered) score += 10;
+      return { item, score };
+    })
+    .filter((r) => r.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  if (scored.length === 0) return [];
+  const best = scored[0].score;
+  // Require at least one solid token hit for short queries
+  if (best < 3 && tokens.every((t) => t.length < 4)) return [];
+  return scored.filter((r) => r.score >= best && r.score >= 3).map((r) => r.item);
 }
 
 export function oilVariantHints(products: SessionProduct[]): string[] {

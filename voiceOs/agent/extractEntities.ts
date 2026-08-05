@@ -12,6 +12,7 @@ import {
   SEARCH_HINTS,
   isShoppingDecline,
   isShoppingAdvice,
+  isRemoveFromCartIntent,
 } from "./intentPlanner";
 
 /**
@@ -353,6 +354,7 @@ export function parseMultiProductQuery(text: string): MultiProductQuery | null {
     LIST_CART_HINTS.test(trimmed) ||
     CART_TOTAL_HINTS.test(trimmed) ||
     CLEAR_CART_HINTS.test(trimmed) ||
+    isRemoveFromCartIntent(trimmed) ||
     wantsCheckout(trimmed) ||
     isAffirm(trimmed) ||
     DENY.test(trimmed)

@@ -201,6 +201,75 @@ async function addToCart(
   }
 }
 
+async function removeFromCart(
+  args: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<ToolResult> {
+  const productId = String(args.productId ?? "").trim();
+  const name = args.name ? String(args.name) : undefined;
+  const userId = ctx.session.customerId;
+
+  if (!productId) {
+    return {
+      ok: false,
+      toolName: "removeFromCart",
+      error: "productId is required",
+    };
+  }
+  if (!userId) {
+    return {
+      ok: false,
+      toolName: "removeFromCart",
+      error: "Please login to update cart",
+    };
+  }
+
+  try {
+    await ctx
+      .dispatch(
+        cartApi.endpoints.updateCart.initiate({
+          body: {
+            quantity: 0,
+            productId,
+            productDetails: {
+              name: name ?? "Product",
+              image: null,
+            },
+          },
+          params: { userId },
+        }),
+      )
+      .unwrap();
+
+    const cartData = await ctx
+      .dispatch(
+        cartApi.endpoints.fetchCart.initiate({ userId }, { forceRefetch: true }),
+      )
+      .unwrap();
+
+    const items = mapCartItems(cartData);
+
+    return {
+      ok: true,
+      toolName: "removeFromCart",
+      data: {
+        productId,
+        name,
+        cartItemCount: items.length,
+        cartItems: items,
+      },
+    };
+  } catch (err: unknown) {
+    const message =
+      err && typeof err === "object" && "data" in err
+        ? JSON.stringify((err as { data?: unknown }).data)
+        : err instanceof Error
+          ? err.message
+          : "Failed to remove from cart";
+    return { ok: false, toolName: "removeFromCart", error: message };
+  }
+}
+
 async function clearCart(
   _args: Record<string, unknown>,
   ctx: ToolExecutorContext,
@@ -363,6 +432,7 @@ const handlers: Record<
 > = {
   searchProducts,
   addToCart,
+  removeFromCart,
   clearCart,
   getCart,
   openUi,

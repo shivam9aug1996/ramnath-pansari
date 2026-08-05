@@ -25,6 +25,11 @@ type Props = {
   variant?: "list" | "compact" | "banner";
 };
 
+/** Home feed slot for banner variant (banner body + vertical margins). */
+export const GET_THE_APP_BANNER_HEIGHT = 72;
+/** Inner banner body height (excludes marginTop 4 + marginBottom 8). */
+const BANNER_BODY_HEIGHT = 60;
+
 function StoreChip({
   onPress,
   label,
@@ -213,7 +218,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 4,
     marginBottom: 8,
-    paddingVertical: 12,
+    height: BANNER_BODY_HEIGHT,
     paddingHorizontal: 14,
     borderRadius: 18,
     backgroundColor: Colors.light.softGreen,
@@ -222,6 +227,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    overflow: "hidden",
   },
   bannerCopy: {
     flex: 1,

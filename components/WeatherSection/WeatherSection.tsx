@@ -2,6 +2,7 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "
 import { View } from "react-native";
 import { useSelector } from "react-redux";
 import WeatherIcon from "./WeatherIcon";
+import { WEATHER_SLOT_HEIGHT } from "./weatherLayout";
 import { useWeatherInfo } from "./useWeatherInfo";
 import { useBatchGreetings } from "../GreetingMessage/useBatchGreetings";
 import {
@@ -166,9 +167,8 @@ const WeatherSection = () => {
   }, [orderFingerprint, refreshAi]);
 
   return (
-    <View>
+    <View style={{ height: WEATHER_SLOT_HEIGHT, overflow: "hidden" }}>
       <WeatherIcon
-        key={displayMessages.length}
         messages={displayMessages}
         autoPlay={isFocused}
       />
