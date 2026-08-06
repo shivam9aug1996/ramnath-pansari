@@ -1,51 +1,46 @@
-import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, Text, TouchableOpacity } from "react-native";
 import React, { useEffect, useMemo, useRef } from "react";
-import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSelector } from "react-redux";
 import { RootState } from "@/types/global";
 import { useFetchCartQuery } from "@/redux/features/cartSlice";
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
+import { Colors } from "@/constants/Colors";
 
 const CartIcon = () => {
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
-  const {
-    data: cartData,
-    isFetching: isCartFetching,
-    isError: isCartError,
-    isLoading: isCartLoading,
-  } = useFetchCartQuery(
+  const { data: cartData } = useFetchCartQuery(
     {
       userId,
     },
     {
       skip: !userId,
-    }
+    },
   );
 
-
-
-
   const cartItems = cartData?.cart?.items?.length || 0;
- // console.log("Cart Items:", cartItems);
-  const totalQuantity = useMemo(()=>{
-    return cartData?.cart?.items?.reduce((total:number,item:any)=>total+(item.quantity||0),0) || 0
-  },[cartData?.cart?.items])
+  const totalQuantity = useMemo(() => {
+    return (
+      cartData?.cart?.items?.reduce(
+        (total: number, item: any) => total + (item.quantity || 0),
+        0,
+      ) || 0
+    );
+  }, [cartData?.cart?.items]);
 
-  // For detecting change
   const prevCount = useRef(totalQuantity);
-
-  // Animation shared value
   const scale = useSharedValue(1);
 
   useEffect(() => {
-   
     if (totalQuantity > prevCount.current) {
-      // ➕ Increased -> Pop bigger
       scale.value = 1.5;
       scale.value = withSpring(1, { damping: 1 });
     } else if (totalQuantity < prevCount.current) {
-      // ➖ Decreased -> Shrink then bounce
       scale.value = 0.7;
       scale.value = withSpring(1, { damping: 1 });
     }
@@ -69,16 +64,9 @@ const CartIcon = () => {
         padding: 10,
       }}
     >
-      
-      <Image
-        tintColor={"#777777"}
-        source={require("../assets/images/bag.png")}
-        style={{
-          width: 20,
-          height: 23,
-        }}
-      />
-     
+      <Ionicons name="bag-handle" size={24}
+        color={Colors.light.mediumGrey} />
+
       {cartItems > 0 && (
         <Animated.View
           style={[
@@ -94,15 +82,19 @@ const CartIcon = () => {
               justifyContent: "center",
               paddingHorizontal: 2,
             },
-            animatedStyle, // apply bounce/shrink
+            animatedStyle,
           ]}
         >
-          <Text style={{ color: "white", fontSize: Platform.OS === "android" ? 8 : 10 }}>
+          <Text
+            style={{
+              color: "white",
+              fontSize: Platform.OS === "android" ? 8 : 10,
+            }}
+          >
             {cartItems}
           </Text>
         </Animated.View>
       )}
-
     </TouchableOpacity>
   );
 };
