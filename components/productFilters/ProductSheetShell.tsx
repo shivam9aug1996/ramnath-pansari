@@ -14,12 +14,17 @@ type ProductSheetShellProps = {
   visible: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  footer?: React.ReactNode;
+  /** When false, children manage their own scroll (e.g. FlatList). */
+  scrollable?: boolean;
 };
 
 const ProductSheetShell = ({
   visible,
   onClose,
   children,
+  footer,
+  scrollable = true,
 }: ProductSheetShellProps) => {
   const insets = useSafeAreaInsets();
   const closingRef = useRef(false);
@@ -42,33 +47,40 @@ const ProductSheetShell = ({
       onRequestClose={dismiss}
       statusBarTranslucent
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Close sheet"
-        style={styles.root}
-        onPressIn={dismiss}
-      >
+      <View style={styles.root}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close sheet"
+          style={StyleSheet.absoluteFill}
+          onPress={dismiss}
+        />
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.sheetAnchor}
           pointerEvents="box-none"
         >
-          <Pressable style={styles.sheet} onPress={() => {}}>
+          <View style={styles.sheet}>
             <View style={styles.handleWrap}>
               <View style={styles.handle} />
             </View>
-            <ScrollView
-              bounces={false}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-            >
-              {children}
-            </ScrollView>
+            {scrollable ? (
+              <ScrollView
+                style={styles.scroll}
+                bounces={false}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator
+                contentContainerStyle={styles.scrollContent}
+              >
+                {children}
+              </ScrollView>
+            ) : (
+              <View style={styles.scroll}>{children}</View>
+            )}
+            {footer ? <View style={styles.footer}>{footer}</View> : null}
             <View style={{ height: Math.max(insets.bottom, 16) }} />
-          </Pressable>
+          </View>
         </KeyboardAvoidingView>
-      </Pressable>
+      </View>
     </Modal>
   );
 };
@@ -89,6 +101,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    maxHeight: "100%",
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.12,
@@ -106,7 +120,17 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "#D8E0DC",
   },
+  scroll: {
+    flexGrow: 0,
+    flexShrink: 1,
+  },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 8,
+  },
+  footer: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#E6EBE8",
+    backgroundColor: "#FFFFFF",
   },
 });
