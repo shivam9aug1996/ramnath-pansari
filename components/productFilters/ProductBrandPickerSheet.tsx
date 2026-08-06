@@ -142,29 +142,31 @@ const ProductBrandPickerSheet = ({
       }
     >
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Brands</Text>
-          <Pressable style={styles.closeButton} onPress={onClose} hitSlop={8}>
-            <Ionicons name="close" size={20} color={Colors.light.darkGrey} />
-          </Pressable>
-        </View>
+        <View style={styles.padded}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Brands</Text>
+            <Pressable style={styles.closeButton} onPress={onClose} hitSlop={8}>
+              <Ionicons name="close" size={20} color={Colors.light.darkGrey} />
+            </Pressable>
+          </View>
 
-        <View style={styles.searchWrap}>
-          <Ionicons name="search" size={16} color={Colors.light.mediumGrey} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search A–Z"
-            placeholderTextColor={Colors.light.mediumGrey}
-            style={styles.searchInput}
-            autoCorrect={false}
-            autoCapitalize="none"
-            clearButtonMode="while-editing"
-          />
+          <View style={styles.searchWrap}>
+            <Ionicons name="search" size={16} color={Colors.light.mediumGrey} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search A–Z"
+              placeholderTextColor={Colors.light.mediumGrey}
+              style={styles.searchInput}
+              autoCorrect={false}
+              autoCapitalize="none"
+              clearButtonMode="while-editing"
+            />
+          </View>
         </View>
 
         {sections.length === 0 ? (
-          <Text style={styles.emptyHint}>No brands match</Text>
+          <Text style={[styles.emptyHint, styles.padded]}>No brands match</Text>
         ) : (
           <SectionList
             sections={sections}
@@ -192,9 +194,11 @@ export default memo(ProductBrandPickerSheet);
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 20,
     paddingTop: 4,
     paddingBottom: 4,
+  },
+  padded: {
+    paddingHorizontal: 20,
   },
   header: {
     flexDirection: "row",
@@ -238,6 +242,7 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     backgroundColor: "#FFFFFF",
+    paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 4,
   },
@@ -250,6 +255,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 20,
     paddingVertical: 13,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E6EBE8",
