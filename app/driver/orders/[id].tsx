@@ -2,11 +2,16 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ActivityIndicator,
   AppState,
+  Keyboard,
+  KeyboardAvoidingView,
   Linking,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -23,6 +28,7 @@ import {
   useGetDriverOrderQuery,
   useListDriverOrdersQuery,
   useMarkDriverDeliveredMutation,
+  useResendDeliveryOtpMutation,
   useStartDriverDeliveryMutation,
 } from "@/redux/features/driverOrderSlice";
 import { openGoogleMapsNavigation } from "@/utils/driverMaps";
@@ -34,7 +40,7 @@ import {
   stopDriverLocationTracking,
 } from "@/utils/driverLocationTask";
 import { getDriverErrorMessage } from "@/utils/driverDebug";
-import { confirmAction, showAlert } from "@/utils/platformAlert";
+import { showAlert } from "@/utils/platformAlert";
 import { devError, devLog, devWarn } from "@/utils/devLog";
 
 type LocationAccess = "never" | "while-using" | "always" | "unknown";
@@ -54,8 +60,12 @@ const DriverOrderDetailScreen = () => {
   const { data, isLoading, refetch } = useGetDriverOrderQuery({ id: orderMongoId });
   const [startDelivery, { isLoading: isStarting }] = useStartDriverDeliveryMutation();
   const [markDelivered, { isLoading: isDelivering }] = useMarkDriverDeliveredMutation();
+  const [resendOtp, { isLoading: isResendingOtp }] = useResendDeliveryOtpMutation();
   const [locationAccess, setLocationAccess] = useState<LocationAccess>("unknown");
   const [isUpdatingPermission, setIsUpdatingPermission] = useState(false);
+  const [otpModalVisible, setOtpModalVisible] = useState(false);
+  const [otpInput, setOtpInput] = useState("");
+  const [otpError, setOtpError] = useState("");
 
   const order = data?.order;
   const activeDeliveryOrderId = listData?.activeDeliveryOrderId;
@@ -337,16 +347,31 @@ const DriverOrderDetailScreen = () => {
     }
   };
 
-  const onMarkDelivered = async () => {
-    const confirmed = await confirmAction(
-      "Mark delivered",
-      "Confirm that this order was delivered?",
-      "Delivered",
-    );
-    if (!confirmed) return;
+  const openDeliverOtpModal = () => {
+    setOtpInput("");
+    setOtpError("");
+    setOtpModalVisible(true);
+  };
+
+  const closeDeliverOtpModal = () => {
+    if (isDelivering) return;
+    setOtpModalVisible(false);
+    setOtpInput("");
+    setOtpError("");
+  };
+
+  const onConfirmDeliverWithOtp = async () => {
+    const otp = otpInput.trim();
+    if (!/^\d{4}$/.test(otp)) {
+      setOtpError("Enter the 4-digit OTP from the customer");
+      return;
+    }
 
     try {
-      await markDelivered({ id: orderMongoId }).unwrap();
+      setOtpError("");
+      await markDelivered({ id: orderMongoId, otp }).unwrap();
+      setOtpModalVisible(false);
+      setOtpInput("");
       devLog("[driver-order] markDelivered OK — stopping Firebase location share", {
         orderMongoId,
       });
@@ -358,8 +383,23 @@ const DriverOrderDetailScreen = () => {
         router.replace("/driver/home");
       }
     } catch (e: unknown) {
-      devError("[driver-order] markDelivered / stop location failed", e);
-      showAlert("Error", getDriverErrorMessage(e, "Could not mark delivered"));
+      const message = getDriverErrorMessage(e, "Could not mark delivered");
+      // Wrong OTP is expected user input — keep it in the modal, not a red console blast.
+      if (message.toLowerCase().includes("otp")) {
+        devLog("[driver-order] markDelivered rejected", e);
+      } else {
+        devError("[driver-order] markDelivered / stop location failed", e);
+      }
+      setOtpError(message);
+    }
+  };
+
+  const onResendOtp = async () => {
+    try {
+      await resendOtp({ id: orderMongoId }).unwrap();
+      showAlert("Sent", "Delivery OTP sent to the customer again");
+    } catch (e: unknown) {
+      showAlert("Error", getDriverErrorMessage(e, "Could not resend OTP"));
     }
   };
 
@@ -428,12 +468,26 @@ const DriverOrderDetailScreen = () => {
           ) : null}
 
           {canDeliver ? (
-            <PrimaryButton
-              label="Mark delivered"
-              loading={isDelivering}
-              onPress={onMarkDelivered}
-              color="#1D4ED8"
-            />
+            <>
+              <PrimaryButton
+                label="Mark delivered"
+                loading={isDelivering}
+                onPress={openDeliverOtpModal}
+                color="#1D4ED8"
+              />
+              <TouchableOpacity
+                style={styles.resendBtn}
+                onPress={onResendOtp}
+                disabled={isResendingOtp}
+                activeOpacity={0.85}
+              >
+                {isResendingOtp ? (
+                  <ActivityIndicator color={Colors.light.darkGreen} />
+                ) : (
+                  <Text style={styles.resendBtnText}>Resend OTP to customer</Text>
+                )}
+              </TouchableOpacity>
+            </>
           ) : null}
 
           {!canStart && !canDeliver ? (
@@ -443,6 +497,69 @@ const DriverOrderDetailScreen = () => {
           ) : null}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={otpModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeDeliverOtpModal}
+      >
+        <KeyboardAvoidingView
+          style={styles.otpKeyboardRoot}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+        >
+          <Pressable
+            style={styles.otpOverlay}
+            onPress={() => {
+              Keyboard.dismiss();
+              closeDeliverOtpModal();
+            }}
+          >
+            <Pressable style={styles.otpCard} onPress={() => {}}>
+              <Text style={styles.otpTitle}>Enter delivery OTP</Text>
+              <Text style={styles.otpSubtitle}>
+                Ask the customer for the 4-digit code from their app or
+                notification.
+              </Text>
+              <TextInput
+                value={otpInput}
+                onChangeText={(text) => {
+                  setOtpInput(text.replace(/\D/g, "").slice(0, 4));
+                  if (otpError) setOtpError("");
+                }}
+                keyboardType="number-pad"
+                maxLength={4}
+                placeholder="••••"
+                placeholderTextColor="#94A3B8"
+                style={styles.otpInput}
+                autoFocus
+              />
+              {otpError ? <Text style={styles.otpError}>{otpError}</Text> : null}
+              <View style={styles.otpActions}>
+                <TouchableOpacity
+                  style={styles.otpCancelBtn}
+                  onPress={closeDeliverOtpModal}
+                  disabled={isDelivering}
+                >
+                  <Text style={styles.otpCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.otpConfirmBtn, isDelivering && { opacity: 0.7 }]}
+                  onPress={onConfirmDeliverWithOtp}
+                  disabled={isDelivering}
+                >
+                  {isDelivering ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.otpConfirmText}>Confirm delivered</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
     </AdminScreen>
   );
 };
@@ -745,5 +862,96 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   primaryBtnText: { color: "#fff", fontSize: 15, fontWeight: "800" },
+  resendBtn: {
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: adminTheme.border,
+    minHeight: 48,
+  },
+  resendBtnText: {
+    color: Colors.light.darkGreen,
+    fontSize: 14,
+    fontWeight: "800",
+  },
   hint: { textAlign: "center", color: adminTheme.textSecondary, fontSize: 13 },
+  otpKeyboardRoot: {
+    flex: 1,
+  },
+  otpOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.45)",
+    justifyContent: "flex-end",
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+  },
+  otpCard: {
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    padding: 20,
+    gap: 10,
+    marginBottom: Platform.OS === "ios" ? 8 : 0,
+  },
+  otpTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: adminTheme.textPrimary,
+  },
+  otpSubtitle: {
+    fontSize: 13,
+    color: adminTheme.textSecondary,
+    lineHeight: 18,
+  },
+  otpInput: {
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: adminTheme.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 24,
+    fontWeight: "800",
+    letterSpacing: 10,
+    textAlign: "center",
+    color: adminTheme.textPrimary,
+  },
+  otpError: {
+    fontSize: 13,
+    color: "#B91C1C",
+    fontWeight: "600",
+  },
+  otpActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+  },
+  otpCancelBtn: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+    backgroundColor: "#F1F5F9",
+  },
+  otpCancelText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: adminTheme.textSecondary,
+  },
+  otpConfirmBtn: {
+    flex: 1.4,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+    backgroundColor: "#1D4ED8",
+    minHeight: 48,
+    justifyContent: "center",
+  },
+  otpConfirmText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#fff",
+  },
 });

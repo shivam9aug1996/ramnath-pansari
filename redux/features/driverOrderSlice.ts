@@ -47,16 +47,27 @@ export const driverOrderApi = createApi({
 
     markDriverDelivered: builder.mutation<
       { message: string; orderId: string; orderStatus: string },
+      { id: string; otp: string }
+    >({
+      query: ({ id, otp }) => ({
+        url: `/driver/orders/${id}/deliver`,
+        method: "POST",
+        body: { otp },
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "driverOrders", id: "LIST" },
+        { type: "driverOrderDetail", id },
+      ],
+    }),
+
+    resendDeliveryOtp: builder.mutation<
+      { message: string; orderId: string },
       { id: string }
     >({
       query: ({ id }) => ({
-        url: `/driver/orders/${id}/deliver`,
+        url: `/driver/orders/${id}/resend-otp`,
         method: "POST",
       }),
-      invalidatesTags: [
-        { type: "driverOrders", id: "LIST" },
-        { type: "driverOrderDetail", id: "LIST" },
-      ],
     }),
   }),
 });
@@ -72,6 +83,7 @@ export const {
   useGetDriverOrderQuery,
   useStartDriverDeliveryMutation,
   useMarkDriverDeliveredMutation,
+  useResendDeliveryOtpMutation,
 } = driverOrderApi;
 
 export default driverOrderSlice.reducer;

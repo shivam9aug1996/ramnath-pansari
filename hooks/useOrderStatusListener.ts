@@ -12,6 +12,7 @@ type ActiveOrderSnapshot = Record<
     status?: string;
     _id?: string;
     orderId?: string;
+    deliveryOtp?: string;
   }
 >;
 
@@ -80,7 +81,10 @@ export function useOrderStatusListener() {
           return;
         }
 
-        if (prevOrder.status !== order?.status) {
+        if (
+          prevOrder.status !== order?.status ||
+          prevOrder.deliveryOtp !== order?.deliveryOtp
+        ) {
           //showStatusToast(order?.status, order?.orderId);
           shouldInvalidate = true;
         }

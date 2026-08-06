@@ -45,10 +45,22 @@ function authSnapshot(store: any) {
   };
 }
 
+function resolveErrorToastText(responseData: any): string | undefined {
+  const err = responseData?.error;
+  if (typeof err === "string" && err.trim()) return err;
+  if (err && typeof err === "object") {
+    if (typeof err.message === "string" && err.message.trim()) return err.message;
+  }
+  if (typeof responseData?.message === "string" && responseData.message.trim()) {
+    return responseData.message;
+  }
+  return undefined;
+}
+
 const handle401Middleware = (store: any) => (next: any) => (action: any) => {
   const status = action?.payload?.status;
   const responseData = action?.payload?.data;
-  const errorMessage = responseData?.error || responseData?.message;
+  const errorMessage = resolveErrorToastText(responseData);
   const endpointName = action?.meta?.arg?.endpointName;
   const isRejected =
     action?.type?.endsWith("/rejected") &&
@@ -62,7 +74,9 @@ const handle401Middleware = (store: any) => (next: any) => (action: any) => {
   const shouldSkipGlobalToast =
     status === 409 ||
     Array.isArray(responseData?.heldProducts) ||
-    endpointName === "updateProductsAsPerCart";
+    endpointName === "updateProductsAsPerCart" ||
+    endpointName === "markDriverDelivered" ||
+    endpointName === "resendDeliveryOtp";
 
   if (status === 401) {
     const auth = authSnapshot(store);

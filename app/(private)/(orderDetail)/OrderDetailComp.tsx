@@ -45,6 +45,7 @@ type OrderDetailBodyProps = {
   addressData: unknown;
   trackingData: unknown;
   itemsOrdered: unknown[];
+  deliveryOtp?: string | null;
   inSheet?: boolean;
 };
 
@@ -63,9 +64,21 @@ const OrderDetailBody = ({
   addressData,
   trackingData,
   itemsOrdered,
+  deliveryOtp,
   inSheet = false,
 }: OrderDetailBodyProps) => (
   <>
+    {deliveryOtp &&
+    (status === "confirmed" || status === "out_for_delivery") ? (
+      <View style={[styles.otpBanner, inSheet && styles.otpBannerInSheet]}>
+        <Text style={styles.otpBannerLabel}>Delivery code</Text>
+        <Text style={styles.otpBannerCode}>{deliveryOtp}</Text>
+        <Text style={styles.otpBannerHint}>
+          Share this code only with the delivery person when your order arrives.
+        </Text>
+      </View>
+    ) : null}
+
     <View style={[styles.orderDetailSection, inSheet && styles.sectionInSheet]}>
       <View style={styles.sectionHeader}>
         <Text style={styles.heading}>Order Detail</Text>
@@ -225,6 +238,10 @@ const OrderDetailComp = ({
     addressData: data?.orderData?.addressData,
     trackingData,
     itemsOrdered,
+    deliveryOtp:
+      data?.orderData?.deliveryOtp != null
+        ? String(data.orderData.deliveryOtp)
+        : null,
   };
 
   return (
@@ -284,6 +301,39 @@ const styles = StyleSheet.create({
   paddedScrollContent: {
     paddingTop: 16,
     paddingBottom: 32,
+  },
+  otpBanner: {
+    backgroundColor: "#ECFDF5",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    alignItems: "center",
+  },
+  otpBannerInSheet: {
+    marginTop: 4,
+  },
+  otpBannerLabel: {
+    fontFamily: "Raleway_600SemiBold",
+    fontSize: 13,
+    color: Colors.light.mediumGrey,
+    marginBottom: 6,
+  },
+  otpBannerCode: {
+    fontFamily: "Montserrat_700Bold",
+    fontSize: 36,
+    letterSpacing: 10,
+    color: Colors.light.darkGreen,
+  },
+  otpBannerHint: {
+    marginTop: 8,
+    fontFamily: "Raleway_500Medium",
+    fontSize: 12,
+    color: Colors.light.mediumGrey,
+    textAlign: "center",
+    lineHeight: 16,
   },
   divider: {
     height: 1,

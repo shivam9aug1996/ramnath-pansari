@@ -322,6 +322,7 @@ export interface AdminOrderDocument {
     assignedAt?: string;
   } | null;
   driverTrackingStatus?: string | null;
+  deliveryOtp?: string | null;
 }
 
 export interface AdminOrderListResponse {
