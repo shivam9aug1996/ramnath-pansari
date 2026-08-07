@@ -38,6 +38,7 @@ import {
   requestForegroundDriverLocationPermission,
   startDriverLocationTracking,
   stopDriverLocationTracking,
+  stopDriverLocationTrackingIfOrder,
 } from "@/utils/driverLocationTask";
 import { getDriverErrorMessage } from "@/utils/driverDebug";
 import { showAlert } from "@/utils/platformAlert";
@@ -131,6 +132,33 @@ const DriverOrderDetailScreen = () => {
     refreshPermissionState();
   }, [refreshPermissionState, isActiveDelivery]);
 
+  // Admin cancel/deliver (or any non-OFD) → drop iOS location arrow for this order.
+  useEffect(() => {
+    if (!order?.orderId) return;
+    if (isActiveDelivery) return;
+    stopDriverLocationTrackingIfOrder(order.orderId)
+      .then((stopped) => {
+        if (stopped) {
+          devLog("[driver-order] stopped location — order no longer out_for_delivery", {
+            orderId: order.orderId,
+            orderStatus: order.orderStatus,
+          });
+        }
+      })
+      .catch((error) => {
+        devWarn("[driver-order] failed to stop location after status change", error);
+      });
+  }, [isActiveDelivery, order?.orderId, order?.orderStatus]);
+
+  // While live, poll so admin cancel/deliver clears GPS without leaving the screen.
+  useEffect(() => {
+    if (!isActiveDelivery) return;
+    const timer = setInterval(() => {
+      refetch();
+    }, 20_000);
+    return () => clearInterval(timer);
+  }, [isActiveDelivery, refetch]);
+
   useEffect(() => {
     const sub = AppState.addEventListener("change", (next) => {
       if (next !== "active") return;
@@ -154,6 +182,8 @@ const DriverOrderDetailScreen = () => {
           devLog("[driver-order] Always granted after Settings — restarting tracking");
           await ensureTrackingIfPossible("always-after-settings");
         }
+        // Pick up admin cancel/deliver while this screen was backgrounded.
+        refetch();
       })().catch((error) => {
         devError("[driver-order] AppState permission refresh failed", error);
       });
@@ -165,6 +195,7 @@ const DriverOrderDetailScreen = () => {
     ensureTrackingIfPossible,
     isActiveDelivery,
     order?.orderId,
+    refetch,
   ]);
 
   // If delivery is already live, share location when permission allows.

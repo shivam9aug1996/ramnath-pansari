@@ -334,7 +334,48 @@ export async function getActiveDriverOrderId() {
   return AsyncStorage.getItem(ACTIVE_DRIVER_ORDER_KEY);
 }
 
-export async function resumeDriverLocationTrackingIfNeeded(driverId: string) {
+/**
+ * Keep native location session aligned with server active delivery.
+ * Pass `activeDeliveryOrderId` from GET /driver/orders (human orderId).
+ * - null/"" → stop tracking (delivered/canceled/no active)
+ * - string → resume only for that order
+ * - omit → legacy resume from AsyncStorage only
+ */
+export async function resumeDriverLocationTrackingIfNeeded(
+  driverId: string,
+  activeDeliveryOrderId?: string | null,
+) {
+  if (activeDeliveryOrderId !== undefined) {
+    const serverActive = String(activeDeliveryOrderId ?? "").trim();
+    if (!serverActive) {
+      await stopDriverLocationTracking();
+      return null;
+    }
+
+    const storedOrderId = await getActiveDriverOrderId();
+    if (storedOrderId && storedOrderId !== serverActive) {
+      await stopDriverLocationTracking();
+    }
+
+    if (isWeb) {
+      await startDriverLocationTracking(serverActive, driverId);
+      return serverActive;
+    }
+
+    const started = await Location.hasStartedLocationUpdatesAsync(
+      DRIVER_LOCATION_TASK,
+    );
+    const stillSameOrder = (await getActiveDriverOrderId()) === serverActive;
+    if (!started || !stillSameOrder) {
+      await startDriverLocationTracking(serverActive, driverId);
+    } else {
+      await AsyncStorage.setItem(ACTIVE_DRIVER_ID_KEY, driverId);
+      startForegroundInterval();
+      tickSendCurrentLocation("initial-fix").catch(() => {});
+    }
+    return serverActive;
+  }
+
   const orderId = await getActiveDriverOrderId();
   if (!orderId) return null;
 
@@ -353,6 +394,18 @@ export async function resumeDriverLocationTrackingIfNeeded(driverId: string) {
     tickSendCurrentLocation("initial-fix").catch(() => {});
   }
   return orderId;
+}
+
+/** Stop sharing if we were tracking this human orderId (e.g. admin canceled/delivered). */
+export async function stopDriverLocationTrackingIfOrder(
+  humanOrderId: string | null | undefined,
+) {
+  const target = String(humanOrderId ?? "").trim();
+  if (!target) return false;
+  const active = await getActiveDriverOrderId();
+  if (active !== target) return false;
+  await stopDriverLocationTracking();
+  return true;
 }
 
 // Background task registration is native-only; expo-task-manager is unavailable on web.

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  AppState,
   ActivityIndicator,
   FlatList,
   RefreshControl,
@@ -47,13 +48,37 @@ const DriverHomeScreen = () => {
     if (pullRefreshing && !isFetching) setPullRefreshing(false);
   }, [pullRefreshing, isFetching]);
 
+  // Align iOS location indicator with server active delivery (stop on deliver/cancel).
   useEffect(() => {
     const id = driverId || userId;
-    if (!id) return;
-    resumeDriverLocationTrackingIfNeeded(String(id)).catch((error) => {
-      devWarn("[driver-location] home resume failed", error);
+    if (!id || data == null) return;
+
+    const activeOrderId = data.activeDeliveryOrderId ?? null;
+    resumeDriverLocationTrackingIfNeeded(String(id), activeOrderId).catch(
+      (error) => {
+        devWarn("[driver-location] home sync failed", error);
+      },
+    );
+  }, [driverId, userId, data?.activeDeliveryOrderId, data]);
+
+  // Refetch when returning to app so admin cancel/deliver clears location promptly.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (next) => {
+      if (next === "active") {
+        refetch();
+      }
     });
-  }, [driverId, userId]);
+    return () => sub.remove();
+  }, [refetch]);
+
+  // While a delivery is active, poll list so remote cancel/deliver stops GPS soon.
+  useEffect(() => {
+    if (!data?.activeDeliveryOrderId) return;
+    const timer = setInterval(() => {
+      refetch();
+    }, 20_000);
+    return () => clearInterval(timer);
+  }, [data?.activeDeliveryOrderId, refetch]);
 
   const onRefresh = useCallback(() => {
     setPullRefreshing(true);
