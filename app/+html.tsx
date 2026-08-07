@@ -35,6 +35,12 @@ export default function Root({ children }: PropsWithChildren) {
           crossOrigin="anonymous"
         />
         <link rel="dns-prefetch" href="https://ramnath-pansari-nextjs.vercel.app" />
+        <link
+          rel="preconnect"
+          href="https://api.ramnathpansari.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://api.ramnathpansari.com" />
         {/* Image/video CDNs: no crossOrigin — <img>/<video> use non-CORS connections */}
         <link rel="preconnect" href="https://cdn1.jiomartjcp.com" />
         <link rel="dns-prefetch" href="https://cdn1.jiomartjcp.com" />
