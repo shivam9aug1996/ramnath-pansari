@@ -39,21 +39,25 @@ const PayBottomSheet = ({
             {`₹ ${formatNumber(totalAmountInNumber)}`}
           </Text>
         </View>
-        <Button
-          disabled={isButtonLoading}
-          title={`Pay Online`}
-          onPress={() => {
-            const addressData = data?.find((item) => {
-              return item?._id == selectedAddressId;
-            });
-            startTransition(() => {
-              setIsPayModal(false);
-            });
-            handleOnClick(totalAmountInNumber, addressData);
-          }}
-          textStyle={{ fontFamily: "Montserrat_600SemiBold" }}
-        />
-        <Text style={{ alignSelf: "center" }}>or</Text>
+        {Platform.OS !== "web" ? (
+          <>
+            <Button
+              disabled={isButtonLoading}
+              title={`Pay Online`}
+              onPress={() => {
+                const addressData = data?.find((item) => {
+                  return item?._id == selectedAddressId;
+                });
+                startTransition(() => {
+                  setIsPayModal(false);
+                });
+                handleOnClick(totalAmountInNumber, addressData);
+              }}
+              textStyle={{ fontFamily: "Montserrat_600SemiBold" }}
+            />
+            <Text style={{ alignSelf: "center" }}>or</Text>
+          </>
+        ) : null}
         <Button
           disabled={isButtonLoading}
           title={`Cash on Delivery`}
