@@ -104,7 +104,67 @@ export function getStoreClosedMessage(
   if (!resolved.acceptingOrders) {
     return "We're not accepting orders right now. Please check back later.";
   }
+  const nextOpen = getNextOpenLabel(resolved.storeHours);
+  if (nextOpen) {
+    return `Store is closed. ${nextOpen}. Orders are accepted between ${resolved.storeHours.openTime} and ${resolved.storeHours.closeTime}.`;
+  }
   return `Orders are accepted between ${resolved.storeHours.openTime} and ${resolved.storeHours.closeTime}. Please check back during store hours.`;
+}
+
+/** Next open copy when outside scheduled hours; null while open. */
+export function getNextOpenLabel(
+  storeHours: StoreHoursSettings,
+  now: Date = new Date(),
+): string | null {
+  const resolved = resolveStoreHours(storeHours);
+  if (isStoreOpen(resolved, now)) return null;
+
+  const nowMinutes = getZonedMinutes(now, resolved.timezone);
+  const openMinutes = parseTimeToMinutes(resolved.openTime);
+  if (nowMinutes < openMinutes) {
+    return `Opens at ${resolved.openTime}`;
+  }
+  return `Opens tomorrow at ${resolved.openTime}`;
+}
+
+export type HomeStoreStatusKind = "open" | "closed" | "paused";
+
+export type HomeStoreStatus = {
+  kind: HomeStoreStatusKind;
+  title: string;
+  subtitle: string;
+};
+
+/** Compact status for the home feed banner. */
+export function getHomeStoreStatus(
+  storeConfig: StoreConfig | Partial<StoreConfig>,
+  now: Date = new Date(),
+): HomeStoreStatus {
+  const resolved = resolveStoreConfig(storeConfig);
+  const hoursLabel = formatStoreHoursLabel(resolved.storeHours);
+
+  if (!resolved.acceptingOrders) {
+    return {
+      kind: "paused",
+      title: "Not accepting orders right now",
+      subtitle: `Usual hours ${hoursLabel}`,
+    };
+  }
+
+  if (isStoreOpen(resolved.storeHours, now)) {
+    return {
+      kind: "open",
+      title: "Store open",
+      subtitle: hoursLabel,
+    };
+  }
+
+  const nextOpen = getNextOpenLabel(resolved.storeHours, now);
+  return {
+    kind: "closed",
+    title: "Store closed",
+    subtitle: nextOpen ?? `Hours ${hoursLabel}`,
+  };
 }
 
 /** Soft hint when cached config says closed; checkout still runs to refresh status. */

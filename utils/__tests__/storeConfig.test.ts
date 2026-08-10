@@ -1,6 +1,8 @@
 import { DEFAULT_STORE_CONFIG } from "@/constants/StoreConfig";
 import {
   canAcceptOrders,
+  getHomeStoreStatus,
+  getNextOpenLabel,
   getStoreClosedCacheHint,
   hasStoreConfigChanged,
   isStoreOpen,
@@ -9,6 +11,7 @@ import {
 
 const OPEN_NOW = new Date("2026-06-17T06:30:00.000Z");
 const CLOSED_NOW = new Date("2026-06-17T02:00:00.000Z");
+const AFTER_CLOSE_NOW = new Date("2026-06-17T16:00:00.000Z");
 
 describe("storeConfig", () => {
   it("resolves default store config", () => {
@@ -45,5 +48,33 @@ describe("storeConfig", () => {
     });
 
     expect(hasStoreConfigChanged(DEFAULT_STORE_CONFIG, latest)).toBe(true);
+  });
+
+  it("labels next open before hours and after close", () => {
+    expect(getNextOpenLabel(DEFAULT_STORE_CONFIG.storeHours, CLOSED_NOW)).toBe(
+      "Opens at 09:00",
+    );
+    expect(
+      getNextOpenLabel(DEFAULT_STORE_CONFIG.storeHours, AFTER_CLOSE_NOW),
+    ).toBe("Opens tomorrow at 09:00");
+    expect(getNextOpenLabel(DEFAULT_STORE_CONFIG.storeHours, OPEN_NOW)).toBeNull();
+  });
+
+  it("builds home store status for open, closed, and paused", () => {
+    expect(getHomeStoreStatus(DEFAULT_STORE_CONFIG, OPEN_NOW)).toMatchObject({
+      kind: "open",
+      title: "Store open",
+    });
+    expect(getHomeStoreStatus(DEFAULT_STORE_CONFIG, CLOSED_NOW)).toMatchObject({
+      kind: "closed",
+      title: "Store closed",
+      subtitle: "Opens at 09:00",
+    });
+    expect(
+      getHomeStoreStatus({ acceptingOrders: false }, OPEN_NOW),
+    ).toMatchObject({
+      kind: "paused",
+      title: "Not accepting orders right now",
+    });
   });
 });

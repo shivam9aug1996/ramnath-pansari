@@ -49,6 +49,10 @@ import {
   isCachedProductListEmpty,
   peekCachedProductsSync,
 } from "@/utils/productCache";
+import { syncStoreConfig } from "@/utils/storeConfigCache";
+import HomeStoreStatus, {
+  HOME_STORE_STATUS_HEIGHT,
+} from "@/components/HomeStoreStatus";
 
 const Carasole = lazy(() => import("./Carasole"));
 const WeatherSection = lazy(() => import("./WeatherSection/WeatherSection"));
@@ -103,6 +107,7 @@ function isHomeRailKnownEmpty(categoryId: string): boolean {
 type HomeFeedItem =
   | { type: "dashboard"; id: string }
   | { type: "search"; id: string }
+  | { type: "storeStatus"; id: string }
   | { type: "carousel"; id: string }
   | { type: "weather"; id: string }
   | { type: "getTheApp"; id: string }
@@ -271,6 +276,7 @@ const PrivateHome = () => {
     const items: HomeFeedItem[] = [
       { type: "dashboard", id: "dashboard" },
       { type: "search", id: "search" },
+      { type: "storeStatus", id: "storeStatus" },
     ];
 
     if (Platform.OS !== "web") {
@@ -441,6 +447,7 @@ const PrivateHome = () => {
             ).unwrap()
           : refetch(),
         syncCarouselConfig(dispatch, { force: true }),
+        syncStoreConfig(dispatch, { force: true }),
       ]);
       setOmittedRails({});
       railEnableStore.reset();
@@ -512,6 +519,12 @@ const PrivateHome = () => {
               <View style={styles.stickySearchBarContent}>
                 <HomeSearch compact />
               </View>
+            </View>
+          );
+        case "storeStatus":
+          return (
+            <View style={styles.storeStatusSection}>
+              <HomeStoreStatus />
             </View>
           );
         case "carousel": {
@@ -684,6 +697,10 @@ const styles = StyleSheet.create({
     zIndex: 10,
     // Search input padding + sticky bar padding (stable across platforms).
     minHeight: Platform.OS === "android" ? 64 : 84,
+  },
+  storeStatusSection: {
+    height: HOME_STORE_STATUS_HEIGHT + 12,
+    overflow: "hidden",
   },
   weatherSection: {
     height: WEATHER_SLOT_HEIGHT,
