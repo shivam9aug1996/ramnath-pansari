@@ -24,7 +24,7 @@ const PayBottomSheet = ({
         // devLog("closed");
         setIsPayModal(false);
       }}
-     // wrapperStyle={Platform.OS === "web" ? { height:"%" } : {}}
+      wrapperStyle={Platform.OS === "web" ? { height:"60%" } : {}}
     >
       <View style={{ paddingHorizontal: 30, gap: 20 }}>
         <View
