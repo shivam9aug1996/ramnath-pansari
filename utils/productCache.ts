@@ -107,6 +107,36 @@ export function setCachedProducts<T = any>(
   AsyncStorage.setItem(localKey, JSON.stringify(entry)).catch(() => {});
 }
 
+/** Sync read of in-memory product cache only (no AsyncStorage). */
+export function peekCachedProductsSync<T = any>(
+  categoryId: string,
+  page: number,
+  filterKey: string = "default",
+): T | null {
+  const localKey = getProductCacheKey(categoryId, page, filterKey);
+  const mem = memoryCache.get(localKey);
+  if (!mem) return null;
+  if (Date.now() - mem.timestamp >= CACHE_DURATION) return null;
+  return mem.data as T;
+}
+
+type ProductListCacheShape = {
+  products?: unknown[];
+  totalResults?: number;
+  totalProducts?: number;
+};
+
+/** True only when cache is present and clearly has zero products. */
+export function isCachedProductListEmpty(
+  data: ProductListCacheShape | null | undefined,
+): boolean {
+  if (!data) return false;
+  const products = data.products ?? [];
+  const total = data.totalResults ?? data.totalProducts;
+  if (typeof total === "number") return total === 0;
+  return products.length === 0;
+}
+
 export function clearProductMemoryCache(): void {
   memoryCache.clear();
 }

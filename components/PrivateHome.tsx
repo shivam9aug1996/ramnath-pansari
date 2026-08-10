@@ -1,7 +1,9 @@
 import React, {
+  createContext,
   lazy,
   Suspense,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -41,6 +43,12 @@ import {
 } from "@/utils/startupDiagnostics";
 import { syncCarouselConfig } from "@/utils/carouselConfigCache";
 import { setPrivateHomeMounted } from "@/redux/features/homePromoSlice";
+import { productApi } from "@/redux/features/productSlice";
+import {
+  getCachedProducts,
+  isCachedProductListEmpty,
+  peekCachedProductsSync,
+} from "@/utils/productCache";
 
 const Carasole = lazy(() => import("./Carasole"));
 const WeatherSection = lazy(() => import("./WeatherSection/WeatherSection"));
@@ -54,13 +62,42 @@ const RecentlyViewedProducts = lazy(
 const CATEGORY_PLACEHOLDER_COUNT = 3;
 /** Prefetch first N product rails so the initial viewport isn't empty. */
 const INITIAL_ENABLED_RAIL_COUNT = 2;
+/** Matches `HomeProductRail` fetch args — keep local so that module stays lazy. */
+const HOME_RAIL_PRODUCT_LIMIT = 8;
 /** Matches `GetTheApp` banner export — keep local so that module stays lazy. */
 const GET_THE_APP_BANNER_HEIGHT = 72;
 /** Matches `Carasole` — keep local so that module stays lazy. */
 const CAROUSEL_PAGI_SLOT_HEIGHT = 40;
+/** Matches `HomeProductRail` — keep local so that module stays lazy. */
+const HOME_PRODUCT_RAIL_HEIGHT = 286;
+/** Matches inline promo card + vertical margins. */
+const HOME_PROMO_INLINE_SLOT_HEIGHT = 164;
+/** Matches compact recently-viewed block (title + row). */
+const HOME_RECENTLY_VIEWED_SLOT_HEIGHT = 288;
 
 function getCarouselSlotHeight(windowWidth: number): number {
   return windowWidth / 2 + CAROUSEL_PAGI_SLOT_HEIGHT;
+}
+
+/** True when memory/RTK already knows this subcategory has no products. */
+function isHomeRailKnownEmpty(categoryId: string): boolean {
+  if (
+    isCachedProductListEmpty(
+      peekCachedProductsSync(categoryId, 1, "default"),
+    )
+  ) {
+    return true;
+  }
+
+  const entry = productApi.endpoints.fetchProducts.select({
+    categoryId,
+    page: 1,
+    limit: HOME_RAIL_PRODUCT_LIMIT,
+  })(store.getState() as never);
+
+  if (entry?.isError) return true;
+  if (entry?.data && isCachedProductListEmpty(entry.data)) return true;
+  return false;
 }
 
 type HomeFeedItem =
@@ -87,6 +124,103 @@ type HomeFeedItem =
   | { type: "promo"; id: string }
   | { type: "recentlyViewed"; id: string };
 
+type ProductRailItem = Extract<HomeFeedItem, { type: "productRail" }>;
+
+type RailEnableStore = {
+  get: (id: string) => boolean;
+  enableMany: (ids: string[]) => void;
+  subscribe: (id: string, onChange: () => void) => () => void;
+  reset: () => void;
+};
+
+function createRailEnableStore(): RailEnableStore {
+  const enabled = new Set<string>();
+  const listeners = new Map<string, Set<() => void>>();
+
+  return {
+    get: (id) => enabled.has(id),
+    enableMany: (ids) => {
+      for (const id of ids) {
+        if (enabled.has(id)) continue;
+        enabled.add(id);
+        listeners.get(id)?.forEach((listener) => listener());
+      }
+    },
+    subscribe: (id, onChange) => {
+      let set = listeners.get(id);
+      if (!set) {
+        set = new Set();
+        listeners.set(id, set);
+      }
+      set.add(onChange);
+      return () => {
+        set!.delete(onChange);
+        if (set!.size === 0) listeners.delete(id);
+      };
+    },
+    reset: () => {
+      if (!enabled.size) return;
+      const previouslyEnabled = [...enabled];
+      enabled.clear();
+      for (const id of previouslyEnabled) {
+        listeners.get(id)?.forEach((listener) => listener());
+      }
+    },
+  };
+}
+
+const RailEnableContext = createContext<RailEnableStore | null>(null);
+
+function useRailEnabled(railId: string): boolean {
+  const railStore = useContext(RailEnableContext);
+  const [enabled, setEnabled] = useState(() =>
+    Boolean(railStore?.get(railId)),
+  );
+
+  useEffect(() => {
+    if (!railStore) return;
+    setEnabled(railStore.get(railId));
+    return railStore.subscribe(railId, () => {
+      setEnabled(railStore.get(railId));
+    });
+  }, [railStore, railId]);
+
+  return enabled;
+}
+
+function ProductRailRow({
+  item,
+  onViewMore,
+  onEmpty,
+}: {
+  item: ProductRailItem;
+  onViewMore: (
+    subCategory: Category,
+    parentCategory: Category,
+    index: number,
+  ) => void;
+  onEmpty: (railId: string) => void;
+}) {
+  const enabled = useRailEnabled(item.id);
+  const railFallback = <View style={{ height: HOME_PRODUCT_RAIL_HEIGHT }} />;
+  const handleEmpty = useCallback(() => {
+    onEmpty(item.id);
+  }, [onEmpty, item.id]);
+
+  return (
+    <Suspense fallback={railFallback}>
+      <HomeProductRail
+        parentCategory={item.parent}
+        subCategory={item.subCategory}
+        subCategoryIndex={item.subCategoryIndex}
+        enabled={enabled}
+        onEmpty={handleEmpty}
+        onViewMore={onViewMore}
+      />
+    </Suspense>
+  );
+}
+
 const PrivateHome = () => {
   const { width: windowWidth } = useWindowDimensions();
   const carouselFallbackHeight = getCarouselSlotHeight(windowWidth);
@@ -94,16 +228,27 @@ const PrivateHome = () => {
   const listRef = useRef<FlatList<HomeFeedItem>>(null);
   const firstCategoryIndexRef = useRef(0);
   const layoutOffsets = useRef({ sticky: 0 });
+  const railEnableStoreRef = useRef<RailEnableStore | null>(null);
+  if (!railEnableStoreRef.current) {
+    railEnableStoreRef.current = createRailEnableStore();
+  }
+  const railEnableStore = railEnableStoreRef.current;
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [enabledRails, setEnabledRails] = useState<Record<string, true>>({});
-  const enabledRailsRef = useRef(enabledRails);
-  enabledRailsRef.current = enabledRails;
+  /** Home-feed only — never mutates category tree / ProductList3. */
+  const [omittedRails, setOmittedRails] = useState<Record<string, true>>({});
   const promoDockedInline = useSelector(
     (state: RootState) => state.homePromo.promoDockedInline,
   );
   const token = useSelector((state: RootState) => state?.auth?.token);
   const appSyncReady = useSelector((state: RootState) => state.appSync?.ready);
   const userData = useSelector((state: RootState) => state?.auth?.userData);
+  const hasRecentlyViewed = useSelector((state: RootState) => {
+    const items = (state as { recentlyViewed?: { items?: Array<{ type?: string; name?: string }> } })
+      ?.recentlyViewed?.items;
+    return Boolean(
+      items?.some((item) => item?.type === "product" && item?.name),
+    );
+  });
   const categories = useSelector((state: RootState) => {
     return (
       categoryApi.endpoints.fetchCategories.select({})(state as never)?.data
@@ -161,9 +306,13 @@ const PrivateHome = () => {
         });
 
         (parent.children ?? []).forEach((subCategory, subCategoryIndex) => {
+          const railId = `rail-${subCategory._id}`;
+          if (omittedRails[railId]) return;
+          // Skip rails already known empty (memory / RTK) so they never mount at 286px.
+          if (subCategory._id && isHomeRailKnownEmpty(subCategory._id)) return;
           items.push({
             type: "productRail",
-            id: `rail-${subCategory._id}`,
+            id: railId,
             parent,
             subCategory,
             subCategoryIndex,
@@ -176,33 +325,62 @@ const PrivateHome = () => {
       items.push({ type: "promo", id: "promo" });
     }
 
-    items.push({ type: "recentlyViewed", id: "recentlyViewed" });
+    if (hasRecentlyViewed) {
+      items.push({ type: "recentlyViewed", id: "recentlyViewed" });
+    }
 
     return items;
-  }, [categories, showCategorySkeleton, promoDockedInline]);
+  }, [
+    categories,
+    showCategorySkeleton,
+    promoDockedInline,
+    hasRecentlyViewed,
+    omittedRails,
+  ]);
 
-  // Prefetch first rails once the feed is known.
+  // Seed omitted rails from disk cache before / while first paint so empties
+  // don't mount as full-height skeletons (home feed only).
+  useEffect(() => {
+    if (showCategorySkeleton || !categories.length) return;
+
+    let cancelled = false;
+    const subCategoryIds: string[] = [];
+    for (const parent of categories) {
+      for (const child of parent.children ?? []) {
+        if (child?._id) subCategoryIds.push(child._id);
+      }
+    }
+
+    (async () => {
+      const emptyIds: Record<string, true> = {};
+      await Promise.all(
+        subCategoryIds.map(async (categoryId) => {
+          const data = await getCachedProducts(categoryId, 1, "default");
+          if (isCachedProductListEmpty(data)) {
+            emptyIds[`rail-${categoryId}`] = true;
+          }
+        }),
+      );
+      if (cancelled || !Object.keys(emptyIds).length) return;
+      setOmittedRails((prev) => ({ ...emptyIds, ...prev }));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [categories, showCategorySkeleton]);
+
+  // Prefetch first rails once the feed is known (per-rail listeners only).
   useEffect(() => {
     if (showCategorySkeleton) return;
     const firstRailIds = feedItems
-      .filter((item) => item.type === "productRail")
+      .filter((item): item is ProductRailItem => item.type === "productRail")
       .slice(0, INITIAL_ENABLED_RAIL_COUNT)
       .map((item) => item.id);
 
     if (!firstRailIds.length) return;
-
-    setEnabledRails((prev) => {
-      let changed = false;
-      const next = { ...prev };
-      for (const id of firstRailIds) {
-        if (!next[id]) {
-          next[id] = true;
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [feedItems, showCategorySkeleton]);
+    railEnableStore.enableMany(firstRailIds);
+  }, [feedItems, showCategorySkeleton, railEnableStore]);
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -244,6 +422,12 @@ const PrivateHome = () => {
     router.navigate("/(tabs)/account");
   }, []);
 
+  const handleRailEmpty = useCallback((railId: string) => {
+    setOmittedRails((prev) =>
+      prev[railId] ? prev : { ...prev, [railId]: true },
+    );
+  }, []);
+
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
@@ -258,13 +442,14 @@ const PrivateHome = () => {
           : refetch(),
         syncCarouselConfig(dispatch, { force: true }),
       ]);
-      setEnabledRails({});
+      setOmittedRails({});
+      railEnableStore.reset();
     } catch {
       // optional toast
     } finally {
       setIsRefreshing(false);
     }
-  }, [dispatch, isCategoriesUninitialized, refetch]);
+  }, [dispatch, isCategoriesUninitialized, refetch, railEnableStore]);
 
   const scrollToCategories = useCallback(() => {
     const index = firstCategoryIndexRef.current;
@@ -280,18 +465,16 @@ const PrivateHome = () => {
 
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      setEnabledRails((prev) => {
-        let changed = false;
-        const next = { ...prev };
-        for (const token of viewableItems) {
-          const item = token.item as HomeFeedItem | undefined;
-          if (item?.type === "productRail" && !next[item.id]) {
-            next[item.id] = true;
-            changed = true;
-          }
+      const ids: string[] = [];
+      for (const token of viewableItems) {
+        const item = token.item as HomeFeedItem | undefined;
+        if (item?.type === "productRail") {
+          ids.push(item.id);
         }
-        return changed ? next : prev;
-      });
+      }
+      if (ids.length) {
+        railEnableStoreRef.current?.enableMany(ids);
+      }
     },
   ).current;
 
@@ -396,32 +579,36 @@ const PrivateHome = () => {
           );
         case "productRail":
           return (
-            <Suspense fallback={null}>
-              <HomeProductRail
-                parentCategory={item.parent}
-                subCategory={item.subCategory}
-                subCategoryIndex={item.subCategoryIndex}
-                enabled={Boolean(enabledRailsRef.current[item.id])}
-                onViewMore={handleCategorySelect}
-              />
-            </Suspense>
+            <ProductRailRow
+              item={item}
+              onViewMore={handleCategorySelect}
+              onEmpty={handleRailEmpty}
+            />
           );
-        case "promo":
+        case "promo": {
+          const promoFallback = (
+            <View style={{ height: HOME_PROMO_INLINE_SLOT_HEIGHT }} />
+          );
           return (
-            <DeferredFadeIn delay={200}>
-              <Suspense fallback={null}>
+            <DeferredFadeIn delay={200} fallback={promoFallback}>
+              <Suspense fallback={promoFallback}>
                 <HomeProductPromo variant="inline" />
               </Suspense>
             </DeferredFadeIn>
           );
-        case "recentlyViewed":
+        }
+        case "recentlyViewed": {
+          const recentFallback = (
+            <View style={{ height: HOME_RECENTLY_VIEWED_SLOT_HEIGHT }} />
+          );
           return (
-            <DeferredFadeIn delay={450}>
-              <Suspense fallback={null}>
+            <DeferredFadeIn delay={450} fallback={recentFallback}>
+              <Suspense fallback={recentFallback}>
                 <RecentlyViewedProducts variant="compact" />
               </Suspense>
             </DeferredFadeIn>
           );
+        }
         default:
           return null;
       }
@@ -433,11 +620,12 @@ const PrivateHome = () => {
       carouselFallbackHeight,
       scrollToCategories,
       handleCategorySelect,
+      handleRailEmpty,
     ],
   );
 
   return (
-    <>
+    <RailEnableContext.Provider value={railEnableStore}>
       <ScreenSafeWrapper
         showBackButton={false}
         wrapperStyle={{ paddingHorizontal: 0 }}
@@ -449,7 +637,6 @@ const PrivateHome = () => {
           data={feedItems}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
-          extraData={enabledRails}
           stickyHeaderIndices={[1]}
           refreshControl={
             <RefreshControl
@@ -465,7 +652,7 @@ const PrivateHome = () => {
           viewabilityConfig={viewabilityConfig}
           initialNumToRender={6}
           maxToRenderPerBatch={4}
-          windowSize={5}
+          windowSize={7}
           removeClippedSubviews={Platform.OS === "android"}
           onScrollToIndexFailed={(info) => {
             setTimeout(() => {
@@ -478,7 +665,7 @@ const PrivateHome = () => {
           }}
         />
       </ScreenSafeWrapper>
-    </>
+    </RailEnableContext.Provider>
   );
 };
 

@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -34,6 +34,8 @@ type Props = {
   subCategory: Category;
   subCategoryIndex: number;
   enabled?: boolean;
+  /** Home feed only: omit this rail from FlatList data when empty. */
+  onEmpty?: () => void;
   onViewMore: (
     subCategory: Category,
     parentCategory: Category,
@@ -67,6 +69,7 @@ const HomeProductRail = ({
   subCategory,
   subCategoryIndex,
   enabled = false,
+  onEmpty,
   onViewMore,
 }: Props) => {
   const token = useSelector((state: RootState) => state?.auth?.token);
@@ -97,6 +100,10 @@ const HomeProductRail = ({
   const isEmpty =
     canFetch && !isLoadingProducts && (isError || products.length === 0);
 
+  useEffect(() => {
+    if (isEmpty) onEmpty?.();
+  }, [isEmpty, onEmpty]);
+
   const handleViewMore = useCallback(() => {
     onViewMore(subCategory, parentCategory, subCategoryIndex);
   }, [onViewMore, subCategory, parentCategory, subCategoryIndex]);
@@ -105,9 +112,9 @@ const HomeProductRail = ({
     return <RailPlaceholder title={subCategory.name} />;
   }
 
-  // Keep a 0-height row instead of removing from the feed (avoids list jump).
+  // Parent removes this row from home feed data; render nothing in the meantime.
   if (isEmpty) {
-    return <View style={styles.emptyRail} />;
+    return null;
   }
 
   return (
@@ -155,11 +162,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     marginBottom: 8,
     height: HOME_PRODUCT_RAIL_HEIGHT,
-    overflow: "hidden",
-  },
-  emptyRail: {
-    height: 0,
-    marginBottom: 0,
     overflow: "hidden",
   },
   header: {
