@@ -250,12 +250,17 @@ const usePayment = () => {
         userId,
         productIds,
       }).unwrap();
+      const chargedAmount =
+        typeof (res as { expectedAmount?: number }).expectedAmount === "number"
+          ? (res as { expectedAmount: number }).expectedAmount
+          : amount;
       devLog("[product-lock] payment:online:pre-order-created", {
         userId,
         razorpayOrderId: res.data.id,
+        chargedAmount,
       });
 
-      const options = buildCheckoutOptions(res.data.id, amount);
+      const options = buildCheckoutOptions(res.data.id, chargedAmount);
 
       if (Platform.OS === "web") {
         await openWebRazorpay(options, res.data.id, addressData);
