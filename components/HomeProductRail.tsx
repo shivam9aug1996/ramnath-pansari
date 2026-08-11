@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useSelector } from "react-redux";
-import { Category, Product, RootState } from "@/types/global";
-import { useFetchProductsQuery } from "@/redux/features/productSlice";
+import { Category, Product } from "@/types/global";
+import { productApi } from "@/redux/features/productSlice";
 import HomeProductRailCard, {
   HOME_RAIL_CARD_WIDTH,
 } from "./HomeProductRailCard";
@@ -34,8 +34,6 @@ type Props = {
   subCategory: Category;
   subCategoryIndex: number;
   enabled?: boolean;
-  /** Home feed only: omit this rail from FlatList data when empty. */
-  onEmpty?: () => void;
   onViewMore: (
     subCategory: Category,
     parentCategory: Category,
@@ -44,7 +42,7 @@ type Props = {
 };
 
 /** Cheap reserved block — no scroll chrome until fetch is allowed. */
-const RailPlaceholder = ({ title }: { title: string }) => (
+const RailPlaceholder = memo(({ title }: { title: string }) => (
   <View style={styles.rail}>
     <View style={styles.header}>
       <Text style={styles.title} numberOfLines={1}>
@@ -62,59 +60,59 @@ const RailPlaceholder = ({ title }: { title: string }) => (
       ))}
     </View>
   </View>
-);
+));
 
 const HomeProductRail = ({
   parentCategory,
   subCategory,
   subCategoryIndex,
   enabled = false,
-  onEmpty,
   onViewMore,
 }: Props) => {
-  const token = useSelector((state: RootState) => state?.auth?.token);
-  const appSyncReady = useSelector((state: RootState) => state.appSync?.ready);
-
-  const canFetch = Boolean(
-    enabled && token && appSyncReady && subCategory?._id,
-  );
-
-  const { data, isLoading, isFetching, isError } = useFetchProductsQuery(
-    {
-      categoryId: subCategory._id,
+  const categoryId = subCategory?._id;
+  const queryArgs = useMemo(
+    () => ({
+      categoryId,
       page: 1,
       limit: PRODUCT_LIMIT,
-    },
-    {
-      skip: !canFetch,
-    },
+    }),
+    [categoryId],
   );
 
-  const railData = data as RailProductsData | undefined;
-  const products: Product[] = railData?.products ?? [];
-  const totalResults =
-    railData?.totalResults ?? railData?.totalProducts ?? products.length;
-  const showViewMore = totalResults > products.length;
-  const isLoadingProducts =
-    canFetch && (isLoading || isFetching) && products.length === 0 && !isError;
-  const isEmpty =
-    canFetch && !isLoadingProducts && (isError || products.length === 0);
+  // Read-only: PrivateHome owns the RTK subscription for the home feed.
+  // Using useQuery here would subscribe/unsubscribe on FlashList recycle.
+  const queryState = useSelector(
+    productApi.endpoints.fetchProducts.select(queryArgs),
+  );
 
-  useEffect(() => {
-    if (isEmpty) onEmpty?.();
-  }, [isEmpty, onEmpty]);
+  const data = queryState.data as RailProductsData | undefined;
+  const products: Product[] = data?.products ?? [];
+  const totalResults =
+    data?.totalResults ?? data?.totalProducts ?? products.length;
+  const showViewMore = totalResults > products.length;
+  const isError = queryState.isError;
+  const isLoadingProducts =
+    enabled &&
+    products.length === 0 &&
+    !isError &&
+    (queryState.isUninitialized ||
+      queryState.isLoading ||
+      queryState.isFetching);
+  // Transient FETCH_ERROR must not collapse the rail — keep the reserved slot.
+  const isEmpty =
+    enabled && !isLoadingProducts && !isError && products.length === 0;
 
   const handleViewMore = useCallback(() => {
     onViewMore(subCategory, parentCategory, subCategoryIndex);
   }, [onViewMore, subCategory, parentCategory, subCategoryIndex]);
 
-  if (!enabled || isLoadingProducts) {
+  if (!enabled || isLoadingProducts || (isError && products.length === 0)) {
     return <RailPlaceholder title={subCategory.name} />;
   }
 
-  // Parent removes this row from home feed data; render nothing in the meantime.
+  // Confirmed empty: collapse so we don't leave blank gaps between shelves.
   if (isEmpty) {
-    return null;
+    return <View style={styles.collapsedRail} />;
   }
 
   return (
@@ -157,6 +155,11 @@ const HomeProductRail = ({
 export default memo(HomeProductRail);
 
 const styles = StyleSheet.create({
+  collapsedRail: {
+    height: 0,
+    overflow: "hidden",
+    marginBottom: 0,
+  },
   rail: {
     backgroundColor: "#ffffff",
     paddingVertical: 16,
