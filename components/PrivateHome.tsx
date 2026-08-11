@@ -1,6 +1,7 @@
 import React, {
   createContext,
   lazy,
+  memo,
   Suspense,
   useCallback,
   useContext,
@@ -66,6 +67,8 @@ const RecentlyViewedProducts = lazy(
 const CATEGORY_PLACEHOLDER_COUNT = 3;
 /** Prefetch first N product rails so the initial viewport isn't empty. */
 const INITIAL_ENABLED_RAIL_COUNT = 2;
+/** Parallel disk peeks while seeding empty rails — avoid AsyncStorage stampede. */
+const DISK_CACHE_CONCURRENCY = 4;
 /** Matches `HomeProductRail` fetch args — keep local so that module stays lazy. */
 const HOME_RAIL_PRODUCT_LIMIT = 8;
 /** Matches `GetTheApp` banner export — keep local so that module stays lazy. */
@@ -78,9 +81,39 @@ const HOME_PRODUCT_RAIL_HEIGHT = 286;
 const HOME_PROMO_INLINE_SLOT_HEIGHT = 164;
 /** Matches compact recently-viewed block (title + row). */
 const HOME_RECENTLY_VIEWED_SLOT_HEIGHT = 288;
+/** Matches `styles.topSection` minHeight (avatar + padding). */
+const DASHBOARD_ROW_HEIGHT = 60;
+/** Matches `styles.stickySearchBar` minHeight. */
+const SEARCH_ROW_HEIGHT = Platform.OS === "android" ? 64 : 84;
+/** Matches `styles.storeStatusSection`. */
+const STORE_STATUS_ROW_HEIGHT = HOME_STORE_STATUS_HEIGHT + 12;
+/**
+ * Horizontal category strip — height does not scale with child count.
+ * padding (32) + title (34) + gap (8) + selector (~135).
+ */
+const HOME_CATEGORY_CARD_BASE_HEIGHT = 209;
+const HOME_CATEGORY_CARD_GAP = 16;
 
 function getCarouselSlotHeight(windowWidth: number): number {
   return windowWidth / 2 + CAROUSEL_PAGI_SLOT_HEIGHT;
+}
+
+async function mapWithConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T) => Promise<void>,
+): Promise<void> {
+  if (!items.length) return;
+  let nextIndex = 0;
+  const run = async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      await worker(items[index]);
+    }
+  };
+  const poolSize = Math.min(concurrency, items.length);
+  await Promise.all(Array.from({ length: poolSize }, () => run()));
 }
 
 /** True when memory/RTK already knows this subcategory has no products. */
@@ -130,6 +163,46 @@ type HomeFeedItem =
   | { type: "recentlyViewed"; id: string };
 
 type ProductRailItem = Extract<HomeFeedItem, { type: "productRail" }>;
+
+function getHomeFeedItemHeight(
+  item: HomeFeedItem,
+  windowWidth: number,
+): number {
+  switch (item.type) {
+    case "dashboard":
+      return DASHBOARD_ROW_HEIGHT;
+    case "search":
+      return SEARCH_ROW_HEIGHT;
+    case "storeStatus":
+      return STORE_STATUS_ROW_HEIGHT;
+    case "carousel":
+      return getCarouselSlotHeight(windowWidth);
+    case "weather":
+      return WEATHER_SLOT_HEIGHT;
+    case "getTheApp":
+      return GET_THE_APP_BANNER_HEIGHT;
+    case "categorySkeleton":
+      return (
+        HOME_CATEGORY_CARD_BASE_HEIGHT +
+        (item.index !== CATEGORY_PLACEHOLDER_COUNT - 1
+          ? HOME_CATEGORY_CARD_GAP
+          : 0)
+      );
+    case "categoryCard":
+      return (
+        HOME_CATEGORY_CARD_BASE_HEIGHT +
+        (item.index !== item.length - 1 ? HOME_CATEGORY_CARD_GAP : 0)
+      );
+    case "productRail":
+      return HOME_PRODUCT_RAIL_HEIGHT;
+    case "promo":
+      return HOME_PROMO_INLINE_SLOT_HEIGHT;
+    case "recentlyViewed":
+      return HOME_RECENTLY_VIEWED_SLOT_HEIGHT;
+    default:
+      return 0;
+  }
+}
 
 type RailEnableStore = {
   get: (id: string) => boolean;
@@ -193,7 +266,34 @@ function useRailEnabled(railId: string): boolean {
   return enabled;
 }
 
-function ProductRailRow({
+const DashboardFeedRow = memo(function DashboardFeedRow({
+  onProfilePress,
+}: {
+  onProfilePress: () => void;
+}) {
+  const userName = useSelector((state: RootState) =>
+    truncateText(state?.auth?.userData?.name?.split(" ")[0], 10),
+  );
+  const profileImage = useSelector(
+    (state: RootState) => state?.auth?.userData?.profileImage ?? null,
+  );
+  const isGuestUser = useSelector(
+    (state: RootState) => state?.auth?.userData?.isGuestUser,
+  );
+
+  return (
+    <View style={styles.topSection}>
+      <DashboardHeader
+        userName={userName}
+        profileImage={profileImage}
+        onProfilePress={onProfilePress}
+        isGuestUser={isGuestUser}
+      />
+    </View>
+  );
+});
+
+const ProductRailRow = memo(function ProductRailRow({
   item,
   onViewMore,
   onEmpty,
@@ -207,7 +307,7 @@ function ProductRailRow({
   onEmpty: (railId: string) => void;
 }) {
   const enabled = useRailEnabled(item.id);
-  const railFallback = <View style={{ height: HOME_PRODUCT_RAIL_HEIGHT }} />;
+  const railFallback = <View style={styles.productRailFallback} />;
   const handleEmpty = useCallback(() => {
     onEmpty(item.id);
   }, [onEmpty, item.id]);
@@ -224,11 +324,15 @@ function ProductRailRow({
       />
     </Suspense>
   );
-}
+});
 
 const PrivateHome = () => {
   const { width: windowWidth } = useWindowDimensions();
   const carouselFallbackHeight = getCarouselSlotHeight(windowWidth);
+  const carouselFallbackStyle = useMemo(
+    () => ({ width: windowWidth, height: carouselFallbackHeight }),
+    [windowWidth, carouselFallbackHeight],
+  );
   const dispatch = useDispatch<typeof store.dispatch>();
   const listRef = useRef<FlatList<HomeFeedItem>>(null);
   const firstCategoryIndexRef = useRef(0);
@@ -246,7 +350,6 @@ const PrivateHome = () => {
   );
   const token = useSelector((state: RootState) => state?.auth?.token);
   const appSyncReady = useSelector((state: RootState) => state.appSync?.ready);
-  const userData = useSelector((state: RootState) => state?.auth?.userData);
   const hasRecentlyViewed = useSelector((state: RootState) => {
     const items = (state as { recentlyViewed?: { items?: Array<{ type?: string; name?: string }> } })
       ?.recentlyViewed?.items;
@@ -344,6 +447,23 @@ const PrivateHome = () => {
     omittedRails,
   ]);
 
+  const getItemLayout = useMemo(() => {
+    const lengths = feedItems.map((item) =>
+      getHomeFeedItemHeight(item, windowWidth),
+    );
+    const offsets: number[] = new Array(lengths.length);
+    let offset = 0;
+    for (let i = 0; i < lengths.length; i += 1) {
+      offsets[i] = offset;
+      offset += lengths[i];
+    }
+    return (_data: ArrayLike<HomeFeedItem> | null | undefined, index: number) => ({
+      length: lengths[index] ?? 0,
+      offset: offsets[index] ?? 0,
+      index,
+    });
+  }, [feedItems, windowWidth]);
+
   // Seed omitted rails from disk cache before / while first paint so empties
   // don't mount as full-height skeletons (home feed only).
   useEffect(() => {
@@ -353,22 +473,38 @@ const PrivateHome = () => {
     const subCategoryIds: string[] = [];
     for (const parent of categories) {
       for (const child of parent.children ?? []) {
-        if (child?._id) subCategoryIds.push(child._id);
+        if (!child?._id) continue;
+        // Skip ids already known empty in memory/RTK — no disk round-trip.
+        if (isHomeRailKnownEmpty(child._id)) continue;
+        subCategoryIds.push(child._id);
       }
     }
 
     (async () => {
       const emptyIds: Record<string, true> = {};
-      await Promise.all(
-        subCategoryIds.map(async (categoryId) => {
+      await mapWithConcurrency(
+        subCategoryIds,
+        DISK_CACHE_CONCURRENCY,
+        async (categoryId) => {
+          if (cancelled) return;
           const data = await getCachedProducts(categoryId, 1, "default");
           if (isCachedProductListEmpty(data)) {
             emptyIds[`rail-${categoryId}`] = true;
           }
-        }),
+        },
       );
       if (cancelled || !Object.keys(emptyIds).length) return;
-      setOmittedRails((prev) => ({ ...emptyIds, ...prev }));
+      setOmittedRails((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        for (const railId of Object.keys(emptyIds)) {
+          if (!next[railId]) {
+            next[railId] = true;
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
     })();
 
     return () => {
@@ -492,30 +628,23 @@ const PrivateHome = () => {
 
   const keyExtractor = useCallback((item: HomeFeedItem) => item.id, []);
 
+  const onStickySearchLayout = useCallback(
+    (event: { nativeEvent: { layout: { height: number } } }) => {
+      layoutOffsets.current.sticky = event.nativeEvent.layout.height;
+    },
+    [],
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: HomeFeedItem }) => {
       switch (item.type) {
         case "dashboard":
           // Mount immediately — deferred mount with no reserved height
           // was pushing the category section down on first paint.
-          return (
-            <View style={styles.topSection}>
-              <DashboardHeader
-                userName={truncateText(userData?.name?.split(" ")[0], 10)}
-                profileImage={userData?.profileImage}
-                onProfilePress={handleProfilePress}
-                isGuestUser={userData?.isGuestUser}
-              />
-            </View>
-          );
+          return <DashboardFeedRow onProfilePress={handleProfilePress} />;
         case "search":
           return (
-            <View
-              style={styles.stickySearchBar}
-              onLayout={(event) => {
-                layoutOffsets.current.sticky = event.nativeEvent.layout.height;
-              }}
-            >
+            <View style={styles.stickySearchBar} onLayout={onStickySearchLayout}>
               <View style={styles.stickySearchBarContent}>
                 <HomeSearch compact />
               </View>
@@ -529,12 +658,7 @@ const PrivateHome = () => {
           );
         case "carousel": {
           const carouselFallback = (
-            <View
-              style={{
-                width: windowWidth,
-                height: carouselFallbackHeight,
-              }}
-            />
+            <View style={carouselFallbackStyle} />
           );
           return (
             <DeferredFadeIn delay={100} fallback={carouselFallback}>
@@ -600,7 +724,7 @@ const PrivateHome = () => {
           );
         case "promo": {
           const promoFallback = (
-            <View style={{ height: HOME_PROMO_INLINE_SLOT_HEIGHT }} />
+            <View style={styles.promoFallback} />
           );
           return (
             <DeferredFadeIn delay={200} fallback={promoFallback}>
@@ -612,7 +736,7 @@ const PrivateHome = () => {
         }
         case "recentlyViewed": {
           const recentFallback = (
-            <View style={{ height: HOME_RECENTLY_VIEWED_SLOT_HEIGHT }} />
+            <View style={styles.recentlyViewedFallback} />
           );
           return (
             <DeferredFadeIn delay={450} fallback={recentFallback}>
@@ -627,10 +751,9 @@ const PrivateHome = () => {
       }
     },
     [
-      userData,
       handleProfilePress,
-      windowWidth,
-      carouselFallbackHeight,
+      onStickySearchLayout,
+      carouselFallbackStyle,
       scrollToCategories,
       handleCategorySelect,
       handleRailEmpty,
@@ -650,6 +773,7 @@ const PrivateHome = () => {
           data={feedItems}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
+          getItemLayout={getItemLayout}
           stickyHeaderIndices={[1]}
           refreshControl={
             <RefreshControl
@@ -719,6 +843,15 @@ const styles = StyleSheet.create({
   getTheAppSlotFallback: {
     height: GET_THE_APP_BANNER_HEIGHT,
     width: "100%",
+  },
+  productRailFallback: {
+    height: HOME_PRODUCT_RAIL_HEIGHT,
+  },
+  promoFallback: {
+    height: HOME_PROMO_INLINE_SLOT_HEIGHT,
+  },
+  recentlyViewedFallback: {
+    height: HOME_RECENTLY_VIEWED_SLOT_HEIGHT,
   },
   stickySearchBarContent: {
     paddingHorizontal: 16,
