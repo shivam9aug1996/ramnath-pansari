@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     height: HOME_STORE_STATUS_HEIGHT,
     marginHorizontal: 16,
     marginTop: 8,
-    marginBottom: 4,
+    marginBottom: 16,
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,

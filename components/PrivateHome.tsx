@@ -336,7 +336,7 @@ const ListItem = memo(
         const fallback = <View style={carouselFallbackStyle} />;
         return (
           <View style={carouselFallbackStyle}>
-            <DeferredFadeIn delay={100} fallback={fallback}>
+            <DeferredFadeIn delay={100} style={{flex: 1}} fallback={fallback}>
               <Suspense fallback={fallback}>
                 <Carasole onScrollToCategories={onScrollToCategories} />
               </Suspense>
@@ -724,7 +724,8 @@ const styles = StyleSheet.create({
     minHeight: Platform.OS === "android" ? 64 : 84,
   },
   storeStatusSection: {
-    height: HOME_STORE_STATUS_HEIGHT + 12,
+    // Status row (52) + marginTop (8) + marginBottom (16) under HomeStoreStatus.
+    height: HOME_STORE_STATUS_HEIGHT + 24,
     overflow: "hidden",
   },
   weatherSection: {
