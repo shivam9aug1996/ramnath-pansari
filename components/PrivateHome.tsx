@@ -78,6 +78,39 @@ function getCarouselSlotHeight(windowWidth: number): number {
   return windowWidth / 2 + CAROUSEL_PAGI_SLOT_HEIGHT;
 }
 
+/** Static slot while WeatherSection chunk / first paint loads. */
+const WeatherSlotSkeleton = memo(function WeatherSlotSkeleton() {
+  return (
+    <View style={styles.weatherSkeleton}>
+      <View style={styles.weatherSkeletonCard}>
+        <View style={styles.weatherSkeletonLine} />
+        <View style={[styles.weatherSkeletonLine, styles.weatherSkeletonLineShort]} />
+      </View>
+      <View style={styles.weatherSkeletonDots}>
+        <View style={[styles.weatherSkeletonDot, styles.weatherSkeletonDotActive]} />
+        <View style={styles.weatherSkeletonDot} />
+        <View style={styles.weatherSkeletonDot} />
+      </View>
+    </View>
+  );
+});
+
+/** Static slot while GetTheApp banner chunk loads. */
+const GetTheAppSlotSkeleton = memo(function GetTheAppSlotSkeleton() {
+  return (
+    <View style={styles.getTheAppSkeleton}>
+      <View style={styles.getTheAppSkeletonCopy}>
+        <View style={styles.getTheAppSkeletonTitle} />
+        <View style={styles.getTheAppSkeletonSub} />
+      </View>
+      <View style={styles.getTheAppSkeletonActions}>
+        <View style={styles.getTheAppSkeletonChip} />
+        <View style={styles.getTheAppSkeletonChip} />
+      </View>
+    </View>
+  );
+});
+
 type HomeFeedItem =
   | { type: "dashboard"; id: string }
   | { type: "search"; id: string }
@@ -336,7 +369,7 @@ const ListItem = memo(
         const fallback = <View style={carouselFallbackStyle} />;
         return (
           <View style={carouselFallbackStyle}>
-            <DeferredFadeIn delay={100} style={{flex: 1}} fallback={fallback}>
+            <DeferredFadeIn delay={Platform.OS === "web" ? 0 : 100} style={{flex: 1}} fallback={fallback}>
               <Suspense fallback={fallback}>
                 <Carasole onScrollToCategories={onScrollToCategories} />
               </Suspense>
@@ -344,32 +377,36 @@ const ListItem = memo(
           </View>
         );
       }
-      case "weather":
+      case "weather": {
+        const fallback = <WeatherSlotSkeleton />;
         return (
           <View style={styles.weatherSection}>
             <DeferredFadeIn
-              delay={Platform.OS === "web" ? 0 : 250}
-              fallback={<View style={styles.weatherSlotFallback} />}
+              delay={Platform.OS === "web" ? 0 : 100}
+              fallback={fallback}
             >
-              <Suspense fallback={<View style={styles.weatherSlotFallback} />}>
+              <Suspense fallback={fallback}>
                 <WeatherSection />
               </Suspense>
             </DeferredFadeIn>
           </View>
         );
-      case "getTheApp":
+      }
+      case "getTheApp": {
+        const fallback = <GetTheAppSlotSkeleton />;
         return (
           <View style={styles.getTheAppSection}>
             <DeferredFadeIn
-              delay={Platform.OS === "web" ? 0 : 150}
-              fallback={<View style={styles.getTheAppSlotFallback} />}
+              delay={Platform.OS === "web" ? 0 : 100}
+              fallback={fallback}
             >
-              <Suspense fallback={<View style={styles.getTheAppSlotFallback} />}>
+              <Suspense fallback={fallback}>
                 <GetTheApp variant="banner" />
               </Suspense>
             </DeferredFadeIn>
           </View>
         );
+      }
       case "categoryCard":
         return (
           <CategoryCard
@@ -733,18 +770,97 @@ const styles = StyleSheet.create({
     minWidth: "100%",
     overflow: "hidden",
   },
-  weatherSlotFallback: {
+  weatherSkeleton: {
     height: WEATHER_SLOT_HEIGHT,
     width: "100%",
+    paddingHorizontal: 20,
+    justifyContent: "center",
+  },
+  weatherSkeletonCard: {
+    height: 76,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: "#e8e8e8",
+    backgroundColor: "#f7f7f7",
+    paddingHorizontal: 15,
+    paddingVertical: 18,
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  weatherSkeletonLine: {
+    height: 10,
+    borderRadius: 4,
+    backgroundColor: "#ebebeb",
+    width: "78%",
+    alignSelf: "center",
+  },
+  weatherSkeletonLineShort: {
+    width: "52%",
+  },
+  weatherSkeletonDots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    height: 14,
+  },
+  weatherSkeletonDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#e0e0e0",
+  },
+  weatherSkeletonDotActive: {
+    width: 14,
+    backgroundColor: "#d0d0d0",
   },
   getTheAppSection: {
     height: GET_THE_APP_BANNER_HEIGHT,
     width: "100%",
     overflow: "hidden",
   },
-  getTheAppSlotFallback: {
-    height: GET_THE_APP_BANNER_HEIGHT,
-    width: "100%",
+  getTheAppSkeleton: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 8,
+    height: 60,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: Colors.light.softGreen,
+    borderWidth: 1,
+    borderColor: "rgba(44, 175, 127, 0.12)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  getTheAppSkeletonCopy: {
+    flex: 1,
+    gap: 8,
+  },
+  getTheAppSkeletonTitle: {
+    height: 12,
+    width: "70%",
+    borderRadius: 4,
+    backgroundColor: "rgba(25, 75, 56, 0.12)",
+  },
+  getTheAppSkeletonSub: {
+    height: 10,
+    width: "55%",
+    borderRadius: 4,
+    backgroundColor: "rgba(25, 75, 56, 0.08)",
+  },
+  getTheAppSkeletonActions: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  getTheAppSkeletonChip: {
+    width: 72,
+    height: 30,
+    borderRadius: 999,
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    borderWidth: 1,
+    borderColor: "rgba(44, 175, 127, 0.16)",
   },
   productRailFallback: {
     height: HOME_PRODUCT_RAIL_HEIGHT,
