@@ -13,13 +13,13 @@ import React, {
 import {
   StyleSheet,
   View,
-  FlatList,
   InteractionManager,
   Platform,
   RefreshControl,
   useWindowDimensions,
   ViewToken,
 } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
 import { useDispatch, useSelector, shallowEqual } from "react-redux";
 import {
@@ -65,6 +65,11 @@ const RecentlyViewedProducts = lazy(
 );
 
 const CATEGORY_PLACEHOLDER_COUNT = 3;
+/**
+ * The category API currently returns a tree rather than a cursor response.
+ * Page the feed projection so the list never receives every category/rail row.
+ */
+const HOME_FEED_PAGE_SIZE = 24;
 /** Prefetch first N product rails so the initial viewport isn't empty. */
 const INITIAL_ENABLED_RAIL_COUNT = 2;
 /** Parallel disk peeks while seeding empty rails — avoid AsyncStorage stampede. */
@@ -164,45 +169,40 @@ type HomeFeedItem =
 
 type ProductRailItem = Extract<HomeFeedItem, { type: "productRail" }>;
 
-function getHomeFeedItemHeight(
-  item: HomeFeedItem,
-  windowWidth: number,
-): number {
-  switch (item.type) {
-    case "dashboard":
-      return DASHBOARD_ROW_HEIGHT;
-    case "search":
-      return SEARCH_ROW_HEIGHT;
-    case "storeStatus":
-      return STORE_STATUS_ROW_HEIGHT;
-    case "carousel":
-      return getCarouselSlotHeight(windowWidth);
-    case "weather":
-      return WEATHER_SLOT_HEIGHT;
-    case "getTheApp":
-      return GET_THE_APP_BANNER_HEIGHT;
-    case "categorySkeleton":
-      return (
-        HOME_CATEGORY_CARD_BASE_HEIGHT +
-        (item.index !== CATEGORY_PLACEHOLDER_COUNT - 1
-          ? HOME_CATEGORY_CARD_GAP
-          : 0)
-      );
-    case "categoryCard":
-      return (
-        HOME_CATEGORY_CARD_BASE_HEIGHT +
-        (item.index !== item.length - 1 ? HOME_CATEGORY_CARD_GAP : 0)
-      );
-    case "productRail":
-      return HOME_PRODUCT_RAIL_HEIGHT;
-    case "promo":
-      return HOME_PROMO_INLINE_SLOT_HEIGHT;
-    case "recentlyViewed":
-      return HOME_RECENTLY_VIEWED_SLOT_HEIGHT;
-    default:
-      return 0;
+function hasRemainingHomeFeedRows(
+  categories: Category[],
+  omittedRails: Record<string, true>,
+  categoryIndex: number,
+  childStartIndex: number,
+): boolean {
+  const currentCategory = categories[categoryIndex];
+  for (
+    let childIndex = childStartIndex;
+    childIndex < (currentCategory?.children ?? []).length;
+    childIndex += 1
+  ) {
+    const child = currentCategory.children?.[childIndex];
+    if (
+      child?._id &&
+      !omittedRails[`rail-${child._id}`] &&
+      !isHomeRailKnownEmpty(child._id)
+    ) {
+      return true;
+    }
   }
+
+  // Every later parent category contributes at least its category-card row.
+  return categoryIndex + 1 < categories.length;
 }
+
+const LEADING_FEED_ITEMS: readonly HomeFeedItem[] = [
+  { type: "dashboard", id: "dashboard" },
+  { type: "search", id: "search" },
+  { type: "storeStatus", id: "storeStatus" },
+  ...(Platform.OS !== "web" ? [{ type: "carousel" as const, id: "carousel" }] : []),
+  { type: "weather", id: "weather" },
+  ...(Platform.OS === "web" ? [{ type: "getTheApp" as const, id: "getTheApp" }] : []),
+];
 
 type RailEnableStore = {
   get: (id: string) => boolean;
@@ -326,6 +326,175 @@ const ProductRailRow = memo(function ProductRailRow({
   );
 });
 
+type ListItemProps = {
+  item: HomeFeedItem;
+  carouselFallbackStyle: { width: number; height: number };
+  onProfilePress: () => void;
+  onStickySearchLayout: (event: { nativeEvent: { layout: { height: number } } }) => void;
+  onScrollToCategories: () => void;
+  onCategorySelect: (
+    subCategory: Category,
+    parentCategory: Category,
+    index: number,
+  ) => void;
+  onRailEmpty: (railId: string) => void;
+};
+
+function areHomeFeedItemsEqual(
+  previous: HomeFeedItem,
+  next: HomeFeedItem,
+): boolean {
+  if (previous === next) return true;
+  if (previous.id !== next.id || previous.type !== next.type) return false;
+  if (previous.type === "categoryCard" && next.type === "categoryCard") {
+    return (
+      previous.category === next.category &&
+      previous.index === next.index &&
+      previous.length === next.length
+    );
+  }
+  if (previous.type === "productRail" && next.type === "productRail") {
+    return (
+      previous.parent === next.parent &&
+      previous.subCategory === next.subCategory &&
+      previous.subCategoryIndex === next.subCategoryIndex
+    );
+  }
+  if (
+    previous.type === "categorySkeleton" &&
+    next.type === "categorySkeleton"
+  ) {
+    return previous.index === next.index;
+  }
+  return true;
+}
+
+/**
+ * Heterogeneous feed renderer. Its comparator intentionally uses stable ids and
+ * source-object references so pagination and unrelated store updates do not
+ * re-render mounted rows.
+ */
+const ListItem = memo(
+  function ListItem({
+    item,
+    carouselFallbackStyle,
+    onProfilePress,
+    onStickySearchLayout,
+    onScrollToCategories,
+    onCategorySelect,
+    onRailEmpty,
+  }: ListItemProps) {
+    switch (item.type) {
+      case "dashboard":
+        return <DashboardFeedRow onProfilePress={onProfilePress} />;
+      case "search":
+        return (
+          <View style={styles.stickySearchBar} onLayout={onStickySearchLayout}>
+            <View style={styles.stickySearchBarContent}>
+              <HomeSearch compact />
+            </View>
+          </View>
+        );
+      case "storeStatus":
+        return (
+          <View style={styles.storeStatusSection}>
+            <HomeStoreStatus />
+          </View>
+        );
+      case "carousel": {
+        const fallback = <View style={carouselFallbackStyle} />;
+        return (
+          <View style={carouselFallbackStyle}>
+            <DeferredFadeIn delay={100} fallback={fallback}>
+              <Suspense fallback={fallback}>
+                <Carasole onScrollToCategories={onScrollToCategories} />
+              </Suspense>
+            </DeferredFadeIn>
+          </View>
+        );
+      }
+      case "weather":
+        return (
+          <View style={styles.weatherSection}>
+            <DeferredFadeIn
+              delay={Platform.OS === "web" ? 0 : 250}
+              fallback={<View style={styles.weatherSlotFallback} />}
+            >
+              <Suspense fallback={<View style={styles.weatherSlotFallback} />}>
+                <WeatherSection />
+              </Suspense>
+            </DeferredFadeIn>
+          </View>
+        );
+      case "getTheApp":
+        return (
+          <View style={styles.getTheAppSection}>
+            <DeferredFadeIn
+              delay={Platform.OS === "web" ? 0 : 150}
+              fallback={<View style={styles.getTheAppSlotFallback} />}
+            >
+              <Suspense fallback={<View style={styles.getTheAppSlotFallback} />}>
+                <GetTheApp variant="banner" />
+              </Suspense>
+            </DeferredFadeIn>
+          </View>
+        );
+      case "categorySkeleton":
+        return (
+          <CategoryCardPlaceholder
+            index={item.index}
+            length={CATEGORY_PLACEHOLDER_COUNT}
+          />
+        );
+      case "categoryCard":
+        return (
+          <CategoryCard
+            category={item.category}
+            index={item.index}
+            onSelect={onCategorySelect}
+            length={item.length}
+          />
+        );
+      case "productRail":
+        return (
+          <ProductRailRow
+            item={item}
+            onViewMore={onCategorySelect}
+            onEmpty={onRailEmpty}
+          />
+        );
+      case "promo": {
+        const fallback = <View style={styles.promoFallback} />;
+        return (
+          <DeferredFadeIn delay={200} fallback={fallback}>
+            <Suspense fallback={fallback}>
+              <HomeProductPromo variant="inline" />
+            </Suspense>
+          </DeferredFadeIn>
+        );
+      }
+      case "recentlyViewed": {
+        const fallback = <View style={styles.recentlyViewedFallback} />;
+        return (
+          <DeferredFadeIn delay={450} fallback={fallback}>
+            <Suspense fallback={fallback}>
+              <RecentlyViewedProducts variant="compact" />
+            </Suspense>
+          </DeferredFadeIn>
+        );
+      }
+    }
+  },
+  (previous, next) =>
+    (areHomeFeedItemsEqual(previous.item, next.item) &&
+      previous.carouselFallbackStyle === next.carouselFallbackStyle &&
+      previous.onProfilePress === next.onProfilePress &&
+      previous.onStickySearchLayout === next.onStickySearchLayout &&
+      previous.onScrollToCategories === next.onScrollToCategories &&
+      previous.onCategorySelect === next.onCategorySelect &&
+      previous.onRailEmpty === next.onRailEmpty),
+);
+
 const PrivateHome = () => {
   const { width: windowWidth } = useWindowDimensions();
   const carouselFallbackHeight = getCarouselSlotHeight(windowWidth);
@@ -334,19 +503,24 @@ const PrivateHome = () => {
     [windowWidth, carouselFallbackHeight],
   );
   const dispatch = useDispatch<typeof store.dispatch>();
-  const listRef = useRef<FlatList<HomeFeedItem>>(null);
+  const listRef = useRef<any>(null);
   const firstCategoryIndexRef = useRef(0);
   const layoutOffsets = useRef({ sticky: 0 });
+  const isLoadingNextPageRef = useRef(false);
   const railEnableStoreRef = useRef<RailEnableStore | null>(null);
   if (!railEnableStoreRef.current) {
     railEnableStoreRef.current = createRailEnableStore();
   }
   const railEnableStore = railEnableStoreRef.current;
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [visibleFeedItemCount, setVisibleFeedItemCount] = useState(
+    HOME_FEED_PAGE_SIZE,
+  );
   /** Home-feed only — never mutates category tree / ProductList3. */
   const [omittedRails, setOmittedRails] = useState<Record<string, true>>({});
   const promoDockedInline = useSelector(
-    (state: RootState) => state.homePromo.promoDockedInline,
+    (state: RootState & { homePromo: { promoDockedInline: boolean } }) =>
+      state.homePromo.promoDockedInline,
   );
   const token = useSelector((state: RootState) => state?.auth?.token);
   const appSyncReady = useSelector((state: RootState) => state.appSync?.ready);
@@ -375,110 +549,130 @@ const PrivateHome = () => {
     !categories.length &&
     (!appSyncReady || isCategoriesLoading || isCategoriesFetching);
 
-  const feedItems = useMemo((): HomeFeedItem[] => {
-    const items: HomeFeedItem[] = [
-      { type: "dashboard", id: "dashboard" },
-      { type: "search", id: "search" },
-      { type: "storeStatus", id: "storeStatus" },
-    ];
-
-    if (Platform.OS !== "web") {
-      items.push({ type: "carousel", id: "carousel" });
-    }
-
-    items.push({ type: "weather", id: "weather" });
-
-    if (Platform.OS === "web") {
-      items.push({ type: "getTheApp", id: "getTheApp" });
-    }
-
-    firstCategoryIndexRef.current = items.length;
-
+  const categoryFeedPage = useMemo(() => {
     if (showCategorySkeleton) {
-      for (let index = 0; index < CATEGORY_PLACEHOLDER_COUNT; index += 1) {
-        items.push({
-          type: "categorySkeleton",
+      return {
+        items: Array.from({ length: CATEGORY_PLACEHOLDER_COUNT }, (_, index) => ({
+          type: "categorySkeleton" as const,
           id: `category-skeleton-${index}`,
           index,
-        });
-      }
-    } else {
-      const length = categories.length;
+        })),
+        hasMore: true,
+      };
+    }
 
-      categories.forEach((parent, index) => {
-        items.push({
+    const items: HomeFeedItem[] = [];
+    let remaining = visibleFeedItemCount;
+    const length = categories.length;
+    for (let index = 0; index < length; index += 1) {
+      if (remaining === 0) {
+        return { items, hasMore: true };
+      }
+
+      const parent = categories[index] as Category;
+      items.push({
           type: "categoryCard",
           id: `category-${parent._id}`,
           category: parent,
           index,
           length,
-        });
-
-        (parent.children ?? []).forEach((subCategory, subCategoryIndex) => {
-          const railId = `rail-${subCategory._id}`;
-          if (omittedRails[railId]) return;
-          // Skip rails already known empty (memory / RTK) so they never mount at 286px.
-          if (subCategory._id && isHomeRailKnownEmpty(subCategory._id)) return;
-          items.push({
-            type: "productRail",
-            id: railId,
-            parent,
-            subCategory,
-            subCategoryIndex,
-          });
-        });
       });
-    }
+      remaining -= 1;
 
-    if (promoDockedInline) {
+      if (remaining === 0) {
+        return {
+          items,
+          hasMore: hasRemainingHomeFeedRows(
+            categories as Category[],
+            omittedRails,
+            index,
+            0,
+          ),
+        };
+      }
+
+      for (
+        let subCategoryIndex = 0;
+        subCategoryIndex < (parent.children ?? []).length;
+        subCategoryIndex += 1
+      ) {
+        const subCategory = parent.children?.[subCategoryIndex] as Category;
+        const railId = `rail-${subCategory._id}`;
+        if (omittedRails[railId] || (subCategory._id && isHomeRailKnownEmpty(subCategory._id))) {
+          continue;
+        }
+        items.push({
+          type: "productRail",
+          id: railId,
+          parent,
+          subCategory,
+          subCategoryIndex,
+        });
+        remaining -= 1;
+
+        if (remaining === 0) {
+          return {
+            items,
+            hasMore: hasRemainingHomeFeedRows(
+              categories as Category[],
+              omittedRails,
+              index,
+              subCategoryIndex + 1,
+            ),
+          };
+        }
+      }
+    }
+    return {
+      items,
+      hasMore: false,
+    };
+  }, [categories, omittedRails, showCategorySkeleton, visibleFeedItemCount]);
+
+  const feedItems = useMemo((): HomeFeedItem[] => {
+    firstCategoryIndexRef.current = LEADING_FEED_ITEMS.length;
+    const items: HomeFeedItem[] = [...LEADING_FEED_ITEMS, ...categoryFeedPage.items];
+    // Tail content is reached after category pagination, preserving its
+    // existing visual location without mounting it during initial paint.
+    if (!categoryFeedPage.hasMore && promoDockedInline) {
       items.push({ type: "promo", id: "promo" });
     }
 
-    if (hasRecentlyViewed) {
+    if (!categoryFeedPage.hasMore && hasRecentlyViewed) {
       items.push({ type: "recentlyViewed", id: "recentlyViewed" });
     }
 
     return items;
   }, [
-    categories,
-    showCategorySkeleton,
+    categoryFeedPage,
     promoDockedInline,
     hasRecentlyViewed,
-    omittedRails,
   ]);
 
-  const getItemLayout = useMemo(() => {
-    const lengths = feedItems.map((item) =>
-      getHomeFeedItemHeight(item, windowWidth),
-    );
-    const offsets: number[] = new Array(lengths.length);
-    let offset = 0;
-    for (let i = 0; i < lengths.length; i += 1) {
-      offsets[i] = offset;
-      offset += lengths[i];
-    }
-    return (_data: ArrayLike<HomeFeedItem> | null | undefined, index: number) => ({
-      length: lengths[index] ?? 0,
-      offset: offsets[index] ?? 0,
-      index,
-    });
-  }, [feedItems, windowWidth]);
-
-  // Seed omitted rails from disk cache before / while first paint so empties
-  // don't mount as full-height skeletons (home feed only).
   useEffect(() => {
-    if (showCategorySkeleton || !categories.length) return;
+    setVisibleFeedItemCount(HOME_FEED_PAGE_SIZE);
+  }, [categories]);
+
+  useEffect(() => {
+    isLoadingNextPageRef.current = false;
+  }, [visibleFeedItemCount]);
+
+  // Probe only projected rails. Queuing every subcategory here would create
+  // unnecessary AsyncStorage work on a large feed before rows can be viewed.
+  useEffect(() => {
+    if (showCategorySkeleton) return;
 
     let cancelled = false;
-    const subCategoryIds: string[] = [];
-    for (const parent of categories) {
-      for (const child of parent.children ?? []) {
-        if (!child?._id) continue;
-        // Skip ids already known empty in memory/RTK — no disk round-trip.
-        if (isHomeRailKnownEmpty(child._id)) continue;
-        subCategoryIds.push(child._id);
-      }
-    }
+    const subCategoryIds = categoryFeedPage.items
+      .filter(
+        (item: HomeFeedItem): item is ProductRailItem =>
+          item.type === "productRail",
+      )
+      .map((item) => item.subCategory._id)
+      .filter(
+        (categoryId): categoryId is string =>
+          Boolean(categoryId) && !isHomeRailKnownEmpty(categoryId),
+      );
 
     (async () => {
       const emptyIds: Record<string, true> = {};
@@ -510,13 +704,16 @@ const PrivateHome = () => {
     return () => {
       cancelled = true;
     };
-  }, [categories, showCategorySkeleton]);
+  }, [categoryFeedPage.items, showCategorySkeleton]);
 
   // Prefetch first rails once the feed is known (per-rail listeners only).
   useEffect(() => {
     if (showCategorySkeleton) return;
     const firstRailIds = feedItems
-      .filter((item): item is ProductRailItem => item.type === "productRail")
+      .filter(
+        (item: HomeFeedItem): item is ProductRailItem =>
+          item.type === "productRail",
+      )
       .slice(0, INITIAL_ENABLED_RAIL_COUNT)
       .map((item) => item.id);
 
@@ -550,7 +747,7 @@ const PrivateHome = () => {
         (item) => item?._id === selectedCategory?._id,
       );
       const selectedCategory1 = categories.find(
-        (item) => item?._id == parentCategory?._id,
+        (item: Category) => item?._id == parentCategory?._id,
       );
       dispatch(setCategoryData(selectedCategory1));
       router.push(
@@ -572,6 +769,9 @@ const PrivateHome = () => {
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
+    // A pull refresh represents a fresh feed snapshot. Reset the local page
+    // cursor independently of whether RTK reuses the category array reference.
+    setVisibleFeedItemCount(HOME_FEED_PAGE_SIZE);
     try {
       await Promise.all([
         isCategoriesUninitialized
@@ -635,120 +835,31 @@ const PrivateHome = () => {
     [],
   );
 
+  const loadNextPage = useCallback(() => {
+    if (
+      showCategorySkeleton ||
+      !categoryFeedPage.hasMore ||
+      isLoadingNextPageRef.current
+    ) {
+      return;
+    }
+    isLoadingNextPageRef.current = true;
+    setVisibleFeedItemCount((current) => current + HOME_FEED_PAGE_SIZE);
+  }, [categoryFeedPage.hasMore, showCategorySkeleton]);
+
   const renderItem = useCallback(
     ({ item }: { item: HomeFeedItem }) => {
-      switch (item.type) {
-        case "dashboard":
-          // Mount immediately — deferred mount with no reserved height
-          // was pushing the category section down on first paint.
-          return <DashboardFeedRow onProfilePress={handleProfilePress} />;
-        case "search":
-          return (
-            <View style={styles.stickySearchBar} onLayout={onStickySearchLayout}>
-              <View style={styles.stickySearchBarContent}>
-                <HomeSearch compact />
-              </View>
-            </View>
-          );
-        case "storeStatus":
-          return (
-            <View style={styles.storeStatusSection}>
-              <HomeStoreStatus />
-            </View>
-          );
-        case "carousel": {
-          const carouselFallback = (
-            <View style={carouselFallbackStyle} />
-          );
-          return (
-            <DeferredFadeIn delay={100} fallback={carouselFallback}>
-              <Suspense fallback={carouselFallback}>
-                <Carasole onScrollToCategories={scrollToCategories} />
-              </Suspense>
-            </DeferredFadeIn>
-          );
-        }
-        case "weather":
-          return (
-            <View style={styles.weatherSection}>
-              <DeferredFadeIn
-                delay={Platform.OS === "web" ? 0 : 250}
-                fallback={<View style={styles.weatherSlotFallback} />}
-              >
-                <Suspense
-                  fallback={<View style={styles.weatherSlotFallback} />}
-                >
-                  <WeatherSection />
-                </Suspense>
-              </DeferredFadeIn>
-            </View>
-          );
-        case "getTheApp":
-          return (
-            <View style={styles.getTheAppSection}>
-              <DeferredFadeIn
-                delay={Platform.OS === "web" ? 0 : 150}
-                fallback={<View style={styles.getTheAppSlotFallback} />}
-              >
-                <Suspense
-                  fallback={<View style={styles.getTheAppSlotFallback} />}
-                >
-                  <GetTheApp variant="banner" />
-                </Suspense>
-              </DeferredFadeIn>
-            </View>
-          );
-        case "categorySkeleton":
-          return (
-            <CategoryCardPlaceholder
-              index={item.index}
-              length={CATEGORY_PLACEHOLDER_COUNT}
-            />
-          );
-        case "categoryCard":
-          return (
-            <CategoryCard
-              category={item.category}
-              index={item.index}
-              onSelect={handleCategorySelect}
-              length={item.length}
-            />
-          );
-        case "productRail":
-          return (
-            <ProductRailRow
-              item={item}
-              onViewMore={handleCategorySelect}
-              onEmpty={handleRailEmpty}
-            />
-          );
-        case "promo": {
-          const promoFallback = (
-            <View style={styles.promoFallback} />
-          );
-          return (
-            <DeferredFadeIn delay={200} fallback={promoFallback}>
-              <Suspense fallback={promoFallback}>
-                <HomeProductPromo variant="inline" />
-              </Suspense>
-            </DeferredFadeIn>
-          );
-        }
-        case "recentlyViewed": {
-          const recentFallback = (
-            <View style={styles.recentlyViewedFallback} />
-          );
-          return (
-            <DeferredFadeIn delay={450} fallback={recentFallback}>
-              <Suspense fallback={recentFallback}>
-                <RecentlyViewedProducts variant="compact" />
-              </Suspense>
-            </DeferredFadeIn>
-          );
-        }
-        default:
-          return null;
-      }
+      return (
+        <ListItem
+          item={item}
+          carouselFallbackStyle={carouselFallbackStyle}
+          onProfilePress={handleProfilePress}
+          onStickySearchLayout={onStickySearchLayout}
+          onScrollToCategories={scrollToCategories}
+          onCategorySelect={handleCategorySelect}
+          onRailEmpty={handleRailEmpty}
+        />
+      );
     },
     [
       handleProfilePress,
@@ -768,12 +879,11 @@ const PrivateHome = () => {
         showWeatherSection={true}
         showGradient={true}
       >
-        <FlatList
+        <FlashList<HomeFeedItem>
           ref={listRef}
           data={feedItems}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
-          getItemLayout={getItemLayout}
           stickyHeaderIndices={[1]}
           refreshControl={
             <RefreshControl
@@ -787,18 +897,11 @@ const PrivateHome = () => {
           keyboardShouldPersistTaps="handled"
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
-          initialNumToRender={6}
-          maxToRenderPerBatch={4}
-          windowSize={7}
-          removeClippedSubviews={Platform.OS === "android"}
-          onScrollToIndexFailed={(info) => {
-            setTimeout(() => {
-              listRef.current?.scrollToIndex({
-                index: info.index,
-                animated: true,
-                viewOffset: layoutOffsets.current.sticky,
-              });
-            }, 100);
+          onEndReached={loadNextPage}
+          onEndReachedThreshold={0.5}
+          maintainVisibleContentPosition={{
+            disabled: false,
+            autoscrollToBottomThreshold: 0.1,
           }}
         />
       </ScreenSafeWrapper>
