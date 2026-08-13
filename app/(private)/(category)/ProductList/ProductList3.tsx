@@ -113,7 +113,7 @@ const ProductList3 = ({
   const { data: cartData, isLoading: isCartLoading } = useFetchCartQuery(
     { userId },
     { skip: !userId 
-      && scrollEndedRef.current !== 1
+      //&& scrollEndedRef.current !== 1
      }
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -377,11 +377,12 @@ const onViewableItemsChanged = useRef(
     }));
   }, [setPaginationState]);
 
-  const handleEndReached = useCallback(() => {
+  const handleEndReached = useCallback(async() => {
     if (showInitialSkeleton) return;
     if (!hasNextPage) return;
     if (isProductsFetching) return;
-   
+    await new Promise(resolve => setTimeout(resolve, 300));
+
     // if (showPaginationSkeleton || isPagingMore) return;
     // beginPaging();
     fetchNextPage();
@@ -471,6 +472,7 @@ const onViewableItemsChanged = useRef(
       keyExtractor={(item) => item._id}
       renderItem={renderProductItem}
       ListEmptyComponent={renderEmptyComponent}
+      ListFooterComponentStyle={hasNextPage ? [styles.listFooter] : undefined}
       contentContainerStyle={listContentContainerStyle}
       onEndReached={showInitialSkeleton ? undefined : handleEndReached}
       onEndReachedThreshold={0.35}
@@ -501,5 +503,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
+  },
+  listFooter: {
+    height: 200,
   },
 });

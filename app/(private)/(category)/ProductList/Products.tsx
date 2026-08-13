@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { View, FlatList, StyleSheet } from "react-native";
+import { View, FlatList, StyleSheet, Platform } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import {
   productApi,
@@ -241,7 +241,7 @@ const Products = ({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, Platform.OS === "web" ? { height: '100vh' } : {}]}>
       {showOverlaySpinner && (
         <View style={styles.overlay}>
           <AsyncRouteLoader

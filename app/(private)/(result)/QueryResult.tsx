@@ -120,7 +120,8 @@ const QueryResult = ({query}:{query:string}) => {
         ...apiParams,
       },
       {
-        skip: !query && scrollEndedRef.current !== 1,
+        skip: !query
+        // && scrollEndedRef.current !== 1,
       },
     );
 
@@ -414,10 +415,11 @@ const listContentContainerStyle = useMemo(
 
   const showPlaceholder = !hasResults && (isLoading || isFetching);
 
-  const handleEndReached = useCallback(() => {
+  const handleEndReached = useCallback(async() => {
     if (showInitialSkeleton) return;
     if (!hasNextPage) return;
     if (isFetching) return;
+    await new Promise(resolve => setTimeout(resolve, 300));
     fetchNextPage();
   }, [
     showInitialSkeleton,
@@ -428,16 +430,21 @@ const listContentContainerStyle = useMemo(
 
   const onMomentumScrollEnd = useCallback(() => {
     scrollEndedRef.current = 1;
+    console.log("juhygfdsdfghjhgfd onMomentumScrollEnd",scrollEndedRef.current)
   }, []);
   const onMomentumScrollBegin = useCallback(() => {
     scrollEndedRef.current = 2;
+    console.log("juhygfdsdfghjhgfd onMomentumScrollBegin",scrollEndedRef.current)
   }, []);
   const onScrollBeginDrag = useCallback(() => {
     scrollEndedRef.current = 3;
+    console.log("juhygfdsdfghjhgfd onScrollBeginDrag",scrollEndedRef.current)
   }, []);
   const onScrollEndDrag = useCallback(() => {
     scrollEndedRef.current = 4;
+    console.log("juhygfdsdfghjhgfd onScrollEndDrag",scrollEndedRef.current)
   }, []);
+  console.log("juhygfdsdfghjhgfd scrollEndedRef.current",scrollEndedRef.current)
 
   return (
     <>
@@ -469,11 +476,11 @@ const listContentContainerStyle = useMemo(
             ) : error ? (
               <Text style={styles.errorText}>Error loading data</Text>
             ) : (
-              <View style={styles.container}>
+              <View style={[styles.container, Platform.OS === "web" ? { height: '100vh' } : {}]}>
                 <FlatList
                   key={`${query}-${filterKey}`}
                   bounces={Platform.OS === "android" ? false : true}
-                  initialNumToRender={6}
+                  initialNumToRender={10}
                   data={data?.results}
                   extraData={{ cartItemsMap }}
                   renderItem={renderProductItem}
@@ -488,6 +495,7 @@ const listContentContainerStyle = useMemo(
                   ListHeaderComponent={header}
                   ListEmptyComponent={renderEmptyComponent}
                   ListFooterComponent={renderListFooter}
+                  ListFooterComponentStyle={hasNextPage ? [styles.listFooter] : undefined}
                   onMomentumScrollEnd={onMomentumScrollEnd}
                   onMomentumScrollBegin={onMomentumScrollBegin}
                   onScrollBeginDrag={onScrollBeginDrag}
@@ -562,5 +570,8 @@ const styles = StyleSheet.create({
   listRefreshing: {
     opacity: 0.6,
     pointerEvents: "none",
+  },
+  listFooter: {
+    height: 200,
   },
 });
