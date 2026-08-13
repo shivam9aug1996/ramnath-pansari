@@ -16,6 +16,7 @@ import { Colors } from "@/constants/Colors";
 import {
   getProductColumnStyle,
   PRODUCT_CARD_HEIGHT,
+  PRODUCT_IMAGE_ASPECT_RATIO,
   PRODUCT_ITEM_MARGIN_BOTTOM,
 } from "./productListLayout";
 import { useSelector } from "react-redux";
@@ -136,7 +137,7 @@ const ProductInfo = memo(
             styles.productName,
             item.isOutOfStock && styles.outOfStockMutedText,
           ]}
-          numberOfLines={3}
+          numberOfLines={2}
         >
           {item.name}
         </Text>
@@ -192,12 +193,12 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     position: "relative",
-    aspectRatio: 1,
+    aspectRatio: PRODUCT_IMAGE_ASPECT_RATIO,
     backgroundColor: "#fafafa",
   },
   imageWrapper: {
     flex: 1,
-    padding: 8,
+    padding: 6,
   },
   imageContent: {
     flex: 1,
@@ -247,7 +248,9 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   productInfo: {
-    padding: 8,
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    paddingBottom: 8,
   },
   weightContainer: {
     flexDirection: "row",
@@ -271,8 +274,8 @@ const styles = StyleSheet.create({
     color: "#1f2937",
     fontWeight: "600",
     lineHeight: 16,
-    marginBottom: 6,
-    minHeight: 48,
+    marginBottom: 4,
+    minHeight: 32,
   },
   ratingContainer: {
     flexDirection: "row",
@@ -288,24 +291,24 @@ const styles = StyleSheet.create({
     color: "#6b7280",
   },
   discountText: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#2563eb",
     fontWeight: "600",
-    marginBottom: 4,
+    marginBottom: 2,
   },
   priceContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginBottom: 2,
+    marginBottom: 0,
   },
   currentPrice: {
-    fontSize: 16,
+    fontSize: 15,
     color: "#1f2937",
     fontWeight: "700",
   },
   originalPrice: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#9ca3af",
     textDecorationLine: "line-through",
     fontWeight: "500",

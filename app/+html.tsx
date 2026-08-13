@@ -268,6 +268,16 @@ body {
 
 /* Desktop framing tweaks */
 @media (min-width: 520px) {
+  /*
+    Default desktop look = Chrome zoom 75%, with Chrome left at 100% (⌘0).
+    Height is expanded by 1/0.75 so after zoom the frame still fills the
+    viewport — more content fits, without the tiny floating phone.
+  */
+  #web-brand-bar,
+  #root {
+    zoom: 0.75;
+  }
+
   #web-brand-bar {
     display: flex;
   }
@@ -293,8 +303,10 @@ body {
   }
 
   #root {
-    height: calc(100% - 88px);
-    max-height: 920px;
+    width: 430px;
+    max-width: 430px;
+    height: calc((100% - 88px) / 0.75);
+    max-height: calc(920px / 0.75);
     border-radius: 28px;
     border: 1px solid rgba(0, 0, 0, 0.08);
     overflow: hidden;

@@ -4,6 +4,7 @@ import ContentLoader, { Rect } from "react-content-loader/native";
 import {
   getProductColumnStyle,
   PRODUCT_CARD_HEIGHT,
+  PRODUCT_IMAGE_ASPECT_RATIO,
   PRODUCT_ITEM_MARGIN_BOTTOM,
   PRODUCT_LIST_MARGIN_TOP,
   PRODUCT_LIST_PADDING_BOTTOM,
@@ -75,8 +76,7 @@ const ProductItemSkeleton = ({ index }: { index: number }) => (
       <View style={styles.productInfo}>
         <View style={styles.nameSkeleton}>
           <LoaderBlock width="95%" height={13} />
-          <LoaderBlock width="80%" height={13} />
-          <LoaderBlock width="60%" height={13} />
+          <LoaderBlock width="70%" height={13} />
         </View>
         <LoaderBlock width="45%" height={12} />
         <View style={styles.priceSkeleton}>
@@ -106,8 +106,7 @@ export const ProductItemSkeletonStatic = memo(({ index }: { index: number }) => 
       <View style={styles.productInfo}>
         <View style={styles.nameSkeleton}>
           <StaticBlock width="95%" />
-          <StaticBlock width="80%" />
-          <StaticBlock width="60%" />
+          <StaticBlock width="70%" />
         </View>
         <StaticBlock width="45%" height={12} />
         <View style={styles.priceSkeleton}>
@@ -175,12 +174,12 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     position: "relative",
-    aspectRatio: 1,
+    aspectRatio: PRODUCT_IMAGE_ASPECT_RATIO,
     backgroundColor: "#fafafa",
   },
   imageSkeleton: {
     flex: 1,
-    margin: 8,
+    margin: 6,
     borderRadius: 8,
     backgroundColor: "#f3f3f3",
   },
@@ -194,11 +193,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f0f0",
   },
   productInfo: {
-    padding: 8,
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    paddingBottom: 8,
     gap: 4,
   },
   nameSkeleton: {
-    minHeight: 48,
+    minHeight: 32,
     gap: 3,
     marginBottom: 2,
   },

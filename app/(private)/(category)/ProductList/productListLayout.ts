@@ -1,8 +1,11 @@
 /** Shared product grid layout — keep placeholder and list in sync on every screen size. */
 import { Product } from "@/types/global";
 import { Dimensions, Platform } from "react-native";
-/** Must fit square image + name (3 lines) + discount + price; was 280 and clipped price on web. */
-export const PRODUCT_CARD_HEIGHT = Dimensions.get("window").width > 390 ? 320 : 280;
+/** Image is slightly wider than tall + name (2 lines) + discount + price. */
+export const PRODUCT_CARD_HEIGHT = Dimensions.get("window").width > 390 ? 275 : 248;
+/** Image width/height — >1 shortens the image so more rows fit on screen. */
+export const PRODUCT_IMAGE_ASPECT_RATIO = 1.15;
+export const PRODUCT_ITEM_MARGIN_BOTTOM = 6;
 /** Space reserved for category/subcategory chrome — keep in sync with list paddingTop */
 export const CATEGORY_CHROME_ESTIMATED_HEIGHT = 170;
 export const PRODUCT_LIST_PADDING_TOP = CATEGORY_CHROME_ESTIMATED_HEIGHT;
@@ -12,7 +15,6 @@ export const PRODUCT_LIST_PADDING_BOTTOM = 24;
 export const PRODUCT_FILTER_FAB_CLEARANCE = 60;
 export const PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT = 20;
 export const PRODUCT_COLUMN_GAP = 4;
-export const PRODUCT_ITEM_MARGIN_BOTTOM = 8;
 export const PRODUCT_SKELETON_COUNT = 6;
 export const PRODUCT_PAGINATION_SKELETON_COUNT = 2;
 /** Fallback until GoToCart onLayout measures the real height */
