@@ -4,7 +4,7 @@ import CategoryItem from "./CategoryItem";
 import { Category, CategorySelectorProps } from "@/types/global";
 
 // Estimated width for a category item container (including right margin)
-const ESTIMATED_ITEM_WIDTH = 72;
+const ESTIMATED_ITEM_WIDTH = 88;
 
 const CategorySelector = ({
   categories = [],

@@ -60,9 +60,11 @@ export const scrollToIndex = (
   index: number,
   viewPosition: number = 0.3
 ) => {
+  if (!Number.isFinite(index) || index < 0) return;
+
   ref?.current?.scrollToIndex?.({
-    index: index,
+    index,
     animated: true,
-    viewPosition: viewPosition,
+    viewPosition,
   });
 };

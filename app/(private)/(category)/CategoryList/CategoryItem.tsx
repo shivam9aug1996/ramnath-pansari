@@ -22,18 +22,18 @@ interface Props {
 }
 
 const IMAGE_SIZES: Record<Variant, number> = {
-  small: 32,
+  small: 46,
   large: 60,
 };
 
 const MAX_WIDTHS: Record<Variant, number> = {
-  small: 64,
+  small: 78,
   large: 80,
 };
 
 const TEXT_STYLES: Record<Variant, TextStyle> = {
   small: {
-    fontSize: 9,
+    fontSize: 11,
     textAlign: "center",
     paddingHorizontal: 2,
     fontFamily: "Raleway_500Medium",
@@ -117,13 +117,13 @@ export default memo(CategoryItem);
 const styles = StyleSheet.create({
   container: {
     marginTop: 6,
-    marginRight: 8,
+    marginRight: 10,
     alignItems: "center",
   },
   imageContainer: {
-    borderRadius: 10,
-    marginBottom: 4,
-    padding: 4,
+    borderRadius: 12,
+    marginBottom: 5,
+    padding: 5,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",

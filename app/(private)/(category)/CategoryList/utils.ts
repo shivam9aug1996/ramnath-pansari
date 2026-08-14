@@ -84,5 +84,5 @@ export const getSubCategoryIndex = (
   const index = subCategories?.findIndex(
     (item: any) => item?._id === selectedSubCategory?._id
   );
-  return index;
+  return index >= 0 ? index : 0;
 };

@@ -20,17 +20,17 @@ type Props = {
 };
 
 const IMAGE_SIZES: Record<Variant, number> = {
-  small: 32,
+  small: 46,
   large: 60,
 };
 
 const MAX_WIDTHS: Record<Variant, number> = {
-  small: 64,
+  small: 78,
   large: 80,
 };
 
 const IMAGE_PADDING: Record<Variant, number> = {
-  small: 4,
+  small: 5,
   large: 10,
 };
 

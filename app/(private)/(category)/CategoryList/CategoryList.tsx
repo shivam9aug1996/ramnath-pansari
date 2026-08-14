@@ -86,7 +86,9 @@ const CategoryList = ({
       subCategories,
       selectedSubCategory,
     );
-    scrollToIndex(subCatFlatListRef, subCategoryIndex);
+    if (subCategoryIndex >= 0) {
+      scrollToIndex(subCatFlatListRef, subCategoryIndex);
+    }
 
     const selectedId =
       selectedSubCategory._id === "all"
