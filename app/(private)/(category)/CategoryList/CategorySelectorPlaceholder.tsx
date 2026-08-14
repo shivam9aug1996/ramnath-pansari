@@ -1,136 +1,140 @@
-import { FlatList, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
-import React, { memo } from "react";
-import { categoryListPlaceholder, imageBorderStyle } from "./utils";
-import { arrayColor } from "./constants";
+import React, { memo, useCallback } from "react";
+import {
+  FlatList,
+  Platform,
+  StyleSheet,
+  View,
+  ListRenderItemInfo,
+  ViewStyle,
+} from "react-native";
 import ContentLoader, { Rect } from "react-content-loader/native";
 
-const IMAGE_SIZES = {
+import { categoryListPlaceholder, imageBorderStyle } from "./utils";
+import { arrayColor } from "./constants";
+
+type Variant = "small" | "large";
+
+type Props = {
+  contentContainerStyle?: ViewStyle;
+  variant?: Variant;
+};
+
+const IMAGE_SIZES: Record<Variant, number> = {
   small: 32,
   large: 60,
 };
 
-const MAX_WIDTHS = {
+const MAX_WIDTHS: Record<Variant, number> = {
   small: 64,
   large: 80,
 };
 
-const IMAGE_PADDING = {
+const IMAGE_PADDING: Record<Variant, number> = {
   small: 4,
   large: 10,
 };
 
 const SKELETON_BG = "#f3f3f3";
+const SKELETON_FG = "#ecebeb";
 
-
-const renderImageLoader = (size: number) => {
+const RenderImageLoader = memo(function RenderImageLoader({
+  size,
+}: {
+  size: number;
+}) {
   if (Platform.OS === "web") {
-    return (
-      <View
-        style={{
-          width: size,
-          height: size,
-          borderRadius: 5,
-          backgroundColor: SKELETON_BG,
-        }}
-      />
-    );
+    return <View style={[styles.webImageSkeleton, { width: size, height: size }]} />;
   }
+
   return (
     <ContentLoader
       speed={2}
       width={size}
       height={size}
-      backgroundColor="#f3f3f3"
-      foregroundColor="#ecebeb"
+      backgroundColor={SKELETON_BG}
+      foregroundColor={SKELETON_FG}
     >
       <Rect rx={5} ry={5} width={size} height={size} />
     </ContentLoader>
   );
-};
+});
 
-const renderText = () => {
+const RenderTextSkeleton = memo(function RenderTextSkeleton() {
   if (Platform.OS === "web") {
     return (
-      <View style={{ alignSelf: "center", gap: 4 }}>
-        <View
-          style={{
-            width: 67,
-            height: 10,
-            borderRadius: 5,
-            backgroundColor: SKELETON_BG,
-          }}
-        />
-        <View
-          style={{
-            width: 67,
-            height: 10,
-            borderRadius: 5,
-            backgroundColor: SKELETON_BG,
-          }}
-        />
+      <View style={styles.webTextWrap}>
+        <View style={styles.webTextLine} />
+        <View style={styles.webTextLine} />
       </View>
     );
   }
+
   return (
     <ContentLoader
       speed={2}
       width={67}
       height={28.7}
-      backgroundColor="#f3f3f3"
-      foregroundColor="#ecebeb"
-      style={{
-        alignSelf: "center",
-      }}
+      backgroundColor={SKELETON_BG}
+      foregroundColor={SKELETON_FG}
+      style={styles.contentLoaderText}
     >
       <Rect rx={5} ry={5} width="67" y={0} height="10" />
       <Rect rx={5} ry={5} width="67" y={14} height="10" />
     </ContentLoader>
   );
-};
+});
 
 const CategorySelectorPlaceholder = ({
-  contentContainerStyle = {},
+  contentContainerStyle,
   variant = "small",
-}: {
-  contentContainerStyle?: object;
-  variant?: "small" | "large";
-}) => {
+}: Props) => {
   const imageSize = IMAGE_SIZES[variant];
   const maxWidth = MAX_WIDTHS[variant];
   const imagePadding = IMAGE_PADDING[variant];
 
-  const renderCategory = ({ item, index }: { item: any; index: number }) => {
-    const borderStyle = imageBorderStyle(arrayColor, false, index);
-    return (
-      <TouchableOpacity
-        key={item?._id || index}
-        style={[styles.categoryContainer, { maxWidth }]}
-      >
+  const keyExtractor = useCallback(
+    (item: any, index: number) => item?._id ?? `placeholder-${index}`,
+    [],
+  );
+
+  const renderCategory = useCallback(
+    ({ item, index }: ListRenderItemInfo<any>) => {
+      const borderStyle = imageBorderStyle(arrayColor, false, index);
+
+      return (
         <View
-          style={[
-            styles.imageContainer,
-            borderStyle,
-            {
-              paddingVertical: imagePadding,
-              paddingHorizontal: imagePadding,
-            },
-          ]}
+          key={item?._id || index}
+          style={[styles.categoryContainer, { maxWidth }]}
         >
-          {renderImageLoader(imageSize)}
+          <View
+            style={[
+              styles.imageContainer,
+              borderStyle,
+              {
+                paddingVertical: imagePadding,
+                paddingHorizontal: imagePadding,
+              },
+            ]}
+          >
+            <RenderImageLoader size={imageSize} />
+          </View>
+          <RenderTextSkeleton />
         </View>
-        {renderText()}
-      </TouchableOpacity>
-    );
-  };
+      );
+    },
+    [imagePadding, imageSize, maxWidth],
+  );
+
   return (
     <FlatList
-    bounces={Platform.OS === "android" ? false : true}
+      bounces={Platform.OS !== "android"}
       contentContainerStyle={contentContainerStyle}
       data={categoryListPlaceholder}
       horizontal
-      keyExtractor={(item) => item?._id}
+      keyExtractor={keyExtractor}
       showsHorizontalScrollIndicator={false}
       renderItem={renderCategory}
+      initialNumToRender={8}
     />
   );
 };
@@ -142,7 +146,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginRight: 8,
     alignItems: "center",
-
   },
   imageContainer: {
     borderRadius: 10,
@@ -152,13 +155,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  image: {
-    height: 32,
-    width: 32,
+  webImageSkeleton: {
+    borderRadius: 5,
+    backgroundColor: SKELETON_BG,
   },
-  categoryText: {
-    fontSize: 9,
-    textAlign: "center",
-    paddingHorizontal: 2,
+  webTextWrap: {
+    alignSelf: "center",
+    gap: 4,
+  },
+  webTextLine: {
+    width: 67,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: SKELETON_BG,
+  },
+  contentLoaderText: {
+    alignSelf: "center",
   },
 });

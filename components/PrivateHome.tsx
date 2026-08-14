@@ -20,38 +20,42 @@ import {
   ViewToken,
   ActivityIndicator,
   FlatList,
+  ListRenderItemInfo,
 } from "react-native";
-import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
-import { useDispatch, useSelector, shallowEqual } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+
+import store from "@/redux/store";
 import {
   setCategoryData,
   useFetchCategoriesQuery,
   categoryApi,
 } from "@/redux/features/categorySlice";
+import { loadRecentlyViewed } from "@/redux/features/recentlyViewedSlice";
+import { setPrivateHomeMounted } from "@/redux/features/homePromoSlice";
+import { productApi } from "@/redux/features/productSlice";
+
 import { RootState, Category } from "@/types/global";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import { truncateText } from "@/utils/utils";
 import CategoryCard from "./CategoryCard";
 import DashboardHeader from "./DashboardHeader";
-import store from "@/redux/store";
-import { loadRecentlyViewed } from "@/redux/features/recentlyViewedSlice";
 import DeferredFadeIn from "./DeferredFadeIn";
-import { WEATHER_SLOT_HEIGHT } from "./WeatherSection/weatherLayout";
 import HomeSearch from "./HomeSearch";
-import {
-  finalizeStartupReady,
-  markStartupCheckpoint,
-} from "@/utils/startupDiagnostics";
-import { syncCarouselConfig } from "@/utils/carouselConfigCache";
-import { setPrivateHomeMounted } from "@/redux/features/homePromoSlice";
-import { productApi } from "@/redux/features/productSlice";
-import { syncStoreConfig } from "@/utils/storeConfigCache";
 import HomeStoreStatus, {
   HOME_STORE_STATUS_HEIGHT,
 } from "@/components/HomeStoreStatus";
 import { Colors } from "@/constants/Colors";
 
+import { WEATHER_SLOT_HEIGHT } from "./WeatherSection/weatherLayout";
+import {
+  finalizeStartupReady,
+  markStartupCheckpoint,
+} from "@/utils/startupDiagnostics";
+import { syncCarouselConfig } from "@/utils/carouselConfigCache";
+import { syncStoreConfig } from "@/utils/storeConfigCache";
+
+// Lazy-loaded components
 const Carasole = lazy(() => import("./Carasole"));
 const WeatherSection = lazy(() => import("./WeatherSection/WeatherSection"));
 const GetTheApp = lazy(() => import("@/components/GetTheApp"));
@@ -61,24 +65,20 @@ const RecentlyViewedProducts = lazy(
   () => import("@/app/(private)/(productDetail)/RecentlyViewedProducts"),
 );
 
-/** Matches `HomeProductRail` fetch args — keep local so that module stays lazy. */
+// Constants
 const HOME_RAIL_PRODUCT_LIMIT = 8;
-/** Matches `GetTheApp` banner export — keep local so that module stays lazy. */
 const GET_THE_APP_BANNER_HEIGHT = 72;
-/** Matches `Carasole` — keep local so that module stays lazy. */
 const CAROUSEL_PAGI_SLOT_HEIGHT = 40;
-/** Matches `HomeProductRail` — keep local so that module stays lazy. */
 const HOME_PRODUCT_RAIL_HEIGHT = 286;
-/** Matches inline promo card + vertical margins. */
 const HOME_PROMO_INLINE_SLOT_HEIGHT = 164;
-/** Matches compact recently-viewed block (title + row). */
 const HOME_RECENTLY_VIEWED_SLOT_HEIGHT = 288;
 
 function getCarouselSlotHeight(windowWidth: number): number {
   return windowWidth / 2 + CAROUSEL_PAGI_SLOT_HEIGHT;
 }
 
-/** Static slot while WeatherSection chunk / first paint loads. */
+// --- Skeleton Placeholders ---
+
 const WeatherSlotSkeleton = memo(function WeatherSlotSkeleton() {
   return (
     <View style={styles.weatherSkeleton}>
@@ -95,7 +95,6 @@ const WeatherSlotSkeleton = memo(function WeatherSlotSkeleton() {
   );
 });
 
-/** Static slot while GetTheApp banner chunk loads. */
 const GetTheAppSlotSkeleton = memo(function GetTheAppSlotSkeleton() {
   return (
     <View style={styles.getTheAppSkeleton}>
@@ -111,6 +110,8 @@ const GetTheAppSlotSkeleton = memo(function GetTheAppSlotSkeleton() {
   );
 });
 
+// --- Types ---
+
 type HomeFeedItem =
   | { type: "dashboard"; id: string }
   | { type: "search"; id: string }
@@ -119,59 +120,23 @@ type HomeFeedItem =
   | { type: "weather"; id: string }
   | { type: "getTheApp"; id: string }
   | {
-    type: "categoryCard";
-    id: string;
-    category: Category;
-    index: number;
-    length: number;
-  }
+      type: "categoryCard";
+      id: string;
+      category: Category;
+      index: number;
+      length: number;
+    }
   | {
-    type: "productRail";
-    id: string;
-    parent: Category;
-    subCategory: Category;
-    subCategoryIndex: number;
-  }
+      type: "productRail";
+      id: string;
+      parent: Category;
+      subCategory: Category;
+      subCategoryIndex: number;
+    }
   | { type: "promo"; id: string }
   | { type: "recentlyViewed"; id: string };
 
 type ProductRailItem = Extract<HomeFeedItem, { type: "productRail" }>;
-
-/** Category cards grouped together, then every child rail (fetch on scroll). */
-function buildCategoryFeedItems(categories: Category[]): HomeFeedItem[] {
-  const items: HomeFeedItem[] = [];
-  const rails: HomeFeedItem[] = [];
-  const length = categories.length;
-
-  for (let index = 0; index < length; index += 1) {
-    const parent = categories[index] as Category;
-    items.push({
-      type: "categoryCard",
-      id: `category-${parent._id}`,
-      category: parent,
-      index,
-      length,
-    });
-
-    for (
-      let subCategoryIndex = 0;
-      subCategoryIndex < (parent.children ?? []).length;
-      subCategoryIndex += 1
-    ) {
-      const subCategory = parent.children?.[subCategoryIndex] as Category;
-      if (!subCategory?._id) continue;
-      rails.push({
-        type: "productRail",
-        id: `rail-${subCategory._id}`,
-        parent,
-        subCategory,
-        subCategoryIndex,
-      });
-    }
-  }
-
-  return items.concat(rails);
-}
 
 const LEADING_FEED_ITEMS: readonly HomeFeedItem[] = [
   { type: "dashboard", id: "dashboard" },
@@ -181,6 +146,8 @@ const LEADING_FEED_ITEMS: readonly HomeFeedItem[] = [
   { type: "weather", id: "weather" },
   ...(Platform.OS === "web" ? [{ type: "getTheApp" as const, id: "getTheApp" }] : []),
 ];
+
+// --- Rail Enable Store (Pub/Sub pattern for performance) ---
 
 type RailEnableStore = {
   get: (id: string) => boolean;
@@ -216,7 +183,7 @@ function createRailEnableStore(): RailEnableStore {
     },
     reset: () => {
       if (!enabled.size) return;
-      const previouslyEnabled = [...enabled];
+      const previouslyEnabled = Array.from(enabled);
       enabled.clear();
       for (const id of previouslyEnabled) {
         listeners.get(id)?.forEach((listener) => listener());
@@ -229,9 +196,7 @@ const RailEnableContext = createContext<RailEnableStore | null>(null);
 
 function useRailEnabled(railId: string): boolean {
   const railStore = useContext(RailEnableContext);
-  const [enabled, setEnabled] = useState(() =>
-    Boolean(railStore?.get(railId)),
-  );
+  const [enabled, setEnabled] = useState(() => Boolean(railStore?.get(railId)));
 
   useEffect(() => {
     if (!railStore) return;
@@ -243,6 +208,8 @@ function useRailEnabled(railId: string): boolean {
 
   return enabled;
 }
+
+// --- Feed Feed Row Components ---
 
 const DashboardFeedRow = memo(function DashboardFeedRow({
   onProfilePress,
@@ -283,10 +250,9 @@ const ProductRailRow = memo(function ProductRailRow({
   ) => void;
 }) {
   const enabled = useRailEnabled(item.id);
-  const railFallback = <View style={styles.productRailFallback} />;
 
   return (
-    <Suspense fallback={railFallback}>
+    <Suspense fallback={<View style={styles.productRailFallback} />}>
       <HomeProductRail
         parentCategory={item.parent}
         subCategory={item.subCategory}
@@ -334,11 +300,6 @@ function areHomeFeedItemsEqual(
   return true;
 }
 
-/**
- * Heterogeneous feed renderer. Its comparator intentionally uses stable ids and
- * source-object references so pagination and unrelated store updates do not
- * re-render mounted rows.
- */
 const ListItem = memo(
   function ListItem({
     item,
@@ -369,7 +330,7 @@ const ListItem = memo(
         const fallback = <View style={carouselFallbackStyle} />;
         return (
           <View style={carouselFallbackStyle}>
-            <DeferredFadeIn delay={Platform.OS === "web" ? 0 : 100} style={{flex: 1}} fallback={fallback}>
+            <DeferredFadeIn delay={Platform.OS === "web" ? 0 : 100} style={styles.flex1} fallback={fallback}>
               <Suspense fallback={fallback}>
                 <Carasole onScrollToCategories={onScrollToCategories} />
               </Suspense>
@@ -381,10 +342,7 @@ const ListItem = memo(
         const fallback = <WeatherSlotSkeleton />;
         return (
           <View style={styles.weatherSection}>
-            <DeferredFadeIn
-              delay={Platform.OS === "web" ? 0 : 100}
-              fallback={fallback}
-            >
+            <DeferredFadeIn delay={Platform.OS === "web" ? 0 : 100} fallback={fallback}>
               <Suspense fallback={fallback}>
                 <WeatherSection />
               </Suspense>
@@ -396,10 +354,7 @@ const ListItem = memo(
         const fallback = <GetTheAppSlotSkeleton />;
         return (
           <View style={styles.getTheAppSection}>
-            <DeferredFadeIn
-              delay={Platform.OS === "web" ? 0 : 100}
-              fallback={fallback}
-            >
+            <DeferredFadeIn delay={Platform.OS === "web" ? 0 : 100} fallback={fallback}>
               <Suspense fallback={fallback}>
                 <GetTheApp variant="banner" />
               </Suspense>
@@ -446,55 +401,89 @@ const ListItem = memo(
     }
   },
   (previous, next) =>
-  (areHomeFeedItemsEqual(previous.item, next.item) &&
-    previous.carouselFallbackStyle === next.carouselFallbackStyle &&
+    areHomeFeedItemsEqual(previous.item, next.item) &&
+    previous.carouselFallbackStyle.width === next.carouselFallbackStyle.width &&
+    previous.carouselFallbackStyle.height === next.carouselFallbackStyle.height &&
     previous.onProfilePress === next.onProfilePress &&
     previous.onStickySearchLayout === next.onStickySearchLayout &&
     previous.onScrollToCategories === next.onScrollToCategories &&
-    previous.onCategorySelect === next.onCategorySelect),
+    previous.onCategorySelect === next.onCategorySelect,
 );
 
+// --- Helpers ---
+
+const EMPTY_CATEGORIES: Category[] = [];
+
+function buildCategoryFeedItems(categories: Category[]): HomeFeedItem[] {
+  const items: HomeFeedItem[] = [];
+  const rails: HomeFeedItem[] = [];
+  const length = categories.length;
+
+  for (let index = 0; index < length; index += 1) {
+    const parent = categories[index];
+    items.push({
+      type: "categoryCard",
+      id: `category-${parent._id}`,
+      category: parent,
+      index,
+      length,
+    });
+
+    const children = parent.children ?? [];
+    for (let subCategoryIndex = 0; subCategoryIndex < children.length; subCategoryIndex += 1) {
+      const subCategory = children[subCategoryIndex];
+      if (!subCategory?._id) continue;
+      rails.push({
+        type: "productRail",
+        id: `rail-${subCategory._id}`,
+        parent,
+        subCategory,
+        subCategoryIndex,
+      });
+    }
+  }
+
+  return items.concat(rails);
+}
+
+// --- Main Component ---
+
 const PrivateHome = () => {
-  console.log("PrivateHome");
   const { width: windowWidth } = useWindowDimensions();
-  const carouselFallbackHeight = getCarouselSlotHeight(windowWidth);
-  const carouselFallbackStyle = useMemo(
-    () => ({ width: windowWidth, height: carouselFallbackHeight }),
-    [windowWidth, carouselFallbackHeight],
-  );
   const dispatch = useDispatch<typeof store.dispatch>();
-  const listRef = useRef<any>(null);
+  
+  const listRef = useRef<FlatList<HomeFeedItem>>(null);
   const firstCategoryIndexRef = useRef(0);
   const layoutOffsets = useRef({ sticky: 0 });
-  /** Sticky RTK subscriptions for home rails — outlive FlashList recycle. */
   const homeRailSubscriptionsRef = useRef(new Map<string, () => void>());
-  const dispatchRef = useRef(dispatch);
-  dispatchRef.current = dispatch;
   const railEnableStoreRef = useRef<RailEnableStore | null>(null);
+
   if (!railEnableStoreRef.current) {
     railEnableStoreRef.current = createRailEnableStore();
   }
   const railEnableStore = railEnableStoreRef.current;
+
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Redux Selectors
   const promoDockedInline = useSelector(
     (state: RootState & { homePromo: { promoDockedInline: boolean } }) =>
       state.homePromo.promoDockedInline,
   );
   const token = useSelector((state: RootState) => state?.auth?.token);
   const appSyncReady = useSelector((state: RootState) => state.appSync?.ready);
+  
   const hasRecentlyViewed = useSelector((state: RootState) => {
     const items = (state as { recentlyViewed?: { items?: Array<{ type?: string; name?: string }> } })
       ?.recentlyViewed?.items;
-    return Boolean(
-      items?.some((item) => item?.type === "product" && item?.name),
-    );
+    return Boolean(items?.some((item) => item?.type === "product" && item?.name));
   });
-  const categories = useSelector((state: RootState) => {
-    return (
+
+  const categories = useSelector(
+    (state: RootState) =>
       categoryApi.endpoints.fetchCategories.select({})(state as never)?.data
-        ?.categories ?? []
-    );
-  }, shallowEqual);
+        ?.categories ?? EMPTY_CATEGORIES,
+  );
 
   const {
     isLoading: isCategoriesLoading,
@@ -502,6 +491,12 @@ const PrivateHome = () => {
     isUninitialized: isCategoriesUninitialized,
     refetch,
   } = useFetchCategoriesQuery({}, { skip: !token || !appSyncReady });
+
+  const carouselFallbackHeight = getCarouselSlotHeight(windowWidth);
+  const carouselFallbackStyle = useMemo(
+    () => ({ width: windowWidth, height: carouselFallbackHeight }),
+    [windowWidth, carouselFallbackHeight],
+  );
 
   const categoriesWaiting =
     !categories.length &&
@@ -512,10 +507,12 @@ const PrivateHome = () => {
   const feedItems = useMemo((): HomeFeedItem[] => {
     if (!isInitialFeedReady) return [];
     firstCategoryIndexRef.current = LEADING_FEED_ITEMS.length;
+
     const items: HomeFeedItem[] = [
       ...LEADING_FEED_ITEMS,
       ...buildCategoryFeedItems(categories as Category[]),
     ];
+
     if (promoDockedInline) {
       items.push({ type: "promo", id: "promo" });
     }
@@ -523,12 +520,7 @@ const PrivateHome = () => {
       items.push({ type: "recentlyViewed", id: "recentlyViewed" });
     }
     return items;
-  }, [
-    categories,
-    hasRecentlyViewed,
-    isInitialFeedReady,
-    promoDockedInline,
-  ]);
+  }, [categories, hasRecentlyViewed, isInitialFeedReady, promoDockedInline]);
 
   const clearHomeRailSubscriptions = useCallback(() => {
     for (const unsubscribe of homeRailSubscriptionsRef.current.values()) {
@@ -545,14 +537,14 @@ const PrivateHome = () => {
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
-      store.dispatch(loadRecentlyViewed());
+      dispatch(loadRecentlyViewed());
     });
     return () => task.cancel();
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
-    markStartupCheckpoint("home_mounted", { screen: "home" }).catch(() => { });
-    finalizeStartupReady({ screen: "home" }).catch(() => { });
+    markStartupCheckpoint("home_mounted", { screen: "home" }).catch(() => {});
+    finalizeStartupReady({ screen: "home" }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -569,7 +561,7 @@ const PrivateHome = () => {
         (item) => item?._id === selectedCategory?._id,
       );
       const selectedCategory1 = categories.find(
-        (item: Category) => item?._id == parentCategory?._id,
+        (item: Category) => item?._id === parentCategory?._id,
       );
       dispatch(setCategoryData(selectedCategory1));
       router.push(
@@ -591,17 +583,17 @@ const PrivateHome = () => {
       await Promise.all([
         isCategoriesUninitialized
           ? dispatch(
-            categoryApi.endpoints.fetchCategories.initiate(
-              {},
-              { forceRefetch: true },
-            ),
-          ).unwrap()
+              categoryApi.endpoints.fetchCategories.initiate(
+                {},
+                { forceRefetch: true },
+              ),
+            ).unwrap()
           : refetch(),
         syncCarouselConfig(dispatch, { force: true }),
         syncStoreConfig(dispatch, { force: true }),
       ]);
     } catch {
-      // optional toast
+      // Handle or ignore errors gracefully
     } finally {
       setIsRefreshing(false);
     }
@@ -633,13 +625,8 @@ const PrivateHome = () => {
         if (item?.type !== "productRail") continue;
         ids.push(item.id);
         const categoryId = item.subCategory?._id;
-        if (
-          categoryId &&
-          !homeRailSubscriptionsRef.current.has(item.id)
-        ) {
-          // Keep a feed-level subscription so FlashList unmounts do not abort
-          // with keepUnusedDataFor: 0.
-          const subscription = dispatchRef.current(
+        if (categoryId && !homeRailSubscriptionsRef.current.has(item.id)) {
+          const subscription = dispatch(
             productApi.endpoints.fetchProducts.initiate(
               {
                 categoryId,
@@ -667,11 +654,6 @@ const PrivateHome = () => {
 
   const keyExtractor = useCallback((item: HomeFeedItem) => item.id, []);
 
-  const getItemType = useCallback(
-    (item: HomeFeedItem) => item.type,
-    [],
-  );
-
   const onStickySearchLayout = useCallback(
     (event: { nativeEvent: { layout: { height: number } } }) => {
       layoutOffsets.current.sticky = event.nativeEvent.layout.height;
@@ -680,22 +662,20 @@ const PrivateHome = () => {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: HomeFeedItem }) => {
-      return (
-        <ListItem
-          item={item}
-          carouselFallbackStyle={carouselFallbackStyle}
-          onProfilePress={handleProfilePress}
-          onStickySearchLayout={onStickySearchLayout}
-          onScrollToCategories={scrollToCategories}
-          onCategorySelect={handleCategorySelect}
-        />
-      );
-    },
+    ({ item }: ListRenderItemInfo<HomeFeedItem>) => (
+      <ListItem
+        item={item}
+        carouselFallbackStyle={carouselFallbackStyle}
+        onProfilePress={handleProfilePress}
+        onStickySearchLayout={onStickySearchLayout}
+        onScrollToCategories={scrollToCategories}
+        onCategorySelect={handleCategorySelect}
+      />
+    ),
     [
+      carouselFallbackStyle,
       handleProfilePress,
       onStickySearchLayout,
-      carouselFallbackStyle,
       scrollToCategories,
       handleCategorySelect,
     ],
@@ -705,7 +685,7 @@ const PrivateHome = () => {
     <RailEnableContext.Provider value={railEnableStore}>
       <ScreenSafeWrapper
         showBackButton={false}
-        wrapperStyle={{ paddingHorizontal: 0 }}
+        wrapperStyle={styles.wrapperStyle}
         showWeatherSection={true}
         showGradient={true}
       >
@@ -726,7 +706,7 @@ const PrivateHome = () => {
                 onRefresh={handleRefresh}
               />
             }
-            bounces={Platform.OS === "android" ? false : true}
+            bounces={Platform.OS !== "android"}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
@@ -742,6 +722,12 @@ const PrivateHome = () => {
 export default PrivateHome;
 
 const styles = StyleSheet.create({
+  flex1: {
+    flex: 1,
+  },
+  wrapperStyle: {
+    paddingHorizontal: 0,
+  },
   loadingGate: {
     flex: 1,
     alignItems: "center",
@@ -752,16 +738,19 @@ const styles = StyleSheet.create({
   },
   topSection: {
     paddingTop: 10,
-    // Avatar is 50; reserve so list layout doesn't jump if header paints late.
     minHeight: 60,
   },
   stickySearchBar: {
     zIndex: 10,
-    // Search input padding + sticky bar padding (stable across platforms).
     minHeight: Platform.OS === "android" ? 64 : 84,
   },
+  stickySearchBarContent: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    backgroundColor: "#d4f0fd",
+  },
   storeStatusSection: {
-    // Status row (52) + marginTop (8) + marginBottom (16) under HomeStoreStatus.
     height: HOME_STORE_STATUS_HEIGHT + 24,
     overflow: "hidden",
   },
@@ -870,11 +859,5 @@ const styles = StyleSheet.create({
   },
   recentlyViewedFallback: {
     height: HOME_RECENTLY_VIEWED_SLOT_HEIGHT,
-  },
-  stickySearchBarContent: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
-    backgroundColor: "#d4f0fd",
   },
 });

@@ -1,6 +1,8 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { InteractionManager, View } from "react-native";
+import { InteractionManager, StyleSheet, View } from "react-native";
 import { useSelector } from "react-redux";
+import { useIsFocused } from "expo-router";
+
 import WeatherIcon from "./WeatherIcon";
 import { WEATHER_SLOT_HEIGHT } from "./weatherLayout";
 import { useWeatherInfo } from "./useWeatherInfo";
@@ -11,7 +13,6 @@ import {
   buildPersonalizedHomeBanner,
 } from "../GreetingMessage/personalizedGreeting";
 import { activeOrdersFingerprint } from "../GreetingMessage/buildGreetingPrompt";
-import { useIsFocused } from "expo-router";
 import { RootState } from "@/types/global";
 import { useFetchActiveDeliveriesQuery } from "@/redux/features/orderSlice";
 import {
@@ -19,7 +20,7 @@ import {
   type ActiveFloatOrder,
 } from "@/utils/activeOrderFloat";
 
-/** Wait for home first paint before location / weather / greetings work. */
+/** Delay execution until home screen first-paint settles. */
 const WEATHER_SIDE_EFFECT_DELAY_MS = 400;
 
 function uniqueMessages(messages: Array<string | null | undefined>): string[] {
@@ -41,18 +42,24 @@ type WeatherBits = {
   main?: string;
 } | null;
 
+type WeatherAndAiState = {
+  weather: WeatherBits;
+  aiMessages: string[];
+};
+
 const WeatherSection = () => {
   const { fetchWeather } = useWeatherInfo();
   const { fetchBatchGreetings } = useBatchGreetings();
   const isFocused = useIsFocused();
   const [sideEffectsReady, setSideEffectsReady] = useState(false);
 
-  const userData = useSelector((state: RootState) => state.auth?.userData);
-  const userId = userData?._id;
-  const isGuest = Boolean(userData?.isGuestUser);
+  const userId = useSelector((state: RootState) => state.auth?.userData?._id);
+  const userName = useSelector((state: RootState) => state.auth?.userData?.name);
+  const isGuest = useSelector((state: RootState) =>
+    Boolean(state.auth?.userData?.isGuestUser),
+  );
 
-  // Same query as ActiveDeliveryFloat — RTK cache shared.
-  // Gated until after first paint so home feed isn't competing for bandwidth.
+  // Shared active orders query
   const { data: activeDeliveries } = useFetchActiveDeliveriesQuery(
     {
       userId,
@@ -73,42 +80,42 @@ const WeatherSection = () => {
     [activeOrders],
   );
 
-  const weatherRef = useRef<WeatherBits>(null);
-  const aiMessagesRef = useRef<string[]>([]);
-  const activeOrdersRef = useRef(activeOrders);
-  const orderFingerprintRef = useRef<string | null>(null);
+  // Combined state object to avoid multiple set-state loops on fetch completion
+  const [weatherAndAi, setWeatherAndAi] = useState<WeatherAndAiState>({
+    weather: null,
+    aiMessages: [],
+  });
 
+  const activeOrdersRef = useRef(activeOrders);
   activeOrdersRef.current = activeOrders;
 
-  const [weatherVersion, setWeatherVersion] = useState(0);
-  const [aiVersion, setAiVersion] = useState(0);
+  const orderFingerprintRef = useRef<string | null>(null);
+  const hasLoadedRef = useRef(false);
+  const inFlightRef = useRef(false);
+
+  const fetchWeatherRef = useRef(fetchWeather);
+  const fetchBatchRef = useRef(fetchBatchGreetings);
+  fetchWeatherRef.current = fetchWeather;
+  fetchBatchRef.current = fetchBatchGreetings;
 
   const displayMessages = useMemo(() => {
     return uniqueMessages([
       buildActiveOrderBanner({
-        name: userData?.name,
+        name: userName,
         orders: activeOrders,
       }),
       buildActiveOrderItemsBanner({
-        name: userData?.name,
+        name: userName,
         orders: activeOrders,
       }),
       buildPersonalizedHomeBanner({
-        name: userData?.name,
-        weatherDescription: weatherRef.current?.description,
-        weatherMain: weatherRef.current?.main,
+        name: userName,
+        weatherDescription: weatherAndAi.weather?.description,
+        weatherMain: weatherAndAi.weather?.main,
       }),
-      ...aiMessagesRef.current,
+      ...weatherAndAi.aiMessages,
     ]);
-  }, [userData?.name, activeOrders, weatherVersion, aiVersion]);
-
-  const hasLoadedRef = useRef(false);
-  const inFlightRef = useRef(false);
-  const fetchWeatherRef = useRef(fetchWeather);
-  const fetchBatchRef = useRef(fetchBatchGreetings);
-
-  fetchWeatherRef.current = fetchWeather;
-  fetchBatchRef.current = fetchBatchGreetings;
+  }, [userName, activeOrders, weatherAndAi]);
 
   const refreshAi = useCallback(async (forceRefresh: boolean) => {
     if (inFlightRef.current) return;
@@ -116,16 +123,19 @@ const WeatherSection = () => {
 
     try {
       const aiMessages = await fetchBatchRef.current({
-        weather: weatherRef.current,
+        weather: weatherAndAi.weather,
         activeOrders: activeOrdersRef.current,
         forceRefresh,
       });
-      aiMessagesRef.current = uniqueMessages(aiMessages);
-      setAiVersion((v) => v + 1);
+
+      setWeatherAndAi((prev) => ({
+        ...prev,
+        aiMessages: uniqueMessages(aiMessages),
+      }));
     } finally {
       inFlightRef.current = false;
     }
-  }, []);
+  }, [weatherAndAi.weather]);
 
   const load = useCallback(async () => {
     if (inFlightRef.current) return;
@@ -133,19 +143,22 @@ const WeatherSection = () => {
 
     try {
       const weatherData = await fetchWeatherRef.current();
-      weatherRef.current = {
+      const weatherBits = {
         description: weatherData?.description,
         main: weatherData?.main,
       };
-      setWeatherVersion((v) => v + 1);
 
       const aiMessages = await fetchBatchRef.current({
         weather: weatherData,
         activeOrders: activeOrdersRef.current,
         forceRefresh: false,
       });
-      aiMessagesRef.current = uniqueMessages(aiMessages);
-      setAiVersion((v) => v + 1);
+
+      setWeatherAndAi({
+        weather: weatherBits,
+        aiMessages: uniqueMessages(aiMessages),
+      });
+
       orderFingerprintRef.current = activeOrdersFingerprint(
         activeOrdersRef.current,
       );
@@ -155,12 +168,13 @@ const WeatherSection = () => {
     }
   }, []);
 
-  // Defer network / location work until home first paint settles.
+  // Defer heavy side effects until screen transitions / initial paints finish
   useEffect(() => {
     if (!isFocused) return;
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+
     const task = InteractionManager.runAfterInteractions(() => {
       timer = setTimeout(() => {
         if (!cancelled) setSideEffectsReady(true);
@@ -174,13 +188,13 @@ const WeatherSection = () => {
     };
   }, [isFocused]);
 
-  // Run after sideEffectsReady so RTK can hydrate shared active-order cache first.
+  // Initial load after side-effects readiness signal
   useEffect(() => {
     if (!isFocused || !sideEffectsReady || hasLoadedRef.current) return;
     void load();
   }, [isFocused, sideEffectsReady, load]);
 
-  // useOrderStatusListener → invalidate activeDeliveries → fingerprint change → LLM again
+  // Handle active order updates
   useEffect(() => {
     if (!hasLoadedRef.current) return;
     if (orderFingerprintRef.current === orderFingerprint) return;
@@ -190,13 +204,17 @@ const WeatherSection = () => {
   }, [orderFingerprint, refreshAi]);
 
   return (
-    <View style={{ height: WEATHER_SLOT_HEIGHT, overflow: "hidden" }}>
-      <WeatherIcon
-        messages={displayMessages}
-        autoPlay={isFocused}
-      />
+    <View style={styles.container}>
+      <WeatherIcon messages={displayMessages} autoPlay={isFocused} />
     </View>
   );
 };
 
 export default memo(WeatherSection);
+
+const styles = StyleSheet.create({
+  container: {
+    height: WEATHER_SLOT_HEIGHT,
+    overflow: "hidden",
+  },
+});

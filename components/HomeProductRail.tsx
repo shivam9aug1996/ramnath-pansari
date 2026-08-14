@@ -17,10 +17,6 @@ import { Colors } from "@/constants/Colors";
 const PRODUCT_LIMIT = 8;
 const SKELETON_COUNT = 4;
 
-/**
- * Fixed rail height (padding + header + card) so placeholder → products
- * does not jump the vertical feed.
- */
 export const HOME_PRODUCT_RAIL_HEIGHT = 286;
 
 type RailProductsData = {
@@ -41,16 +37,9 @@ type Props = {
   ) => void;
 };
 
-/** Cheap reserved block — no scroll chrome until fetch is allowed. */
-const RailPlaceholder = memo(({ title }: { title: string }) => (
-  <View style={styles.rail}>
-    <View style={styles.header}>
-      <Text style={styles.title} numberOfLines={1}>
-        {title}
-      </Text>
-      <View style={styles.viewMoreSlot} />
-    </View>
-    <View style={styles.placeholderRow}>
+const SkeletonCards = memo(function SkeletonCards() {
+  return (
+    <>
       {Array.from({ length: SKELETON_COUNT }, (_, i) => (
         <View key={i} style={styles.skeletonCard}>
           <View style={styles.skeletonImage} />
@@ -58,9 +47,28 @@ const RailPlaceholder = memo(({ title }: { title: string }) => (
           <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
         </View>
       ))}
+    </>
+  );
+});
+
+/**
+ * Static placeholder reserved to preserve vertical feed height during loading or failure.
+ */
+const RailPlaceholder = memo(function RailPlaceholder({ title }: { title: string }) {
+  return (
+    <View style={styles.rail}>
+      <View style={styles.header}>
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
+        </Text>
+        <View style={styles.viewMoreSlot} />
+      </View>
+      <View style={styles.placeholderRow}>
+        <SkeletonCards />
+      </View>
     </View>
-  </View>
-));
+  );
+});
 
 const HomeProductRail = ({
   parentCategory,
@@ -70,6 +78,7 @@ const HomeProductRail = ({
   onViewMore,
 }: Props) => {
   const categoryId = subCategory?._id;
+
   const queryArgs = useMemo(
     () => ({
       categoryId,
@@ -79,26 +88,26 @@ const HomeProductRail = ({
     [categoryId],
   );
 
-  // Read-only: PrivateHome owns the RTK subscription for the home feed.
-  // Using useQuery here would subscribe/unsubscribe on FlashList recycle.
+  // Read state from RTK cache populated by PrivateHome screen subscription
   const queryState = useSelector(
     productApi.endpoints.fetchProducts.select(queryArgs),
   );
 
-  const data = queryState.data as RailProductsData | undefined;
-  const products: Product[] = data?.products ?? [];
+  const data = queryState?.data as RailProductsData | undefined;
+  const products = useMemo(() => data?.products ?? [], [data?.products]);
   const totalResults =
     data?.totalResults ?? data?.totalProducts ?? products.length;
   const showViewMore = totalResults > products.length;
-  const isError = queryState.isError;
+
+  const isError = queryState?.isError ?? false;
   const isLoadingProducts =
     enabled &&
     products.length === 0 &&
     !isError &&
-    (queryState.isUninitialized ||
-      queryState.isLoading ||
-      queryState.isFetching);
-  // Transient FETCH_ERROR must not collapse the rail — keep the reserved slot.
+    (queryState?.isUninitialized ||
+      queryState?.isLoading ||
+      queryState?.isFetching);
+
   const isEmpty =
     enabled && !isLoadingProducts && !isError && products.length === 0;
 
@@ -110,7 +119,6 @@ const HomeProductRail = ({
     return <RailPlaceholder title={subCategory.name} />;
   }
 
-  // Confirmed empty: collapse so we don't leave blank gaps between shelves.
   if (isEmpty) {
     return <View style={styles.collapsedRail} />;
   }
@@ -128,16 +136,16 @@ const HomeProductRail = ({
             {subCategory.name}
           </Text>
         </TouchableOpacity>
+
         <View style={styles.viewMoreSlot}>
-          {showViewMore ? (
+          {showViewMore && (
             <TouchableOpacity onPress={handleViewMore} activeOpacity={0.7}>
               <Text style={styles.viewMore}>View more</Text>
             </TouchableOpacity>
-          ) : null}
+          )}
         </View>
       </View>
 
-      {/* Max 8 cards — ScrollView avoids nested FlatList virtualization cost. */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -182,7 +190,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "Raleway_700Bold",
     fontSize: 16,
-    color: "#222",
+    color: "#222222",
     lineHeight: 20,
   },
   viewMoreSlot: {

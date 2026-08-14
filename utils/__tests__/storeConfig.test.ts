@@ -60,21 +60,43 @@ describe("storeConfig", () => {
     expect(getNextOpenLabel(DEFAULT_STORE_CONFIG.storeHours, OPEN_NOW)).toBeNull();
   });
 
+  it("maps progress to the full open window (open→close)", () => {
+    // Default hours 09:00–21:00 IST. OPEN_NOW is 12:00 IST → 3h / 12h = 0.25
+    const openStatus = getHomeStoreStatus(DEFAULT_STORE_CONFIG, OPEN_NOW);
+    expect(openStatus.progress).toBeCloseTo(0.25, 5);
+    expect(openStatus.remainingLabel).toMatch(/^Closes in /);
+
+    // CLOSED_NOW is 07:30 IST → before open
+    const beforeOpen = getHomeStoreStatus(DEFAULT_STORE_CONFIG, CLOSED_NOW);
+    expect(beforeOpen.progress).toBe(0);
+    expect(beforeOpen.remainingLabel).toMatch(/^Opens in /);
+
+    // AFTER_CLOSE_NOW is 21:30 IST → after close
+    const afterClose = getHomeStoreStatus(DEFAULT_STORE_CONFIG, AFTER_CLOSE_NOW);
+    expect(afterClose.progress).toBe(1);
+    expect(afterClose.remainingLabel).toMatch(/^Opens in /);
+  });
+
   it("builds home store status for open, closed, and paused", () => {
     expect(getHomeStoreStatus(DEFAULT_STORE_CONFIG, OPEN_NOW)).toMatchObject({
       kind: "open",
       title: "Store open",
+      remainingLabel: expect.stringMatching(/^Closes in /),
+      progress: expect.any(Number),
     });
     expect(getHomeStoreStatus(DEFAULT_STORE_CONFIG, CLOSED_NOW)).toMatchObject({
       kind: "closed",
       title: "Store closed",
-      subtitle: "Opens at 09:00",
+      remainingLabel: expect.stringMatching(/^Opens in /),
+      progress: 0,
     });
     expect(
       getHomeStoreStatus({ acceptingOrders: false }, OPEN_NOW),
     ).toMatchObject({
       kind: "paused",
       title: "Not accepting orders right now",
+      progress: null,
+      remainingLabel: null,
     });
   });
 });

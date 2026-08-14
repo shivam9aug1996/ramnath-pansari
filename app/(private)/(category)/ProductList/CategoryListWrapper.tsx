@@ -26,9 +26,10 @@ const SHOW_EASING = Easing.bezier(0, 0, 0.2, 1);
 
 const CategoryListWrapper = ({ children }: CategoryListWrapperProps) => {
   const dispatch = useDispatch();
+
   const shouldHideChrome = useSelector(
     (state: RootState) =>
-      state.product?.productListScrollParams?.shouldHideChrome ?? false,
+      Boolean(state.product?.productListScrollParams?.shouldHideChrome),
   );
 
   const [measuredHeight, setMeasuredHeight] = useState(0);
@@ -67,6 +68,10 @@ const CategoryListWrapper = ({ children }: CategoryListWrapperProps) => {
       duration: SHOW_DURATION,
       easing: SHOW_EASING,
     });
+
+    return () => {
+      cancelAnimation(visibility);
+    };
   }, [shouldHideChrome, visibility]);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -80,12 +85,15 @@ const CategoryListWrapper = ({ children }: CategoryListWrapperProps) => {
     };
   });
 
-  const handleLayout = useCallback((event: LayoutChangeEvent) => {
-    const height = event.nativeEvent.layout.height;
-    if (height > 0) {
-      setMeasuredHeight(height);
-    }
-  }, []);
+  const handleLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      const height = Math.round(event.nativeEvent.layout.height);
+      if (height > 0 && height !== measuredHeight) {
+        setMeasuredHeight(height);
+      }
+    },
+    [measuredHeight],
+  );
 
   return (
     <Animated.View

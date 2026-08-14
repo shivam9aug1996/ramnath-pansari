@@ -1,53 +1,35 @@
-// import { Image } from "expo-image";
-// import { memo } from "react";
-// import { StyleSheet } from "react-native";
-// import { staticImage } from "../CategoryList/utils";
-
-// const ProductImage = ({ image }: { image: string | null }) => (
-//   <Image
-//     source={{ uri: image || staticImage }}
-//     style={styles.image}
-//     contentFit="contain"
-//     cachePolicy="memory-disk"
-//     transition={1000}
-//   />
-// )
-
-// export default memo(ProductImage);
-
-// const styles = StyleSheet.create({
-//   image: {
-//     flex: 1,
-//     borderRadius: 8,
-//   },
-// });
-
-import { Image } from "expo-image";
-import { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { StyleSheet } from "react-native";
+import { Image, ImageProps } from "expo-image";
 import { staticImage } from "../CategoryList/utils";
 
-
 type ProductImageProps = {
-  image: string | null;
-  blurhash?: string | null; // when backend adds it
+  image?: string | null;
+  blurhash?: string | null;
+  style?: ImageProps["style"];
 };
 
-const ProductImage = ({ image, blurhash }: ProductImageProps) => {
+const ProductImage = ({ image, blurhash, style }: ProductImageProps) => {
   const uri = image || staticImage;
+
+  // Memoize placeholder configuration object to preserve stable reference
+  const placeholder = useMemo(
+    () => (blurhash ? { blurhash } : undefined),
+    [blurhash]
+  );
 
   return (
     <Image
-    source={{ uri }}
-    style={styles.image}
-    contentFit="contain"
-    placeholderContentFit="contain" // match contentFit — avoids placeholder flicker (docs note)
-    placeholder={blurhash ? { blurhash } : undefined}
-    cachePolicy="memory-disk"
-    recyclingKey={uri}
-    transition={0}
-    allowDownscaling
-  />
+      source={{ uri }}
+      style={[styles.image, style]}
+      contentFit="contain"
+      placeholderContentFit="contain"
+      placeholder={placeholder}
+      cachePolicy="memory-disk"
+      recyclingKey={uri}
+      transition={0}
+      allowDownscaling
+    />
   );
 };
 

@@ -8,10 +8,12 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import Animated, { SlideInDown, SlideInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Matches `#root` max-width in `app/+html.tsx`. RN Modal portals outside `#root`. */
 const WEB_SHELL_MAX_WIDTH = 430;
+const SHEET_ENTER_MS = 280;
 
 type ProductSheetShellProps = {
   visible: boolean;
@@ -41,6 +43,8 @@ const ProductSheetShell = ({
     });
   }, [onClose]);
 
+  const bottomInsetHeight = Math.max(insets.bottom, 16);
+
   return (
     <Modal
       visible={visible}
@@ -53,35 +57,44 @@ const ProductSheetShell = ({
       <View style={styles.root}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close sheet"
+          accessibilityLabel="Close sheet backdrop"
           style={StyleSheet.absoluteFill}
           onPress={dismiss}
         />
+
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.sheetAnchor}
           pointerEvents="box-none"
         >
-          <View style={styles.sheet}>
-            <View style={styles.handleWrap}>
-              <View style={styles.handle} />
+          <Animated.View
+            entering={SlideInDown.duration(SHEET_ENTER_MS)}
+            style={styles.sheetMotion}
+          >
+            <View style={styles.sheet}>
+              <View style={styles.handleWrap}>
+                <View style={styles.handle} />
+              </View>
+
+              {scrollable ? (
+                <ScrollView
+                  style={styles.scroll}
+                  bounces={false}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator
+                  contentContainerStyle={styles.scrollContent}
+                >
+                  {children}
+                </ScrollView>
+              ) : (
+                <View style={styles.scroll}>{children}</View>
+              )}
+
+              {Boolean(footer) && <View style={styles.footer}>{footer}</View>}
+
+              <View style={{ height: bottomInsetHeight }} />
             </View>
-            {scrollable ? (
-              <ScrollView
-                style={styles.scroll}
-                bounces={false}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator
-                contentContainerStyle={styles.scrollContent}
-              >
-                {children}
-              </ScrollView>
-            ) : (
-              <View style={styles.scroll}>{children}</View>
-            )}
-            {footer ? <View style={styles.footer}>{footer}</View> : null}
-            <View style={{ height: Math.max(insets.bottom, 16) }} />
-          </View>
+          </Animated.View>
         </KeyboardAvoidingView>
       </View>
     </Modal>
@@ -102,13 +115,17 @@ const styles = StyleSheet.create({
     maxWidth: Platform.OS === "web" ? WEB_SHELL_MAX_WIDTH : undefined,
     maxHeight: "88%",
   },
+  sheetMotion: {
+    width: "100%",
+    maxHeight: "100%",
+  },
   sheet: {
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: "100%",
     overflow: "hidden",
-    shadowColor: "#000",
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.12,
     shadowRadius: 16,

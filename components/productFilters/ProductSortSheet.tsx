@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
@@ -21,12 +21,26 @@ const ProductSortSheet = ({
   onSelect,
   onClose,
 }: ProductSortSheetProps) => {
+  const handleSelectOption = useCallback(
+    (sortOption: ProductSortOption) => {
+      onSelect(sortOption);
+      onClose();
+    },
+    [onSelect, onClose],
+  );
+
   return (
     <ProductSheetShell visible={visible} onClose={onClose}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Sort by</Text>
-          <Pressable style={styles.closeButton} onPress={onClose} hitSlop={8}>
+          <Pressable
+            style={styles.closeButton}
+            onPress={onClose}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Close sort options"
+          >
             <Ionicons name="close" size={20} color={Colors.light.darkGrey} />
           </Pressable>
         </View>
@@ -37,23 +51,23 @@ const ProductSortSheet = ({
             <Pressable
               key={option.value}
               style={styles.row}
-              onPress={() => {
-                onSelect(option.value);
-                onClose();
-              }}
+              onPress={() => handleSelectOption(option.value)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              accessibilityLabel={`Sort by ${option.label}`}
             >
               <Text
                 style={[styles.rowLabel, selected && styles.rowLabelSelected]}
               >
                 {option.label}
               </Text>
-              {selected ? (
+              {selected && (
                 <Ionicons
                   name="checkmark"
                   size={20}
                   color={Colors.light.lightGreen}
                 />
-              ) : null}
+              )}
             </Pressable>
           );
         })}

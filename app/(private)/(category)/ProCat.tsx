@@ -1,5 +1,7 @@
 import { Platform } from "react-native";
 import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
+
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import TryAgain from "./CategoryList/TryAgain";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
@@ -7,7 +9,12 @@ import CategoryList from "./CategoryList/CategoryList";
 import Products from "./ProductList/Products";
 import CategoryListWrapper from "./ProductList/CategoryListWrapper";
 import GoToCartWrapper from "./ProductList/GoToCartWrapper";
-import { useDispatch, useSelector } from "react-redux";
+import ProductFilterFab from "@/components/productFilters/ProductFilterFab";
+import LazyProductFilterSheet, {
+  preloadProductFilterSheet,
+} from "@/components/productFilters/LazyProductFilterSheet";
+import { useProductListFilters } from "@/components/productFilters/useProductListFilters";
+
 import { RootState } from "@/types/global";
 import {
   productApi,
@@ -15,34 +22,34 @@ import {
 } from "@/redux/features/productSlice";
 import { DEFAULT_PRODUCT_FILTERS } from "@/utils/productFilters";
 import { devLog } from "@/utils/devLog";
-import ProductFilterFab from "@/components/productFilters/ProductFilterFab";
-import LazyProductFilterSheet, {
-  preloadProductFilterSheet,
-} from "@/components/productFilters/LazyProductFilterSheet";
-import { useProductListFilters } from "@/components/productFilters/useProductListFilters";
 
-const ProCat = ({
-  id,
-  name,
-  selectedCategoryIdIndex,
-}: {
+type ProCatProps = {
   id: string;
   name: string;
   selectedCategoryIdIndex: number;
-}) => {
+};
+
+type ProductsData = {
+  totalResults?: number;
+  totalProducts?: number;
+  products?: unknown[];
+};
+
+const ProCat = ({ id, name, selectedCategoryIdIndex }: ProCatProps) => {
   const isCategoryFetching = false;
   const isCategoryFetchingError = false;
 
-  const categoryData = useSelector(
+  const dispatch = useDispatch();
+
+  const getCategories = useSelector(
     (state: RootState) => state?.category?.catgeoryData,
   );
-  const getCategories = categoryData;
   const selectedSubCategory = useSelector(
     (state: RootState) => state.product.selectedSubCategoryId,
   );
-  const dispatch = useDispatch();
 
   const productsResetRef = useRef<(() => void) | null>(null);
+
   const registerProductsReset = useCallback((fn: () => void) => {
     productsResetRef.current = fn;
   }, []);
@@ -70,6 +77,7 @@ const ProCat = ({
   });
 
   const categoryId = selectedSubCategory?._id;
+
   const productsQueryArgs = useMemo(
     () => ({
       categoryId:
@@ -86,13 +94,7 @@ const ProCat = ({
     productApi.endpoints.fetchProducts.select(productsQueryArgs),
   );
 
-  const productsData = productsQueryState?.data as
-    | {
-        totalResults?: number;
-        totalProducts?: number;
-        products?: unknown[];
-      }
-    | undefined;
+  const productsData = productsQueryState?.data as ProductsData | undefined;
 
   const resultCount =
     productsData?.totalResults ?? productsData?.totalProducts;
@@ -105,6 +107,13 @@ const ProCat = ({
     openFilters();
   }, [openFilters]);
 
+  const handleClearFilters = useCallback(() => {
+    setDraft(DEFAULT_PRODUCT_FILTERS);
+    clearAll();
+  }, [setDraft, clearAll]);
+
+  const parentCategory = useMemo(() => ({ _id: id, name }), [id, name]);
+
   useEffect(() => {
     devLog("[products] ProCat mount → reset selectedSubCategoryId to null", {
       id,
@@ -113,7 +122,7 @@ const ProCat = ({
       childrenCount: getCategories?.children?.length ?? null,
     });
     dispatch(setSelectedSubCategoryId("null"));
-  }, []);
+  }, [dispatch, id, name, selectedCategoryIdIndex, getCategories?.children?.length]);
 
   return (
     <>
@@ -121,45 +130,43 @@ const ProCat = ({
         showCartIcon={true}
         title={name}
         showSearchIcon={true}
-        wrapperStyle={{ paddingBottom: 0, marginBottom: 0 }}
+        wrapperStyle={styles.screenWrapper}
       >
-        <>
-          {isCategoryFetchingError ? (
-            <TryAgain refetch={() => {}} />
-          ) : (
-            <>
-              <CategoryListWrapper>
-                <DeferredFadeIn delay={0}>
-                  <CategoryList
-                    contentContainerStyle={{ paddingHorizontal: 30 }}
-                    categories={getCategories?.children}
-                    isCategoryFetching={isCategoryFetching}
-                    selectedCategoryIdIndex={selectedCategoryIdIndex}
-                    parentCategory={{ _id: id, name: name }}
-                  />
-                  <ProductFilterFab
-                    filters={applied}
-                    onPress={handleOpenFilters}
-                    onClear={clearAll}
-                    resultCount={
-                      typeof resultCount === "number" ? resultCount : undefined
-                    }
-                    loadedCount={loadedCount}
-                  />
-                </DeferredFadeIn>
-              </CategoryListWrapper>
-
-              <DeferredFadeIn style={{ flex: 1 }} delay={200}>
-                <Products
+        {isCategoryFetchingError ? (
+          <TryAgain refetch={() => {}} />
+        ) : (
+          <>
+            <CategoryListWrapper>
+              <DeferredFadeIn delay={0}>
+                <CategoryList
+                  contentContainerStyle={styles.categoryListContent}
+                  categories={getCategories?.children}
                   isCategoryFetching={isCategoryFetching}
-                  filterKey={filterKey}
-                  apiParams={apiParams}
-                  registerReset={registerProductsReset}
+                  selectedCategoryIdIndex={selectedCategoryIdIndex}
+                  parentCategory={parentCategory}
+                />
+                <ProductFilterFab
+                  filters={applied}
+                  onPress={handleOpenFilters}
+                  onClear={clearAll}
+                  resultCount={
+                    typeof resultCount === "number" ? resultCount : undefined
+                  }
+                  loadedCount={loadedCount}
                 />
               </DeferredFadeIn>
-            </>
-          )}
-        </>
+            </CategoryListWrapper>
+
+            <DeferredFadeIn style={styles.flex1} delay={200}>
+              <Products
+                isCategoryFetching={isCategoryFetching}
+                filterKey={filterKey}
+                apiParams={apiParams}
+                registerReset={registerProductsReset}
+              />
+            </DeferredFadeIn>
+          </>
+        )}
       </ScreenSafeWrapper>
 
       <LazyProductFilterSheet
@@ -169,10 +176,7 @@ const ProCat = ({
         brands={brands}
         brandsLoading={brandsLoading}
         onApply={applyDraft}
-        onClear={() => {
-          setDraft(DEFAULT_PRODUCT_FILTERS);
-          clearAll();
-        }}
+        onClear={handleClearFilters}
         onClose={closeFilters}
       />
 
@@ -185,3 +189,16 @@ const ProCat = ({
 };
 
 export default memo(ProCat);
+
+const styles = {
+  flex1: {
+    flex: 1,
+  },
+  screenWrapper: {
+    paddingBottom: 0,
+    marginBottom: 0,
+  },
+  categoryListContent: {
+    paddingHorizontal: 30,
+  },
+};

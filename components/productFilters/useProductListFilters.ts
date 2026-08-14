@@ -29,7 +29,7 @@ export function useProductListFilters({
   const [sortVisible, setSortVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
 
-  // Reset when category / search query changes
+  // Reset filter states when category or search query changes
   useEffect(() => {
     setApplied(DEFAULT_PRODUCT_FILTERS);
     setDraft(DEFAULT_PRODUCT_FILTERS);
@@ -50,9 +50,10 @@ export function useProductListFilters({
       skip: !brandsArgs,
     });
 
-  const brands = brandsData?.brands ?? [];
+  const brands = useMemo(() => brandsData?.brands ?? [], [brandsData?.brands]);
 
   const filterKey = useMemo(() => getProductFilterKey(applied), [applied]);
+  
   const apiParams = useMemo(
     () => productFiltersToApiParams(applied),
     [applied],
@@ -69,10 +70,12 @@ export function useProductListFilters({
 
   const openSort = useCallback(() => setSortVisible(true), []);
   const closeSort = useCallback(() => setSortVisible(false), []);
+
   const openFilters = useCallback(() => {
     setDraft(applied);
     setFilterVisible(true);
   }, [applied]);
+
   const closeFilters = useCallback(() => setFilterVisible(false), []);
 
   const selectSort = useCallback(

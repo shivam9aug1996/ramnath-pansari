@@ -201,6 +201,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     gap: 0,
     zIndex: 3,
+    flexShrink: 0,
   },
   iconHit: {
     width: 40,

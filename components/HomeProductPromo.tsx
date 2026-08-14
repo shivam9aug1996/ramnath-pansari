@@ -11,10 +11,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
+
 import { useFetchHomePromoQuery } from "@/redux/features/homePromoSlice";
 import { RootState, HomeProductPromoDocument } from "@/types/global";
 import { ENABLE_HOME_PRODUCT_PROMO } from "@/utils/homeProductPromo";
-import { getTabBarReservedHeight } from "@/utils/bottomChrome";
 import { Colors } from "@/constants/Colors";
 import PromoVideoPlayer from "@/components/homePromo/PromoVideoPlayer";
 
@@ -43,19 +43,23 @@ function useHomePromo() {
   return data?.promo ?? null;
 }
 
-function PromoFullscreenModal({
-  promo,
-  visible,
-  onClose,
-  hasVideo,
-  label,
-}: {
+// --- Memoized Fullscreen Modal ---
+
+type PromoFullscreenModalProps = {
   promo: HomeProductPromoDocument;
   visible: boolean;
   onClose: () => void;
   hasVideo: boolean;
   label: string;
-}) {
+};
+
+const PromoFullscreenModal = memo(function PromoFullscreenModal({
+  promo,
+  visible,
+  onClose,
+  hasVideo,
+  label,
+}: PromoFullscreenModalProps) {
   const insets = useSafeAreaInsets();
 
   const handleViewProduct = useCallback(() => {
@@ -81,15 +85,15 @@ function PromoFullscreenModal({
           <Text style={styles.modalTitle} numberOfLines={1}>
             {label}
           </Text>
-          <Pressable onPress={onClose} hitSlop={12}>
-            <Ionicons name="close" size={28} color="#fff" />
+          <Pressable onPress={onClose} hitSlop={12} accessibilityLabel="Close promo modal">
+            <Ionicons name="close" size={28} color="#ffffff" />
           </Pressable>
         </View>
 
         <View style={styles.player}>
-          {hasVideo ? (
+          {hasVideo && promo.videoUrl ? (
             <PromoVideoPlayer
-              videoUrl={promo.videoUrl!}
+              videoUrl={promo.videoUrl}
               posterUrl={promo.posterUrl}
               muted
               lockMute={false}
@@ -122,15 +126,23 @@ function PromoFullscreenModal({
       </View>
     </Modal>
   );
-}
+});
+
+// --- Main Promo Component ---
 
 const HomeProductPromo = ({ variant, onFloatClose }: Props) => {
-  const insets = useSafeAreaInsets();
   const promo = useHomePromo();
   const [expanded, setExpanded] = useState(false);
 
-  const bottom = getTabBarReservedHeight(insets.bottom) + 16;
   const hasVideo = Boolean(promo?.videoUrl?.trim());
+
+  const handleOpenModal = useCallback(() => {
+    setExpanded(true);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setExpanded(false);
+  }, []);
 
   const handleCloseFloat = useCallback(() => {
     setExpanded(false);
@@ -147,15 +159,15 @@ const HomeProductPromo = ({ variant, onFloatClose }: Props) => {
     return (
       <>
         <Pressable
-          onPress={() => setExpanded(true)}
+          onPress={handleOpenModal}
           style={styles.inlineCard}
           accessibilityRole="button"
           accessibilityLabel={label}
         >
           <View style={styles.inlineVideoWrap}>
-            {hasVideo ? (
+            {hasVideo && promo.videoUrl ? (
               <PromoVideoPlayer
-                videoUrl={promo.videoUrl!}
+                videoUrl={promo.videoUrl}
                 posterUrl={promo.posterUrl}
                 muted
                 lockMute
@@ -172,9 +184,10 @@ const HomeProductPromo = ({ variant, onFloatClose }: Props) => {
               />
             )}
             <View style={styles.expandBadge}>
-              <Ionicons name="expand-outline" size={13} color="#fff" />
+              <Ionicons name="expand-outline" size={13} color="#ffffff" />
             </View>
           </View>
+
           <View style={styles.inlineCopy}>
             <Text style={styles.inlineEyebrow}>Featured</Text>
             <Text style={styles.inlineTitle} numberOfLines={2}>
@@ -195,10 +208,11 @@ const HomeProductPromo = ({ variant, onFloatClose }: Props) => {
             </View>
           </View>
         </Pressable>
+
         <PromoFullscreenModal
           promo={promo}
           visible={expanded}
-          onClose={() => setExpanded(false)}
+          onClose={handleCloseModal}
           hasVideo={hasVideo}
           label={label}
         />
@@ -208,20 +222,17 @@ const HomeProductPromo = ({ variant, onFloatClose }: Props) => {
 
   return (
     <>
-      <View
-        pointerEvents="box-none"
-        style={styles.anchor}
-      >
+      <View pointerEvents="box-none" style={styles.anchor}>
         <Pressable
-          onPress={() => setExpanded(true)}
+          onPress={handleOpenModal}
           style={styles.card}
           accessibilityRole="button"
           accessibilityLabel={label}
         >
           <View style={styles.cardMedia}>
-            {hasVideo ? (
+            {hasVideo && promo.videoUrl ? (
               <PromoVideoPlayer
-                videoUrl={promo.videoUrl!}
+                videoUrl={promo.videoUrl}
                 posterUrl={promo.posterUrl}
                 muted
                 lockMute
@@ -238,24 +249,25 @@ const HomeProductPromo = ({ variant, onFloatClose }: Props) => {
               />
             )}
             <View style={styles.expandBadge}>
-              <Ionicons name="expand-outline" size={13} color="#fff" />
+              <Ionicons name="expand-outline" size={13} color="#ffffff" />
             </View>
           </View>
         </Pressable>
+
         <Pressable
           onPress={handleCloseFloat}
           style={styles.dismissBtn}
           hitSlop={12}
           accessibilityLabel="Move promo to home"
         >
-          <Ionicons name="close" size={14} color="#fff" />
+          <Ionicons name="close" size={14} color="#ffffff" />
         </Pressable>
       </View>
 
       <PromoFullscreenModal
         promo={promo}
         visible={expanded}
-        onClose={() => setExpanded(false)}
+        onClose={handleCloseModal}
         hasVideo={hasVideo}
         label={label}
       />
@@ -276,11 +288,11 @@ const styles = StyleSheet.create({
     width: CARD_W,
     height: CARD_H,
     borderRadius: CARD_RADIUS,
-    backgroundColor: "#111",
+    backgroundColor: "#111111",
     padding: 2.5,
     borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.55)",
-    shadowColor: "#000",
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 12,
@@ -292,7 +304,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.9)",
-    backgroundColor: "#111",
+    backgroundColor: "#111111",
   },
   mediaFill: {
     position: "absolute",
@@ -330,7 +342,7 @@ const styles = StyleSheet.create({
     minHeight: INLINE_H,
     flexDirection: "row",
     alignItems: "stretch",
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#E8EEF2",
@@ -338,7 +350,7 @@ const styles = StyleSheet.create({
   },
   inlineVideoWrap: {
     width: INLINE_VIDEO_W,
-    backgroundColor: "#111",
+    backgroundColor: "#111111",
   },
   inlineCopy: {
     flex: 1,
@@ -377,7 +389,7 @@ const styles = StyleSheet.create({
   },
   modalRoot: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#000000",
   },
   modalTop: {
     flexDirection: "row",
@@ -387,7 +399,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   modalTitle: {
-    color: "#fff",
+    color: "#ffffff",
     fontFamily: "Raleway_700Bold",
     fontSize: 18,
     flex: 1,
@@ -395,7 +407,7 @@ const styles = StyleSheet.create({
   },
   player: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#000000",
   },
   fill: {
     width: "100%",
@@ -407,7 +419,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   productName: {
-    color: "#eee",
+    color: "#eeeeee",
     fontFamily: "Raleway_600SemiBold",
     fontSize: 15,
     textAlign: "center",
@@ -419,7 +431,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   ctaText: {
-    color: "#fff",
+    color: "#ffffff",
     fontFamily: "Raleway_700Bold",
     fontSize: 16,
   },

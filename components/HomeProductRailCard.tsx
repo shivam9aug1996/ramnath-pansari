@@ -19,10 +19,12 @@ type Props = {
 };
 
 const HomeProductRailCard = ({ item }: Props) => {
+  const { _id, name, price, discountedPrice, image, isOutOfStock } = item;
+
   const discountPercentage = useMemo(() => {
-    if (!item.price || item.price <= item.discountedPrice) return 0;
-    return Math.round(((item.price - item.discountedPrice) / item.price) * 100);
-  }, [item.price, item.discountedPrice]);
+    if (!price || price <= discountedPrice) return 0;
+    return Math.round(((price - discountedPrice) / price) * 100);
+  }, [price, discountedPrice]);
 
   const handlePress = useCallback(
     (e?: GestureResponderEvent) => {
@@ -30,12 +32,12 @@ const HomeProductRailCard = ({ item }: Props) => {
       router.navigate({
         pathname: "/(productDetail)/[id]",
         params: {
-          id: item._id,
+          id: _id,
           extraData: JSON.stringify(item),
         },
       });
     },
-    [item],
+    [_id, item],
   );
 
   return (
@@ -46,14 +48,11 @@ const HomeProductRailCard = ({ item }: Props) => {
             onPress={handlePress}
             style={styles.imageWrapper}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={`View details for ${name}`}
           >
-            <View
-              style={[
-                styles.imageContent,
-                item.isOutOfStock && styles.imageOutOfStock,
-              ]}
-            >
-              <ProductImage image={item.image} />
+            <View style={[styles.imageContent, isOutOfStock && styles.imageOutOfStock]}>
+              <ProductImage image={image} />
             </View>
           </TouchableOpacity>
           <CartButton value={0} item={item} />
@@ -63,44 +62,34 @@ const HomeProductRailCard = ({ item }: Props) => {
           onPress={handlePress}
           style={styles.info}
           activeOpacity={0.85}
+          accessibilityRole="button"
         >
           <Text
-            style={[
-              styles.name,
-              item.isOutOfStock && styles.mutedText,
-            ]}
+            style={[styles.name, isOutOfStock && styles.mutedText]}
             numberOfLines={2}
           >
-            {item.name}
+            {name}
           </Text>
+
           <Text
             style={[
               styles.discount,
-              item.isOutOfStock && styles.mutedText,
+              isOutOfStock && styles.mutedText,
               discountPercentage <= 0 && styles.discountHidden,
             ]}
           >
             {discountPercentage > 0 ? `${discountPercentage}% OFF` : " "}
           </Text>
+
           <View style={styles.priceRow}>
-            <Text
-              style={[
-                styles.price,
-                item.isOutOfStock && styles.mutedText,
-              ]}
-            >
-              ₹{formatNumber(item.discountedPrice)}
+            <Text style={[styles.price, isOutOfStock && styles.mutedText]}>
+              ₹{formatNumber(discountedPrice)}
             </Text>
-            {discountPercentage > 0 ? (
-              <Text
-                style={[
-                  styles.mrp,
-                  item.isOutOfStock && styles.mutedText,
-                ]}
-              >
-                ₹{formatNumber(item.price)}
+            {discountPercentage > 0 && (
+              <Text style={[styles.mrp, isOutOfStock && styles.mutedText]}>
+                ₹{formatNumber(price)}
               </Text>
-            ) : null}
+            )}
           </View>
         </TouchableOpacity>
       </View>

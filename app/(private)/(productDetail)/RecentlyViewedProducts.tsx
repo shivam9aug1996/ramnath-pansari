@@ -1,17 +1,19 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   View,
   StyleSheet,
   FlatList,
   TouchableOpacity,
   ScrollView,
+  ListRenderItemInfo,
 } from "react-native";
 import Animated, { AnimatedRef, scrollTo } from "react-native-reanimated";
 import { useSelector } from "react-redux";
+import { Image } from "expo-image";
+import { router } from "expo-router";
+
 import { RootState } from "@/types/global";
 import { ThemedText } from "@/components/ThemedText";
-import { Image } from "expo-image";
-import { router, useIsFocused } from "expo-router";
 import { Colors } from "@/constants/Colors";
 
 type Props = {
@@ -20,65 +22,153 @@ type Props = {
   variant?: "default" | "compact";
 };
 
+type RecentlyViewedItemType = {
+  id: string;
+  type?: string;
+  name?: string;
+  image?: string;
+  price?: number;
+  discountedPrice?: number;
+  [key: string]: any;
+};
+
+// --- Sub-component for individual card ---
+
+type CardItemProps = {
+  item: RecentlyViewedItemType;
+  isCompact: boolean;
+  onPress: (id: string, item: RecentlyViewedItemType) => void;
+};
+
+const RecentlyViewedItem = memo(function RecentlyViewedItem({
+  item,
+  isCompact,
+  onPress,
+}: CardItemProps) {
+  const handlePress = useCallback(() => {
+    onPress(item.id, item);
+  }, [onPress, item]);
+
+  const hasDiscount =
+    Boolean(item.discountedPrice) && item.discountedPrice !== item.price;
+
+  const discountPercentage = useMemo(() => {
+    if (!hasDiscount || !item.price || !item.discountedPrice) return 0;
+    return Math.round(((item.price - item.discountedPrice) / item.price) * 100);
+  }, [hasDiscount, item.price, item.discountedPrice]);
+
+  return (
+    <TouchableOpacity
+      style={[styles.item, isCompact && styles.compactItem]}
+      onPress={handlePress}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`View details for ${item.name}`}
+    >
+      <View style={[styles.card, isCompact && styles.compactCard]}>
+        {hasDiscount && (
+          <View style={styles.discountBadge}>
+            <ThemedText style={styles.discountBadgeText}>
+              {`${discountPercentage}% OFF`}
+            </ThemedText>
+          </View>
+        )}
+
+        <Image
+          source={{ uri: item.image }}
+          style={[styles.image, isCompact && styles.compactImage]}
+          contentFit="contain"
+          cachePolicy="memory-disk"
+        />
+
+        <View
+          style={[
+            styles.detailsContainer,
+            isCompact && styles.compactDetails,
+          ]}
+        >
+          <ThemedText
+            numberOfLines={2}
+            style={[styles.name, isCompact && styles.compactName]}
+          >
+            {item.name}
+          </ThemedText>
+
+          <View style={styles.priceContainer}>
+            {hasDiscount ? (
+              <>
+                <ThemedText style={styles.discountedPrice}>
+                  ₹{item.discountedPrice}
+                </ThemedText>
+                <ThemedText style={styles.originalPrice}>
+                  ₹{item.price}
+                </ThemedText>
+              </>
+            ) : (
+              <ThemedText style={styles.price}>₹{item.price}</ThemedText>
+            )}
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
+// --- Main Component ---
+
 const RecentlyViewedProducts = ({
   filterProductIds = [],
   scrollRef,
   variant = "default",
 }: Props) => {
-  const isFocused = useIsFocused();
-  const flatListRef = useRef<FlatList>(null);
-  const recentlyViewed = useSelector(
-    (state: RootState) => state?.recentlyViewed?.items
+  const flatListRef = useRef<FlatList<RecentlyViewedItemType>>(null);
+
+  const recentlyViewedRaw = useSelector(
+    (state: RootState) => (state as any)?.recentlyViewed?.items as RecentlyViewedItemType[] | undefined,
   );
-  const [localRecentlyViewed,setLocalRecentlyViewed] = useState<any[]>([]);
 
-
-
-useEffect(()=>{
-  if(recentlyViewed?.length>0){
-    const productItems = recentlyViewed?.filter(
+  const products = useMemo(() => {
+    if (!recentlyViewedRaw?.length) return [];
+    return recentlyViewedRaw.filter(
       (item) =>
         item?.type === "product" &&
-        !filterProductIds?.includes(item?.id) &&
-        item?.name
+        !filterProductIds.includes(item?.id) &&
+        Boolean(item?.name),
     );
-    setLocalRecentlyViewed(productItems);
-  }
-},[recentlyViewed])
+  }, [recentlyViewedRaw, filterProductIds]);
 
-useEffect(() => {
-  if (localRecentlyViewed?.length > 0) {
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    if (scrollRef) {
-      scrollTo(scrollRef, 0, 0, true);
+  useEffect(() => {
+    if (products.length > 0) {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      if (scrollRef) {
+        scrollTo(scrollRef, 0, 0, true);
+      }
     }
-  }
-}, [localRecentlyViewed, scrollRef]);
+  }, [products.length, scrollRef]);
 
-// useEffect(() => {
-//   if (isFocused) {
-   
-//   }
-// }, [isFocused, scrollRef]);
-
- 
-
-  const navigateToProduct = (id: string, item: any) => {
+  const navigateToProduct = useCallback((id: string, item: RecentlyViewedItemType) => {
     router.push({
-      pathname: "/(productDetail)/[id]",
+      pathname: "/(productDetail)/[id]" as any,
       params: {
         id,
         extraData: JSON.stringify(item),
       },
     });
+  }, []);
 
-
-   
-  };
-
-  if (!localRecentlyViewed || localRecentlyViewed.length === 0) return null;
+  const keyExtractor = useCallback((item: RecentlyViewedItemType) => item.id, []);
 
   const isCompact = variant === "compact";
+
+  if (!products.length) return null;
+
+  const renderItem = ({ item }: ListRenderItemInfo<RecentlyViewedItemType>) => (
+    <RecentlyViewedItem
+      item={item}
+      isCompact={isCompact}
+      onPress={navigateToProduct}
+    />
+  );
 
   return (
     <View style={[styles.container, isCompact && styles.compactContainer]}>
@@ -92,71 +182,17 @@ useEffect(() => {
       <FlatList
         ref={flatListRef}
         horizontal
-        data={localRecentlyViewed}
-        keyExtractor={(item) => item.id}
+        data={products}
+        keyExtractor={keyExtractor}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.item, isCompact && styles.compactItem]}
-            onPress={() => navigateToProduct(item.id, item)}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.card, isCompact && styles.compactCard]}>
-              {item.discountedPrice && item.discountedPrice !== item.price && (
-                <View style={styles.discountBadge}>
-                  <ThemedText style={styles.discountBadgeText}>
-                    {(() => {
-                      const nDiscountP =
-                        ((item.price - item.discountedPrice) / item.price) *
-                        100;
-                      return `${Math.round(nDiscountP)}% OFF`;
-                    })()}
-                  </ThemedText>
-                </View>
-              )}
-              <Image
-                source={{ uri: item.image }}
-                style={[styles.image, isCompact && styles.compactImage]}
-                contentFit="contain"
-              />
-              <View
-                style={[
-                  styles.detailsContainer,
-                  isCompact && styles.compactDetails,
-                ]}
-              >
-                <ThemedText
-                  numberOfLines={2}
-                  style={[styles.name, isCompact && styles.compactName]}
-                >
-                  {item.name}
-                </ThemedText>
-                <View style={styles.priceContainer}>
-                  {item.discountedPrice &&
-                  item.discountedPrice !== item.price ? (
-                    <>
-                      <ThemedText style={styles.discountedPrice}>
-                        ₹{item.discountedPrice}
-                      </ThemedText>
-                      <ThemedText style={styles.originalPrice}>
-                        ₹{item.price}
-                      </ThemedText>
-                    </>
-                  ) : (
-                    <ThemedText style={styles.price}>
-                      ₹{item.price}
-                    </ThemedText>
-                  )}
-                </View>
-              </View>
-            </View>
-          </TouchableOpacity>
-        )}
+        renderItem={renderItem}
       />
     </View>
   );
 };
+
+export default memo(RecentlyViewedProducts);
 
 const styles = StyleSheet.create({
   container: {
@@ -165,7 +201,7 @@ const styles = StyleSheet.create({
   },
   compactContainer: {
     marginVertical: 12,
-    paddingVertical:12,
+    paddingVertical: 12,
   },
   title: {
     fontSize: 24,
@@ -180,7 +216,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 24,
     paddingHorizontal: 16,
-    marginTop:12
+    marginTop: 12,
   },
   listContent: {
     paddingHorizontal: 16,
@@ -198,7 +234,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: "#ffffff",
     borderRadius: 20,
-    shadowColor: "#000",
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.06,
     shadowRadius: 16,
@@ -255,7 +291,7 @@ const styles = StyleSheet.create({
   },
   originalPrice: {
     fontSize: 15,
-    color: "#999",
+    color: "#999999",
     fontWeight: "500",
     textDecorationLine: "line-through",
     fontFamily: "Montserrat_600SemiBold",
@@ -277,19 +313,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderBottomLeftRadius: 16,
     zIndex: 1,
-    shadowColor: "#000",
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
   discountBadgeText: {
-    color: "white",
+    color: "#ffffff",
     fontSize: 12,
     fontWeight: "700",
     fontFamily: "Montserrat_600SemiBold",
     letterSpacing: -0.2,
   },
 });
-
-export default RecentlyViewedProducts;

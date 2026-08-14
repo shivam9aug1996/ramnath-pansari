@@ -14,6 +14,8 @@ import {
   openIosAppStore,
 } from "@/utils/supportLinks";
 
+type Variant = "list" | "compact" | "banner";
+
 type Props = {
   /** When true, skip the heading (parent already shows a section title). */
   hideIntro?: boolean;
@@ -22,7 +24,7 @@ type Props = {
    * `compact` — account section: one row of store chips.
    * `banner` — home strip with both store buttons.
    */
-  variant?: "list" | "compact" | "banner";
+  variant?: Variant;
 };
 
 /** Home feed slot for banner variant (banner body + vertical margins). */
@@ -30,28 +32,34 @@ export const GET_THE_APP_BANNER_HEIGHT = 72;
 /** Inner banner body height (excludes marginTop 4 + marginBottom 8). */
 const BANNER_BODY_HEIGHT = 60;
 
-function StoreChip({
-  onPress,
-  label,
-  accessibilityLabel,
-  icon,
-  fill,
-}: {
+type StoreChipProps = {
   onPress: () => void;
   label: string;
   accessibilityLabel: string;
   icon: React.ReactNode;
-  /** Stretch to fill row (account compact). */
   fill?: boolean;
-}) {
+};
+
+const StoreChip = memo(function StoreChip({
+  onPress,
+  label,
+  accessibilityLabel,
+  icon,
+  fill = false,
+}: StoreChipProps) {
+  const getStyle = useCallback(
+    ({ pressed }: { pressed: boolean }) => [
+      styles.storeChip,
+      fill && styles.storeChipFill,
+      pressed && styles.storeChipPressed,
+    ],
+    [fill],
+  );
+
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.storeChip,
-        fill && styles.storeChipFill,
-        pressed && styles.storeChipPressed,
-      ]}
+      style={getStyle}
       accessibilityRole="link"
       accessibilityLabel={accessibilityLabel}
     >
@@ -61,18 +69,18 @@ function StoreChip({
       </Text>
     </Pressable>
   );
-}
+});
 
 /**
  * Web-only prompt with App Store / Play Store download links.
  * Hidden on native (user is already in the app).
  */
-function GetTheApp({ hideIntro = false, variant = "list" }: Props) {
-  const onIos = useCallback(() => {
+const GetTheApp = ({ hideIntro = false, variant = "list" }: Props) => {
+  const handleIosPress = useCallback(() => {
     void openIosAppStore();
   }, []);
 
-  const onAndroid = useCallback(() => {
+  const handleAndroidPress = useCallback(() => {
     void openAndroidPlayStore();
   }, []);
 
@@ -89,9 +97,10 @@ function GetTheApp({ hideIntro = false, variant = "list" }: Props) {
             Faster checkout · live order tracking
           </Text>
         </View>
+
         <View style={styles.bannerActions}>
           <StoreChip
-            onPress={onIos}
+            onPress={handleIosPress}
             label="App Store"
             accessibilityLabel="Download on the App Store"
             icon={
@@ -103,7 +112,7 @@ function GetTheApp({ hideIntro = false, variant = "list" }: Props) {
             }
           />
           <StoreChip
-            onPress={onAndroid}
+            onPress={handleAndroidPress}
             label="Play"
             accessibilityLabel="Get it on Google Play"
             icon={
@@ -124,7 +133,7 @@ function GetTheApp({ hideIntro = false, variant = "list" }: Props) {
       <View style={styles.compactRow}>
         <StoreChip
           fill
-          onPress={onIos}
+          onPress={handleIosPress}
           label="iOS"
           accessibilityLabel="Download on the App Store"
           icon={
@@ -137,7 +146,7 @@ function GetTheApp({ hideIntro = false, variant = "list" }: Props) {
         />
         <StoreChip
           fill
-          onPress={onAndroid}
+          onPress={handleAndroidPress}
           label="Android"
           accessibilityLabel="Get it on Google Play"
           icon={
@@ -154,16 +163,17 @@ function GetTheApp({ hideIntro = false, variant = "list" }: Props) {
 
   return (
     <View style={styles.wrap}>
-      {!hideIntro ? (
+      {!hideIntro && (
         <>
           <Text style={styles.heading}>Get the app</Text>
           <Text style={styles.sub}>
             For the best experience on your phone, download Ramnath Pansari.
           </Text>
         </>
-      ) : null}
+      )}
+
       <AccountOption
-        onPress={onIos}
+        onPress={handleIosPress}
         icon={
           <Ionicons
             name="logo-apple"
@@ -173,8 +183,9 @@ function GetTheApp({ hideIntro = false, variant = "list" }: Props) {
         }
         label="Download for iOS"
       />
+
       <AccountOption
-        onPress={onAndroid}
+        onPress={handleAndroidPress}
         icon={
           <MaterialCommunityIcons
             name="google-play"
@@ -186,7 +197,7 @@ function GetTheApp({ hideIntro = false, variant = "list" }: Props) {
       />
     </View>
   );
-}
+};
 
 export default memo(GetTheApp);
 

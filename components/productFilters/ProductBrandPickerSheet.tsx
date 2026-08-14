@@ -8,6 +8,7 @@ import {
   Text,
   TextInput,
   View,
+  SectionListData,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
@@ -36,8 +37,8 @@ function brandSectionKey(brand: string): string {
 
 const ProductBrandPickerSheet = ({
   visible,
-  brands,
-  selected,
+  brands = [],
+  selected = [],
   onChange,
   onClose,
 }: ProductBrandPickerSheetProps) => {
@@ -68,8 +69,11 @@ const ProductBrandPickerSheet = ({
     for (const brand of list) {
       const key = brandSectionKey(brand);
       const bucket = map.get(key);
-      if (bucket) bucket.push(brand);
-      else map.set(key, [brand]);
+      if (bucket) {
+        bucket.push(brand);
+      } else {
+        map.set(key, [brand]);
+      }
     }
 
     return [...map.entries()]
@@ -90,28 +94,52 @@ const ProductBrandPickerSheet = ({
     });
   }, []);
 
-  const handleDone = () => {
+  const handleDone = useCallback(() => {
     onChange(draftSelected);
     onClose();
-  };
+  }, [draftSelected, onChange, onClose]);
+
+  const handleClearDraft = useCallback(() => {
+    setDraftSelected([]);
+  }, []);
 
   const renderItem = useCallback(
     ({ item }: { item: string }) => {
       const isOn = selectedSet.has(item.toLowerCase());
       return (
-        <Pressable style={styles.row} onPress={() => toggleBrand(item)}>
+        <Pressable
+          style={styles.row}
+          onPress={() => toggleBrand(item)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: isOn }}
+          accessibilityLabel={`Brand ${item}`}
+        >
           <Text style={[styles.rowLabel, isOn && styles.rowLabelOn]}>
             {item}
           </Text>
           <View style={[styles.checkbox, isOn && styles.checkboxOn]}>
-            {isOn ? (
-              <Ionicons name="checkmark" size={14} color="#fff" />
-            ) : null}
+            {isOn && <Ionicons name="checkmark" size={14} color="#ffffff" />}
           </View>
         </Pressable>
       );
     },
     [selectedSet, toggleBrand],
+  );
+
+  const renderSectionHeader = useCallback(
+    ({ section }: { section: SectionListData<string, BrandSection> }) => (
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionHeaderText}>{section.title}</Text>
+      </View>
+    ),
+    [],
+  );
+
+  const keyExtractor = useCallback((item: string) => item, []);
+
+  const doneButtonTitle = useMemo(
+    () => (draftSelected.length > 0 ? `Done (${draftSelected.length})` : "Done"),
+    [draftSelected.length],
   );
 
   return (
@@ -122,22 +150,20 @@ const ProductBrandPickerSheet = ({
       footer={
         <View style={styles.actions}>
           <Button
-            title={
-              draftSelected.length > 0
-                ? `Done (${draftSelected.length})`
-                : "Done"
-            }
+            title={doneButtonTitle}
             onPress={handleDone}
             wrapperStyle={styles.doneButton}
           />
-          {draftSelected.length > 0 ? (
+          {draftSelected.length > 0 && (
             <Pressable
               style={styles.clearButton}
-              onPress={() => setDraftSelected([])}
+              onPress={handleClearDraft}
+              accessibilityRole="button"
+              accessibilityLabel="Clear brand selections"
             >
               <Text style={styles.clearText}>Clear brands</Text>
             </Pressable>
-          ) : null}
+          )}
         </View>
       }
     >
@@ -145,7 +171,13 @@ const ProductBrandPickerSheet = ({
         <View style={styles.padded}>
           <View style={styles.header}>
             <Text style={styles.title}>Brands</Text>
-            <Pressable style={styles.closeButton} onPress={onClose} hitSlop={8}>
+            <Pressable
+              style={styles.closeButton}
+              onPress={onClose}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Close brand picker"
+            >
               <Ionicons name="close" size={20} color={Colors.light.darkGrey} />
             </Pressable>
           </View>
@@ -166,17 +198,15 @@ const ProductBrandPickerSheet = ({
         </View>
 
         {sections.length === 0 ? (
-          <Text style={[styles.emptyHint, styles.padded]}>No brands match</Text>
+          <Text style={[styles.emptyHint, styles.padded]}>
+            No brands match
+          </Text>
         ) : (
           <SectionList
             sections={sections}
-            keyExtractor={(item) => item}
+            keyExtractor={keyExtractor}
             renderItem={renderItem}
-            renderSectionHeader={({ section }) => (
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionHeaderText}>{section.title}</Text>
-              </View>
-            )}
+            renderSectionHeader={renderSectionHeader}
             stickySectionHeadersEnabled
             style={styles.list}
             keyboardShouldPersistTaps="handled"
@@ -279,7 +309,7 @@ const styles = StyleSheet.create({
     borderColor: "#C9D4CE",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
   },
   checkboxOn: {
     backgroundColor: Colors.light.lightGreen,

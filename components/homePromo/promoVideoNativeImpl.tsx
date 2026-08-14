@@ -37,6 +37,7 @@ function buildVideoHtml(
 ) {
   const safeVideo = videoUrl.replace(/"/g, "&quot;");
   const safePoster = (posterUrl || "").replace(/"/g, "&quot;");
+
   return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
 <style>
 html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}
@@ -121,6 +122,7 @@ function PromoVideoPlayerNative({
     playingRef.current = false;
     stopRetry();
     runPlayScript();
+
     let attempts = 0;
     timerRef.current = setInterval(() => {
       attempts += 1;
@@ -135,13 +137,16 @@ function PromoVideoPlayerNative({
   useEffect(() => {
     if (!active) {
       stopRetry();
-      return;
     }
-    return () => stopRetry();
+    return () => {
+      stopRetry();
+    };
   }, [active, stopRetry]);
 
   const onLoadEnd = useCallback(() => {
-    if (active) startRetry();
+    if (active) {
+      startRetry();
+    }
   }, [active, startRetry]);
 
   const onMessage = useCallback(
@@ -154,8 +159,10 @@ function PromoVideoPlayerNative({
     [stopRetry],
   );
 
+  const pointerEvents = controls ? "auto" : "none";
+
   return (
-    <View style={[styles.fill, style]} pointerEvents={controls ? "auto" : "none"}>
+    <View style={[styles.fill, style]} pointerEvents={pointerEvents}>
       <WebView
         ref={webRef}
         source={{ html, baseUrl: "https://localhost/" }}

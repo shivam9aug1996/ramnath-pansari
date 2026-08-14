@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -38,7 +38,7 @@ const ProductFilterSheet = ({
   visible,
   draft,
   onChange,
-  brands,
+  brands = [],
   brandsLoading = false,
   onApply,
   onClear,
@@ -56,28 +56,83 @@ const ProductFilterSheet = ({
     return [...draft.brands].sort((a, b) => a.localeCompare(b));
   }, [draft.brands]);
 
-  const previewBrands = selectedBrands.slice(0, PREVIEW_CHIP_COUNT);
-  const extraCount = Math.max(
-    0,
-    selectedBrands.length - PREVIEW_CHIP_COUNT,
+  const previewBrands = useMemo(
+    () => selectedBrands.slice(0, PREVIEW_CHIP_COUNT),
+    [selectedBrands],
   );
 
-  const removeBrand = (brand: string) => {
-    const lower = brand.toLowerCase();
-    onChange({
-      ...draft,
-      brands: draft.brands.filter((b) => b.toLowerCase() !== lower),
-    });
-  };
+  const extraCount = useMemo(
+    () => Math.max(0, selectedBrands.length - PREVIEW_CHIP_COUNT),
+    [selectedBrands.length],
+  );
 
-  const setSort = (sort: ProductSortOption) => {
-    onChange({ ...draft, sort });
-  };
+  const removeBrand = useCallback(
+    (brand: string) => {
+      const lower = brand.toLowerCase();
+      onChange({
+        ...draft,
+        brands: draft.brands.filter((b) => b.toLowerCase() !== lower),
+      });
+    },
+    [draft, onChange],
+  );
 
-  const handleClose = () => {
+  const setSort = useCallback(
+    (sort: ProductSortOption) => {
+      onChange({ ...draft, sort });
+    },
+    [draft, onChange],
+  );
+
+  const handleClose = useCallback(() => {
     setBrandPickerOpen(false);
     onClose();
-  };
+  }, [onClose]);
+
+  const handleOpenBrandPicker = useCallback(() => {
+    setBrandPickerOpen(true);
+  }, []);
+
+  const handleCloseBrandPicker = useCallback(() => {
+    setBrandPickerOpen(false);
+  }, []);
+
+  const handleBrandPickerChange = useCallback(
+    (nextBrands: string[]) => {
+      onChange({ ...draft, brands: nextBrands });
+    },
+    [draft, onChange],
+  );
+
+  const handleInStockToggle = useCallback(() => {
+    onChange({ ...draft, inStockOnly: !draft.inStockOnly });
+  }, [draft, onChange]);
+
+  const handleMinPriceChange = useCallback(
+    (priceMin: string) => {
+      onChange({
+        ...draft,
+        priceMin: priceMin.replace(/[^0-9.]/g, ""),
+      });
+    },
+    [draft, onChange],
+  );
+
+  const handleMaxPriceChange = useCallback(
+    (priceMax: string) => {
+      onChange({
+        ...draft,
+        priceMax: priceMax.replace(/[^0-9.]/g, ""),
+      });
+    },
+    [draft, onChange],
+  );
+
+  const brandEntryTitle = useMemo(() => {
+    return selectedBrands.length > 0
+      ? `${selectedBrands.length} selected`
+      : "Choose brands";
+  }, [selectedBrands.length]);
 
   return (
     <>
@@ -93,7 +148,12 @@ const ProductFilterSheet = ({
               wrapperStyle={styles.applyButton}
               textStyle={styles.applyText}
             />
-            <Pressable style={styles.clearButton} onPress={onClear}>
+            <Pressable
+              style={styles.clearButton}
+              onPress={onClear}
+              accessibilityRole="button"
+              accessibilityLabel="Clear all filters"
+            >
               <Text style={styles.clearText}>Clear all</Text>
             </Pressable>
           </View>
@@ -108,12 +168,14 @@ const ProductFilterSheet = ({
               style={styles.closeButton}
               onPress={handleClose}
               hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Close filters"
             >
               <Ionicons name="close" size={20} color={Colors.light.darkGrey} />
             </Pressable>
           </View>
 
-          {includeSort ? (
+          {includeSort && (
             <>
               <Text style={styles.sectionLabel}>Sort by</Text>
               <View style={styles.sortWrap}>
@@ -124,6 +186,9 @@ const ProductFilterSheet = ({
                       key={option.value}
                       style={[styles.sortChip, selected && styles.sortChipOn]}
                       onPress={() => setSort(option.value)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      accessibilityLabel={`Sort by ${option.label}`}
                     >
                       <Text
                         style={[
@@ -138,20 +203,21 @@ const ProductFilterSheet = ({
                 })}
               </View>
             </>
-          ) : null}
+          )}
 
           <Text
             style={[
               styles.sectionLabel,
-              includeSort ? { marginTop: 18 } : null,
+              includeSort && styles.sectionLabelMarginTop,
             ]}
           >
             Brand
           </Text>
+
           {brandsLoading ? (
             <ActivityIndicator
               color={Colors.light.lightGreen}
-              style={{ marginVertical: 12 }}
+              style={styles.loader}
             />
           ) : brands.length === 0 ? (
             <Text style={styles.emptyHint}>No brands available</Text>
@@ -159,14 +225,12 @@ const ProductFilterSheet = ({
             <>
               <Pressable
                 style={styles.brandEntry}
-                onPress={() => setBrandPickerOpen(true)}
+                onPress={handleOpenBrandPicker}
+                accessibilityRole="button"
+                accessibilityLabel="Choose brands"
               >
                 <View style={styles.brandEntryTextWrap}>
-                  <Text style={styles.brandEntryTitle}>
-                    {selectedBrands.length > 0
-                      ? `${selectedBrands.length} selected`
-                      : "Choose brands"}
-                  </Text>
+                  <Text style={styles.brandEntryTitle}>{brandEntryTitle}</Text>
                   <Text style={styles.brandEntryHint}>
                     Browse A–Z or search
                   </Text>
@@ -178,7 +242,7 @@ const ProductFilterSheet = ({
                 />
               </Pressable>
 
-              {previewBrands.length > 0 ? (
+              {previewBrands.length > 0 && (
                 <View style={styles.brandWrap}>
                   {previewBrands.map((brand) => (
                     <Pressable
@@ -186,6 +250,8 @@ const ProductFilterSheet = ({
                       style={[styles.brandChip, styles.brandChipOn]}
                       onPress={() => removeBrand(brand)}
                       hitSlop={4}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove ${brand}`}
                     >
                       <Text style={[styles.brandChipText, styles.brandChipTextOn]}>
                         {brand}
@@ -197,51 +263,52 @@ const ProductFilterSheet = ({
                       />
                     </Pressable>
                   ))}
-                  {extraCount > 0 ? (
+
+                  {extraCount > 0 && (
                     <Pressable
                       style={styles.brandChip}
-                      onPress={() => setBrandPickerOpen(true)}
+                      onPress={handleOpenBrandPicker}
+                      accessibilityRole="button"
+                      accessibilityLabel={`View ${extraCount} more brands`}
                     >
                       <Text style={styles.brandChipText}>+{extraCount}</Text>
                     </Pressable>
-                  ) : null}
+                  )}
                 </View>
-              ) : null}
+              )}
             </>
           )}
 
-          <Text style={[styles.sectionLabel, { marginTop: 18 }]}>
+          <Text style={[styles.sectionLabel, styles.sectionLabelMarginTop]}>
             Availability
           </Text>
+
           <Pressable
             style={styles.toggleRow}
-            onPress={() =>
-              onChange({ ...draft, inStockOnly: !draft.inStockOnly })
-            }
+            onPress={handleInStockToggle}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: draft.inStockOnly }}
+            accessibilityLabel="In stock only"
           >
             <Text style={styles.toggleLabel}>In stock only</Text>
             <View
               style={[styles.checkbox, draft.inStockOnly && styles.checkboxOn]}
             >
-              {draft.inStockOnly ? (
-                <Ionicons name="checkmark" size={14} color="#fff" />
-              ) : null}
+              {draft.inStockOnly && (
+                <Ionicons name="checkmark" size={14} color="#ffffff" />
+              )}
             </View>
           </Pressable>
 
-          <Text style={[styles.sectionLabel, { marginTop: 18 }]}>
+          <Text style={[styles.sectionLabel, styles.sectionLabelMarginTop]}>
             Price range (₹)
           </Text>
+
           <View style={styles.priceRow}>
             <View style={styles.priceInputWrap}>
               <TextInput
                 value={draft.priceMin}
-                onChangeText={(priceMin) =>
-                  onChange({
-                    ...draft,
-                    priceMin: priceMin.replace(/[^0-9.]/g, ""),
-                  })
-                }
+                onChangeText={handleMinPriceChange}
                 placeholder="Min"
                 placeholderTextColor={Colors.light.mediumGrey}
                 keyboardType="decimal-pad"
@@ -252,12 +319,7 @@ const ProductFilterSheet = ({
             <View style={styles.priceInputWrap}>
               <TextInput
                 value={draft.priceMax}
-                onChangeText={(priceMax) =>
-                  onChange({
-                    ...draft,
-                    priceMax: priceMax.replace(/[^0-9.]/g, ""),
-                  })
-                }
+                onChangeText={handleMaxPriceChange}
                 placeholder="Max"
                 placeholderTextColor={Colors.light.mediumGrey}
                 keyboardType="decimal-pad"
@@ -272,8 +334,8 @@ const ProductFilterSheet = ({
         visible={brandPickerOpen}
         brands={brands}
         selected={draft.brands}
-        onChange={(nextBrands) => onChange({ ...draft, brands: nextBrands })}
-        onClose={() => setBrandPickerOpen(false)}
+        onChange={handleBrandPickerChange}
+        onClose={handleCloseBrandPicker}
       />
     </>
   );
@@ -311,6 +373,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.light.darkGrey,
     marginBottom: 10,
+  },
+  sectionLabelMarginTop: {
+    marginTop: 18,
+  },
+  loader: {
+    marginVertical: 12,
   },
   sortWrap: {
     flexDirection: "row",
@@ -424,7 +492,7 @@ const styles = StyleSheet.create({
     borderColor: "#C9D4CE",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
   },
   checkboxOn: {
     backgroundColor: Colors.light.lightGreen,

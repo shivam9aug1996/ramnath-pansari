@@ -1,5 +1,5 @@
-import React, { memo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { memo, useMemo } from "react";
+import { Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
 import {
@@ -13,7 +13,7 @@ type ProductFilterFabProps = {
   onPress: () => void;
   onClear?: () => void;
   /** Override bar padding — category chrome uses 30 to match chip rows. */
-  barStyle?: object;
+  barStyle?: ViewStyle;
   /** Total matching products from API. */
   resultCount?: number;
   /** Products loaded in the list so far (infinite scroll). */
@@ -27,14 +27,12 @@ function formatResultProgress(
   if (resultCount == null || resultCount < 0) return null;
   if (resultCount === 0) return "0 results";
 
-  // Hide 0 / N while first page hasn't landed.
   if (loadedCount == null || loadedCount <= 0) {
     return `${resultCount} results`;
   }
 
   const loaded = Math.min(loadedCount, resultCount);
 
-  // All loaded (first page only, or last page).
   if (loaded >= resultCount) {
     return `${resultCount} results`;
   }
@@ -42,7 +40,6 @@ function formatResultProgress(
   return `${loaded} / ${resultCount}`;
 }
 
-/** Compact Sort & Filters chip — sits below subcategory chips. */
 const ProductFilterFab = ({
   filters,
   onPress,
@@ -51,63 +48,77 @@ const ProductFilterFab = ({
   resultCount,
   loadedCount,
 }: ProductFilterFabProps) => {
-  const activeCount = countActiveProductFilters(filters);
-  const sortLabel =
-    PRODUCT_SORT_OPTIONS.find((o) => o.value === filters.sort)?.label ??
-    "Relevance";
-  const label =
-    filters.sort === "relevance"
-      ? activeCount > 0
-        ? `Filters (${activeCount})`
-        : "Sort & Filters"
-      : activeCount > 1
-        ? `${sortLabel} · +${activeCount - 1}`
-        : sortLabel;
+  const activeCount = useMemo(
+    () => countActiveProductFilters(filters),
+    [filters],
+  );
 
-  const progressLabel = formatResultProgress(resultCount, loadedCount);
+  const label = useMemo(() => {
+    const sortLabel =
+      PRODUCT_SORT_OPTIONS.find((o) => o.value === filters.sort)?.label ??
+      "Relevance";
+
+    if (filters.sort === "relevance") {
+      return activeCount > 0
+        ? `Filters (${activeCount})`
+        : "Sort & Filters";
+    }
+
+    return activeCount > 1
+      ? `${sortLabel} · +${activeCount - 1}`
+      : sortLabel;
+  }, [filters.sort, activeCount]);
+
+  const progressLabel = useMemo(
+    () => formatResultProgress(resultCount, loadedCount),
+    [resultCount, loadedCount],
+  );
+
+  const hasActiveFilters = activeCount > 0;
 
   return (
     <View style={[styles.bar, barStyle]}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${label}${activeCount ? `, ${activeCount} active` : ""}`}
-        onPress={onPress}
-        style={[styles.chip, activeCount > 0 && styles.chipActive]}
-        hitSlop={4}
-      >
-        <Ionicons
-          name="options-outline"
-          size={14}
-          color={
-            activeCount > 0 ? Colors.light.white : Colors.light.darkGreen
-          }
-        />
-        <Text
-          style={[styles.chipText, activeCount > 0 && styles.chipTextActive]}
-          numberOfLines={1}
-        >
-          {label}
-        </Text>
-      </Pressable>
-
-      {activeCount > 0 && onClear ? (
+      <View style={styles.leftControls}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Clear filters"
-          onPress={onClear}
-          style={styles.clearChip}
-          hitSlop={8}
+          accessibilityLabel={`${label}${hasActiveFilters ? `, ${activeCount} active` : ""}`}
+          onPress={onPress}
+          style={[styles.chip, hasActiveFilters && styles.chipActive]}
+          hitSlop={6}
         >
-          <Text style={styles.clearText}>Clear</Text>
+          <Ionicons
+            name="options-outline"
+            size={14}
+            color={
+              hasActiveFilters ? Colors.light.white : Colors.light.darkGreen
+            }
+          />
+          <Text
+            style={[styles.chipText, hasActiveFilters && styles.chipTextActive]}
+            numberOfLines={1}
+          >
+            {label}
+          </Text>
         </Pressable>
-      ) : null}
-      <View style={{ flex: 1 }} />
 
-      {progressLabel ? (
+        {hasActiveFilters && Boolean(onClear) && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Clear filters"
+            onPress={onClear}
+            style={styles.clearChip}
+            hitSlop={8}
+          >
+            <Text style={styles.clearText}>Clear</Text>
+          </Pressable>
+        )}
+      </View>
+
+      {Boolean(progressLabel) && (
         <Text style={styles.resultCount} numberOfLines={1}>
           {progressLabel}
         </Text>
-      ) : null}
+      )}
     </View>
   );
 };
@@ -118,10 +129,18 @@ const styles = StyleSheet.create({
   bar: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: 8,
     paddingHorizontal: 30,
     paddingTop: 2,
     paddingBottom: 6,
+  },
+  leftControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 1,
+    minWidth: 0,
   },
   chip: {
     flexDirection: "row",
@@ -133,7 +152,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F5F4",
     borderWidth: 1,
     borderColor: "#D8E0DC",
-    maxWidth: "70%",
+    flexShrink: 0,
   },
   chipActive: {
     backgroundColor: Colors.light.mediumGreen,
@@ -143,6 +162,7 @@ const styles = StyleSheet.create({
     fontFamily: "Montserrat_500Medium",
     fontSize: 11,
     color: Colors.light.darkGrey,
+    flexShrink: 0,
   },
   chipTextActive: {
     color: Colors.light.white,
@@ -150,6 +170,7 @@ const styles = StyleSheet.create({
   clearChip: {
     paddingHorizontal: 8,
     paddingVertical: 4,
+    flexShrink: 0,
   },
   clearText: {
     fontFamily: "Montserrat_500Medium",
@@ -160,6 +181,6 @@ const styles = StyleSheet.create({
     fontFamily: "Montserrat_500Medium",
     fontSize: 12,
     color: Colors.light.darkGreen,
-    flexShrink: 1,
+    flexShrink: 0,
   },
 });

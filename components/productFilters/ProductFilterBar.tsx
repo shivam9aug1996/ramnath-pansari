@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
@@ -21,16 +21,35 @@ const ProductFilterBar = ({
   onOpenFilters,
   onClearFilters,
 }: ProductFilterBarProps) => {
-  const activeCount = countActiveProductFilters(filters);
-  const sortLabel =
-    PRODUCT_SORT_OPTIONS.find((o) => o.value === filters.sort)?.label ??
-    "Relevance";
-  const filterOnlyCount =
-    activeCount - (filters.sort !== "relevance" ? 1 : 0);
+  const activeCount = useMemo(
+    () => countActiveProductFilters(filters),
+    [filters],
+  );
+
+  const sortLabel = useMemo(() => {
+    return (
+      PRODUCT_SORT_OPTIONS.find((o) => o.value === filters.sort)?.label ??
+      "Relevance"
+    );
+  }, [filters.sort]);
+
+  const filterOnlyCount = useMemo(() => {
+    return activeCount - (filters.sort !== "relevance" ? 1 : 0);
+  }, [activeCount, filters.sort]);
+
+  const filterButtonLabel = useMemo(() => {
+    return filterOnlyCount > 0 ? `Filters (${filterOnlyCount})` : "Filters";
+  }, [filterOnlyCount]);
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.chip} onPress={onOpenSort} hitSlop={4}>
+      <Pressable
+        style={styles.chip}
+        onPress={onOpenSort}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel={`Sort by ${sortLabel}`}
+      >
         <Ionicons
           name="swap-vertical-outline"
           size={16}
@@ -41,22 +60,34 @@ const ProductFilterBar = ({
         </Text>
       </Pressable>
 
-      <Pressable style={styles.chip} onPress={onOpenFilters} hitSlop={4}>
+      <Pressable
+        style={styles.chip}
+        onPress={onOpenFilters}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel={filterButtonLabel}
+      >
         <Ionicons
           name="options-outline"
           size={16}
           color={Colors.light.darkGreen}
         />
-        <Text style={styles.chipText}>
-          Filters{filterOnlyCount > 0 ? ` (${filterOnlyCount})` : ""}
+        <Text style={styles.chipText} numberOfLines={1}>
+          {filterButtonLabel}
         </Text>
       </Pressable>
 
-      {activeCount > 0 ? (
-        <Pressable style={styles.clearChip} onPress={onClearFilters} hitSlop={8}>
+      {activeCount > 0 && (
+        <Pressable
+          style={styles.clearChip}
+          onPress={onClearFilters}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Clear all filters"
+        >
           <Text style={styles.clearChipText}>Clear</Text>
         </Pressable>
-      ) : null}
+      )}
     </View>
   );
 };

@@ -27,7 +27,7 @@ const Cart = ({ tabBarHeight = 0 }: CartProps) => {
  // console.log("cart",tabBarHeight);
   const userId = useSelector((state: RootState) => state.auth?.userData?._id);
   const cartButtonProductId = useSelector(
-    (state: RootState) => state?.cart?.cartButtonProductId || []
+    (state: RootState) => state?.cart?.cartButtonProductId,
   );
   const {
     data: cartData,
@@ -60,7 +60,7 @@ const Cart = ({ tabBarHeight = 0 }: CartProps) => {
   const cartItemIndex = cartData?.cart?.items?.findIndex((item, index) => {
     return cartButtonProductId?.includes(item?.productDetails?._id);
   });
-  const isCartProcessing = cartButtonProductId?.length !== 0;
+  const isCartProcessing = (cartButtonProductId?.length ?? 0) !== 0;
 
   const cRefetch = () => {
     refetch();

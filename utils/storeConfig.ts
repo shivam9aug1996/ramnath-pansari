@@ -133,7 +133,75 @@ export type HomeStoreStatus = {
   kind: HomeStoreStatusKind;
   title: string;
   subtitle: string;
+  /**
+   * How far we are through today's open window (open→close), 0..1.
+   * Before open = 0, after close = 1. Null when paused / invalid hours.
+   */
+  progress: number | null;
+  /** e.g. "Closes in 2h 15m" / "Opens in 45m" */
+  remainingLabel: string | null;
 };
+
+function clamp01(value: number): number {
+  if (Number.isNaN(value)) return 0;
+  return Math.min(1, Math.max(0, value));
+}
+
+function formatRemainingMinutes(totalMinutes: number): string {
+  const minutes = Math.max(0, Math.ceil(totalMinutes));
+  if (minutes <= 1) return "about 1 min";
+  if (minutes < 60) return `${minutes} mins`;
+
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (mins === 0) return hours === 1 ? "1 hour" : `${hours} hours`;
+  if (hours === 1) return `1h ${mins}m`;
+  return `${hours}h ${mins}m`;
+}
+
+/**
+ * Progress is always against the full open window (e.g. 09:00–18:00).
+ * Remaining minutes still describe time until the next open/close.
+ */
+export function getStoreScheduleProgress(
+  storeHours: StoreHoursSettings,
+  now: Date = new Date(),
+): { progress: number; remainingMinutes: number; target: "close" | "open" } | null {
+  const resolved = resolveStoreHours(storeHours);
+  const nowMinutes = getZonedMinutes(now, resolved.timezone);
+  const openMinutes = parseTimeToMinutes(resolved.openTime);
+  const closeMinutes = parseTimeToMinutes(resolved.closeTime);
+
+  if (closeMinutes <= openMinutes) return null;
+
+  const windowMinutes = closeMinutes - openMinutes;
+
+  // Before today's open — day window hasn't started.
+  if (nowMinutes < openMinutes) {
+    return {
+      target: "open",
+      remainingMinutes: openMinutes - nowMinutes,
+      progress: 0,
+    };
+  }
+
+  // During open hours — fill against the complete open→close span.
+  if (nowMinutes < closeMinutes) {
+    const elapsedMinutes = nowMinutes - openMinutes;
+    return {
+      target: "close",
+      remainingMinutes: closeMinutes - nowMinutes,
+      progress: clamp01(elapsedMinutes / windowMinutes),
+    };
+  }
+
+  // After close — open window is complete; countdown is until tomorrow's open.
+  return {
+    target: "open",
+    remainingMinutes: openMinutes + 24 * 60 - nowMinutes,
+    progress: 1,
+  };
+}
 
 /** Compact status for the home feed banner. */
 export function getHomeStoreStatus(
@@ -148,22 +216,39 @@ export function getHomeStoreStatus(
       kind: "paused",
       title: "Not accepting orders right now",
       subtitle: `Usual hours ${hoursLabel}`,
+      progress: null,
+      remainingLabel: null,
     };
   }
 
+  const schedule = getStoreScheduleProgress(resolved.storeHours, now);
+
   if (isStoreOpen(resolved.storeHours, now)) {
+    const remainingLabel = schedule
+      ? `Closes in ${formatRemainingMinutes(schedule.remainingMinutes)}`
+      : null;
     return {
       kind: "open",
       title: "Store open",
-      subtitle: hoursLabel,
+      subtitle: remainingLabel
+        ? `${remainingLabel} · ${hoursLabel}`
+        : hoursLabel,
+      progress: schedule?.progress ?? null,
+      remainingLabel,
     };
   }
 
   const nextOpen = getNextOpenLabel(resolved.storeHours, now);
+  const remainingLabel = schedule
+    ? `Opens in ${formatRemainingMinutes(schedule.remainingMinutes)}`
+    : null;
+
   return {
     kind: "closed",
     title: "Store closed",
-    subtitle: nextOpen ?? `Hours ${hoursLabel}`,
+    subtitle: remainingLabel ?? nextOpen ?? `Hours ${hoursLabel}`,
+    progress: schedule?.progress ?? null,
+    remainingLabel,
   };
 }
 

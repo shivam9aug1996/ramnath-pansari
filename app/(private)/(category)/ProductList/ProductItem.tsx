@@ -6,9 +6,9 @@ import {
   TouchableOpacity,
   GestureResponderEvent,
 } from "react-native";
+import { router } from "expo-router";
 import { formatNumber } from "@/utils/utils";
 import { Product } from "@/types/global";
-import { router } from "expo-router";
 import CartButton from "./CartButton";
 import ProductImage from "./ProductImage";
 import {
@@ -19,22 +19,20 @@ import {
   PRODUCT_ITEM_MARGIN_BOTTOM,
 } from "./productListLayout";
 
-const ProductItem = ({
-  item,
-  index,
-  quantity,
-}: {
+type Props = {
   item: Product;
   index: number;
   quantity: number;
-}) => {
+};
+
+const ProductItem = ({ item, index, quantity }: Props) => {
   const discountPercentage = useMemo(() => {
     if (!item?.discountedPrice || item.discountedPrice >= item.price) return 0;
     return Math.round(((item.price - item.discountedPrice) / item.price) * 100);
-  }, [item.price, item.discountedPrice]);
+  }, [item?.price, item?.discountedPrice]);
 
   const handleProductPress = useCallback(
-    (e: GestureResponderEvent) => {
+    (e?: GestureResponderEvent) => {
       e?.stopPropagation?.();
       router.navigate({
         pathname: "/(private)/(productDetail)/[id]",
@@ -76,124 +74,132 @@ const ProductItem = ({
 
 export default memo(ProductItem);
 
-const ProductImageInfo = memo(
-  ({
-    item,
-    handleProductPress,
-    discountPercentage,
-  }: {
-    item: Product;
-    handleProductPress: (e: GestureResponderEvent) => void;
-    discountPercentage: number;
-  }) => {
-    const isOutOfStock = item?.isOutOfStock;
-    return (
-      <TouchableOpacity
-        onPress={handleProductPress}
-        style={styles.imageWrapper}
-        activeOpacity={0.85}
+// --- Sub-components ---
+
+type ImageInfoProps = {
+  item: Product;
+  handleProductPress: (e?: GestureResponderEvent) => void;
+  discountPercentage: number;
+};
+
+const ProductImageInfo = memo(function ProductImageInfo({
+  item,
+  handleProductPress,
+  discountPercentage,
+}: ImageInfoProps) {
+  const isOutOfStock = item?.isOutOfStock;
+
+  return (
+    <TouchableOpacity
+      onPress={handleProductPress}
+      style={styles.imageWrapper}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel={`View details for ${item?.name}`}
+    >
+      {discountPercentage > 0 && !isOutOfStock && (
+        <View style={styles.discountBadge}>
+          <Text style={styles.discountPct}>{discountPercentage}%</Text>
+          <Text style={styles.discountOff}>OFF</Text>
+        </View>
+      )}
+
+      <View
+        style={[
+          styles.imageContent,
+          isOutOfStock && styles.imageContentOutOfStock,
+        ]}
       >
-        {discountPercentage > 0 && !isOutOfStock ? (
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountPct}>{discountPercentage}%</Text>
-            <Text style={styles.discountOff}>OFF</Text>
-          </View>
-        ) : null}
-        <View
-          style={[
-            styles.imageContent,
-            isOutOfStock && styles.imageContentOutOfStock,
-          ]}
-        >
-          <ProductImage image={item?.image} />
-        </View>
-      </TouchableOpacity>
-    );
-  },
-);
-
-const ProductInfo = memo(
-  ({
-    item,
-    discountPercentage,
-    handleProductPress,
-    quantity,
-  }: {
-    item: Product;
-    discountPercentage: number;
-    handleProductPress: (e: GestureResponderEvent) => void;
-    quantity: number;
-  }) => {
-    const sizeLabel = item.size?.trim() || "";
-    const displayName = useMemo(() => {
-      const name = item.name?.trim() || "";
-      if (!sizeLabel) return name;
-      if (name.toLowerCase().endsWith(sizeLabel.toLowerCase())) {
-        return name
-          .slice(0, -sizeLabel.length)
-          .trim()
-          .replace(/[,\-\/|]+$/, "")
-          .trim();
-      }
-      return name;
-    }, [item.name, sizeLabel]);
-
-    return (
-      <View style={styles.productInfo}>
-        <View style={styles.textBlock}>
-          <TouchableOpacity onPress={handleProductPress} activeOpacity={0.85}>
-            <Text
-              style={[
-                styles.productName,
-                item.isOutOfStock && styles.outOfStockMutedText,
-              ]}
-              numberOfLines={2}
-            >
-              {displayName}
-            </Text>
-            <Text
-              style={[
-                styles.sizeText,
-                item.isOutOfStock && styles.outOfStockMutedText,
-                !sizeLabel && styles.sizeTextHidden,
-              ]}
-              numberOfLines={1}
-            >
-              {sizeLabel || " "}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.footer}>
-          <TouchableOpacity
-            onPress={handleProductPress}
-            style={styles.priceCol}
-            activeOpacity={0.85}
-          >
-            <Text
-              style={[
-                styles.currentPrice,
-                item.isOutOfStock && styles.outOfStockMutedText,
-              ]}
-            >
-              ₹{formatNumber(item.discountedPrice ?? item.price)}
-            </Text>
-            <Text
-              style={[
-                styles.originalPrice,
-                item.isOutOfStock && styles.outOfStockMutedText,
-                discountPercentage <= 0 && styles.originalPriceHidden,
-              ]}
-            >
-              {discountPercentage > 0 ? `₹${formatNumber(item.price)}` : " "}
-            </Text>
-          </TouchableOpacity>
-          <CartButton value={quantity} item={item} inline />
-        </View>
+        <ProductImage image={item?.image} />
       </View>
-    );
-  },
-);
+    </TouchableOpacity>
+  );
+});
+
+type ProductInfoProps = {
+  item: Product;
+  discountPercentage: number;
+  handleProductPress: (e?: GestureResponderEvent) => void;
+  quantity: number;
+};
+
+const ProductInfo = memo(function ProductInfo({
+  item,
+  discountPercentage,
+  handleProductPress,
+  quantity,
+}: ProductInfoProps) {
+  const sizeLabel = item?.size?.trim() || "";
+
+  const displayName = useMemo(() => {
+    const name = item?.name?.trim() || "";
+    if (!sizeLabel) return name;
+    if (name.toLowerCase().endsWith(sizeLabel.toLowerCase())) {
+      return name
+        .slice(0, -sizeLabel.length)
+        .trim()
+        .replace(/[,\-\/|]+$/, "")
+        .trim();
+    }
+    return name;
+  }, [item?.name, sizeLabel]);
+
+  return (
+    <View style={styles.productInfo}>
+      <View style={styles.textBlock}>
+        <TouchableOpacity onPress={handleProductPress} activeOpacity={0.85}>
+          <Text
+            style={[
+              styles.productName,
+              item?.isOutOfStock && styles.outOfStockMutedText,
+            ]}
+            numberOfLines={2}
+          >
+            {displayName}
+          </Text>
+          <Text
+            style={[
+              styles.sizeText,
+              item?.isOutOfStock && styles.outOfStockMutedText,
+              !sizeLabel && styles.sizeTextHidden,
+            ]}
+            numberOfLines={1}
+          >
+            {sizeLabel || " "}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.footer}>
+        <TouchableOpacity
+          onPress={handleProductPress}
+          style={styles.priceCol}
+          activeOpacity={0.85}
+        >
+          <Text
+            style={[
+              styles.currentPrice,
+              item?.isOutOfStock && styles.outOfStockMutedText,
+            ]}
+          >
+            ₹{formatNumber(item?.discountedPrice ?? item?.price ?? 0)}
+          </Text>
+          <Text
+            style={[
+              styles.originalPrice,
+              item?.isOutOfStock && styles.outOfStockMutedText,
+              discountPercentage <= 0 && styles.originalPriceHidden,
+            ]}
+          >
+            {discountPercentage > 0 ? `₹${formatNumber(item?.price ?? 0)}` : " "}
+          </Text>
+        </TouchableOpacity>
+
+        <CartButton value={quantity} item={item} inline />
+      </View>
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -208,7 +214,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "#EEF1EF",
     overflow: "hidden",
-    /** Height comes from image aspectRatio + fixed productInfo — avoids empty gap. */
   },
   imageContainer: {
     position: "relative",
@@ -243,7 +248,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 6,
     alignItems: "center",
     justifyContent: "center",
-    // Soft depth so it pops on white packaging
     shadowColor: "#1E3A8A",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.22,
@@ -277,7 +281,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   textBlock: {
-    /** Name (2 lines) + size — fixed so footer stays aligned across cards. */
     height: 46,
   },
   productName: {
@@ -285,7 +288,6 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontWeight: "700",
     lineHeight: 15,
-    /** Always reserve 2 lines so size/price/ADD stay aligned. */
     height: 30,
   },
   sizeText: {

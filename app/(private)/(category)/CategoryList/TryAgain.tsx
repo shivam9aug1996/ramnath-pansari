@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import { StyleSheet, Text, View, ViewStyle } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Button from "@/components/Button";
@@ -21,6 +21,10 @@ const TryAgain: React.FC<TryAgainProps> = ({
   compact = false,
   style,
 }) => {
+  const handlePress = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
   return (
     <View
       style={[
@@ -28,6 +32,7 @@ const TryAgain: React.FC<TryAgainProps> = ({
         compact && styles.containerCompact,
         style,
       ]}
+      accessibilityRole="alert"
     >
       <View style={[styles.iconWrap, compact && styles.iconWrapCompact]}>
         <MaterialCommunityIcons
@@ -37,7 +42,10 @@ const TryAgain: React.FC<TryAgainProps> = ({
         />
       </View>
 
-      <Text style={[styles.title, compact && styles.titleCompact]}>{title}</Text>
+      <Text style={[styles.title, compact && styles.titleCompact]}>
+        {title}
+      </Text>
+
       <Text style={[styles.message, compact && styles.messageCompact]}>
         {message}
       </Text>
@@ -45,9 +53,10 @@ const TryAgain: React.FC<TryAgainProps> = ({
       <View style={[styles.buttonRow, compact && styles.buttonRowCompact]}>
         <Button
           title={actionTitle}
-          onPress={refetch}
+          onPress={handlePress}
           variant="cart"
           wrapperStyle={styles.buttonWrap}
+          accessibilityLabel={actionTitle}
         />
       </View>
     </View>

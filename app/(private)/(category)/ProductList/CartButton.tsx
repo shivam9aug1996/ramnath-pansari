@@ -17,20 +17,16 @@ import { CartButtonProps, RootState } from "@/types/global";
 import { useFetchCartQuery } from "@/redux/features/cartSlice";
 import { useCartOperations } from "../../hooks/useCartOperations";
 
-/** Same footprint for ADD and qty so they don't jump. */
+/** Same footprint for ADD and quantity controls to prevent layout shifts. */
 const CONTROL_WIDTH = 76;
 const CONTROL_HEIGHT = 28;
-const ADD_WIDTH = CONTROL_WIDTH;
-const QUANTITY_WIDTH = CONTROL_WIDTH;
 
-const CartButton = ({
-  value,
-  item,
-  inline = false,
-}: CartButtonProps & { inline?: boolean }) => {
-  const userId = useSelector(
-    (state: RootState) => state.auth.userData?._id,
-  );
+type Props = CartButtonProps & {
+  inline?: boolean;
+};
+
+const CartButton = ({ value, item, inline = false }: Props) => {
+  const userId = useSelector((state: RootState) => state.auth.userData?._id);
   const isGuestUser = useSelector(
     (state: RootState) => state.auth.userData?.isGuestUser,
   );
@@ -47,8 +43,7 @@ const CartButton = ({
   const { quantity, handleAdd, handleRemove } = useCartOperations(item, value);
 
   const hasQuantity = quantity > 0;
-  const animatedWidth = useSharedValue(hasQuantity ? QUANTITY_WIDTH : ADD_WIDTH);
-  const lastAnimatedWidth = useRef(hasQuantity ? QUANTITY_WIDTH : ADD_WIDTH);
+  const animatedWidth = useSharedValue(CONTROL_WIDTH);
   const hasHydratedRef = useRef(false);
 
   useEffect(() => {
@@ -57,19 +52,13 @@ const CartButton = ({
       return;
     }
 
-    const targetWidth = hasQuantity ? QUANTITY_WIDTH : ADD_WIDTH;
-
     if (!hasHydratedRef.current) {
       hasHydratedRef.current = true;
-      animatedWidth.value = targetWidth;
-      lastAnimatedWidth.current = targetWidth;
+      animatedWidth.value = CONTROL_WIDTH;
       return;
     }
 
-    if (lastAnimatedWidth.current === targetWidth) return;
-
-    lastAnimatedWidth.current = targetWidth;
-    animatedWidth.value = withTiming(targetWidth, {
+    animatedWidth.value = withTiming(CONTROL_WIDTH, {
       duration: 250,
       easing: Easing.out(Easing.cubic),
     });
@@ -79,9 +68,11 @@ const CartButton = ({
     width: animatedWidth.value,
   }));
 
+  const containerStyle = inline ? styles.inlineContainer : styles.container;
+
   if (item?.isOutOfStock) {
     return (
-      <View style={inline ? styles.inlineContainer : styles.container}>
+      <View style={containerStyle}>
         <View style={styles.outOfStockButton}>
           <Text style={styles.outOfStockText} numberOfLines={1}>
             Sold out
@@ -93,7 +84,7 @@ const CartButton = ({
 
   if (showCartLoader) {
     return (
-      <View style={inline ? styles.inlineContainer : styles.container}>
+      <View style={containerStyle}>
         <View style={styles.loaderButton}>
           <ActivityIndicator size="small" color="#0d9448" />
         </View>
@@ -102,7 +93,7 @@ const CartButton = ({
   }
 
   return (
-    <View style={inline ? styles.inlineContainer : styles.container}>
+    <View style={containerStyle}>
       <Animated.View style={[styles.animatedWrapper, animatedStyle]}>
         {hasQuantity ? (
           <View style={styles.quantityContainer}>
@@ -110,16 +101,24 @@ const CartButton = ({
               onPress={handleRemove}
               style={styles.quantityButton}
               activeOpacity={0.7}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel="Decrease quantity"
             >
               <Text style={styles.buttonText}>−</Text>
             </TouchableOpacity>
+
             <View style={styles.quantityDisplay}>
               <Text style={styles.quantityText}>{quantity}</Text>
             </View>
+
             <TouchableOpacity
               onPress={handleAdd}
               style={styles.quantityButton}
               activeOpacity={0.7}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel="Increase quantity"
             >
               <Text style={styles.buttonText}>+</Text>
             </TouchableOpacity>
@@ -129,6 +128,8 @@ const CartButton = ({
             onPress={handleAdd}
             style={styles.addButton}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={`Add ${item?.name || "item"} to cart`}
           >
             <Text style={styles.addButtonText}>ADD</Text>
           </TouchableOpacity>
@@ -137,6 +138,8 @@ const CartButton = ({
     </View>
   );
 };
+
+export default memo(CartButton);
 
 const styles = StyleSheet.create({
   container: {
@@ -158,12 +161,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1.5,
     borderColor: "#d1d5db",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#ffffff",
     alignItems: "center",
     justifyContent: "center",
   },
   addButton: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#ffffff",
     borderWidth: 1.5,
     borderColor: "#0d9448",
     alignItems: "center",
@@ -223,5 +226,3 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 });
-
-export default memo(CartButton);

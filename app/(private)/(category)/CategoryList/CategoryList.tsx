@@ -1,253 +1,164 @@
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 import { useDispatch } from "react-redux";
-import { setSelectedCategoryClicked, setSelectedSubCategoryId } from "@/redux/features/productSlice";
+
+import { setSelectedSubCategoryId } from "@/redux/features/productSlice";
+import { setSubCategoryActionClicked } from "@/redux/features/categorySlice";
+import { addCategoryView } from "@/redux/features/recentlyViewedSlice";
+
 import CategorySelector from "./CategorySelector";
 import SubCategorySelector from "./SubCategorySelector";
-import { Category, CategoryListProps, SubCategory } from "@/types/global";
-import SubCategorySelectorPlaceholder from "./SubCategorySelectorPlaceholder";
 import CategorySelectorPlaceholder from "./CategorySelectorPlaceholder";
+import SubCategorySelectorPlaceholder from "./SubCategorySelectorPlaceholder";
+
+import { Category, CategoryListProps, SubCategory } from "@/types/global";
 import { scrollToIndex, scrollToTop } from "../ProductList/utils";
 import { getSubCategoryIndex } from "./utils";
-import CustomSuspense from "@/components/CustomSuspense";
-import { addCategoryView } from "@/redux/features/recentlyViewedSlice";
-import { debounce } from "lodash";
-import { setSubCategoryActionClicked } from "@/redux/features/categorySlice";
-import DeferredFadeIn from "@/components/DeferredFadeIn";
-import { router } from "expo-router";
-import { devLog } from "@/utils/devLog";
 import AppHead from "@/components/AppHead";
+import { devLog } from "@/utils/devLog";
+
+const ALL_SUBCATEGORY_OPTION: SubCategory = { _id: "all", name: "All" };
+
 const CategoryList = ({
-  categories,
+  categories = [],
   isCategoryFetching,
-  selectedCategoryIdIndex=0,
+  selectedCategoryIdIndex = 0,
   contentContainerStyle,
-  parentCategory
+  parentCategory,
 }: CategoryListProps) => {
-  
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
-    null
-  );
-  const previousSelectedCategory = useRef<Category | null>(null); 
-
-  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
-  const [selectedSubCategory, setSelectedSubCategory] =
-    useState<SubCategory | null>(null);
-  const subCatFlatListRef = useRef(null);
-  const catFlatListRef = useRef(null);
-
   const dispatch = useDispatch();
- // console.log("selectedCategoryIdIndex234567890878-",selectedSubCategory)
 
-  // useEffect(() => {
-  //   if (categories?.length > 0) {
-  //     setSelectedCategory(categories[0]);
-  //   }
-  // }, [categories]);
+  const catFlatListRef = useRef<any>(null);
+  const subCatFlatListRef = useRef<any>(null);
+  const previousSelectedCategory = useRef<string | null>(null);
 
-  // useEffect(() => {
-  //   if (categories?.length > 0) {
-  //     setSelectedCategory(categories[0]);
-  //   }
-    
-  // }, [selectedCategoryIdIndex, categories, parentCategory]);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<SubCategory | null>(null);
 
+  // Sync active category when prop index or categories array changes
   useEffect(() => {
     if (
       selectedCategoryIdIndex !== undefined &&
-      categories?.length &&
+      categories?.length > 0 &&
       selectedCategoryIdIndex >= 0 &&
       selectedCategoryIdIndex < categories.length
     ) {
-      setSelectedCategory(categories[selectedCategoryIdIndex]);
+      const activeCategory = categories[selectedCategoryIdIndex];
+      setSelectedCategory(activeCategory);
+
       requestAnimationFrame(() => {
         scrollToIndex(catFlatListRef, selectedCategoryIdIndex, 0.3);
       });
     }
   }, [selectedCategoryIdIndex, categories]);
 
-  // useEffect(() => {
-  //   requestAnimationFrame(()=>{
-  //     if (selectedCategory) {
-  //       console.log("56789-4567898656786567890", selectedCategory);
-  //       const updatedSubCategories = [
-  //         { _id: "all", name: "All" },
-  //         ...(selectedCategory.children || []),
-  //       ];
-  //       setSubCategories(updatedSubCategories);
-  //       setSelectedSubCategory(updatedSubCategories[0]);
-  //       scrollToTop(subCatFlatListRef);
-       
-  //     }
-  //     if(parentCategory&&selectedCategory){
-  //       dispatch(addCategoryView({
-  //         id: selectedCategory._id,
-  //         name: selectedCategory.name,
-  //         parentCategoryId: parentCategory?._id,
-  //         parentCategoryName: parentCategory?.name,
-  //         selectedCategoryIdIndex: selectedCategoryIdIndex
-  //       }));
-  //     }
-  //   })
-  // }, [selectedCategory,parentCategory]);
+  // Compute subcategories whenever selectedCategory changes
+  const subCategories = useMemo(() => {
+    if (!selectedCategory) return [];
+    return [ALL_SUBCATEGORY_OPTION, ...(selectedCategory.children || [])];
+  }, [selectedCategory]);
 
+  // Handle category view tracking and subcategory state resets
   useEffect(() => {
-    // Debounce function — triggers only once after 200ms of no changes
-    const debouncedUpdate = debounce(() => {
-      requestAnimationFrame(() => {
-        if (selectedCategory) {
-          // if(previousSelectedCategory.current === selectedCategory?._id){
-          //   dispatch(setSubCategoryActionClicked(false));
-          // }
-         
+    if (!selectedCategory) return;
 
-          //console.log("previousSelectedCategory.current---->",previousSelectedCategory.current,selectedCategory?._id);
+    setSelectedSubCategory(subCategories[0] || null);
+    scrollToTop(subCatFlatListRef);
 
-        //  console.log("56789-4567898656786567890", selectedCategory);
-          const updatedSubCategories = [
-            { _id: "all", name: "All" },
-            ...(selectedCategory.children || []),
-          ];
-          setSubCategories(updatedSubCategories);
-          //console.log("selectedSubCategory234567890-",{selectedCategory,selectedSubCategory})
-          setSelectedSubCategory(updatedSubCategories[0]);
-          scrollToTop(subCatFlatListRef);
-        // dispatch(setSubCategoryActionClicked(false));
-        }
-  
-        if (parentCategory && selectedCategory) {
-         // dispatch(setSubCategoryActionClicked(false));
-          dispatch(addCategoryView({
-            id: selectedCategory._id,
-            name: selectedCategory.name,
-            parentCategoryId: parentCategory?._id,
-            parentCategoryName: parentCategory?.name,
-            selectedCategoryIdIndex: selectedCategoryIdIndex
-          }));
-          //dispatch(setSubCategoryActionClicked(false));
-        }
-      });
-    }, 200, {leading: true,trailing: false}); // 200ms debounce time
-  
-    debouncedUpdate();
-  
-    return () => {
-      debouncedUpdate.cancel(); // Clean up on unmount or deps change
-     // console.log("debouncedUpdate.cancel()",selectedSubCategory)
-    };
-  }, [selectedCategory, parentCategory?._id]);
-  
-
-  // useEffect(() => {
-  //   requestAnimationFrame(()=>{
-  //     if (selectedSubCategory && !isCategoryFetching) {
-  //       const subCategoryIndex = getSubCategoryIndex(
-  //         subCategories,
-  //         selectedSubCategory
-  //       );
-  //       scrollToIndex(subCatFlatListRef, subCategoryIndex);
-  //       const selectedId =
-  //         selectedSubCategory?._id === "all"
-  //           ? selectedCategory
-  //           : selectedSubCategory;
-  //       dispatch(setSelectedSubCategoryId(selectedId));
-  //     }
-  //   })
-  // }, [selectedSubCategory]);
-
-
-useEffect(() => {
-  // if(selectedSubCategory && !isCategoryFetching){
-  //   dispatch(setSelectedCategoryClicked(true));
-  // }
-  const debouncedUpdate = debounce(() => {
-    requestAnimationFrame(() => {
-      if (selectedSubCategory && !isCategoryFetching) {
-
-        const subCategoryIndex = getSubCategoryIndex(
-          subCategories,
-          selectedSubCategory
-        );
-        scrollToIndex(subCatFlatListRef, subCategoryIndex);
-        
-        const selectedId =
-          selectedSubCategory?._id === "all"
-            ? selectedCategory
-            : selectedSubCategory;
-           // console.log("selectedSubCa456789tegory---->",selectedId,previousSelectedCategory.current,selectedCategory?._id)
-if(previousSelectedCategory.current === selectedId?._id){
-  dispatch(setSubCategoryActionClicked(false));
-}
-            previousSelectedCategory.current = selectedId?._id;
-        devLog("[products] setSelectedSubCategoryId", {
-          selectedId: selectedId?._id,
-          selectedName: selectedId?.name,
-          fromAll: selectedSubCategory?._id === "all",
+    if (parentCategory && selectedCategory) {
+      dispatch(
+        addCategoryView({
+          id: selectedCategory._id,
+          name: selectedCategory.name,
+          parentCategoryId: parentCategory._id,
+          parentCategoryName: parentCategory.name,
           selectedCategoryIdIndex,
-          parentCategoryId: parentCategory?._id,
-        });
-        dispatch(setSelectedSubCategoryId(selectedId));
-       // dispatch(setSubCategoryActionClicked(false));
-      }
+        }),
+      );
+    }
+  }, [selectedCategory, subCategories, parentCategory, selectedCategoryIdIndex, dispatch]);
+
+  // Dispatch selected subcategory changes to Redux product state
+  useEffect(() => {
+    if (!selectedSubCategory || isCategoryFetching) return;
+
+    const subCategoryIndex = getSubCategoryIndex(
+      subCategories,
+      selectedSubCategory,
+    );
+    scrollToIndex(subCatFlatListRef, subCategoryIndex);
+
+    const selectedId =
+      selectedSubCategory._id === "all"
+        ? selectedCategory
+        : selectedSubCategory;
+
+    if (previousSelectedCategory.current === selectedId?._id) {
+      dispatch(setSubCategoryActionClicked(false));
+    }
+    previousSelectedCategory.current = selectedId?._id ?? null;
+
+    devLog("[products] setSelectedSubCategoryId", {
+      selectedId: selectedId?._id,
+      selectedName: selectedId?.name,
+      fromAll: selectedSubCategory._id === "all",
+      selectedCategoryIdIndex,
+      parentCategoryId: parentCategory?._id,
     });
-  }, 200); // 200ms debounce
 
-  debouncedUpdate();
+    dispatch(setSelectedSubCategoryId(selectedId));
+  }, [
+    selectedSubCategory,
+    subCategories,
+    selectedCategory,
+    isCategoryFetching,
+    selectedCategoryIdIndex,
+    parentCategory?._id,
+    dispatch,
+  ]);
 
-  return () => {
-    debouncedUpdate.cancel(); // cleanup
-  };
-}, [selectedSubCategory, subCategories, selectedCategory, isCategoryFetching]);
+  const handleSelectCategory = useCallback(
+    (category: Category) => {
+      const index = categories.findIndex((c) => c._id === category._id);
+      setSelectedCategory(category);
 
-const handleSelectCategory = useCallback((category: Category) => {
-  const index = categories.findIndex(c => c._id === category._id);
-  setSelectedCategory(category);
-  // router.setParams({
-  //   selectedCategoryIdIndex: index?.toString()
-  // })
-  if (index >= 0) {
-    scrollToIndex(catFlatListRef, index, 0.3); // 0.5 = center
-  }
-},[categories])
+      if (index >= 0) {
+        scrollToIndex(catFlatListRef, index, 0.3);
+      }
+    },
+    [categories],
+  );
 
   return (
     <View>
-       <AppHead title={selectedCategory?.name} />
+      <AppHead title={selectedCategory?.name} />
+
       {isCategoryFetching ? (
         <CategorySelectorPlaceholder
           contentContainerStyle={{ paddingHorizontal: 30 }}
         />
       ) : (
-        
-        //  <DeferredFadeIn delay={0} fallback={<CategorySelectorPlaceholder
-        //   contentContainerStyle={{ paddingHorizontal: 30 }}
-        // />}>
-          <CategorySelector
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onSelectCategory={handleSelectCategory}
-            contentContainerStyle={contentContainerStyle}
-            flatListRef={catFlatListRef}
-         />
-        //  </DeferredFadeIn>
-        
+        <CategorySelector
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onSelectCategory={handleSelectCategory}
+          contentContainerStyle={contentContainerStyle}
+          flatListRef={catFlatListRef}
+        />
       )}
+
       {isCategoryFetching ? (
         <SubCategorySelectorPlaceholder
           contentContainerStyle={{ paddingHorizontal: 30 }}
         />
       ) : (
-        // <DeferredFadeIn delay={0} fallback={<SubCategorySelectorPlaceholder
-        //   contentContainerStyle={{ paddingHorizontal: 30 }}
-        // />}>
-          <SubCategorySelector
-            subCategories={subCategories}
-            selectedSubCategory={selectedSubCategory}
-            onSelectSubCategory={setSelectedSubCategory}
-            subCatFlatListRef={subCatFlatListRef}
-            contentContainerStyle={contentContainerStyle}
-          />
-          // </DeferredFadeIn>
+        <SubCategorySelector
+          subCategories={subCategories}
+          selectedSubCategory={selectedSubCategory}
+          onSelectSubCategory={setSelectedSubCategory}
+          subCatFlatListRef={subCatFlatListRef}
+          contentContainerStyle={contentContainerStyle}
+        />
       )}
     </View>
   );

@@ -7,18 +7,19 @@ import React, {
 } from "react";
 import { View, FlatList, StyleSheet, Platform } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { useFocusEffect } from "expo-router";
+
 import {
   productApi,
   setResetPagination,
   useFetchProductsQuery,
   useLazyFetchProductsQuery,
 } from "@/redux/features/productSlice";
+import { setSubCategoryActionClicked } from "@/redux/features/categorySlice";
 import { RootState, Product } from "@/types/global";
 import { scrollToTop } from "./utils";
 import TryAgain from "../CategoryList/TryAgain";
 import ProductList3 from "./ProductList3";
-import { useFocusEffect } from "expo-router";
-import { setSubCategoryActionClicked } from "@/redux/features/categorySlice";
 import { cleanAllProductCache } from "@/utils/utils";
 import { clearCategoryProductCacheFromMemoryAndAsyncStorage } from "@/utils/productCache";
 import { devLog } from "@/utils/devLog";
@@ -44,6 +45,8 @@ const Products = ({
   apiParams = {},
   registerReset,
 }: ProductsProps) => {
+  const dispatch = useDispatch();
+
   const subCategoryActionClicked = useSelector(
     (state: RootState) => state.category.subCategoryActionClicked,
   );
@@ -56,7 +59,6 @@ const Products = ({
   const resetPagination = useSelector(
     (state: RootState) => state.product?.resetPagination,
   );
-  const dispatch = useDispatch();
 
   const [paginationState, setPaginationState] = useState<PaginationState>({
     categoryId: selectedSubCategory?._id || null,
@@ -80,13 +82,15 @@ const Products = ({
     registerReset?.(resetToPageOne);
   }, [registerReset, resetToPageOne]);
 
-  // When parent filter fingerprint changes, reset pagination.
+  // When parent filter fingerprint changes, reset pagination
   const prevFilterKeyRef = useRef(filterKey);
   useEffect(() => {
     if (prevFilterKeyRef.current === filterKey) return;
     prevFilterKeyRef.current = filterKey;
     resetToPageOne();
   }, [filterKey, resetToPageOne]);
+
+  const activeCategoryId = selectedSubCategory?._id ?? null;
 
   const {
     data,
@@ -113,34 +117,38 @@ const Products = ({
 
   const [fetchProducts] = useLazyFetchProductsQuery();
 
+  // Handle category changes
   useEffect(() => {
-    const nextId = selectedSubCategory?._id;
-    if (!nextId || nextId === "null") {
+    if (!activeCategoryId || activeCategoryId === "null") {
       return;
     }
     scrollToTop(flatListRef);
     setPaginationState((prev) => ({
       ...prev,
-      categoryId: nextId,
+      categoryId: activeCategoryId,
       page: 1,
       reset: true,
     }));
     dispatch(setSubCategoryActionClicked(false));
-  }, [selectedSubCategory, dispatch]);
+  }, [activeCategoryId, dispatch]);
 
   useFocusEffect(
     useCallback(() => {
+      let isMounted = true;
+
       requestAnimationFrame(() => {
-        if (resetPagination?.status && data?.products) {
+        if (resetPagination?.status && data?.products && isMounted) {
           const id = resetPagination?.item?._id;
           const index = data.products.findIndex(
             (item: Product) => item._id === id,
           );
+          if (index === -1) return;
+
           const page = Math.ceil((index + 1) / 10);
 
           fetchProducts(
             {
-              categoryId: selectedSubCategory?._id,
+              categoryId: activeCategoryId,
               page,
               limit: 10,
               filterKey,
@@ -150,14 +158,21 @@ const Products = ({
           )
             ?.unwrap()
             ?.finally(() => {
-              dispatch(setResetPagination({ item: null, status: false }));
+              if (isMounted) {
+                dispatch(setResetPagination({ item: null, status: false }));
+              }
             });
         }
       });
+
+      return () => {
+        isMounted = false;
+      };
     }, [
       resetPagination?.status,
-      data,
-      selectedSubCategory?._id,
+      resetPagination?.item?._id,
+      data?.products,
+      activeCategoryId,
       dispatch,
       filterKey,
       apiParams,
@@ -174,20 +189,18 @@ const Products = ({
     dispatch(productApi.util.resetApiState());
   }, [dispatch]);
 
-  const handleRefetchProducts1 = useCallback(async () => {
-    await clearCategoryProductCacheFromMemoryAndAsyncStorage(
-      selectedSubCategory?._id,
-    );
+  const handleRefetchProductsForCategory = useCallback(async () => {
+    if (!activeCategoryId) return;
+    await clearCategoryProductCacheFromMemoryAndAsyncStorage(activeCategoryId);
     setPaginationState((prev) => ({
       ...prev,
-      categoryId: selectedSubCategory._id,
+      categoryId: activeCategoryId,
       page: 1,
       reset: true,
       refreshKey: Date.now(),
     }));
-  }, [selectedSubCategory]);
+  }, [activeCategoryId]);
 
-  const activeCategoryId = selectedSubCategory?._id ?? null;
   const isCategoryOutOfSync =
     activeCategoryId != null && paginationState.categoryId !== activeCategoryId;
   const hasProductsToShow = (data?.products?.length ?? 0) > 0;
@@ -203,7 +216,7 @@ const Products = ({
   useEffect(() => {
     devLog("[products] query state", {
       paginationCategoryId: paginationState.categoryId,
-      selectedSubCategoryId: selectedSubCategory?._id ?? selectedSubCategory,
+      selectedSubCategoryId: activeCategoryId,
       page: paginationState.page,
       reset: paginationState.reset,
       filterKey,
@@ -218,7 +231,7 @@ const Products = ({
     });
   }, [
     paginationState,
-    selectedSubCategory,
+    activeCategoryId,
     data,
     isProductsLoading,
     isProductsFetching,
@@ -241,21 +254,19 @@ const Products = ({
   }
 
   return (
-    <View style={[styles.container, Platform.OS === "web" ? { height: '100vh' } : {}]}>
+    <View style={styles.container}>
       {showOverlaySpinner && (
         <View style={styles.overlay}>
           <AsyncRouteLoader
-            style={{
-              width: "100%",
-              backgroundColor: "transparent",
-            }}
+            style={styles.loaderStyle}
             message=""
             showBrand={false}
           />
         </View>
       )}
+
       <ProductList3
-        handleRefresh1={handleRefetchProducts1}
+        handleRefresh1={handleRefetchProductsForCategory}
         refetch={handleRefetchProducts}
         flatListRef={flatListRef}
         data={data}
@@ -274,15 +285,21 @@ const Products = ({
   );
 };
 
+export default memo(Products);
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    ...(Platform.OS === "web" ? { height: "100%" } : {}),
   },
   overlay: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 10,
   },
+  loaderStyle: {
+    width: "100%",
+    backgroundColor: "transparent",
+  },
 });
-export default memo(Products);

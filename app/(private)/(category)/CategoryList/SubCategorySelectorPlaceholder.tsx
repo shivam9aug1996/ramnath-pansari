@@ -1,58 +1,75 @@
-import { FlatList, Platform, StyleSheet, View } from "react-native";
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
+import {
+  FlatList,
+  Platform,
+  StyleSheet,
+  View,
+  ListRenderItemInfo,
+  ViewStyle,
+} from "react-native";
 import ContentLoader, { Rect } from "react-content-loader/native";
+
 import { categoryListPlaceholder } from "./utils";
 
-const SubCategorySelectorPlaceholder = ({ contentContainerStyle }) => {
-  const renderLoader = (index: number) => {
-    const width = index === 0 ? 50 : 84;
+type Props = {
+  contentContainerStyle?: ViewStyle;
+};
 
-    if (Platform.OS === "web") {
-      return (
-        <View
-          key={index}
-          style={[
-            styles.loaderStyle,
-            {
-              width,
-              height: 28,
-              backgroundColor: "#f3f3f3",
-            },
-          ]}
-        />
-      );
-    }
+const SKELETON_BG = "#f3f3f3";
+const SKELETON_FG = "#ecebeb";
 
+const SkeletonChip = memo(function SkeletonChip({ index }: { index: number }) {
+  const width = index === 0 ? 50 : 84;
+
+  if (Platform.OS === "web") {
     return (
-      <ContentLoader
-        key={index}
-        speed={2}
-        width={width}
-        height={28}
-        backgroundColor="#f3f3f3"
-        foregroundColor="#ecebeb"
-        style={styles.loaderStyle}
-      >
-        {index === 0 ? (
-          <Rect rx={14} ry={14} width="50" height="28" />
-        ) : (
-          <Rect rx={14} ry={14} width="84" height="28" />
-        )}
-      </ContentLoader>
+      <View
+        style={[
+          styles.loaderStyle,
+          styles.webChip,
+          { width },
+        ]}
+      />
     );
-  };
-  const renderSubCategory = ({ item, index }: { item: any; index: number }) =>
-    renderLoader(index);
+  }
+
+  return (
+    <ContentLoader
+      speed={2}
+      width={width}
+      height={28}
+      backgroundColor={SKELETON_BG}
+      foregroundColor={SKELETON_FG}
+      style={styles.loaderStyle}
+    >
+      <Rect rx={14} ry={14} width={width} height={28} />
+    </ContentLoader>
+  );
+});
+
+const SubCategorySelectorPlaceholder = ({ contentContainerStyle }: Props) => {
+  const placeholderData = categoryListPlaceholder[0]?.children ?? [];
+
+  const keyExtractor = useCallback(
+    (item: any, index: number) => item?._id ?? `sub-placeholder-${index}`,
+    [],
+  );
+
+  const renderSubCategory = useCallback(
+    ({ index }: ListRenderItemInfo<any>) => <SkeletonChip index={index} />,
+    [],
+  );
 
   return (
     <FlatList
-    bounces={Platform.OS === "android" ? false : true}
+      bounces={Platform.OS !== "android"}
       contentContainerStyle={contentContainerStyle}
-      data={categoryListPlaceholder[0].children}
+      data={placeholderData}
       horizontal
-      keyExtractor={(item) => item._id}
+      keyExtractor={keyExtractor}
       showsHorizontalScrollIndicator={false}
       renderItem={renderSubCategory}
+      initialNumToRender={8}
     />
   );
 };
@@ -64,19 +81,12 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 6,
     marginTop: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
     borderRadius: 16,
   },
-  subCategoryContainer: {
-    marginRight: 8,
-    marginBottom: 6,
-    marginTop: 4,
+  webChip: {
+    height: 28,
+    backgroundColor: SKELETON_BG,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
-  },
-  subCategoryText: {
-    fontSize: 12,
   },
 });

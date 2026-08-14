@@ -1,4 +1,4 @@
-import { shallowEqual, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { recentSearchApi } from "@/redux/features/recentSearchSlice";
 import type { RecentSearchItem } from "@/utils/recentSearchConfigCache";
 import { RootState } from "@/types/global";
@@ -15,5 +15,5 @@ export function useCachedRecentSearch(
       recentSearchApi.endpoints.fetchRecentSearch.select({ userId })(state)
         ?.data ?? EMPTY_RECENT_SEARCH
     );
-  }, shallowEqual);
+  });
 }

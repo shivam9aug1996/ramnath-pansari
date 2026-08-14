@@ -1,5 +1,5 @@
-import React, { memo } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { memo, useCallback, useMemo } from "react";
+import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
 import { Colors } from "@/constants/Colors";
 import {
   ProductFilterValues,
@@ -11,52 +11,89 @@ type ProductActiveFilterChipsProps = {
   onChange: (next: ProductFilterValues) => void;
 };
 
+type ChipItem = {
+  key: string;
+  label: string;
+  type: "sort" | "brand" | "stock" | "price";
+  value?: string;
+};
+
 const ProductActiveFilterChips = ({
   filters,
   onChange,
 }: ProductActiveFilterChipsProps) => {
-  const chips: { key: string; label: string; onRemove: () => void }[] = [];
+  const chips = useMemo(() => {
+    const items: ChipItem[] = [];
 
-  if (filters.sort !== "relevance") {
-    const label =
-      PRODUCT_SORT_OPTIONS.find((o) => o.value === filters.sort)?.label ??
-      filters.sort;
-    chips.push({
-      key: "sort",
-      label,
-      onRemove: () => onChange({ ...filters, sort: "relevance" }),
-    });
-  }
+    if (filters.sort !== "relevance") {
+      const label =
+        PRODUCT_SORT_OPTIONS.find((o) => o.value === filters.sort)?.label ??
+        filters.sort;
+      items.push({
+        key: "sort",
+        label,
+        type: "sort",
+      });
+    }
 
-  for (const brand of filters.brands) {
-    chips.push({
-      key: `brand-${brand}`,
-      label: brand,
-      onRemove: () =>
-        onChange({
-          ...filters,
-          brands: filters.brands.filter((b) => b !== brand),
-        }),
-    });
-  }
+    for (const brand of filters.brands) {
+      items.push({
+        key: `brand-${brand}`,
+        label: brand,
+        type: "brand",
+        value: brand,
+      });
+    }
 
-  if (filters.inStockOnly) {
-    chips.push({
-      key: "stock",
-      label: "In stock",
-      onRemove: () => onChange({ ...filters, inStockOnly: false }),
-    });
-  }
+    if (filters.inStockOnly) {
+      items.push({
+        key: "stock",
+        label: "In stock",
+        type: "stock",
+      });
+    }
 
-  const min = filters.priceMin.trim();
-  const max = filters.priceMax.trim();
-  if (min || max) {
-    chips.push({
-      key: "price",
-      label: `₹${min || "0"}–${max || "∞"}`,
-      onRemove: () => onChange({ ...filters, priceMin: "", priceMax: "" }),
-    });
-  }
+    const min = filters.priceMin.trim();
+    const max = filters.priceMax.trim();
+    if (min || max) {
+      items.push({
+        key: "price",
+        label: `₹${min || "0"}–${max || "∞"}`,
+        type: "price",
+      });
+    }
+
+    return items;
+  }, [
+    filters.sort,
+    filters.brands,
+    filters.inStockOnly,
+    filters.priceMin,
+    filters.priceMax,
+  ]);
+
+  const handleRemoveChip = useCallback(
+    (chip: ChipItem) => {
+      switch (chip.type) {
+        case "sort":
+          onChange({ ...filters, sort: "relevance" });
+          break;
+        case "brand":
+          onChange({
+            ...filters,
+            brands: filters.brands.filter((b) => b !== chip.value),
+          });
+          break;
+        case "stock":
+          onChange({ ...filters, inStockOnly: false });
+          break;
+        case "price":
+          onChange({ ...filters, priceMin: "", priceMax: "" });
+          break;
+      }
+    },
+    [filters, onChange],
+  );
 
   if (!chips.length) return null;
 
@@ -71,8 +108,10 @@ const ProductActiveFilterChips = ({
         <Pressable
           key={chip.key}
           style={styles.chip}
-          onPress={chip.onRemove}
-          hitSlop={4}
+          onPress={() => handleRemoveChip(chip)}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={`Remove filter ${chip.label}`}
         >
           <Text style={styles.chipText}>{chip.label}</Text>
           <Text style={styles.remove}>×</Text>

@@ -1,22 +1,19 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  cartApi,
-  setCartItemQuantity,
-} from "@/redux/features/cartSlice";
-import {
-  hapticFeedback,
-  hideAllToast,
-  showToast,
-} from "@/utils/utils";
-import { RootState, Product } from "@/types/global";
 import { router } from "expo-router";
+
 import store from "@/redux/store";
-import CartDebounceManager from "./CartDebounceManager";
+import { cartApi, setCartItemQuantity } from "@/redux/features/cartSlice";
 import { offerApi } from "@/redux/features/offerSlice";
+
+import { RootState, Product } from "@/types/global";
+import { hapticFeedback, hideAllToast, showToast } from "@/utils/utils";
 import { applyOptimisticOffersToCart } from "@/utils/applyOptimisticOffers";
 import { computeOrderDiscountFromOffers } from "@/utils/cartOfferUtils";
 import { getPaidCartSubtotal } from "@/utils/deliveryFee";
+import CartDebounceManager from "./CartDebounceManager";
+
+// --- Toast Constants ---
 
 const BUSY_TOAST = {
   type: "info" as const,
@@ -34,29 +31,36 @@ const GUEST_TOAST = {
 
 const MAX_QTY_TOAST = {
   type: "info" as const,
-  text2:
-    "You have reached the maximum limit allowed for purchase of this item.",
+  text2: "You have reached the maximum limit allowed for purchase of this item.",
 };
 
-function isCartBusy(state: any) {
+// --- Helpers ---
+
+function isCartBusy(state: RootState): boolean {
   return (
-    !!state?.cart?.isCartOperationProcessing || !!state?.cart?.isClearCartLoading
+    Boolean((state as any)?.cart?.isCartOperationProcessing) ||
+    Boolean((state as any)?.cart?.isClearCartLoading)
   );
 }
 
-function resolveQuantity(state: any, productId: string, fallback: number) {
-  const stored = state?.cart?.cartItemQuantity?.[productId];
+function resolveQuantity(state: RootState, productId: string, fallback: number): number {
+  const stored = (state as any)?.cart?.cartItemQuantity?.[productId];
   return stored !== undefined ? stored : fallback;
 }
 
-function patchCartItems(items: any[], product: Product, newQuantity: number) {
-  const next = items.slice();
+/**
+ * Mutates or patches cart items array safely for draft updates.
+ */
+function patchCartItems(items: any[], product: Product, newQuantity: number): any[] {
+  const next = [...items];
   const index = next.findIndex(
     (i) => i.productDetails?._id === product._id && !i.isPromoFreebie,
   );
 
   if (newQuantity === 0) {
-    if (index !== -1) next.splice(index, 1);
+    if (index !== -1) {
+      next.splice(index, 1);
+    }
     return next;
   }
 
@@ -71,13 +75,16 @@ function patchCartItems(items: any[], product: Product, newQuantity: number) {
     quantity: newQuantity,
     productDetails: product,
   });
+
   return next;
 }
 
+// --- Main Hook ---
+
 export const useCartOperations = (item: Product, initialValue: number) => {
-  const productId = item._id;
+  const productId = item?._id;
   const dispatch = useDispatch();
-  const buttonClicked = useRef(false);
+
   const itemRef = useRef(item);
   const initialValueRef = useRef(initialValue);
 
@@ -85,65 +92,66 @@ export const useCartOperations = (item: Product, initialValue: number) => {
   initialValueRef.current = initialValue;
 
   const storedQuantity = useSelector(
-    (state: RootState) => (state.cart as any).cartItemQuantity?.[productId],
+    (state: RootState) => (state.cart as any)?.cartItemQuantity?.[productId],
   );
 
   const quantity = storedQuantity ?? initialValue ?? 0;
 
-  // Redux is the source of truth once a quantity is stored (taps / fetchCart).
-  // Never copy initialValue back into Redux — list + detail each mount this hook
-  // with their own refs, and a stale parent value was resetting optimistic qty.
-  useEffect(() => {
-    if (!buttonClicked.current) return;
-    if (storedQuantity === initialValue) {
-      buttonClicked.current = false;
-    }
-  }, [initialValue, storedQuantity]);
-
   const updateCartItems = useCallback(
     (newQuantity: number) => {
       const product = itemRef.current;
-      const userId = (store.getState() as any).auth?.userData?._id;
+      const currentState = store.getState() as RootState;
+      const userId = (currentState as any)?.auth?.userData?._id;
+
       if (!userId || !product?._id) return;
 
+      // Update Redux state immediately for local optimistic UI
       dispatch(
         setCartItemQuantity({ productId: product._id, quantity: newQuantity }),
       );
 
       let itemsForStorage: any[] = [];
 
+      // Update RTK Query Cache Optimistically
       dispatch(
         cartApi.util.updateQueryData("fetchCart", { userId }, (draft: any) => {
-          const currentItems = draft.cart?.items ?? [];
+          if (!draft?.cart) return;
+
+          const currentItems = draft.cart.items ?? [];
           const patched = patchCartItems(currentItems, product, newQuantity);
 
           const offers =
             offerApi.endpoints.fetchOffers.select()(
-              store.getState() as never,
+              currentState as never,
             )?.data?.offers ?? [];
 
           const withOffers = applyOptimisticOffersToCart(patched, offers);
+
           draft.cart.items = withOffers;
           draft.orderDiscount = computeOrderDiscountFromOffers(
             getPaidCartSubtotal(patched),
             offers,
           );
+
           itemsForStorage = withOffers;
         }) as any,
       );
 
+      // Debounce persistence call to backend
       CartDebounceManager.getInstance().updateCart(itemsForStorage, userId);
     },
     [dispatch],
   );
 
   const handleAdd = useCallback(() => {
-    const state = store.getState() as any;
-    if (isCartBusy(state)) {
+    const currentState = store.getState() as RootState;
+
+    if (isCartBusy(currentState)) {
       showToast(BUSY_TOAST);
       return;
     }
-    if (state.auth?.userData?.isGuestUser) {
+
+    if ((currentState as any)?.auth?.userData?.isGuestUser) {
       showToast(GUEST_TOAST);
       return;
     }
@@ -151,7 +159,7 @@ export const useCartOperations = (item: Product, initialValue: number) => {
     hapticFeedback();
 
     const current = resolveQuantity(
-      state,
+      currentState,
       productId,
       initialValueRef.current ?? 0,
     );
@@ -162,13 +170,13 @@ export const useCartOperations = (item: Product, initialValue: number) => {
       return;
     }
 
-    buttonClicked.current = true;
     updateCartItems(current + 1);
   }, [productId, updateCartItems]);
 
   const handleRemove = useCallback(() => {
-    const state = store.getState() as any;
-    if (isCartBusy(state)) {
+    const currentState = store.getState() as RootState;
+
+    if (isCartBusy(currentState)) {
       showToast(BUSY_TOAST);
       return;
     }
@@ -176,27 +184,29 @@ export const useCartOperations = (item: Product, initialValue: number) => {
     hapticFeedback();
 
     const current = resolveQuantity(
-      state,
+      currentState,
       productId,
       initialValueRef.current ?? 0,
     );
+
     if (current <= 0) return;
 
-    buttonClicked.current = true;
     updateCartItems(current - 1);
   }, [productId, updateCartItems]);
 
   const handleClearAll = useCallback(() => {
+    const currentState = store.getState() as RootState;
+
     hapticFeedback();
 
     const current = resolveQuantity(
-      store.getState() as any,
+      currentState,
       productId,
       initialValueRef.current ?? 0,
     );
+
     if (current <= 0) return;
 
-    buttonClicked.current = true;
     updateCartItems(0);
   }, [productId, updateCartItems]);
 
@@ -205,6 +215,5 @@ export const useCartOperations = (item: Product, initialValue: number) => {
     handleAdd,
     handleRemove,
     handleClearAll,
-    buttonClicked,
   };
 };
