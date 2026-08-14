@@ -303,8 +303,8 @@ body {
   }
 
   #root {
-    width: 430px;
-    max-width: 430px;
+    width: 500px;
+    max-width: 500px;
     height: calc((100% - 88px) / 0.75);
     max-height: calc(920px / 0.75);
     border-radius: 28px;

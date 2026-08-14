@@ -527,7 +527,7 @@ const listContentContainerStyle = useMemo(
         onClose={closeFilters}
       />
 
-      <GoToCartWrapper />
+      <GoToCartWrapper extraBottomOffset={Platform.OS === "web" ? -10 : 0}/>
     </>
   );
 };

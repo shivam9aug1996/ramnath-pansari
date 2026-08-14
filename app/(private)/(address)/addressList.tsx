@@ -171,7 +171,7 @@ const addressList = () => {
       <AppHead title="Addresses" />
       <ScreenSafeWrapper>
         <>
-          <DeferredFadeIn delay={100}>
+         
             <View
               style={{
                 flexDirection: "row",
@@ -225,7 +225,7 @@ const addressList = () => {
                 </Text>
               </TouchableOpacity> */}
             </View>
-          </DeferredFadeIn>
+          
 
           <View style={styles.listSection}>
             {isLoading ? (
@@ -283,15 +283,6 @@ const addressList = () => {
             />
           </DeferredFadeIn>
         ) : null}
-
-        {/* {checkoutFlow && data?.length && isNotServiceable ? (
-          <DeferredFadeIn delay={300}>
-            <Text style={styles.notServiceableText}>
-              This address is not serviceable. Please select a different
-              address.
-            </Text>
-          </DeferredFadeIn>
-        ) : null} */}
       </ScreenSafeWrapper>
 
       {isPayModal && (

@@ -10,6 +10,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+/** Matches `#root` max-width in `app/+html.tsx`. RN Modal portals outside `#root`. */
+const WEB_SHELL_MAX_WIDTH = 375;
+
 type ProductSheetShellProps = {
   visible: boolean;
   onClose: () => void;
@@ -91,10 +94,12 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     justifyContent: "flex-end",
+    alignItems: Platform.OS === "web" ? "center" : undefined,
     backgroundColor: "rgba(15, 23, 20, 0.45)",
   },
   sheetAnchor: {
     width: "100%",
+    maxWidth: Platform.OS === "web" ? WEB_SHELL_MAX_WIDTH : undefined,
     maxHeight: "88%",
   },
   sheet: {
