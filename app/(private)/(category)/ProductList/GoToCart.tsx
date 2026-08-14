@@ -483,7 +483,7 @@ const GoToCart = ({ isCart = false, embedded = false }: GoToCartProps) => {
       onLayout={(event) => handleBarLayout(event.nativeEvent.layout.height)}
     >
       <View style={styles.card}>
-        {showPromoIncentive ? (
+        {false && showPromoIncentive ? (
           <PromoIncentive
             subtotal={paidSubtotal}
             milestones={milestones}

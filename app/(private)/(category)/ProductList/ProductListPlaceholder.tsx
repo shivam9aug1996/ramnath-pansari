@@ -1,10 +1,10 @@
 import { FlatList, Platform, StyleSheet, View } from "react-native";
 import React, { memo } from "react";
-import ContentLoader, { Rect } from "react-content-loader/native";
 import {
   getProductColumnStyle,
-  PRODUCT_CARD_HEIGHT,
   PRODUCT_IMAGE_ASPECT_RATIO,
+  PRODUCT_INFO_HEIGHT,
+  PRODUCT_INFO_MARGIN_BOTTOM,
   PRODUCT_ITEM_MARGIN_BOTTOM,
   PRODUCT_LIST_MARGIN_TOP,
   PRODUCT_LIST_PADDING_BOTTOM,
@@ -12,15 +12,14 @@ import {
   PRODUCT_PAGINATION_SKELETON_COUNT,
   PRODUCT_SKELETON_COUNT,
 } from "./productListLayout";
-import DeferredFadeIn from "@/components/DeferredFadeIn";
 
-const StaticBlock = ({
+const Bone = ({
   width,
-  height = 13,
+  height,
   style,
 }: {
   width: number | `${number}%`;
-  height?: number;
+  height: number;
   style?: object;
 }) => (
   <View
@@ -28,7 +27,7 @@ const StaticBlock = ({
       {
         width,
         height,
-        borderRadius: 5,
+        borderRadius: 4,
         backgroundColor: "#f3f3f3",
       },
       style,
@@ -36,87 +35,49 @@ const StaticBlock = ({
   />
 );
 
-const LoaderBlock = ({
-  width = "100%",
-  height = 13,
-}: {
-  width?: number | string;
-  height?: number;
-}) => {
-  if (true) {
-    return (
-      <StaticBlock
-        width={width as number | `${number}%`}
-        height={height}
-      />
-    );
-  }
-
-  return (
-    <ContentLoader
-      speed={1}
-      width={width}
-      height={height}
-      backgroundColor="#f3f3f3"
-      foregroundColor="#e3e3e3"
-    >
-      <Rect width={width} y={0} rx={5} ry={5} height={height} />
-    </ContentLoader>
-  );
-};
-
-const ProductItemSkeleton = ({ index }: { index: number }) => (
+/** Mirrors ProductItem: image → name(2) + size → price + ADD */
+const ProductCardSkeleton = ({ index }: { index: number }) => (
   <View style={[styles.container, getProductColumnStyle(index)]}>
     <View style={styles.productCard}>
       <View style={styles.imageContainer}>
         <View style={styles.imageSkeleton} />
-        <View style={styles.cartButtonSkeleton} />
       </View>
 
       <View style={styles.productInfo}>
-        <View style={styles.nameSkeleton}>
-          <LoaderBlock width="95%" height={13} />
-          <LoaderBlock width="70%" height={13} />
+        <View style={styles.textBlock}>
+          <Bone width="95%" height={12} />
+          <Bone width="70%" height={12} style={styles.nameLineGap} />
+          <Bone width="40%" height={11} style={styles.sizeGap} />
         </View>
-        <LoaderBlock width="45%" height={12} />
-        <View style={styles.priceSkeleton}>
-          <LoaderBlock width="55%" height={16} />
-          <LoaderBlock width="45%" height={12} />
+
+        <View style={styles.footer}>
+          <View style={styles.priceCol}>
+            <Bone width={44} height={14} />
+            <Bone width={36} height={10} style={styles.mrpGap} />
+          </View>
+          <Bone width={76} height={28} style={styles.addBone} />
         </View>
       </View>
     </View>
   </View>
 );
 
-export const ProductPaginationSkeleton = memo(({ count = PRODUCT_PAGINATION_SKELETON_COUNT }: { count?: number }) => (
-  <View style={styles.paginationRow}>
-    {Array.from({ length: count }, (_, index) => (
-      <ProductItemSkeletonStatic key={`pagination-skeleton-${index}`} index={index} />
-    ))}
-  </View>
-));
+const ProductItemSkeleton = ProductCardSkeleton;
 
-export const ProductItemSkeletonStatic = memo(({ index }: { index: number }) => (
-  <View style={[styles.container, getProductColumnStyle(index)]}>
-    <View style={styles.productCard}>
-      <View style={styles.imageContainer}>
-        <View style={styles.imageSkeleton} />
-        <View style={styles.cartButtonSkeleton} />
-      </View>
-      <View style={styles.productInfo}>
-        <View style={styles.nameSkeleton}>
-          <StaticBlock width="95%" />
-          <StaticBlock width="70%" />
-        </View>
-        <StaticBlock width="45%" height={12} />
-        <View style={styles.priceSkeleton}>
-          <StaticBlock width="55%" height={16} />
-          <StaticBlock width="45%" height={12} />
-        </View>
-      </View>
+export const ProductItemSkeletonStatic = memo(ProductCardSkeleton);
+
+export const ProductPaginationSkeleton = memo(
+  ({ count = PRODUCT_PAGINATION_SKELETON_COUNT }: { count?: number }) => (
+    <View style={styles.paginationRow}>
+      {Array.from({ length: count }, (_, index) => (
+        <ProductItemSkeletonStatic
+          key={`pagination-skeleton-${index}`}
+          index={index}
+        />
+      ))}
     </View>
-  </View>
-));
+  ),
+);
 
 export { ProductItemSkeleton };
 
@@ -150,7 +111,6 @@ const styles = StyleSheet.create({
   paginationRow: {
     flexDirection: "row",
     width: "100%",
-    height: PRODUCT_CARD_HEIGHT + PRODUCT_ITEM_MARGIN_BOTTOM,
     overflow: "hidden",
   },
   list: {
@@ -169,44 +129,57 @@ const styles = StyleSheet.create({
   productCard: {
     backgroundColor: "#ffffff",
     borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#EEF1EF",
     overflow: "hidden",
-    height: PRODUCT_CARD_HEIGHT,
   },
   imageContainer: {
     position: "relative",
+    width: "100%",
     aspectRatio: PRODUCT_IMAGE_ASPECT_RATIO,
-    backgroundColor: "#fafafa",
+    backgroundColor: "#ffffff",
   },
   imageSkeleton: {
     flex: 1,
-    margin: 6,
+    margin: 8,
     borderRadius: 8,
     backgroundColor: "#f3f3f3",
   },
-  cartButtonSkeleton: {
-    position: "absolute",
-    bottom: 8,
-    left: 8,
-    right: 8,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: "#f0f0f0",
-  },
   productInfo: {
+    height: PRODUCT_INFO_HEIGHT,
     paddingHorizontal: 8,
-    paddingTop: 6,
-    paddingBottom: 8,
-    gap: 4,
+    paddingTop: 4,
+    paddingBottom: 4,
+    marginBottom: PRODUCT_INFO_MARGIN_BOTTOM,
+    justifyContent: "space-between",
   },
-  nameSkeleton: {
-    minHeight: 32,
-    gap: 3,
-    marginBottom: 2,
+  textBlock: {
+    height: 46,
+    justifyContent: "flex-start",
   },
-  priceSkeleton: {
+  nameLineGap: {
+    marginTop: 3,
+  },
+  sizeGap: {
+    marginTop: 5,
+  },
+  footer: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: 6,
+    height: 28,
+  },
+  priceCol: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: "center",
+    height: 28,
+  },
+  mrpGap: {
     marginTop: 2,
+  },
+  addBone: {
+    borderRadius: 8,
   },
 });

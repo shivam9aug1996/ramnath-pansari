@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import React, { memo, useCallback, useEffect, useRef } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import ScreenSafeWrapper from "@/components/ScreenSafeWrapper";
 import TryAgain from "./CategoryList/TryAgain";
 import DeferredFadeIn from "@/components/DeferredFadeIn";
@@ -9,7 +9,10 @@ import CategoryListWrapper from "./ProductList/CategoryListWrapper";
 import GoToCartWrapper from "./ProductList/GoToCartWrapper";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/types/global";
-import { setSelectedSubCategoryId } from "@/redux/features/productSlice";
+import {
+  productApi,
+  setSelectedSubCategoryId,
+} from "@/redux/features/productSlice";
 import { DEFAULT_PRODUCT_FILTERS } from "@/utils/productFilters";
 import { devLog } from "@/utils/devLog";
 import ProductFilterFab from "@/components/productFilters/ProductFilterFab";
@@ -66,6 +69,37 @@ const ProCat = ({
     onFiltersApplied,
   });
 
+  const categoryId = selectedSubCategory?._id;
+  const productsQueryArgs = useMemo(
+    () => ({
+      categoryId:
+        categoryId && categoryId !== "null" ? categoryId : undefined,
+      page: 1,
+      limit: 10,
+      filterKey,
+      ...apiParams,
+    }),
+    [categoryId, filterKey, apiParams],
+  );
+
+  const productsQueryState = useSelector(
+    productApi.endpoints.fetchProducts.select(productsQueryArgs),
+  );
+
+  const productsData = productsQueryState?.data as
+    | {
+        totalResults?: number;
+        totalProducts?: number;
+        products?: unknown[];
+      }
+    | undefined;
+
+  const resultCount =
+    productsData?.totalResults ?? productsData?.totalProducts;
+  const loadedCount = Array.isArray(productsData?.products)
+    ? productsData.products.length
+    : undefined;
+
   const handleOpenFilters = useCallback(() => {
     void preloadProductFilterSheet();
     openFilters();
@@ -103,6 +137,15 @@ const ProCat = ({
                     selectedCategoryIdIndex={selectedCategoryIdIndex}
                     parentCategory={{ _id: id, name: name }}
                   />
+                  <ProductFilterFab
+                    filters={applied}
+                    onPress={handleOpenFilters}
+                    onClear={clearAll}
+                    resultCount={
+                      typeof resultCount === "number" ? resultCount : undefined
+                    }
+                    loadedCount={loadedCount}
+                  />
                 </DeferredFadeIn>
               </CategoryListWrapper>
 
@@ -118,12 +161,6 @@ const ProCat = ({
           )}
         </>
       </ScreenSafeWrapper>
-
-      <ProductFilterFab
-        filters={applied}
-        onPress={handleOpenFilters}
-        onClear={clearAll}
-      />
 
       <LazyProductFilterSheet
         visible={filterVisible}

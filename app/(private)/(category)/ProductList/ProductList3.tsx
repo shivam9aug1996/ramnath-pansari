@@ -28,13 +28,13 @@ import {
   PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT,
   PRODUCT_LIST_MARGIN_TOP,
   PRODUCT_LIST_PADDING_BOTTOM,
-  PRODUCT_FILTER_FAB_CLEARANCE,
   PRODUCT_LIST_PADDING_TOP,
   isProductSkeleton,
   ProductListRow,
   withPaginationSkeletons,
   PRODUCT_ITEM_MARGIN_BOTTOM,
   buildProductListData,
+  GO_TO_CART_ESTIMATED_HEIGHT,
 } from "./productListLayout";
 import { ProductItemSkeleton, ProductItemSkeletonStatic, ProductPaginationSkeleton } from "./ProductListPlaceholder";
 import { clearVisibleProductIds, updateVisibleProductIds } from "./productVisibilityStore";
@@ -105,6 +105,7 @@ const ProductList3 = ({
    //const visibleIds = useSelector((state: RootState) => state.product.visibleIds);
   // console.log("visibleIds98767890",visibleIds);
   const scrollEndedRef = useRef(0);
+  const pagingLockRef = useRef(false);
   const goToCartListPadding = useGoToCartListPadding();
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   const syncedProductOverrides = useSelector(
@@ -120,15 +121,18 @@ const ProductList3 = ({
 
   const isRefreshingFirstPage =
   isProductsFetching && paginationState.page === 1;
+
+  const bottomPad =
+  PRODUCT_LIST_PADDING_BOTTOM +
+  Math.max(goToCartListPadding, GO_TO_CART_ESTIMATED_HEIGHT);
+
 const listContentContainerStyle = useMemo(
   () => [
     styles.flatList,
     isRefreshingFirstPage && !showInitialSkeleton &&  styles.listRefreshing,
     {
       paddingBottom:
-        PRODUCT_LIST_PADDING_BOTTOM +
-        PRODUCT_FILTER_FAB_CLEARANCE +
-        goToCartListPadding,
+      bottomPad,
     },
   ],
   [isRefreshingFirstPage, goToCartListPadding, showInitialSkeleton],
@@ -369,7 +373,9 @@ const onViewableItemsChanged = useRef(
     paginationState.page,
   ]);
 
-  const fetchNextPage = useCallback(async() => {
+  const fetchNextPage = useCallback(() => {
+    if (pagingLockRef.current) return;
+    pagingLockRef.current = true;
     setPaginationState((prevState) => ({
       ...prevState,
       page: prevState.page + 1,
@@ -377,21 +383,22 @@ const onViewableItemsChanged = useRef(
     }));
   }, [setPaginationState]);
 
+  useEffect(() => {
+    if (!isProductsFetching) {
+      pagingLockRef.current = false;
+    }
+  }, [isProductsFetching]);
+
   const handleEndReached = useCallback(async() => {
     if (showInitialSkeleton) return;
     if (!hasNextPage) return;
     if (isProductsFetching) return;
+    if (pagingLockRef.current) return;
     await new Promise(resolve => setTimeout(resolve, 300));
-
-    // if (showPaginationSkeleton || isPagingMore) return;
-    // beginPaging();
     fetchNextPage();
   }, [
     hasNextPage,
     isProductsFetching,
-    // showPaginationSkeleton,
-    // isPagingMore,
-    // beginPaging,
     fetchNextPage,
     showInitialSkeleton,
   ]);

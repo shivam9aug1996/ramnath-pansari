@@ -30,6 +30,34 @@ function filterKeyFromArg(arg: Record<string, unknown> | undefined): string {
   });
 }
 
+function appendUniqueById<T extends { _id?: string }>(
+  existing: T[] = [],
+  incoming: T[] = [],
+): T[] {
+  const seen = new Set<string>();
+  for (const item of existing) {
+    if (item?._id) seen.add(item._id);
+  }
+  const uniqueIncoming: T[] = [];
+  for (const item of incoming) {
+    if (!item?._id || seen.has(item._id)) continue;
+    seen.add(item._id);
+    uniqueIncoming.push(item);
+  }
+  if (uniqueIncoming.length === 0) return existing;
+  return [...existing, ...uniqueIncoming];
+}
+
+function dedupeById<T extends { _id?: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (!item?._id) return true;
+    if (seen.has(item._id)) return false;
+    seen.add(item._id);
+    return true;
+  });
+}
+
 export const searchApi = createApi({
   reducerPath: "searchApi",
   baseQuery: createApiBaseQuery(),
@@ -50,45 +78,43 @@ export const searchApi = createApi({
         return `${endpointName}-${q}-${filterKey}`;
       },
       merge: (currentCache, newItems, { arg }) => {
-        let page = arg?.page;
+        const page = Number(arg?.page) || 1;
+        const incoming = newItems?.results ?? [];
+        const nextPage = Number(newItems?.currentPage) || page;
+        const cachePage = Number(currentCache.currentPage) || 0;
 
         if (page === 1) {
           if (arg?.reset === true) {
-            currentCache.results = [...(newItems.results ?? [])];
-            currentCache.currentPage = newItems.currentPage;
-            currentCache.totalPages = newItems.totalPages;
-            currentCache.totalResults = newItems.totalResults;
-            return;
+            currentCache.results = [...incoming];
+          } else {
+            const updatedProducts = [...(currentCache.results ?? [])];
+            updatedProducts.splice(0, 10);
+            updatedProducts.splice(0, 0, ...incoming);
+            currentCache.results = dedupeById(updatedProducts);
           }
-
-          const startIndex = (page - 1) * 10;
-          let updatedProducts = [...(currentCache.results ?? [])];
-
-          updatedProducts.splice(startIndex, 10);
-          updatedProducts.splice(startIndex, 0, ...(newItems.results ?? []));
-
-          currentCache.results = updatedProducts;
+          currentCache.currentPage = nextPage;
           currentCache.totalPages = newItems.totalPages;
           currentCache.totalResults = newItems.totalResults;
-          currentCache.currentPage = newItems.currentPage;
-        } else {
-          const startIndex = (page - 1) * 10;
-
-          if (currentCache.currentPage < newItems?.currentPage) {
-            currentCache?.results?.push(...newItems?.results);
-            currentCache.currentPage = newItems?.currentPage;
-            currentCache.totalPages = newItems.totalPages;
-            currentCache.totalResults = newItems.totalResults;
-          } else if (currentCache.currentPage >= newItems?.currentPage) {
-            devLog("currentCache.currentPage > newItems?.currentPage");
-            let updatedProducts = [...currentCache.results];
-
-            updatedProducts.splice(startIndex, 10);
-            updatedProducts.splice(startIndex, 0, ...newItems.results);
-
-            currentCache.results = updatedProducts;
-          }
+          return;
         }
+
+        if (cachePage < nextPage) {
+          currentCache.results = appendUniqueById(
+            currentCache.results ?? [],
+            incoming,
+          );
+          currentCache.currentPage = nextPage;
+          currentCache.totalPages = newItems.totalPages;
+          currentCache.totalResults = newItems.totalResults;
+          return;
+        }
+
+        devLog("currentCache.currentPage >= newItems?.currentPage");
+        const startIndex = (page - 1) * 10;
+        const updatedProducts = [...(currentCache.results ?? [])];
+        updatedProducts.splice(startIndex, 10);
+        updatedProducts.splice(startIndex, 0, ...incoming);
+        currentCache.results = dedupeById(updatedProducts);
       },
       forceRefetch: ({ currentArg, previousArg }) => {
         return (

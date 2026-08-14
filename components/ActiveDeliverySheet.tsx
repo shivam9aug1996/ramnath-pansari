@@ -9,7 +9,6 @@ import {
 import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import BottomSheet from "@/components/BottomSheet";
 import { OrderStatus } from "@/constants/Order";
 import { formatNumber } from "@/utils/utils";
 import {
@@ -17,6 +16,8 @@ import {
   getOrderStatusLabel,
 } from "@/utils/activeOrderFloat";
 import DeferredFadeIn from "./DeferredFadeIn";
+import AsyncRouteLoader from "./AsyncRouteLoader";
+import ProductSheetShell from "./productFilters/ProductSheetShell";
 
 interface ActiveDeliverySheetProps {
   orders: ActiveFloatOrder[];
@@ -134,36 +135,37 @@ const ActiveDeliverySheet = memo(function ActiveDeliverySheet({
   }, [deliveringCount, orders.length]);
 
   return (
-    <BottomSheet onClose={onClose} wrapperStyle={styles.sheetWrapper}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Active orders</Text>
-        <Text style={styles.subtitle}>{subtitle}</Text>
-      </View>
+    <ProductSheetShell visible onClose={onClose} scrollable={false}>
+      <View style={styles.body}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Active orders</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
+        </View>
 
-      <ScrollView
-        style={styles.list}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <DeferredFadeIn delay={100}>
-          {orders.map((order) => (
-            <ActiveDeliveryOrderRow
-              key={order._id}
-              order={order}
-              onSelect={handleSelect}
-            />
-          ))}
-        </DeferredFadeIn>
-      </ScrollView>
-    </BottomSheet>
+        <ScrollView
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          bounces={false}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+            {orders.map((order) => (
+              <ActiveDeliveryOrderRow
+                key={order._id}
+                order={order}
+                onSelect={handleSelect}
+              />
+            ))}
+        </ScrollView>
+      </View>
+    </ProductSheetShell>
   );
 });
 
 const styles = StyleSheet.create({
-  sheetWrapper: {
-    height: "100%",
-    zIndex: 200,
-    elevation: 200,
+  body: {
+    maxHeight: 420,
   },
   header: {
     paddingHorizontal: 20,
@@ -186,8 +188,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 16,
-    paddingBottom: 24,
-    gap: 10,
+    paddingBottom: 8,
   },
   row: {
     flexDirection: "row",

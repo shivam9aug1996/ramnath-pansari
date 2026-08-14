@@ -19,31 +19,31 @@ interface Props {
 }
 
 const IMAGE_SIZES = {
-  small: 40,
+  small: 32,
   large: 60,
 };
 
 const MAX_WIDTHS = {
-  small: 70,
+  small: 64,
   large: 80,
 };
 
 const FONT_SIZES = {
-  small: 10,
+  small: 9,
   large: 12,
 };
 
 const TEXT_STYLES = {
   small: {
-    fontSize: 10,
-    textAlign: "center",
-    paddingHorizontal: 5,
+    fontSize: 9,
+    textAlign: "center" as const,
+    paddingHorizontal: 2,
     fontFamily: "Raleway_500Medium",
     color: Colors.light.mediumGrey,
   },
   large: {
     fontSize: 10,
-    textAlign: "center",
+    textAlign: "center" as const,
     paddingHorizontal: 5,
     fontFamily: "Raleway_600SemiBold",
     color: "#505050",
@@ -84,7 +84,7 @@ const CategoryItem = ({
         <Image
           source={{ uri: item.image || staticImage }}
           style={{ width: imageSize, height: imageSize }}
-          contentFit="cover"
+          contentFit="contain"
           placeholder={{ uri: staticImage }}
           cachePolicy="disk"
         />
@@ -98,19 +98,23 @@ const CategoryItem = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 15,
-    marginRight: 10,
+    marginTop: 6,
+    marginRight: 8,
+    alignItems: "center",
   },
   imageContainer: {
-    borderRadius: 23,
-    marginBottom: 8,
-    padding: 10,
+    borderRadius: 10,
+    marginBottom: 4,
+    padding: 4,
     borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
   },
   text: {
-    fontSize: 10,
+    fontSize: 9,
     textAlign: "center",
-    paddingHorizontal: 5,
+    paddingHorizontal: 2,
     fontFamily: "Raleway_500Medium",
     color: Colors.light.mediumGrey,
   },

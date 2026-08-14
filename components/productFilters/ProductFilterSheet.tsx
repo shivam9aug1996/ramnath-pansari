@@ -91,6 +91,7 @@ const ProductFilterSheet = ({
               onPress={onApply}
               isLoading={isApplying}
               wrapperStyle={styles.applyButton}
+              textStyle={styles.applyText}
             />
             <Pressable style={styles.clearButton} onPress={onClear}>
               <Text style={styles.clearText}>Clear all</Text>
@@ -459,6 +460,10 @@ const styles = StyleSheet.create({
   },
   applyButton: {
     marginTop: 0,
+  },
+  applyText: {
+    fontSize: 14,
+    fontFamily: "Montserrat_600SemiBold",
   },
   clearButton: {
     alignItems: "center",

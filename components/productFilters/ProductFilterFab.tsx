@@ -1,9 +1,7 @@
 import React, { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/Colors";
-import { useGoToCartInset } from "@/contexts/DeliveryFloatContext";
 import {
   ProductFilterValues,
   PRODUCT_SORT_OPTIONS,
@@ -14,54 +12,82 @@ type ProductFilterFabProps = {
   filters: ProductFilterValues;
   onPress: () => void;
   onClear?: () => void;
+  /** Override bar padding — category chrome uses 30 to match chip rows. */
+  barStyle?: object;
+  /** Total matching products from API. */
+  resultCount?: number;
+  /** Products loaded in the list so far (infinite scroll). */
+  loadedCount?: number;
 };
 
+function formatResultProgress(
+  resultCount?: number,
+  loadedCount?: number,
+): string | null {
+  if (resultCount == null || resultCount < 0) return null;
+  if (resultCount === 0) return "0 results";
+
+  // Hide 0 / N while first page hasn't landed.
+  if (loadedCount == null || loadedCount <= 0) {
+    return `${resultCount} results`;
+  }
+
+  const loaded = Math.min(loadedCount, resultCount);
+
+  // All loaded (first page only, or last page).
+  if (loaded >= resultCount) {
+    return `${resultCount} results`;
+  }
+
+  return `${loaded} / ${resultCount}`;
+}
+
+/** Compact Sort & Filters chip — sits below subcategory chips. */
 const ProductFilterFab = ({
   filters,
   onPress,
   onClear,
+  barStyle,
+  resultCount,
+  loadedCount,
 }: ProductFilterFabProps) => {
-  const insets = useSafeAreaInsets();
-  const goToCartInset = useGoToCartInset();
   const activeCount = countActiveProductFilters(filters);
   const sortLabel =
     PRODUCT_SORT_OPTIONS.find((o) => o.value === filters.sort)?.label ??
     "Relevance";
-  const shortSort =
+  const label =
     filters.sort === "relevance"
-      ? "Sort & Filters"
-      : filters.sort === "price_asc"
-        ? "Price ↑"
-        : filters.sort === "price_desc"
-          ? "Price ↓"
-          : "Name A–Z";
+      ? activeCount > 0
+        ? `Filters (${activeCount})`
+        : "Sort & Filters"
+      : activeCount > 1
+        ? `${sortLabel} · +${activeCount - 1}`
+        : sortLabel;
 
-  const bottom = Math.max(goToCartInset, insets.bottom + 12) + 12;
+  const progressLabel = formatResultProgress(resultCount, loadedCount);
 
   return (
-    <View pointerEvents="box-none" style={[styles.wrap, { bottom }]}>
+    <View style={[styles.bar, barStyle]}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${shortSort}${activeCount ? `, ${activeCount} active` : ""}`}
+        accessibilityLabel={`${label}${activeCount ? `, ${activeCount} active` : ""}`}
         onPress={onPress}
-        style={[styles.fab, activeCount > 0 && styles.fabActive]}
+        style={[styles.chip, activeCount > 0 && styles.chipActive]}
+        hitSlop={4}
       >
         <Ionicons
           name="options-outline"
-          size={18}
-          color={activeCount > 0 ? Colors.light.white : Colors.light.darkGreen}
+          size={14}
+          color={
+            activeCount > 0 ? Colors.light.white : Colors.light.darkGreen
+          }
         />
         <Text
-          style={[styles.fabText, activeCount > 0 && styles.fabTextActive]}
+          style={[styles.chipText, activeCount > 0 && styles.chipTextActive]}
           numberOfLines={1}
         >
-          {shortSort}
+          {label}
         </Text>
-        {activeCount > 0 ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{activeCount}</Text>
-          </View>
-        ) : null}
       </Pressable>
 
       {activeCount > 0 && onClear ? (
@@ -69,11 +95,18 @@ const ProductFilterFab = ({
           accessibilityRole="button"
           accessibilityLabel="Clear filters"
           onPress={onClear}
-          style={styles.clearBtn}
+          style={styles.clearChip}
           hitSlop={8}
         >
-          <Ionicons name="close" size={16} color={Colors.light.darkGrey} />
+          <Text style={styles.clearText}>Clear</Text>
         </Pressable>
+      ) : null}
+      <View style={{ flex: 1 }} />
+
+      {progressLabel ? (
+        <Text style={styles.resultCount} numberOfLines={1}>
+          {progressLabel}
+        </Text>
       ) : null}
     </View>
   );
@@ -82,73 +115,51 @@ const ProductFilterFab = ({
 export default memo(ProductFilterFab);
 
 const styles = StyleSheet.create({
-  wrap: {
-    position: "absolute",
-    right: 16,
-    left: 16,
-    zIndex: 40,
-    elevation: 40,
+  bar: {
     flexDirection: "row",
-    justifyContent: "flex-end",
     alignItems: "center",
     gap: 8,
+    paddingHorizontal: 30,
+    paddingTop: 2,
+    paddingBottom: 6,
   },
-  fab: {
+  chip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    maxWidth: "78%",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 24,
-    backgroundColor: "#FFFFFF",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: "#F3F5F4",
     borderWidth: 1,
     borderColor: "#D8E0DC",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 6,
+    maxWidth: "70%",
   },
-  fabActive: {
+  chipActive: {
     backgroundColor: Colors.light.mediumGreen,
     borderColor: Colors.light.mediumGreen,
   },
-  fabText: {
-    fontFamily: "Montserrat_600SemiBold",
-    fontSize: 13,
+  chipText: {
+    fontFamily: "Montserrat_500Medium",
+    fontSize: 11,
     color: Colors.light.darkGrey,
   },
-  fabTextActive: {
+  chipTextActive: {
     color: Colors.light.white,
   },
-  badge: {
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
-    paddingHorizontal: 6,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.light.white,
+  clearChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  badgeText: {
-    fontFamily: "Montserrat_700Bold",
+  clearText: {
+    fontFamily: "Montserrat_500Medium",
     fontSize: 11,
-    color: Colors.light.darkGreen,
+    color: Colors.light.mediumGrey,
   },
-  clearBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E6EBE8",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 4,
+  resultCount: {
+    fontFamily: "Montserrat_500Medium",
+    fontSize: 12,
+    color: Colors.light.darkGreen,
+    flexShrink: 1,
   },
 });

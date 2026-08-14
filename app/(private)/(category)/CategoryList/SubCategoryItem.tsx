@@ -44,15 +44,15 @@ const SubCategoryItem = ({ item, isSelected, onPress }: Props) => {
 
 const styles = StyleSheet.create({
   container: {
-    marginRight: 10,
-    marginBottom: 10,
-    marginTop: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 20,
+    marginRight: 8,
+    marginBottom: 6,
+    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
   text: {
-    fontSize: 14,
+    fontSize: 12,
   },
 });
 

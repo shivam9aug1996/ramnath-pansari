@@ -27,6 +27,7 @@ import { StyleSheet, Text, View, ActivityIndicator, Platform } from "react-nativ
   import {
     productDetailContentStyles,
     PRODUCT_DETAIL_SCROLL_PADDING_BOTTOM,
+    PRODUCT_DETAIL_HEADER_HEIGHT,
   } from "./productDetailLayout";
   import { useGoToCartListPadding } from "@/contexts/DeliveryFloatContext";
 import GoToCartWrapper from "../(category)/ProductList/GoToCartWrapper";
@@ -151,8 +152,8 @@ import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
               <View
                 style={{
                   opacity: data?.product?.isOutOfStock ? 0.6 : 1,
-                  marginTop: 16,
-                  marginBottom: 40,
+                  marginTop: 8,
+                  marginBottom: 24,
                 }}
               >
                 <View style={styles.textContainer}>
@@ -262,13 +263,16 @@ import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
       position: "relative",
     },
     headerImage: {
-      height: 300,
+      height: PRODUCT_DETAIL_HEADER_HEIGHT,
+      width: "100%",
       overflow: "hidden",
       backgroundColor: Colors.light.background,
+      alignItems: "center",
+      justifyContent: "center",
     },
     productImage: {
-      width: "100%",
-      height: "100%",
+      width: "78%",
+      height: "88%",
     },
     addToCartButton: {
       marginTop: 25,

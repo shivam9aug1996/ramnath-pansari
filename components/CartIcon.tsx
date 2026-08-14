@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import React, { useEffect, useMemo, useRef } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -12,7 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Colors } from "@/constants/Colors";
 
-const CartIcon = () => {
+const CartIcon = ({ inline = false }: { inline?: boolean }) => {
   const userId = useSelector((state: RootState) => state?.auth?.userData?._id);
   const { data: cartData } = useFetchCartQuery(
     {
@@ -57,41 +57,22 @@ const CartIcon = () => {
       onPress={() => {
         router.navigate("/(cartScreen)/cartScreen");
       }}
-      style={{
-        position: "absolute",
-        right: 0,
-        alignItems: "center",
-        padding: 10,
-      }}
+      style={inline ? styles.inlineHit : styles.absoluteHit}
     >
-      <Ionicons name="bag-handle" size={24}
-        color={Colors.light.mediumGrey} />
+      <Ionicons name="bag-handle" size={24} color={Colors.light.mediumGrey} />
 
       {cartItems > 0 && (
         <Animated.View
           style={[
-            {
-              minWidth: 14,
-              height: 14,
-              backgroundColor: "#EC534A",
-              borderRadius: 7,
-              position: "absolute",
-              top: 10,
-              right: 5,
-              alignItems: "center",
-              justifyContent: "center",
-              paddingHorizontal: 2,
-            },
+            styles.badge,
+            inline ? styles.badgeInline : null,
             animatedStyle,
           ]}
         >
           <Text
-            style={{
-              color: "white",
-              fontSize: Platform.OS === "android" ? 8 : 10,
-            }}
+            style={styles.badgeText}
           >
-            {cartItems}
+            {cartItems > 9 ? "9+" : cartItems}
           </Text>
         </Animated.View>
       )}
@@ -101,4 +82,38 @@ const CartIcon = () => {
 
 export default CartIcon;
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  absoluteHit: {
+    position: "absolute",
+    right: 0,
+    alignItems: "center",
+    padding: 10,
+  },
+  inlineHit: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 8,
+  },
+  badge: {
+    minWidth: 12,
+    height: 12,
+    backgroundColor: "#EC534A",
+    borderRadius: 6,
+    position: "absolute",
+    top: 10,
+    right: 5,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 2,
+  },
+  badgeInline: {
+    top: 6,
+    right: 4,
+  },
+  badgeText: {
+    color: "white",
+    fontSize: 8,
+    fontWeight: "700",
+    lineHeight: 10,
+  },
+});

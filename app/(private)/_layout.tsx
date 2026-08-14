@@ -1,11 +1,10 @@
 import { StyleSheet, View } from "react-native";
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Stack } from "expo-router";
-import ActiveDeliveryFloat from "@/components/ActiveDeliveryFloat";
 import { DeliveryFloatProvider } from "@/contexts/DeliveryFloatContext";
 import { useRoleRouteGuard } from "@/hooks/useRoleRouteGuard";
 import { IsolateErrorBoundary } from "@/components/IsolateErrorBoundary";
-
+const ActiveDeliveryFloat = lazy(() => import("@/components/ActiveDeliveryFloat"));
 export { ErrorBoundary } from "@/components/RouteErrorBoundary";
 
 const MainNavigator = () => {
@@ -13,169 +12,172 @@ const MainNavigator = () => {
 
   return (
     <DeliveryFloatProvider>
-    <View style={styles.root}>
-    <Stack>
-      
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="(search)/search"
-        options={{
-          headerShown: false,
-          keyboardHandlingEnabled: true,
-          animation: "ios_from_right",
-          animationDuration: 0,
-          // presentation: "card",
-        }}
-      />
-      <Stack.Screen
-        name="(category)/[id]"
-        options={{
-          headerShown: false,
-          animation: "ios_from_right",
-          animationDuration: 0,
-        }}
-        
+      <View style={styles.root}>
+        <Stack>
 
-        
-      />
-      <Stack.Screen
-        name="(cartScreen)/cartScreen"
-        options={{
-          headerShown: false,
-          // animation: "ios_from_right",
-          // animationDuration: 0,
-          animation: "ios_from_right",
-          animationDuration: 0,
-         // presentation: "modal",
-        }}
-      />
-      <Stack.Screen
-        name="(result)/[query]"
-        options={{
-          headerShown: false,
-          keyboardHandlingEnabled: true,
-          animation: "ios_from_right",
-          animationDuration: 0,
-          //animation: "none",
-        }}
-      />
-      <Stack.Screen
-        name="(address)/addressList"
-        options={{
-          headerShown: false,
-          animation: "ios_from_right",
-          animationDuration: 0,
-        }}
-      />
-      <Stack.Screen
-        name="(address)/addAddress"
-        options={{
-          headerShown: false,
-          animation: "ios_from_right",
-          animationDuration: 0,
-        }}
-      />
-      <Stack.Screen
-        name="(address)/WebMap"
-        options={{
-          headerShown: false,
-          animation: "ios_from_right",
-          animationDuration: 0,
-        }}
-      />
-      <Stack.Screen
-        name="(address)/locationSearchScreen"
-        options={{
-          headerShown: false,
-          animation: "ios_from_right",
-          animationDuration: 0,
-        }}
-      />
-      <Stack.Screen
-        name="(profile)/profile"
-        options={{
-          headerShown: false,
-          animation: "ios_from_right",
-          animationDuration: 0,
-        }}
-      />
-      <Stack.Screen
-        name="(support)/support"
-        options={{
-          headerShown: false,
-          animation: "ios_from_right",
-          animationDuration: 0,
-        }}
-      />
-      <Stack.Screen
-        name="(about)/about"
-        options={{
-          headerShown: false,
-          animation: "ios_from_right",
-          animationDuration: 0,
-        }}
-      />
-      <Stack.Screen
-        name="(legal)/terms"
-        options={{
-          headerShown: false,
-          animation: "ios_from_right",
-          animationDuration: 0,
-        }}
-      />
-      <Stack.Screen
-        name="(legal)/privacy"
-        options={{
-          headerShown: false,
-          animation: "ios_from_right",
-          animationDuration: 0,
-        }}
-      />
-      <Stack.Screen
-        name="(order)/order"
-        options={{
-          headerShown: false,
-          animation: "ios_from_right",
-          animationDuration: 0,
-        }}
-      />
-      <Stack.Screen
-        name="(productDetail)/[id]"
-        options={{
-          headerShown: false,
-          animation: "ios_from_right",
-          animationDuration: 0,
-        }}
-      />
-      <Stack.Screen
-        name="(orderDetail)/[id]"
-        options={{
-          headerShown: false,
-          animation: "ios_from_right",
-          animationDuration: 0,
-        }}
-      />
-      <Stack.Screen
-        name={`khata/[id]`}
-        options={{
-          headerShown: false,
-          animation: "ios_from_right",
-          animationDuration: 0,
-        }}
-      />
-      <Stack.Screen
-        name="(voiceOs)/index"
-        options={{
-          headerShown: false,
-          animation: "ios_from_right",
-          animationDuration: 0,
-        }}
-      />
-    </Stack>
-    <IsolateErrorBoundary name="ActiveDeliveryFloat">
-      <ActiveDeliveryFloat homeVariant="compact" />
-    </IsolateErrorBoundary>
-    </View>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="(search)/search"
+            options={{
+              headerShown: false,
+              keyboardHandlingEnabled: true,
+              animation: "ios_from_right",
+              animationDuration: 0,
+              // presentation: "card",
+            }}
+          />
+          <Stack.Screen
+            name="(category)/[id]"
+            options={{
+              headerShown: false,
+              animation: "ios_from_right",
+              animationDuration: 0,
+            }}
+
+
+
+          />
+          <Stack.Screen
+            name="(cartScreen)/cartScreen"
+            options={{
+              headerShown: false,
+              // animation: "ios_from_right",
+              // animationDuration: 0,
+              animation: "ios_from_right",
+              animationDuration: 0,
+              // presentation: "modal",
+            }}
+          />
+          <Stack.Screen
+            name="(result)/[query]"
+            options={{
+              headerShown: false,
+              keyboardHandlingEnabled: true,
+              animation: "ios_from_right",
+              animationDuration: 0,
+              //animation: "none",
+            }}
+          />
+          <Stack.Screen
+            name="(address)/addressList"
+            options={{
+              headerShown: false,
+              animation: "ios_from_right",
+              animationDuration: 0,
+            }}
+          />
+          <Stack.Screen
+            name="(address)/addAddress"
+            options={{
+              headerShown: false,
+              animation: "ios_from_right",
+              animationDuration: 0,
+            }}
+          />
+          <Stack.Screen
+            name="(address)/WebMap"
+            options={{
+              headerShown: false,
+              animation: "ios_from_right",
+              animationDuration: 0,
+            }}
+          />
+          <Stack.Screen
+            name="(address)/locationSearchScreen"
+            options={{
+              headerShown: false,
+              animation: "ios_from_right",
+              animationDuration: 0,
+            }}
+          />
+          <Stack.Screen
+            name="(profile)/profile"
+            options={{
+              headerShown: false,
+              animation: "ios_from_right",
+              animationDuration: 0,
+            }}
+          />
+          <Stack.Screen
+            name="(support)/support"
+            options={{
+              headerShown: false,
+              animation: "ios_from_right",
+              animationDuration: 0,
+            }}
+          />
+          <Stack.Screen
+            name="(about)/about"
+            options={{
+              headerShown: false,
+              animation: "ios_from_right",
+              animationDuration: 0,
+            }}
+          />
+          <Stack.Screen
+            name="(legal)/terms"
+            options={{
+              headerShown: false,
+              animation: "ios_from_right",
+              animationDuration: 0,
+            }}
+          />
+          <Stack.Screen
+            name="(legal)/privacy"
+            options={{
+              headerShown: false,
+              animation: "ios_from_right",
+              animationDuration: 0,
+            }}
+          />
+          <Stack.Screen
+            name="(order)/order"
+            options={{
+              headerShown: false,
+              animation: "ios_from_right",
+              animationDuration: 0,
+            }}
+          />
+          <Stack.Screen
+            name="(productDetail)/[id]"
+            options={{
+              headerShown: false,
+              animation: "ios_from_right",
+              animationDuration: 0,
+            }}
+          />
+          <Stack.Screen
+            name="(orderDetail)/[id]"
+            options={{
+              headerShown: false,
+              animation: "ios_from_right",
+              animationDuration: 0,
+            }}
+          />
+          <Stack.Screen
+            name={`khata/[id]`}
+            options={{
+              headerShown: false,
+              animation: "ios_from_right",
+              animationDuration: 0,
+            }}
+          />
+          <Stack.Screen
+            name="(voiceOs)/index"
+            options={{
+              headerShown: false,
+              animation: "ios_from_right",
+              animationDuration: 0,
+            }}
+          />
+        </Stack>
+        <IsolateErrorBoundary name="ActiveDeliveryFloat">
+          <Suspense>
+            <ActiveDeliveryFloat homeVariant="compact" />
+          </Suspense>
+
+        </IsolateErrorBoundary>
+      </View>
     </DeliveryFloatProvider>
   );
 };

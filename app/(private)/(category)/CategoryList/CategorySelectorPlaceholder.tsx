@@ -5,17 +5,17 @@ import { arrayColor } from "./constants";
 import ContentLoader, { Rect } from "react-content-loader/native";
 
 const IMAGE_SIZES = {
-  small: 35,
+  small: 32,
   large: 60,
 };
 
 const MAX_WIDTHS = {
-  small: 70,
+  small: 64,
   large: 80,
 };
 
 const IMAGE_PADDING = {
-  small: 15,
+  small: 4,
   large: 10,
 };
 
@@ -139,21 +139,26 @@ export default memo(CategorySelectorPlaceholder);
 
 const styles = StyleSheet.create({
   categoryContainer: {
-    marginTop: 15,
-    marginRight: 10,
+    marginTop: 6,
+    marginRight: 8,
+    alignItems: "center",
+
   },
   imageContainer: {
-    borderRadius: 23,
-    marginBottom: 8,
+    borderRadius: 10,
+    marginBottom: 4,
     borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
   },
   image: {
-    height: 35,
-    width: 35,
+    height: 32,
+    width: 32,
   },
   categoryText: {
-    fontSize: 12,
+    fontSize: 9,
     textAlign: "center",
-    paddingHorizontal: 5,
+    paddingHorizontal: 2,
   },
 });

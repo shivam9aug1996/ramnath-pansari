@@ -17,18 +17,17 @@ import { CartButtonProps, RootState } from "@/types/global";
 import { useFetchCartQuery } from "@/redux/features/cartSlice";
 import { useCartOperations } from "../../hooks/useCartOperations";
 
-const ADD_WIDTH = 75;
-const QUANTITY_WIDTH = 100;
+/** Same footprint for ADD and qty so they don't jump. */
+const CONTROL_WIDTH = 76;
+const CONTROL_HEIGHT = 28;
+const ADD_WIDTH = CONTROL_WIDTH;
+const QUANTITY_WIDTH = CONTROL_WIDTH;
 
-const CartButtonLoader = () => (
-  <View style={styles.container}>
-    <View style={styles.loaderButton}>
-      <ActivityIndicator size="small" color="#0d9448" />
-    </View>
-  </View>
-);
-
-const CartButton = ({ value, item }: CartButtonProps) => {
+const CartButton = ({
+  value,
+  item,
+  inline = false,
+}: CartButtonProps & { inline?: boolean }) => {
   const userId = useSelector(
     (state: RootState) => state.auth.userData?._id,
   );
@@ -42,7 +41,6 @@ const CartButton = ({ value, item }: CartButtonProps) => {
     { skip: skipCartQuery },
   );
 
-  // Keep the real button gated until the first cart settle (not later refetches).
   const showCartLoader =
     !skipCartQuery && !isSuccess && !isError && (isLoading || isUninitialized);
 
@@ -61,7 +59,6 @@ const CartButton = ({ value, item }: CartButtonProps) => {
 
     const targetWidth = hasQuantity ? QUANTITY_WIDTH : ADD_WIDTH;
 
-    // First paint after cart settles: snap to final width (no ADD→qty animation).
     if (!hasHydratedRef.current) {
       hasHydratedRef.current = true;
       animatedWidth.value = targetWidth;
@@ -84,7 +81,7 @@ const CartButton = ({ value, item }: CartButtonProps) => {
 
   if (item?.isOutOfStock) {
     return (
-      <View style={styles.container}>
+      <View style={inline ? styles.inlineContainer : styles.container}>
         <View style={styles.outOfStockButton}>
           <Text style={styles.outOfStockText} numberOfLines={1}>
             Sold out
@@ -95,11 +92,17 @@ const CartButton = ({ value, item }: CartButtonProps) => {
   }
 
   if (showCartLoader) {
-    return <CartButtonLoader />;
+    return (
+      <View style={inline ? styles.inlineContainer : styles.container}>
+        <View style={styles.loaderButton}>
+          <ActivityIndicator size="small" color="#0d9448" />
+        </View>
+      </View>
+    );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={inline ? styles.inlineContainer : styles.container}>
       <Animated.View style={[styles.animatedWrapper, animatedStyle]}>
         {hasQuantity ? (
           <View style={styles.quantityContainer}>
@@ -138,26 +141,29 @@ const CartButton = ({ value, item }: CartButtonProps) => {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: 8,
-    right: 8,
+    bottom: 6,
+    right: 6,
+    zIndex: 10,
+  },
+  inlineContainer: {
     zIndex: 10,
   },
   animatedWrapper: {
-    height: 36,
+    height: CONTROL_HEIGHT,
     overflow: "hidden",
   },
   loaderButton: {
-    width: ADD_WIDTH,
-    height: 36,
+    width: CONTROL_WIDTH,
+    height: CONTROL_HEIGHT,
     borderRadius: 8,
     borderWidth: 1.5,
     borderColor: "#d1d5db",
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
   },
   addButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1.5,
     borderColor: "#0d9448",
     alignItems: "center",
@@ -167,46 +173,42 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: "#0d9448",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
-    letterSpacing: 0.8,
+    letterSpacing: 0.4,
   },
   quantityContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(38, 173, 113, 0.9)",
-    paddingVertical: 4,
-    paddingHorizontal: 4,
+    backgroundColor: "#0d9448",
     height: "100%",
     borderRadius: 8,
   },
   quantityButton: {
-    width: 28,
-    height: 28,
+    width: 26,
+    height: CONTROL_HEIGHT,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 4,
   },
   buttonText: {
     color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "500",
-    lineHeight: 18,
+    fontSize: 16,
+    fontWeight: "600",
+    lineHeight: 16,
   },
   quantityDisplay: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 8,
   },
   quantityText: {
     color: "#ffffff",
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "700",
   },
   outOfStockButton: {
-    width: 75,
-    height: 36,
+    width: CONTROL_WIDTH,
+    height: CONTROL_HEIGHT,
     backgroundColor: "#f3f4f6",
     borderRadius: 8,
     borderWidth: 1.5,
@@ -216,9 +218,9 @@ const styles = StyleSheet.create({
   },
   outOfStockText: {
     color: "#9ca3af",
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
 });
 

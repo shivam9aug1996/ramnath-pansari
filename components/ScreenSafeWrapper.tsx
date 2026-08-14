@@ -33,6 +33,8 @@ interface ScreenSafeWrapperProps {
   useKeyboardAvoidingView?: boolean;
   showCartIcon?: boolean;
   showSearchIcon?: boolean;
+  /** Extra header actions (e.g. filter) — rendered left of search/cart. */
+  headerRight?: ReactNode;
   wrapperStyle?: StyleProp<ViewStyle>;
   headerStyle?: StyleProp<ViewStyle>;
   headerVisible?: SharedValue<number>;
@@ -53,6 +55,7 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
   useKeyboardAvoidingView = false,
   showCartIcon = false,
   showSearchIcon = false,
+  headerRight,
   wrapperStyle = {},
   headerStyle = {},
   headerVisible,
@@ -61,11 +64,9 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
   backFallbackHref,
   backFallbackIcon,
 }) => {
-  //console.log("uytrf5698765434567890ghjk", showCartIcon);
   const WrapperComponent = useKeyboardAvoidingView
     ? KeyboardAvoidingView
     : View;
-  //const router = useRouter();
 
   const animatedHeaderStyle = useAnimatedStyle(() => {
     if (!headerVisible) return {};
@@ -81,14 +82,15 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
       ],
     };
   });
-  // console.log("9876trdf4567890-ghj");
+
+  const hasRightActions =
+    !!headerRight || showSearchIcon || showCartIcon || showCartItemsCount;
+
   return (
     <>
       <SafeAreaView style={[styles.container, wrapperStyle]}>
-        {showGradient && (
-          <GrientBackground />
-        )}
-      
+        {showGradient && <GrientBackground />}
+
         <WrapperComponent
           style={{ flex: 1 }}
           behavior={
@@ -97,83 +99,71 @@ const ScreenSafeWrapper: React.FC<ScreenSafeWrapperProps> = ({
               : "height"
           }
         >
-          <DeferredFadeIn delay={100} fallback={
-            <View style={[
-              {
-                flexDirection: "row",
-                alignItems: "center",
-                position: "relative",
-                minHeight: showBackButton || title ? 42 : 0,
-                backgroundColor:"transparent"
-              },
-              headerStyle,
-            ]}/>
-          }>
+          <DeferredFadeIn
+            delay={100}
+            fallback={
+              <View
+                style={[styles.headerRow, headerStyle, { minHeight: showBackButton || title ? 42 : 0 }]}
+              />
+            }
+          >
             <ThemedView
               style={[
-                {
-                  flexDirection: "row",
-                  alignItems: "center",
-                  position: "relative",
-                  minHeight: showBackButton || title ? 42 : 0,
-                  backgroundColor:"transparent"
-                },
+                styles.headerRow,
+                { minHeight: showBackButton || title ? 42 : 0 },
                 headerStyle,
               ]}
             >
-              {showBackButton && (
+              {showBackButton ? (
                 <HeaderBackButton
                   fallbackHref={backFallbackHref}
                   fallbackIcon={backFallbackIcon}
                 />
+              ) : (
+                <View style={styles.headerSideSpacer} />
               )}
+
+              <View style={styles.headerFlexFill} />
+
+              {hasRightActions ? (
+                <View style={styles.rightActions}>
+                  {headerRight}
+                  {showSearchIcon ? (
+                    <TouchableOpacity
+                      onPress={() => {
+                        router.push("/(search)/search");
+                      }}
+                      style={styles.iconHit}
+                      hitSlop={8}
+                    >
+                      <Ionicons name="search" size={24} color="#777777" />
+                    </TouchableOpacity>
+                  ) : null}
+                  {showCartItemsCount ? (
+                    <CartItemsCount animatedHeaderStyle={animatedHeaderStyle} />
+                  ) : null}
+                  {showCartIcon ? <CartIcon inline /> : null}
+                </View>
+              ) : (
+                <View style={styles.headerSideSpacer} />
+              )}
+
               {!!title && (
                 <Animated.View
-                  style={[
-                    {
-                      position: "absolute",
-                      alignItems: "center",
-                      alignSelf: "center",
-                      paddingHorizontal: 10,
-                      left: "25%",
-                      right: "25%",
-                    },
-                    animatedHeaderStyle,
-                  ]}
+                  pointerEvents="none"
+                  style={[styles.titleOverlay, animatedHeaderStyle]}
                 >
-                  <ThemedText type="screenHeader">{title}</ThemedText>
+                  <ThemedText type="screenHeader" numberOfLines={1}>
+                    {title}
+                  </ThemedText>
                 </Animated.View>
               )}
-              {showSearchIcon && (
-                <TouchableOpacity
-                  onPress={() => {
-                    router.push("/(search)/search");
-                    //router.push("/(tabs)/search");
-                    // router.push("/(private)/(tabs)/search");
-                  }}
-                  style={{
-                    position: "absolute",
-                    right: 50,
-                    alignItems: "center",
-                    // zIndex: -1,
-                  }}
-                >
-                  <Ionicons name={"search"} size={25} color={"#777777"} />
-                </TouchableOpacity>
-              )}
-              {showCartItemsCount ? (
-               <CartItemsCount
-               animatedHeaderStyle={animatedHeaderStyle}
-               />
-              ) : null}
-              {showCartIcon && <CartIcon />}
             </ThemedView>
           </DeferredFadeIn>
 
           {children}
         </WrapperComponent>
       </SafeAreaView>
-      {/* <GoToCart /> */}
     </>
   );
 };
@@ -186,6 +176,38 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS == "android" ? 20 : 10,
     position: "relative",
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    backgroundColor: "transparent",
+    zIndex: 2,
+  },
+  headerSideSpacer: {
+    width: 40,
+  },
+  headerFlexFill: {
+    flex: 1,
+  },
+  titleOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 96,
+  },
+  rightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 0,
+    zIndex: 3,
+  },
+  iconHit: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   background: {
     position: "absolute",
     left: 0,
@@ -195,33 +217,24 @@ const styles = StyleSheet.create({
   },
 });
 
-
-function areEqual(prevProps: ScreenSafeWrapperProps, nextProps: ScreenSafeWrapperProps) {
+function areEqual(
+  prevProps: ScreenSafeWrapperProps,
+  nextProps: ScreenSafeWrapperProps,
+) {
   return (
-    prevProps.showBackButton === nextProps.showBackButton
-    &&
-    prevProps.title === nextProps.title
-    &&
-    prevProps.showBackButton === nextProps.showBackButton
-    &&
-    prevProps.useKeyboardAvoidingView === nextProps.useKeyboardAvoidingView
-    &&
-    prevProps.showCartIcon === nextProps.showCartIcon
-    &&
-    prevProps.showSearchIcon === nextProps.showSearchIcon
-    &&
-    prevProps.wrapperStyle === nextProps.wrapperStyle
-    &&
-    prevProps.headerStyle === nextProps.headerStyle
-    &&
-    prevProps.headerVisible === nextProps.headerVisible
-    &&
-    prevProps.showGradient === nextProps.showGradient
-    &&
-    prevProps.showCartItemsCount === nextProps.showCartItemsCount
-    &&
-    prevProps.backFallbackHref === nextProps.backFallbackHref
-    &&
+    prevProps.showBackButton === nextProps.showBackButton &&
+    prevProps.title === nextProps.title &&
+    prevProps.useKeyboardAvoidingView ===
+      nextProps.useKeyboardAvoidingView &&
+    prevProps.showCartIcon === nextProps.showCartIcon &&
+    prevProps.showSearchIcon === nextProps.showSearchIcon &&
+    prevProps.headerRight === nextProps.headerRight &&
+    prevProps.wrapperStyle === nextProps.wrapperStyle &&
+    prevProps.headerStyle === nextProps.headerStyle &&
+    prevProps.headerVisible === nextProps.headerVisible &&
+    prevProps.showGradient === nextProps.showGradient &&
+    prevProps.showCartItemsCount === nextProps.showCartItemsCount &&
+    prevProps.backFallbackHref === nextProps.backFallbackHref &&
     prevProps.backFallbackIcon === nextProps.backFallbackIcon
   );
 }

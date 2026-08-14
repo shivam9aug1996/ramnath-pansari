@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
 import { Colors } from "@/constants/Colors";
 
-export const PRODUCT_DETAIL_HEADER_HEIGHT = 300;
+export const PRODUCT_DETAIL_HEADER_HEIGHT = 200;
 export const FOOD_BADGE_SIZE_MD = 20;
 export const PRODUCT_NAME_MIN_HEIGHT = 52;
 export const CART_BUTTON_SPACER_HEIGHT = 56;

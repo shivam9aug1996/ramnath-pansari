@@ -32,9 +32,9 @@ import ProductListPlaceholder, {
 } from "../(category)/ProductList/ProductListPlaceholder";
 import {
   buildProductListData,
+  GO_TO_CART_ESTIMATED_HEIGHT,
   isProductSkeleton,
   PRODUCT_LIST_PADDING_BOTTOM,
-  PRODUCT_FILTER_FAB_CLEARANCE,
   ProductListRow,
 } from "../(category)/ProductList/productListLayout";
 import NotFound from "./NotFound";
@@ -75,6 +75,7 @@ const QueryResult = ({query}:{query:string}) => {
 
   const [page, setPage] = useState(1);
   const [searchReset, setSearchReset] = useState(false);
+  const pagingLockRef = useRef(false);
   const dispatch = useDispatch();
   const goToCartListPadding = useGoToCartListPadding();
   const { data: cartData } = useFetchCartQuery({ userId }, { skip: !userId });
@@ -162,6 +163,7 @@ const QueryResult = ({query}:{query:string}) => {
   useEffect(() => {
     setPage(1);
     setSearchReset(true);
+    pagingLockRef.current = false;
     resetScrollChrome();
   }, [query, resetScrollChrome]);
 
@@ -241,10 +243,18 @@ const QueryResult = ({query}:{query:string}) => {
   }, [resetPagination?.status, query, filterKey, apiParams]);
 
   // Handlers
-  const fetchNextPage = () => {
+  const fetchNextPage = useCallback(() => {
+    if (pagingLockRef.current) return;
+    pagingLockRef.current = true;
     setSearchReset(false);
     setPage((prev) => prev + 1);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isFetching) {
+      pagingLockRef.current = false;
+    }
+  }, [isFetching]);
 
   // const cartItemsMap = useMemo(() => {
   //   // console.log("cartDatashivam---------->");
@@ -304,15 +314,18 @@ const QueryResult = ({query}:{query:string}) => {
   );
 
   const isRefreshingFirstPage = isFetching && page === 1;
+
+  const bottomPad =
+  PRODUCT_LIST_PADDING_BOTTOM +
+  Math.max(goToCartListPadding, GO_TO_CART_ESTIMATED_HEIGHT);
+
 const listContentContainerStyle = useMemo(
   () => [
     styles.listContent,
     isRefreshingFirstPage && styles.listRefreshing,
     {
       paddingBottom:
-        PRODUCT_LIST_PADDING_BOTTOM +
-        PRODUCT_FILTER_FAB_CLEARANCE +
-        goToCartListPadding,
+      bottomPad,
     },
   ],
   [isRefreshingFirstPage, goToCartListPadding],
@@ -324,7 +337,6 @@ const listContentContainerStyle = useMemo(
       {
         paddingBottom:
           PRODUCT_LIST_PADDING_BOTTOM +
-          PRODUCT_FILTER_FAB_CLEARANCE +
           goToCartListPadding,
       },
     ],
@@ -419,6 +431,7 @@ const listContentContainerStyle = useMemo(
     if (showInitialSkeleton) return;
     if (!hasNextPage) return;
     if (isFetching) return;
+    if (pagingLockRef.current) return;
     await new Promise(resolve => setTimeout(resolve, 300));
     fetchNextPage();
   }, [
@@ -466,6 +479,14 @@ const listContentContainerStyle = useMemo(
               wrapperStyle={styles.textInputWrapper}
               numberOfLines={1}
             />
+            <ProductFilterFab
+              filters={applied}
+              onPress={handleOpenFilters}
+              onClear={clearAll}
+              barStyle={{ paddingHorizontal: 0 }}
+              resultCount={data?.totalResults}
+              loadedCount={data?.results?.length}
+            />
             {showPlaceholder ? (
               <View style={styles.container}>
                 {/* <ProductListPlaceholder
@@ -484,7 +505,7 @@ const listContentContainerStyle = useMemo(
                   data={data?.results}
                   extraData={{ cartItemsMap }}
                   renderItem={renderProductItem}
-                  keyExtractor={(item, index) => item?._id || index.toString()}
+                  keyExtractor={(item) => String(item?._id)}
                   numColumns={2}
                   removeClippedSubviews={false}
                   showsVerticalScrollIndicator={false}
@@ -492,7 +513,7 @@ const listContentContainerStyle = useMemo(
                   onEndReached={handleEndReached}
                   onEndReachedThreshold={0.35}
                   contentContainerStyle={listContentContainerStyle}
-                  ListHeaderComponent={header}
+                  //ListHeaderComponent={header}
                   ListEmptyComponent={renderEmptyComponent}
                   ListFooterComponent={renderListFooter}
                   ListFooterComponentStyle={hasNextPage ? [styles.listFooter] : undefined}
@@ -506,12 +527,6 @@ const listContentContainerStyle = useMemo(
           </DeferredFadeIn>
        
       </ScreenSafeWrapper>
-
-      <ProductFilterFab
-        filters={applied}
-        onPress={handleOpenFilters}
-        onClear={clearAll}
-      />
 
       <LazyProductFilterSheet
         visible={filterVisible}

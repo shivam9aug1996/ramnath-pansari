@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Matches `#root` max-width in `app/+html.tsx`. RN Modal portals outside `#root`. */
-const WEB_SHELL_MAX_WIDTH = 375;
+const WEB_SHELL_MAX_WIDTH = 430;
 
 type ProductSheetShellProps = {
   visible: boolean;

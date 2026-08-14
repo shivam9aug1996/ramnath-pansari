@@ -1,24 +1,46 @@
 /** Shared product grid layout — keep placeholder and list in sync on every screen size. */
 import { Product } from "@/types/global";
 import { Dimensions, Platform } from "react-native";
-/** Image is slightly wider than tall + name (2 lines) + discount + price. */
-export const PRODUCT_CARD_HEIGHT = Dimensions.get("window").width > 390 ? 275 : 248;
-/** Image width/height — >1 shortens the image so more rows fit on screen. */
-export const PRODUCT_IMAGE_ASPECT_RATIO = 1.15;
-export const PRODUCT_ITEM_MARGIN_BOTTOM = 6;
-/** Space reserved for category/subcategory chrome — keep in sync with list paddingTop */
-export const CATEGORY_CHROME_ESTIMATED_HEIGHT = 170;
+
+/** Matches `#root` max-width in `app/+html.tsx` — desktop window is wider than the phone shell. */
+const WEB_SHELL_MAX_WIDTH = 430;
+const windowWidth = Dimensions.get("window").width;
+const SHELL_WIDTH =
+  Platform.OS === "web"
+    ? Math.min(windowWidth, WEB_SHELL_MAX_WIDTH)
+    : windowWidth;
+
+export const PRODUCT_COLUMN_GAP = 8;
+/** Vertical gutter between product rows (Blinkit-like). */
+export const PRODUCT_ITEM_MARGIN_BOTTOM = 10;
+/**
+ * Near-square image area (Blinkit cards).
+ * aspectRatio = width/height — ~1 keeps packaging readable.
+ */
+export const PRODUCT_IMAGE_ASPECT_RATIO = 1.35;
+
+const COLUMN_WIDTH = (SHELL_WIDTH - PRODUCT_COLUMN_GAP * 2) / 2;
+const IMAGE_HEIGHT = COLUMN_WIDTH / PRODUCT_IMAGE_ASPECT_RATIO;
+/** Name (2 lines) + size + price/ADD footer. */
+export const PRODUCT_INFO_HEIGHT = 82;
+/** Extra space under the price/ADD row inside the card. */
+export const PRODUCT_INFO_MARGIN_BOTTOM = 8;
+export const PRODUCT_CARD_HEIGHT = Math.round(
+  IMAGE_HEIGHT + PRODUCT_INFO_HEIGHT + PRODUCT_INFO_MARGIN_BOTTOM,
+);
+
+/** Category chips + subcategory + sort/filter chip row. */
+export const CATEGORY_CHROME_ESTIMATED_HEIGHT = 152;
 export const PRODUCT_LIST_PADDING_TOP = CATEGORY_CHROME_ESTIMATED_HEIGHT;
 export const PRODUCT_LIST_MARGIN_TOP = 6;
 export const PRODUCT_LIST_PADDING_BOTTOM = 24;
-/** Sort & Filters FAB sits above the cart bar (~48px) + 12px gap — keep list clear of it */
-export const PRODUCT_FILTER_FAB_CLEARANCE = 60;
-export const PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT = 20;
-export const PRODUCT_COLUMN_GAP = 4;
+/** Chip bar is in chrome flow — no FAB clearance. */
+export const PRODUCT_FILTER_FAB_CLEARANCE = 0;
+export const PRODUCT_LIST_ITEM_SEPARATOR_HEIGHT = 0;
 export const PRODUCT_SKELETON_COUNT = 6;
 export const PRODUCT_PAGINATION_SKELETON_COUNT = 2;
 /** Fallback until GoToCart onLayout measures the real height */
-export const GO_TO_CART_ESTIMATED_HEIGHT = 132;
+export const GO_TO_CART_ESTIMATED_HEIGHT = 88;
 
 export type ProductListSkeletonItem = {
   _id: string;
@@ -49,10 +71,9 @@ export function withPaginationSkeletons(
 }
 
 export const getProductColumnStyle = (index: number) => ({
-  marginRight: index % 2 === 0 ? PRODUCT_COLUMN_GAP : 0,
-  marginLeft: index % 2 === 0 ? 0 : PRODUCT_COLUMN_GAP,
+  marginRight: index % 2 === 0 ? PRODUCT_COLUMN_GAP / 2 : 0,
+  marginLeft: index % 2 === 0 ? 0 : PRODUCT_COLUMN_GAP / 2,
 });
-
 
 export function createInitialSkeletonRows(
   count = PRODUCT_SKELETON_COUNT,
