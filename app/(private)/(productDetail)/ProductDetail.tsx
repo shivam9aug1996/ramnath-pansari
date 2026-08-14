@@ -92,6 +92,7 @@ import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
     },[isFetching,image])
   
     useEffect(() => {
+      if (!data?.product?.name) return;
       dispatch(
         addProductView({
           id: id,
@@ -101,6 +102,7 @@ import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
           discountedPrice: discountedPrice,
           size: size,
           isOutOfStock: data?.product?.isOutOfStock,
+          categoryPath: data?.product?.categoryPath,
         })
       );
     }, [data?.product]);

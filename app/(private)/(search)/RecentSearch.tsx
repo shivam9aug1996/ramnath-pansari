@@ -1,29 +1,195 @@
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   Text,
   View,
   FlatList,
-  TouchableOpacity,
+  Pressable,
   Keyboard,
   Platform,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { Entypo } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { Colors } from "@/constants/Colors";
-import { RootState } from "@/types/global";
+import { Category, RootState } from "@/types/global";
 import { useCachedRecentSearch } from "@/hooks/useCachedRecentSearch";
+import {
+  categoryApi,
+  setCategoryData,
+} from "@/redux/features/categorySlice";
 import { useDeleteRecentSearchMutation } from "@/redux/features/recentSearchSlice";
 import {
   removeLocalRecentSearchItem,
   upsertRecentSearchInStore,
   writeRecentSearchCache,
+  type RecentSearchItem,
 } from "@/utils/recentSearchConfigCache";
-import { truncateText } from "@/utils/utils";
+import {
+  getL2ChipsFromRecentlyViewed,
+  type RecentlyViewedL2Chip,
+} from "@/utils/categoryPath";
+import CategorySelector from "@/app/(private)/(category)/CategoryList/CategorySelector";
+import RecentlyViewedProducts from "@/app/(private)/(productDetail)/RecentlyViewedProducts";
+
+const EMPTY_CATEGORIES: Category[] = [];
 
 interface RecentSearchProps {
   onPress: (query: string) => void;
 }
+
+function formatRelativeTime(timestamp: string): string {
+  const then = new Date(timestamp).getTime();
+  if (Number.isNaN(then)) return "";
+  const diffMs = Date.now() - then;
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(timestamp).toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+type RecentSearchRowProps = {
+  item: RecentSearchItem;
+  onPress: (query: string) => void;
+  onDelete: (id: string) => void;
+};
+
+const RecentSearchRow = memo(function RecentSearchRow({
+  item,
+  onPress,
+  onDelete,
+}: RecentSearchRowProps) {
+  const relativeTime = useMemo(
+    () => formatRelativeTime(item.timestamp),
+    [item.timestamp],
+  );
+
+  return (
+    <View style={styles.item}>
+      <Pressable
+        onPress={() => onPress(item.query)}
+        style={({ pressed }) => [
+          styles.itemPressable,
+          pressed && styles.itemPressed,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={`Search for ${item.query}`}
+      >
+        <View style={styles.iconWell}>
+          <Ionicons
+            name="time-outline"
+            size={16}
+            color={Colors.light.mediumGreen}
+          />
+        </View>
+        <View style={styles.itemTextWrap}>
+          <Text style={styles.itemText} numberOfLines={1}>
+            {item.query}
+          </Text>
+          {relativeTime ? (
+            <Text style={styles.itemMeta} numberOfLines={1}>
+              {relativeTime}
+            </Text>
+          ) : null}
+        </View>
+      </Pressable>
+      <Pressable
+        onPress={() => onDelete(item._id)}
+        hitSlop={8}
+        style={({ pressed }) => [
+          styles.deleteButton,
+          pressed && styles.deleteButtonPressed,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={`Remove ${item.query} from recent searches`}
+      >
+        <Ionicons name="close" size={16} color={Colors.light.mediumGrey} />
+      </Pressable>
+    </View>
+  );
+});
+
+const SearchContinueBrowsing = memo(function SearchContinueBrowsing() {
+  const dispatch = useDispatch();
+  const categories = useSelector(
+    (state: RootState) =>
+      categoryApi.endpoints.fetchCategories.select({})(state as never)?.data
+        ?.categories ?? EMPTY_CATEGORIES,
+  );
+  const recentlyViewedItems = useSelector(
+    (state: RootState) =>
+      (
+        state as {
+          recentlyViewed?: {
+            items?: Array<{ type?: string; categoryPath?: string[] }>;
+          };
+        }
+      )?.recentlyViewed?.items,
+  );
+
+  const l2Chips = useMemo(
+    () => getL2ChipsFromRecentlyViewed(categories, recentlyViewedItems),
+    [categories, recentlyViewedItems],
+  );
+
+  const chipByL2Id = useMemo(() => {
+    const map = new Map<string, RecentlyViewedL2Chip>();
+    for (const chip of l2Chips) {
+      map.set(chip.l2._id, chip);
+    }
+    return map;
+  }, [l2Chips]);
+
+  const l2Categories = useMemo(
+    () => l2Chips.map((chip) => chip.l2),
+    [l2Chips],
+  );
+
+  const handleSelectL2 = useCallback(
+    (item: Category) => {
+      const chip = chipByL2Id.get(item._id);
+      if (!chip) return;
+      Keyboard.dismiss();
+      dispatch(setCategoryData(chip.l1));
+      router.push(
+        `/(category)/${chip.l1._id?.toString()}?name=${encodeURIComponent(
+          chip.l1.name ?? "",
+        )}&selectedCategoryIdIndex=${chip.selectedCategoryIdIndex}`,
+      );
+    },
+    [chipByL2Id, dispatch],
+  );
+
+  if (!l2Categories.length) return null;
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Continue browsing</Text>
+      <CategorySelector
+        categories={l2Categories}
+        onSelectCategory={handleSelectL2}
+        variant="large"
+        contentContainerStyle={styles.categoryList}
+      />
+    </View>
+  );
+});
+
+const RecentSearchFooter = memo(function RecentSearchFooter() {
+  return (
+    <View style={styles.footer}>
+      <RecentlyViewedProducts variant="mini" />
+      <SearchContinueBrowsing />
+    </View>
+  );
+});
 
 const RecentSearch: React.FC<RecentSearchProps> = ({ onPress }) => {
   const dispatch = useDispatch();
@@ -33,20 +199,23 @@ const RecentSearch: React.FC<RecentSearchProps> = ({ onPress }) => {
   );
   const data = useCachedRecentSearch(userId, "RecentSearch");
   const [deleteRecentSearch] = useDeleteRecentSearchMutation();
-  // Sort recent searches by timestamp
-  const sortedData = data
-    ? [...data].sort(
-        (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      )
-    : [];
 
-  // Handlers
+  const sortedData = useMemo(
+    () =>
+      data
+        ? [...data].sort(
+            (a, b) =>
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+          )
+        : [],
+    [data],
+  );
+
   const handlePress = useCallback(
     (query: string) => {
       if (query) onPress(query);
     },
-    [onPress]
+    [onPress],
   );
 
   const handleDelete = useCallback(
@@ -64,41 +233,41 @@ const RecentSearch: React.FC<RecentSearchProps> = ({ onPress }) => {
     [deleteRecentSearch, userId, isGuestUser, data, dispatch],
   );
 
-  // Components
   const renderItem = useCallback(
-    ({ item, index }: { item: any; index: number }) => (
-      <View key={item?._id || index} style={styles.item}>
-        <TouchableOpacity
-          onPress={() => handlePress(item.query)}
-          style={styles.itemContent}
-        >
-          <Entypo
-            name="back-in-time"
-            size={20}
-            color={Colors.light.mediumGrey}
-          />
-          <Text style={styles.itemText}>{truncateText(item.query, 35)}</Text>
-        </TouchableOpacity>
-        <Entypo
-          name="cross"
-          size={20}
-          color={Colors.light.mediumGrey}
-          style={styles.deleteIcon}
-          onPress={() => handleDelete(item._id)}
-        />
-      </View>
+    ({ item }: { item: RecentSearchItem }) => (
+      <RecentSearchRow
+        item={item}
+        onPress={handlePress}
+        onDelete={handleDelete}
+      />
     ),
-    [handlePress, handleDelete]
+    [handlePress, handleDelete],
   );
 
   const renderListHeader = useCallback(() => {
-    return <Text style={styles.title}>Recent Searches</Text>;
-  }, []);
+    if (!sortedData.length) return null;
+    return (
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Recent Searches</Text>
+        <Text style={styles.countLabel}>{sortedData.length}</Text>
+      </View>
+    );
+  }, [sortedData.length]);
 
   const renderEmptyComponent = useCallback(() => {
     return (
       <View style={styles.empty}>
-        <Text>No recent searches.</Text>
+        <View style={styles.emptyIconWell}>
+          <Ionicons
+            name="search-outline"
+            size={22}
+            color={Colors.light.mediumLightGrey}
+          />
+        </View>
+        <Text style={styles.emptyTitle}>No recent searches</Text>
+        <Text style={styles.emptyText}>
+          Your last searches will show up here.
+        </Text>
       </View>
     );
   }, []);
@@ -112,9 +281,11 @@ const RecentSearch: React.FC<RecentSearchProps> = ({ onPress }) => {
         renderItem={renderItem}
         ListHeaderComponent={renderListHeader}
         ListEmptyComponent={renderEmptyComponent}
+        ListFooterComponent={RecentSearchFooter}
         keyboardShouldPersistTaps="always"
         onScrollBeginDrag={Keyboard.dismiss}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
       />
     </View>
   );
@@ -126,42 +297,130 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  listContent: {
+    paddingBottom: 32,
+    flexGrow: 1,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 20,
+    marginBottom: 12,
+    gap: 8,
+  },
   title: {
     fontSize: 15,
-    marginBottom: 10,
-    marginTop: 20,
     fontFamily: "Raleway_700Bold",
     color: Colors.light.darkGreen,
   },
-  item: {
-    padding: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    backgroundColor: "#F1F4F3",
-    marginBottom: 15,
-    borderRadius: 18,
-    paddingVertical: 15,
-    flex: 1,
+  countLabel: {
+    minWidth: 22,
+    height: 22,
+    paddingHorizontal: 7,
+    borderRadius: 11,
+    overflow: "hidden",
+    textAlign: "center",
+    textAlignVertical: "center",
+    lineHeight: 22,
+    fontSize: 11,
+    fontFamily: "Montserrat_600SemiBold",
+    color: Colors.light.darkGreen,
+    backgroundColor: Colors.light.softGrey_1,
   },
-  itemContent: {
+  item: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: Colors.light.softGrey_1,
+    marginBottom: 10,
+    borderRadius: 14,
+    paddingLeft: 10,
+    paddingRight: 6,
+    paddingVertical: 8,
+  },
+  itemPressable: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 44,
+    paddingVertical: 4,
+  },
+  itemPressed: {
+    opacity: 0.7,
+  },
+  iconWell: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.light.white,
+  },
+  itemTextWrap: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 8,
   },
   itemText: {
-    marginHorizontal: 16,
+    fontSize: 14,
+    fontFamily: "Montserrat_500Medium",
+    color: Colors.light.darkGrey,
   },
-  deleteIcon: {
-    paddingLeft: 15,
+  itemMeta: {
+    marginTop: 2,
+    fontSize: 11,
+    fontFamily: "Montserrat_500Medium",
+    color: Colors.light.mediumLightGrey,
   },
-  error: {
-    flex: 1,
-    justifyContent: "center",
+  deleteButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteButtonPressed: {
+    backgroundColor: Colors.light.white,
   },
   empty: {
-    flex: 1,
-    justifyContent: "center",
+    paddingTop: 36,
+    paddingBottom: 12,
     alignItems: "center",
+  },
+  emptyIconWell: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.light.softGrey_1,
+    marginBottom: 14,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontFamily: "Raleway_700Bold",
+    color: Colors.light.darkGreen,
+    marginBottom: 4,
+  },
+  emptyText: {
+    fontSize: 13,
+    fontFamily: "Montserrat_500Medium",
+    color: Colors.light.mediumGrey,
+    textAlign: "center",
+  },
+  footer: {
+    marginTop: 8,
+  },
+  section: {
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    marginBottom: 10,
+    fontFamily: "Raleway_700Bold",
+    color: Colors.light.darkGreen,
+  },
+  categoryList: {
+    paddingRight: 8,
   },
 });

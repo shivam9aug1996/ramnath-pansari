@@ -74,7 +74,11 @@ const recentlyViewedSlice = createSlice({
         price: action.payload.price,
         timestamp: Date.now(),
         discountedPrice: action.payload.discountedPrice,
-
+        size: action.payload.size,
+        isOutOfStock: action.payload.isOutOfStock,
+        categoryPath: Array.isArray(action.payload.categoryPath)
+          ? action.payload.categoryPath
+          : undefined,
       };
       
       // Remove duplicate if exists

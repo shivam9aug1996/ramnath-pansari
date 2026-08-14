@@ -16,10 +16,12 @@ import { RootState } from "@/types/global";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
 
+type Variant = "default" | "compact" | "mini";
+
 type Props = {
   filterProductIds?: string[];
   scrollRef?: React.RefObject<ScrollView | null> | AnimatedRef<Animated.ScrollView>;
-  variant?: "default" | "compact";
+  variant?: Variant;
 };
 
 type RecentlyViewedItemType = {
@@ -32,17 +34,15 @@ type RecentlyViewedItemType = {
   [key: string]: any;
 };
 
-// --- Sub-component for individual card ---
-
 type CardItemProps = {
   item: RecentlyViewedItemType;
-  isCompact: boolean;
+  variant: Variant;
   onPress: (id: string, item: RecentlyViewedItemType) => void;
 };
 
 const RecentlyViewedItem = memo(function RecentlyViewedItem({
   item,
-  isCompact,
+  variant,
   onPress,
 }: CardItemProps) {
   const handlePress = useCallback(() => {
@@ -57,18 +57,36 @@ const RecentlyViewedItem = memo(function RecentlyViewedItem({
     return Math.round(((item.price - item.discountedPrice) / item.price) * 100);
   }, [hasDiscount, item.price, item.discountedPrice]);
 
+  const isCompact = variant === "compact";
+  const isMini = variant === "mini";
+
   return (
     <TouchableOpacity
-      style={[styles.item, isCompact && styles.compactItem]}
+      style={[
+        styles.item,
+        isCompact && styles.compactItem,
+        isMini && styles.miniItem,
+      ]}
       onPress={handlePress}
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={`View details for ${item.name}`}
     >
-      <View style={[styles.card, isCompact && styles.compactCard]}>
+      <View
+        style={[
+          styles.card,
+          isCompact && styles.compactCard,
+          isMini && styles.miniCard,
+        ]}
+      >
         {hasDiscount && (
-          <View style={styles.discountBadge}>
-            <ThemedText style={styles.discountBadgeText}>
+          <View style={[styles.discountBadge, isMini && styles.miniDiscountBadge]}>
+            <ThemedText
+              style={[
+                styles.discountBadgeText,
+                isMini && styles.miniDiscountBadgeText,
+              ]}
+            >
               {`${discountPercentage}% OFF`}
             </ThemedText>
           </View>
@@ -76,7 +94,11 @@ const RecentlyViewedItem = memo(function RecentlyViewedItem({
 
         <Image
           source={{ uri: item.image }}
-          style={[styles.image, isCompact && styles.compactImage]}
+          style={[
+            styles.image,
+            isCompact && styles.compactImage,
+            isMini && styles.miniImage,
+          ]}
           contentFit="contain"
           cachePolicy="memory-disk"
         />
@@ -85,11 +107,16 @@ const RecentlyViewedItem = memo(function RecentlyViewedItem({
           style={[
             styles.detailsContainer,
             isCompact && styles.compactDetails,
+            isMini && styles.miniDetails,
           ]}
         >
           <ThemedText
-            numberOfLines={2}
-            style={[styles.name, isCompact && styles.compactName]}
+            numberOfLines={isMini ? 1 : 2}
+            style={[
+              styles.name,
+              isCompact && styles.compactName,
+              isMini && styles.miniName,
+            ]}
           >
             {item.name}
           </ThemedText>
@@ -97,15 +124,21 @@ const RecentlyViewedItem = memo(function RecentlyViewedItem({
           <View style={styles.priceContainer}>
             {hasDiscount ? (
               <>
-                <ThemedText style={styles.discountedPrice}>
+                <ThemedText
+                  style={[styles.discountedPrice, isMini && styles.miniPrice]}
+                >
                   ₹{item.discountedPrice}
                 </ThemedText>
-                <ThemedText style={styles.originalPrice}>
+                <ThemedText
+                  style={[styles.originalPrice, isMini && styles.miniOriginalPrice]}
+                >
                   ₹{item.price}
                 </ThemedText>
               </>
             ) : (
-              <ThemedText style={styles.price}>₹{item.price}</ThemedText>
+              <ThemedText style={[styles.price, isMini && styles.miniPrice]}>
+                ₹{item.price}
+              </ThemedText>
             )}
           </View>
         </View>
@@ -113,8 +146,6 @@ const RecentlyViewedItem = memo(function RecentlyViewedItem({
     </TouchableOpacity>
   );
 });
-
-// --- Main Component ---
 
 const RecentlyViewedProducts = ({
   filterProductIds = [],
@@ -124,7 +155,10 @@ const RecentlyViewedProducts = ({
   const flatListRef = useRef<FlatList<RecentlyViewedItemType>>(null);
 
   const recentlyViewedRaw = useSelector(
-    (state: RootState) => (state as any)?.recentlyViewed?.items as RecentlyViewedItemType[] | undefined,
+    (state: RootState) =>
+      (state as any)?.recentlyViewed?.items as
+        | RecentlyViewedItemType[]
+        | undefined,
   );
 
   const products = useMemo(() => {
@@ -146,34 +180,51 @@ const RecentlyViewedProducts = ({
     }
   }, [products.length, scrollRef]);
 
-  const navigateToProduct = useCallback((id: string, item: RecentlyViewedItemType) => {
-    router.push({
-      pathname: "/(productDetail)/[id]" as any,
-      params: {
-        id,
-        extraData: JSON.stringify(item),
-      },
-    });
-  }, []);
+  const navigateToProduct = useCallback(
+    (id: string, item: RecentlyViewedItemType) => {
+      router.push({
+        pathname: "/(productDetail)/[id]" as any,
+        params: {
+          id,
+          extraData: JSON.stringify(item),
+        },
+      });
+    },
+    [],
+  );
 
-  const keyExtractor = useCallback((item: RecentlyViewedItemType) => item.id, []);
+  const keyExtractor = useCallback(
+    (item: RecentlyViewedItemType) => item.id,
+    [],
+  );
 
   const isCompact = variant === "compact";
+  const isMini = variant === "mini";
 
   if (!products.length) return null;
 
   const renderItem = ({ item }: ListRenderItemInfo<RecentlyViewedItemType>) => (
     <RecentlyViewedItem
       item={item}
-      isCompact={isCompact}
+      variant={variant}
       onPress={navigateToProduct}
     />
   );
 
   return (
-    <View style={[styles.container, isCompact && styles.compactContainer]}>
+    <View
+      style={[
+        styles.container,
+        isCompact && styles.compactContainer,
+        isMini && styles.miniContainer,
+      ]}
+    >
       <ThemedText
-        style={[styles.title, isCompact && styles.compactTitle]}
+        style={[
+          styles.title,
+          isCompact && styles.compactTitle,
+          isMini && styles.miniTitle,
+        ]}
         type="title"
       >
         Recently Viewed
@@ -185,7 +236,10 @@ const RecentlyViewedProducts = ({
         data={products}
         keyExtractor={keyExtractor}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          isMini && styles.miniListContent,
+        ]}
         renderItem={renderItem}
       />
     </View>
@@ -203,6 +257,11 @@ const styles = StyleSheet.create({
     marginVertical: 12,
     paddingVertical: 12,
   },
+  miniContainer: {
+    marginVertical: 4,
+    paddingVertical: 0,
+    backgroundColor: "transparent",
+  },
   title: {
     fontSize: 24,
     fontWeight: "700",
@@ -218,9 +277,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginTop: 12,
   },
+  miniTitle: {
+    fontSize: 15,
+    marginBottom: 10,
+    marginTop: 12,
+    paddingHorizontal: 0,
+    fontFamily: "Raleway_700Bold",
+    color: Colors.light.darkGreen,
+    letterSpacing: 0,
+  },
   listContent: {
     paddingHorizontal: 16,
     paddingBottom: 12,
+  },
+  miniListContent: {
+    paddingHorizontal: 0,
+    paddingBottom: 4,
   },
   item: {
     width: 180,
@@ -230,6 +302,11 @@ const styles = StyleSheet.create({
   compactItem: {
     width: 130,
     marginRight: 14,
+  },
+  miniItem: {
+    width: 96,
+    marginRight: 10,
+    marginBottom: 0,
   },
   card: {
     backgroundColor: "#ffffff",
@@ -246,6 +323,12 @@ const styles = StyleSheet.create({
   compactCard: {
     borderRadius: 12,
   },
+  miniCard: {
+    borderRadius: 12,
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
   image: {
     height: 150,
     width: "100%",
@@ -254,12 +337,18 @@ const styles = StyleSheet.create({
   compactImage: {
     height: 100,
   },
+  miniImage: {
+    height: 72,
+  },
   detailsContainer: {
     padding: 16,
     backgroundColor: "#ffffff",
   },
   compactDetails: {
     padding: 8,
+  },
+  miniDetails: {
+    padding: 6,
   },
   name: {
     fontSize: 16,
@@ -275,6 +364,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     height: 36,
     lineHeight: 18,
+  },
+  miniName: {
+    fontSize: 11,
+    height: 16,
+    lineHeight: 14,
+    marginBottom: 4,
   },
   priceContainer: {
     flexDirection: "row",
@@ -304,6 +399,12 @@ const styles = StyleSheet.create({
     fontFamily: "Montserrat_600SemiBold",
     letterSpacing: -0.3,
   },
+  miniPrice: {
+    fontSize: 12,
+  },
+  miniOriginalPrice: {
+    fontSize: 10,
+  },
   discountBadge: {
     position: "absolute",
     top: 0,
@@ -319,11 +420,19 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  miniDiscountBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderBottomLeftRadius: 10,
+  },
   discountBadgeText: {
     color: "#ffffff",
     fontSize: 12,
     fontWeight: "700",
     fontFamily: "Montserrat_600SemiBold",
     letterSpacing: -0.2,
+  },
+  miniDiscountBadgeText: {
+    fontSize: 9,
   },
 });
