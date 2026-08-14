@@ -551,7 +551,14 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  LayoutChangeEvent,
+  Platform,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -585,7 +592,20 @@ import {
 import { getTabBarReservedHeight } from "@/utils/bottomChrome";
 import ActiveDeliverySheet from "@/components/ActiveDeliverySheet";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+/** Matches `#root` max-width in `app/+html.tsx` — window dims on desktop are wider than the phone shell. */
+const WEB_SHELL_MAX_WIDTH = 430;
+
+function getFloatViewportSize() {
+  const { width, height } = Dimensions.get("window");
+  if (Platform.OS === "web") {
+    return {
+      width: Math.min(width, WEB_SHELL_MAX_WIDTH),
+      height,
+    };
+  }
+  return { width, height };
+}
+
 const FLOAT_GAP = 12;
 const HORIZONTAL_MARGIN = 12;
 const HOME_TAB_ROUTE = "/home";
@@ -595,7 +615,6 @@ const RUBBER_BAND = 0.35;
 const FLING_Y_SECONDS = 0.14;
 const PILL_HEIGHT = 52;
 const COMPACT_SIZE = 56;
-const FULL_PILL_WIDTH = SCREEN_WIDTH - HORIZONTAL_MARGIN * 2;
 
 function isHomeTab(pathname: string) {
   return pathname === HOME_TAB_ROUTE || pathname.endsWith(HOME_TAB_ROUTE);
@@ -643,18 +662,22 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
   const insets = useSafeAreaInsets();
   const setBottomInset = useDeliveryFloatInsetSetter();
   const [hasCustomPosition, setHasCustomPosition] = useState(false);
+  const initialViewport = useMemo(() => getFloatViewportSize(), []);
+  const [viewport, setViewport] = useState(initialViewport);
   const prevIsCompactRef = useRef<boolean | null>(null);
   const prevPathnameRef = useRef(pathname);
   const prevOrdersSignatureRef = useRef<string | null>(null);
 
   const isCompact = isHomeTab(pathname) ? homeVariant === "compact" : true;
   const pillHeight = isCompact ? COMPACT_SIZE : PILL_HEIGHT;
-  const pillWidth = isCompact ? COMPACT_SIZE : FULL_PILL_WIDTH;
+  const pillWidth = isCompact
+    ? COMPACT_SIZE
+    : viewport.width - HORIZONTAL_MARGIN * 2;
 
-  const defaultY = SCREEN_HEIGHT / 2;
+  const defaultY = viewport.height / 2;
   const minY = insets.top + FLOAT_GAP;
-  const maxY = SCREEN_HEIGHT - insets.bottom - pillHeight - FLOAT_GAP;
-  const defaultX = SCREEN_WIDTH - pillWidth - HORIZONTAL_MARGIN;
+  const maxY = viewport.height - insets.bottom - pillHeight - FLOAT_GAP;
+  const defaultX = viewport.width - pillWidth - HORIZONTAL_MARGIN;
 
   const posX = useSharedValue(defaultX);
   const posY = useSharedValue(defaultY);
@@ -670,6 +693,17 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
   const minYShared = useSharedValue(minY);
   const maxYShared = useSharedValue(maxY);
   const pillWidthShared = useSharedValue(pillWidth);
+  const viewportWidthShared = useSharedValue(viewport.width);
+
+  const handleViewportLayout = useCallback((event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    if (width <= 0 || height <= 0) return;
+    setViewport((prev) =>
+      Math.abs(prev.width - width) < 1 && Math.abs(prev.height - height) < 1
+        ? prev
+        : { width, height },
+    );
+  }, []);
 
   const resetAttentionScale = useCallback(() => {
     cancelAnimation(pulseScale);
@@ -746,7 +780,17 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
     minYShared.value = minY;
     maxYShared.value = maxY;
     pillWidthShared.value = pillWidth;
-  }, [maxY, minY, maxYShared, minYShared, pillWidth, pillWidthShared]);
+    viewportWidthShared.value = viewport.width;
+  }, [
+    maxY,
+    minY,
+    maxYShared,
+    minYShared,
+    pillWidth,
+    pillWidthShared,
+    viewport.width,
+    viewportWidthShared,
+  ]);
 
   useEffect(() => {
     const isFirstLayout = prevIsCompactRef.current === null;
@@ -788,6 +832,8 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
     pathname,
     posX,
     posY,
+    viewport.width,
+    viewport.height,
   ]);
 
   useEffect(() => {
@@ -843,7 +889,8 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
         scale.value = withSpring(1.06, SPRING_CONFIG);
       })
       .onUpdate((event) => {
-        const maxX = SCREEN_WIDTH - pillWidthShared.value - HORIZONTAL_MARGIN;
+        const maxX =
+          viewportWidthShared.value - pillWidthShared.value - HORIZONTAL_MARGIN;
         const nextX = dragStartX.value + event.translationX;
         const nextY = dragStartY.value + event.translationY;
 
@@ -855,10 +902,10 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
         runOnJS(markCustomPosition)();
 
         const width = pillWidthShared.value;
-        const maxX = SCREEN_WIDTH - width - HORIZONTAL_MARGIN;
+        const maxX = viewportWidthShared.value - width - HORIZONTAL_MARGIN;
         const centerX = posX.value + width / 2;
         const snapX =
-          centerX < SCREEN_WIDTH / 2 ? HORIZONTAL_MARGIN : maxX;
+          centerX < viewportWidthShared.value / 2 ? HORIZONTAL_MARGIN : maxX;
 
         // Fling projects Y, then spring settles into bounds.
         const projectedY = posY.value + event.velocityY * FLING_Y_SECONDS;
@@ -887,6 +934,7 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
     posY,
     resetAttentionScale,
     scale,
+    viewportWidthShared,
   ]);
 
   const wrapperStyle = useAnimatedStyle(() => ({
@@ -933,69 +981,78 @@ const ActiveDeliveryFloatPill = memo(function ActiveDeliveryFloatPill({
   const rippleRadius = isCompact ? COMPACT_SIZE / 2 : 16;
 
   return (
-    <Animated.View style={wrapperStyle} pointerEvents="box-none">
-      <View style={styles.pillAnchor}>
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.ripple,
-            { borderRadius: rippleRadius },
-            rippleStyleA,
-          ]}
-        />
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.ripple,
-            { borderRadius: rippleRadius },
-            rippleStyleB,
-          ]}
-        />
-        <GestureDetector gesture={composedGesture}>
+    <View
+      pointerEvents="box-none"
+      style={styles.viewport}
+      onLayout={handleViewportLayout}
+    >
+      <Animated.View style={wrapperStyle} pointerEvents="box-none">
+        <View style={styles.pillAnchor}>
           <Animated.View
+            pointerEvents="none"
             style={[
-              isCompact ? styles.compactContainer : styles.container,
-              { width: pillWidth, height: isCompact ? COMPACT_SIZE : undefined },
-              pillMotionStyle,
+              styles.ripple,
+              { borderRadius: rippleRadius },
+              rippleStyleA,
             ]}
-          >
-            {isCompact ? (
-              <View style={styles.compactContent}>
-                <MaterialCommunityIcons
-                  name="truck-delivery"
-                  size={26}
-                  color="#F57F17"
-                />
-                {activeOrders.length > 1 && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{activeOrders.length}</Text>
-                  </View>
-                )}
-              </View>
-            ) : (
-              <View style={styles.content}>
-                <MaterialCommunityIcons
-                  name="truck-delivery"
-                  size={22}
-                  color="#F57F17"
-                />
-                <Text style={styles.label} numberOfLines={1}>
-                  {label}
-                </Text>
-                <View style={styles.actionPill}>
-                  <Text style={styles.actionText}>{actionLabel}</Text>
+          />
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.ripple,
+              { borderRadius: rippleRadius },
+              rippleStyleB,
+            ]}
+          />
+          <GestureDetector gesture={composedGesture}>
+            <Animated.View
+              style={[
+                isCompact ? styles.compactContainer : styles.container,
+                {
+                  width: pillWidth,
+                  height: isCompact ? COMPACT_SIZE : undefined,
+                },
+                pillMotionStyle,
+              ]}
+            >
+              {isCompact ? (
+                <View style={styles.compactContent}>
                   <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={16}
-                    color="#fff"
+                    name="truck-delivery"
+                    size={26}
+                    color="#F57F17"
                   />
+                  {activeOrders.length > 1 && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{activeOrders.length}</Text>
+                    </View>
+                  )}
                 </View>
-              </View>
-            )}
-          </Animated.View>
-        </GestureDetector>
-      </View>
-    </Animated.View>
+              ) : (
+                <View style={styles.content}>
+                  <MaterialCommunityIcons
+                    name="truck-delivery"
+                    size={22}
+                    color="#F57F17"
+                  />
+                  <Text style={styles.label} numberOfLines={1}>
+                    {label}
+                  </Text>
+                  <View style={styles.actionPill}>
+                    <Text style={styles.actionText}>{actionLabel}</Text>
+                    <MaterialCommunityIcons
+                      name="chevron-right"
+                      size={16}
+                      color="#fff"
+                    />
+                  </View>
+                </View>
+              )}
+            </Animated.View>
+          </GestureDetector>
+        </View>
+      </Animated.View>
+    </View>
   );
 });
 
@@ -1073,6 +1130,10 @@ const ActiveDeliveryFloat = ({
 };
 
 const styles = StyleSheet.create({
+  viewport: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+  },
   pillAnchor: {
     position: "relative",
   },
