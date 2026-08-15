@@ -79,6 +79,11 @@ const recentlyViewedSlice = createSlice({
         categoryPath: Array.isArray(action.payload.categoryPath)
           ? action.payload.categoryPath
           : undefined,
+        brand:
+          typeof action.payload.brand === "string" &&
+          action.payload.brand.trim()
+            ? action.payload.brand.trim()
+            : undefined,
       };
       
       // Remove duplicate if exists

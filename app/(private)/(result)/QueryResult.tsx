@@ -61,7 +61,19 @@ import LazyProductFilterSheet, {
 import { useProductListFilters } from "@/components/productFilters/useProductListFilters";
 import { DEFAULT_PRODUCT_FILTERS } from "@/utils/productFilters";
 
-const QueryResult = ({query}:{query:string}) => {
+const QueryResult = ({
+  query,
+  initialBrands = [],
+  brandBrowse = false,
+}: {
+  query: string;
+  initialBrands?: string[];
+  /**
+   * Brand landing: empty text query + brand filter.
+   * Typing a new search (via search screen) leaves this mode.
+   */
+  brandBrowse?: boolean;
+}) => {
   const scrollEndedRef = useRef(0);
 
   const userId = useSelector((state: RootState) => state.auth?.userData?._id);
@@ -80,6 +92,14 @@ const QueryResult = ({query}:{query:string}) => {
   const goToCartListPadding = useGoToCartListPadding();
   const { data: cartData } = useFetchCartQuery({ userId }, { skip: !userId });
   const [fetchProductsBySearch] = useLazyFetchProductsBySearchQuery();
+
+  const browseBrandName = useMemo(() => {
+    if (!brandBrowse) return "";
+    return (initialBrands[0] || query || "").trim();
+  }, [brandBrowse, initialBrands, query]);
+
+  /** Text query while browsing a brand; normal query otherwise. */
+  const apiQuery = brandBrowse ? "" : query;
 
   const resetSearchToPageOne = useCallback(() => {
     setPage(1);
@@ -100,9 +120,13 @@ const QueryResult = ({query}:{query:string}) => {
     applyDraft,
     clearAll,
   } = useProductListFilters({
-    searchQuery: query,
+    searchQuery: apiQuery,
+    initialBrands,
     onFiltersApplied: resetSearchToPageOne,
   });
+
+  const isBrandOnlyMode =
+    brandBrowse && applied.brands.length > 0 && !apiQuery.trim();
 
   const handleOpenFilters = useCallback(() => {
     void preloadProductFilterSheet();
@@ -112,7 +136,7 @@ const QueryResult = ({query}:{query:string}) => {
   const { data, isFetching, error, isSuccess, isLoading } =
     useFetchProductsBySearchQuery(
       {
-        query,
+        ...(apiQuery.trim() ? { query: apiQuery } : {}),
         type: "autocomplete",
         page,
         limit: 10,
@@ -121,8 +145,8 @@ const QueryResult = ({query}:{query:string}) => {
         ...apiParams,
       },
       {
-        skip: !query
-        // && scrollEndedRef.current !== 1,
+        // Allow fetch with brand filter even when query is empty.
+        skip: !apiQuery.trim() && applied.brands.length === 0,
       },
     );
 
@@ -165,29 +189,31 @@ const QueryResult = ({query}:{query:string}) => {
     setSearchReset(true);
     pagingLockRef.current = false;
     resetScrollChrome();
-  }, [query, resetScrollChrome]);
+  }, [apiQuery, filterKey, resetScrollChrome]);
 
   useEffect(() => {
     clearVisibleProductIds();
-  }, [query, filterKey]);
+  }, [apiQuery, filterKey]);
 
   const [createRecentSearch] = useCreateRecentSearchMutation();
 
   // Effects
   useEffect(() => {
-    if (isSuccess && query) {
+    // Don't save brand-landing as a typed recent search.
+    if (brandBrowse || !apiQuery.trim()) return;
+    if (isSuccess && apiQuery) {
       createAndFetchRecentSearch();
     }
-  }, [isSuccess, query, userId]);
+  }, [isSuccess, apiQuery, userId, brandBrowse]);
 
   const createAndFetchRecentSearch = async () => {
-    if (!userId || !query) return;
+    if (!userId || !apiQuery.trim()) return;
     try {
       if (isGuestUser) {
-        await saveLocalRecentSearchItem(dispatch, userId, query);
+        await saveLocalRecentSearchItem(dispatch, userId, apiQuery);
         return;
       }
-      await createRecentSearch({ body: { query, userId } })?.unwrap();
+      await createRecentSearch({ body: { query: apiQuery, userId } })?.unwrap();
       const data = await fetchRecentSearch({ userId }, false)?.unwrap();
       if (data) {
         await upsertRecentSearchInStore(dispatch, userId, data);
@@ -199,14 +225,13 @@ const QueryResult = ({query}:{query:string}) => {
   };
 
   useEffect(() => {
-    if (query) {
-      dispatch(
-        addSearchQuery({
-          query: query,
-        })
-      );
-    }
-  }, [query]);
+    if (brandBrowse || !apiQuery.trim()) return;
+    dispatch(
+      addSearchQuery({
+        query: apiQuery,
+      })
+    );
+  }, [apiQuery, brandBrowse, dispatch]);
 
   useEffect(() => {
     if (resetPagination?.status) {
@@ -220,7 +245,7 @@ const QueryResult = ({query}:{query:string}) => {
     //  console.log("jhgee4567890", page, index);
       fetchProductsBySearch(
         {
-          query,
+          ...(apiQuery.trim() ? { query: apiQuery } : {}),
           type: "autocomplete",
           page: page,
           limit: 10,
@@ -240,7 +265,7 @@ const QueryResult = ({query}:{query:string}) => {
       // }, 500);
       //dispatch(setResetPagination(false));
     }
-  }, [resetPagination?.status, query, filterKey, apiParams]);
+  }, [resetPagination?.status, apiQuery, filterKey, apiParams]);
 
   // Handlers
   const fetchNextPage = useCallback(() => {
@@ -461,24 +486,44 @@ const listContentContainerStyle = useMemo(
 
   return (
     <>
-    <AppHead title={query?.trim() ? `“${query.trim()}”` : "Search"} />
+    <AppHead
+      title={
+        isBrandOnlyMode && browseBrandName
+          ? `All ${browseBrandName}`
+          : query?.trim()
+            ? `“${query.trim()}”`
+            : "Search"
+      }
+    />
 
       <ScreenSafeWrapper showCartIcon>
         
           <DeferredFadeIn delay={100} style={{flex:1}}>
             <CustomTextInput
               onChangeText={() => {}}
-              value={query}
+              value={isBrandOnlyMode ? "" : query}
               type="search"
               variant={2}
               onPress={() => {
-                dispatch(setCurrentSearchQuery(query));
+                // Leave brand landing — type a normal search.
+                dispatch(setCurrentSearchQuery(""));
                 router.back();
                 router.navigate("/(search)/search");
               }}
               wrapperStyle={styles.textInputWrapper}
               numberOfLines={1}
+              textInputStyle={
+                isBrandOnlyMode ? styles.brandBrowseInput : undefined
+              }
             />
+            {isBrandOnlyMode && browseBrandName ? (
+              <View style={styles.brandBrowseBanner}>
+                <Text style={styles.brandBrowseLabel}>Showing all products from</Text>
+                <Text style={styles.brandBrowseName} numberOfLines={1}>
+                  {browseBrandName}
+                </Text>
+              </View>
+            ) : null}
             <ProductFilterFab
               filters={applied}
               onPress={handleOpenFilters}
@@ -499,7 +544,7 @@ const listContentContainerStyle = useMemo(
             ) : (
               <View style={[styles.container, Platform.OS === "web" ? { height: '100vh' } : {}]}>
                 <FlatList
-                  key={`${query}-${filterKey}`}
+                  key={`${apiQuery}-${filterKey}-${isBrandOnlyMode ? "brand" : "search"}`}
                   bounces={Platform.OS === "android" ? false : true}
                   initialNumToRender={10}
                   data={data?.results}
@@ -511,6 +556,7 @@ const listContentContainerStyle = useMemo(
                   showsVerticalScrollIndicator={false}
                   scrollEnabled={!showInitialSkeleton}
                   onEndReached={handleEndReached}
+                  onScrollEndDrag={onScrollEndDrag}
                   onEndReachedThreshold={0.35}
                   contentContainerStyle={listContentContainerStyle}
                   //ListHeaderComponent={header}
@@ -520,7 +566,6 @@ const listContentContainerStyle = useMemo(
                   onMomentumScrollEnd={onMomentumScrollEnd}
                   onMomentumScrollBegin={onMomentumScrollBegin}
                   onScrollBeginDrag={onScrollBeginDrag}
-                  onScrollEndDrag={onScrollEndDrag}
                 />
               </View>
             )}
@@ -556,6 +601,32 @@ const styles = StyleSheet.create({
   textInputWrapper: {
     marginTop: 25,
     marginBottom: 10,
+  },
+  brandBrowseInput: {
+    color: Colors.light.mediumLightGrey,
+  },
+  brandBrowseBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: Colors.light.softGrey_1,
+  },
+  brandBrowseLabel: {
+    fontSize: 13,
+    fontFamily: "Montserrat_500Medium",
+    color: Colors.light.mediumGrey,
+  },
+  brandBrowseName: {
+    fontSize: 13,
+    fontFamily: "Raleway_700Bold",
+    color: Colors.light.darkGreen,
+    textTransform: "capitalize",
+    flexShrink: 1,
   },
   errorText: {
     textAlign: "center",

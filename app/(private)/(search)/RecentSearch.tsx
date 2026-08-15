@@ -7,6 +7,7 @@ import {
   Pressable,
   Keyboard,
   Platform,
+  ScrollView,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,6 +27,7 @@ import {
   type RecentSearchItem,
 } from "@/utils/recentSearchConfigCache";
 import {
+  getBrandChipsFromRecentlyViewed,
   getL2ChipsFromRecentlyViewed,
   type RecentlyViewedL2Chip,
 } from "@/utils/categoryPath";
@@ -33,6 +35,12 @@ import CategorySelector from "@/app/(private)/(category)/CategoryList/CategorySe
 import RecentlyViewedProducts from "@/app/(private)/(productDetail)/RecentlyViewedProducts";
 
 const EMPTY_CATEGORIES: Category[] = [];
+
+type RecentlyViewedStoreItem = {
+  type?: string;
+  categoryPath?: string[];
+  brand?: string;
+};
 
 interface RecentSearchProps {
   onPress: (query: string) => void;
@@ -125,13 +133,8 @@ const SearchContinueBrowsing = memo(function SearchContinueBrowsing() {
   );
   const recentlyViewedItems = useSelector(
     (state: RootState) =>
-      (
-        state as {
-          recentlyViewed?: {
-            items?: Array<{ type?: string; categoryPath?: string[] }>;
-          };
-        }
-      )?.recentlyViewed?.items,
+      (state as { recentlyViewed?: { items?: RecentlyViewedStoreItem[] } })
+        ?.recentlyViewed?.items,
   );
 
   const l2Chips = useMemo(
@@ -182,10 +185,62 @@ const SearchContinueBrowsing = memo(function SearchContinueBrowsing() {
   );
 });
 
+const SearchRecentBrands = memo(function SearchRecentBrands() {
+  const recentlyViewedItems = useSelector(
+    (state: RootState) =>
+      (state as { recentlyViewed?: { items?: RecentlyViewedStoreItem[] } })
+        ?.recentlyViewed?.items,
+  );
+
+  const brands = useMemo(
+    () => getBrandChipsFromRecentlyViewed(recentlyViewedItems),
+    [recentlyViewedItems],
+  );
+
+  const handleBrandPress = useCallback((brand: string) => {
+    Keyboard.dismiss();
+    router.push(
+      `/(result)/${encodeURIComponent(brand)}?brands=${encodeURIComponent(brand)}&brandBrowse=1` as never,
+    );
+  }, []);
+
+  if (!brands.length) return null;
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Brands</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.brandList}
+        keyboardShouldPersistTaps="always"
+      >
+        {brands.map((brand) => (
+          <Pressable
+            key={brand.toLowerCase()}
+            onPress={() => handleBrandPress(brand)}
+            style={({ pressed }) => [
+              styles.brandChip,
+              pressed && styles.brandChipPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={`Browse ${brand} products`}
+          >
+            <Text style={styles.brandChipText} numberOfLines={1}>
+              {brand}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+});
+
 const RecentSearchFooter = memo(function RecentSearchFooter() {
   return (
     <View style={styles.footer}>
       <RecentlyViewedProducts variant="mini" />
+      <SearchRecentBrands />
       <SearchContinueBrowsing />
     </View>
   );
@@ -249,7 +304,6 @@ const RecentSearch: React.FC<RecentSearchProps> = ({ onPress }) => {
     return (
       <View style={styles.headerRow}>
         <Text style={styles.title}>Recent Searches</Text>
-        <Text style={styles.countLabel}>{sortedData.length}</Text>
       </View>
     );
   }, [sortedData.length]);
@@ -422,5 +476,24 @@ const styles = StyleSheet.create({
   },
   categoryList: {
     paddingRight: 8,
+  },
+  brandList: {
+    paddingRight: 8,
+    gap: 8,
+  },
+  brandChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: Colors.light.softGrey_1,
+  },
+  brandChipPressed: {
+    opacity: 0.7,
+  },
+  brandChipText: {
+    fontSize: 13,
+    fontFamily: "Montserrat_500Medium",
+    color: Colors.light.darkGreen,
+    textTransform: "capitalize",
   },
 });

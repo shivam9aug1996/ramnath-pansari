@@ -11,29 +11,56 @@ import { useFetchProductBrandsQuery } from "@/redux/features/productSlice";
 type UseProductListFiltersArgs = {
   categoryId?: string | null;
   searchQuery?: string;
+  /** Seed brand filters (e.g. deep link from search brands chips). */
+  initialBrands?: string[];
   /** Called when applied filters change (after apply / clear / chip remove / sort). */
   onFiltersApplied?: (filters: ProductFilterValues) => void;
 };
 
+function filtersFromInitialBrands(
+  brands?: string[],
+): ProductFilterValues {
+  const cleaned = (brands ?? [])
+    .map((b) => b.trim())
+    .filter(Boolean);
+  if (!cleaned.length) return DEFAULT_PRODUCT_FILTERS;
+  return { ...DEFAULT_PRODUCT_FILTERS, brands: cleaned };
+}
+
 export function useProductListFilters({
   categoryId,
   searchQuery,
+  initialBrands,
   onFiltersApplied,
 }: UseProductListFiltersArgs) {
-  const [applied, setApplied] = useState<ProductFilterValues>(
-    DEFAULT_PRODUCT_FILTERS,
+  const initialBrandsKey = useMemo(
+    () =>
+      (initialBrands ?? [])
+        .map((b) => b.trim())
+        .filter(Boolean)
+        .join(","),
+    [initialBrands],
   );
-  const [draft, setDraft] = useState<ProductFilterValues>(
-    DEFAULT_PRODUCT_FILTERS,
+
+  const initialFilters = useMemo(
+    () =>
+      filtersFromInitialBrands(
+        initialBrandsKey ? initialBrandsKey.split(",") : [],
+      ),
+    [initialBrandsKey],
   );
+
+  const [applied, setApplied] =
+    useState<ProductFilterValues>(initialFilters);
+  const [draft, setDraft] = useState<ProductFilterValues>(initialFilters);
   const [sortVisible, setSortVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
 
-  // Reset filter states when category or search query changes
+  // Reset when category / search / deep-linked brands change
   useEffect(() => {
-    setApplied(DEFAULT_PRODUCT_FILTERS);
-    setDraft(DEFAULT_PRODUCT_FILTERS);
-  }, [categoryId, searchQuery]);
+    setApplied(initialFilters);
+    setDraft(initialFilters);
+  }, [categoryId, searchQuery, initialFilters]);
 
   const brandsArgs = useMemo(() => {
     if (categoryId && categoryId !== "null") {
@@ -42,8 +69,12 @@ export function useProductListFilters({
     if (searchQuery) {
       return { query: searchQuery };
     }
+    // Brand-only browse: seed brand facet list from the applied brand name.
+    if (initialBrandsKey) {
+      return { query: initialBrandsKey.split(",")[0] };
+    }
     return null;
-  }, [categoryId, searchQuery]);
+  }, [categoryId, searchQuery, initialBrandsKey]);
 
   const { data: brandsData, isFetching: brandsLoading } =
     useFetchProductBrandsQuery(brandsArgs ?? { categoryId: "" }, {
@@ -53,7 +84,7 @@ export function useProductListFilters({
   const brands = useMemo(() => brandsData?.brands ?? [], [brandsData?.brands]);
 
   const filterKey = useMemo(() => getProductFilterKey(applied), [applied]);
-  
+
   const apiParams = useMemo(
     () => productFiltersToApiParams(applied),
     [applied],

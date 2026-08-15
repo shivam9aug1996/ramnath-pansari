@@ -92,3 +92,30 @@ export function getL2ChipsFromRecentlyViewed(
 
   return chips;
 }
+
+type RecentlyViewedBrandItem = {
+  type?: string;
+  brand?: string;
+};
+
+/** Unique brand names from recently viewed products (recency order). */
+export function getBrandChipsFromRecentlyViewed(
+  recentlyViewedItems: RecentlyViewedBrandItem[] | undefined,
+): string[] {
+  if (!recentlyViewedItems?.length) return [];
+
+  const seen = new Set<string>();
+  const brands: string[] = [];
+
+  for (const item of recentlyViewedItems) {
+    if (item?.type !== "product") continue;
+    const brand = item.brand?.trim();
+    if (!brand) continue;
+    const key = brand.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    brands.push(brand);
+  }
+
+  return brands;
+}

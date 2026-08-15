@@ -103,6 +103,8 @@ import { useFetchCategoriesQuery } from "@/redux/features/categorySlice";
           size: size,
           isOutOfStock: data?.product?.isOutOfStock,
           categoryPath: data?.product?.categoryPath,
+          brand:
+            data?.productInformation?.brand || data?.product?.brand,
         })
       );
     }, [data?.product]);
