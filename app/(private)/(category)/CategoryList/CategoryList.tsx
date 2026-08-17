@@ -45,6 +45,7 @@ const CategoryList = ({
     ) {
       const activeCategory = categories[selectedCategoryIdIndex];
       setSelectedCategory(activeCategory);
+      setSelectedSubCategory(ALL_SUBCATEGORY_OPTION);
 
       requestAnimationFrame(() => {
         scrollToIndex(catFlatListRef, selectedCategoryIdIndex, 0.3);
@@ -58,35 +59,69 @@ const CategoryList = ({
     return [ALL_SUBCATEGORY_OPTION, ...(selectedCategory.children || [])];
   }, [selectedCategory]);
 
-  // Handle category view tracking and subcategory state resets
+  // After category (and FlatList data) update, pin subcategory rail to start
   useEffect(() => {
-    if (!selectedCategory) return;
+    if (!selectedCategory?._id) return;
 
-    setSelectedSubCategory(subCategories[0] || null);
-    scrollToTop(subCatFlatListRef);
+    let cancelled = false;
+    const pinToStart = () => {
+      if (!cancelled) scrollToTop(subCatFlatListRef, false);
+    };
 
-    if (parentCategory && selectedCategory) {
-      dispatch(
-        addCategoryView({
-          id: selectedCategory._id,
-          name: selectedCategory.name,
-          parentCategoryId: parentCategory._id,
-          parentCategoryName: parentCategory.name,
-          selectedCategoryIdIndex,
-        }),
-      );
+    // After paint + remount (key change); second tick helps RN Web
+    const raf = requestAnimationFrame(() => {
+      pinToStart();
+      requestAnimationFrame(pinToStart);
+    });
+    const timeout = setTimeout(pinToStart, 50);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      clearTimeout(timeout);
+    };
+  }, [selectedCategory?._id]);
+
+  // Reset subcategory if it doesn't belong to the current category list
+  useEffect(() => {
+    if (!selectedCategory || !subCategories.length) return;
+
+    const belongsToCategory = subCategories.some(
+      (s) => s._id === selectedSubCategory?._id,
+    );
+    if (!belongsToCategory) {
+      setSelectedSubCategory(subCategories[0] || null);
     }
-  }, [selectedCategory, subCategories, parentCategory, selectedCategoryIdIndex, dispatch]);
+  }, [selectedCategory, subCategories, selectedSubCategory]);
+
+  // Track category views when the selected category changes
+  useEffect(() => {
+    if (!parentCategory || !selectedCategory) return;
+
+    dispatch(
+      addCategoryView({
+        id: selectedCategory._id,
+        name: selectedCategory.name,
+        parentCategoryId: parentCategory._id,
+        parentCategoryName: parentCategory.name,
+        selectedCategoryIdIndex,
+      }),
+    );
+  }, [selectedCategory, parentCategory, selectedCategoryIdIndex, dispatch]);
 
   // Dispatch selected subcategory changes to Redux product state
   useEffect(() => {
     if (!selectedSubCategory || isCategoryFetching) return;
 
+    // Skip stale sub from previous category (effect can run before reset applies)
     const subCategoryIndex = getSubCategoryIndex(
       subCategories,
       selectedSubCategory,
     );
-    if (subCategoryIndex >= 0) {
+    if (subCategoryIndex < 0) return;
+
+    // Category change already scrolls to start; only scroll for explicit sub picks
+    if (selectedSubCategory._id !== "all") {
       scrollToIndex(subCatFlatListRef, subCategoryIndex);
     }
 
@@ -122,7 +157,9 @@ const CategoryList = ({
   const handleSelectCategory = useCallback(
     (category: Category) => {
       const index = categories.findIndex((c) => c._id === category._id);
+      // Batch category + All so Redux never sees the previous subcategory
       setSelectedCategory(category);
+      setSelectedSubCategory(ALL_SUBCATEGORY_OPTION);
 
       if (index >= 0) {
         scrollToIndex(catFlatListRef, index, 0.3);

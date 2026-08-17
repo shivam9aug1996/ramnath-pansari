@@ -65,8 +65,12 @@ const SubCategorySelector = ({
     [subCategories.length, subCatFlatListRef],
   );
 
+  // Remount when category children change so scroll offset resets to start
+  const listKey = subCategories[1]?._id ?? subCategories[0]?._id ?? "subs";
+
   return (
     <FlatList
+      key={listKey}
       ref={subCatFlatListRef}
       horizontal
       bounces={Platform.OS !== "android"}

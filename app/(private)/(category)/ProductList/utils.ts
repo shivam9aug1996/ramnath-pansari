@@ -51,8 +51,17 @@ export const productPlaceholderData = [
   },
 ];
 
-export const scrollToTop = (ref: any) => {
-  ref?.current?.scrollToOffset?.({ animated: false, offset: 0 });
+export const scrollToTop = (ref: any, animated = false) => {
+  const list = ref?.current;
+  if (!list) return;
+
+  // Prefer offset 0 — more reliable than scrollToIndex(0) after data swaps
+  if (typeof list.scrollToOffset === "function") {
+    list.scrollToOffset({ animated, offset: 0 });
+    return;
+  }
+
+  list.scrollToIndex?.({ index: 0, animated, viewPosition: 0 });
 };
 
 export const scrollToIndex = (
@@ -61,6 +70,12 @@ export const scrollToIndex = (
   viewPosition: number = 0.3
 ) => {
   if (!Number.isFinite(index) || index < 0) return;
+
+  // Index 0 = start of list — use offset for consistency across platforms
+  if (index === 0) {
+    scrollToTop(ref, true);
+    return;
+  }
 
   ref?.current?.scrollToIndex?.({
     index,

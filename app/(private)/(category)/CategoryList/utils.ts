@@ -81,8 +81,9 @@ export const getSubCategoryIndex = (
   subCategories: SubCategory[],
   selectedSubCategory: SubCategory
 ) => {
-  const index = subCategories?.findIndex(
-    (item: any) => item?._id === selectedSubCategory?._id
-  );
-  return index >= 0 ? index : 0;
+  console.log("subCategories1111", subCategories);
+  console.log("selectedSubCategory111", selectedSubCategory);
+  return subCategories?.findIndex(
+    (item: any) => item?._id?.toString()?.toLowerCase() === selectedSubCategory?._id?.toString()?.toLowerCase()
+  ) ?? -1;
 };
