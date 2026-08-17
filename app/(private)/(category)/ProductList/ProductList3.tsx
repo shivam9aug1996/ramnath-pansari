@@ -153,7 +153,7 @@ const ProductList3 = ({
   const renderListFooter = useCallback(() => {
     if (showInitialSkeleton || !hasNextPage) return null;
     return (
-      <View style={styles.footerContainer}>
+      <View>
         <ProductPaginationSkeleton />
       </View>
     );
@@ -279,9 +279,6 @@ const styles = StyleSheet.create({
   listRefreshing: {
     opacity: 0.6,
     pointerEvents: "none",
-  },
-  footerContainer: {
-    paddingVertical: 12,
   },
   listFooter: {
     height: 200,
