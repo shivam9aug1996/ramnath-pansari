@@ -1,8 +1,8 @@
 import { useSelector } from "react-redux";
 import {
   deliverySettingsApi,
-  useFetchDeliverySettingsQuery,
 } from "@/redux/features/deliverySettingsSlice";
+import { useGetAdminDeliverySettingsQuery } from "@/redux/features/adminDeliverySettingsSlice";
 import { RootState } from "@/types/global";
 import {
   resolveDeliverySettings,
@@ -10,14 +10,14 @@ import {
 } from "@/utils/deliveryFee";
 
 type UseDeliverySettingsOptions = {
-  /** When true, fetches from API (e.g. admin). Customers rely on checkout refresh + cache. */
+  /** When true, fetches via admin API. Customers rely on checkout refresh + cache. */
   fetch?: boolean;
 };
 
 export function useDeliverySettings(
   options?: UseDeliverySettingsOptions,
 ): DeliverySettings {
-  const { data: fetched } = useFetchDeliverySettingsQuery(undefined, {
+  const { data: fetched } = useGetAdminDeliverySettingsQuery(undefined, {
     skip: !options?.fetch,
   });
   const cached = useSelector(
