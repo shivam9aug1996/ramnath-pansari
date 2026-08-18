@@ -23,9 +23,10 @@ type Props = {
   item: Product;
   index: number;
   quantity: number;
+  isCartLoading: boolean;
 };
 
-const ProductItem = ({ item, index, quantity }: Props) => {
+const ProductItem = ({ item, index, quantity, isCartLoading }: Props) => {
   const discountPercentage = useMemo(() => {
     if (!item?.discountedPrice || item.discountedPrice >= item.price) return 0;
     return Math.round(((item.price - item.discountedPrice) / item.price) * 100);
@@ -66,6 +67,7 @@ const ProductItem = ({ item, index, quantity }: Props) => {
           item={item}
           discountPercentage={discountPercentage}
           quantity={quantity || 0}
+          isCartLoading={isCartLoading}
         />
       </View>
     </View>
@@ -88,7 +90,7 @@ const ProductImageInfo = memo(function ProductImageInfo({
   discountPercentage,
 }: ImageInfoProps) {
   const isOutOfStock = item?.isOutOfStock;
-
+  console.log("ProductImageInfo", item?._id);
   return (
     <TouchableOpacity
       onPress={handleProductPress}
@@ -121,6 +123,7 @@ type ProductInfoProps = {
   discountPercentage: number;
   handleProductPress: (e?: GestureResponderEvent) => void;
   quantity: number;
+  isCartLoading: boolean;
 };
 
 const ProductInfo = memo(function ProductInfo({
@@ -128,9 +131,10 @@ const ProductInfo = memo(function ProductInfo({
   discountPercentage,
   handleProductPress,
   quantity,
+  isCartLoading,
 }: ProductInfoProps) {
   const sizeLabel = item?.size?.trim() || "";
-
+  console.log("ProductInfo", item?._id);
   const displayName = useMemo(() => {
     const name = item?.name?.trim() || "";
     if (!sizeLabel) return name;
@@ -195,7 +199,7 @@ const ProductInfo = memo(function ProductInfo({
           </Text>
         </TouchableOpacity>
 
-        <CartButton value={quantity} item={item} inline />
+        <CartButton value={quantity} item={item} inline isCartLoading={isCartLoading} />
       </View>
     </View>
   );

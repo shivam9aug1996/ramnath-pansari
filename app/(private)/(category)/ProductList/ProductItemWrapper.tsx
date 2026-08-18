@@ -6,18 +6,21 @@ type ProductItemWrapperProps = {
   item: Product;
   index: number;
   quantity: number;
+  isCartLoading: boolean;
 };
 
 const ProductItemWrapper = ({
   item,
   index,
   quantity,
+  isCartLoading,
 }: ProductItemWrapperProps) => {
   return (
     <ProductItem
       item={item}
       index={index}
       quantity={quantity}
+      isCartLoading={isCartLoading}
     />
   );
 };

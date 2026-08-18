@@ -23,22 +23,22 @@ const CONTROL_HEIGHT = 28;
 
 type Props = CartButtonProps & {
   inline?: boolean;
+  isCartLoading: boolean;
 };
 
-const CartButton = ({ value, item, inline = false }: Props) => {
+const CartButton = ({ value, item, inline = false, isCartLoading }: Props) => {
   const userId = useSelector((state: RootState) => state.auth.userData?._id);
   const isGuestUser = useSelector(
     (state: RootState) => state.auth.userData?.isGuestUser,
   );
 
   const skipCartQuery = !userId || !!isGuestUser;
-  const { isLoading, isUninitialized, isSuccess, isError } = useFetchCartQuery(
-    { userId },
-    { skip: skipCartQuery },
-  );
+  // const { isLoading, isUninitialized, isSuccess, isError } = useFetchCartQuery(
+  //   { userId },
+  //   { skip: skipCartQuery },
+  // );
 
-  const showCartLoader =
-    !skipCartQuery && !isSuccess && !isError && (isLoading || isUninitialized);
+  const showCartLoader = isCartLoading
 
   const { quantity, handleAdd, handleRemove } = useCartOperations(item, value);
 

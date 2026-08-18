@@ -80,7 +80,7 @@ const ProductList3 = ({
     (state: RootState) => state.product.syncedProductOverrides,
   );
 
-  const { data: cartData } = useFetchCartQuery(
+  const { data: cartData, isLoading: isCartLoading } = useFetchCartQuery(
     { userId },
     { skip: !userId },
   );
@@ -144,6 +144,7 @@ const ProductList3 = ({
           item={mergedItem}
           index={index}
           quantity={cartItem?.quantity ?? 0}
+          isCartLoading={isCartLoading}
         />
       );
     },
