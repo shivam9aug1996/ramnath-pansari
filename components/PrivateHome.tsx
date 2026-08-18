@@ -342,11 +342,9 @@ const ListItem = memo(
         const fallback = <WeatherSlotSkeleton />;
         return (
           <View style={styles.weatherSection}>
-            <DeferredFadeIn delay={Platform.OS === "web" ? 0 : 100} fallback={fallback}>
               <Suspense fallback={fallback}>
                 <WeatherSection />
               </Suspense>
-            </DeferredFadeIn>
           </View>
         );
       }
@@ -354,11 +352,9 @@ const ListItem = memo(
         const fallback = <GetTheAppSlotSkeleton />;
         return (
           <View style={styles.getTheAppSection}>
-            <DeferredFadeIn delay={Platform.OS === "web" ? 0 : 100} fallback={fallback}>
               <Suspense fallback={fallback}>
                 <GetTheApp variant="banner" />
               </Suspense>
-            </DeferredFadeIn>
           </View>
         );
       }
